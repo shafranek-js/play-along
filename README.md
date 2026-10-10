@@ -180,3 +180,9 @@ This is an incremental extraction, **not** a claim that the rest of the 21 legac
 ## SHA-256 music identity and legacy compatibility (v0.10.18)
 
 New imports use a full SHA-256 content ID, while files already stored under the legacy FNV-1a+length identifier retain that identifier on re-import. A legacy hash collision cannot overwrite a different work: writing the same ID with different bytes aborts the IndexedDB transaction. Restore accepts both old and new ID formats, verifies the matching digest and atomically aborts on an existing ID with different music. No mass renaming or reset of existing per-song settings is performed.
+
+## MusicXML audit guards (v0.10.19)
+
+- First-ending voltas now check every measure crossed by a backward jump, even if the first ending itself plays only once. An in-loop divisions/meter/tempo change is left in original written order with a warning, rather than silently corrupting durations.
+- `<sound tempo="…"/>` directly inside a MusicXML measure is recognized; it shares tempo offset rules with `<direction><sound>` and maintains the same shared beat/second timeline.
+- Chromium regression fixtures exercise both an unsafe first ending and direct measure-level tempo changes, including a nested offset.

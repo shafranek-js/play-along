@@ -352,6 +352,39 @@ try{
  assert.deepEqual(overfullResult.starts,[0,5],'OSMD bar navigation must account for overfull measure');
  near(overfullResult.notes[2].start,2.5,'Importer must agree on the second measure onset');
  console.log('NORMALIZED BARS: OSMD and MusicXML agree on overfull measure: PASS');
+ // The first ending can alter divisions even though it is never played
+ // twice: jumping backward must still restore that state or guard expansion.
+ const changedVolta=voltaXml().replaceAll('<measure number="2">',
+  '<measure number="2"><attributes><divisions>960</divisions></attributes>');
+ const guardedVolta=await page.evaluate(xml=>{
+  const song=window.__libraryV08.readMusicXML(xml,'divisions-volta.musicxml');
+  return {pitches:song.tracks[0].notes.map(n=>n.pitch),
+   untouched:!song.originalNotationXML&&song.notationXML.includes('ending number="1"'),
+   warning:song.warnings.some(w=>w.includes('divisions'))};
+ },changedVolta);
+ assert.equal(guardedVolta.pitches.length,4,'Changing divisions in first ending must not silently unfold');
+ assert.ok(guardedVolta.untouched&&guardedVolta.warning);
+ // A direct child <sound> is standard MusicXML, not only <direction><sound>.
+ const directSound=`<?xml version="1.0"?>
+ <score-partwise version="4.0"><part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list>
+ <part id="P1"><measure number="1"><attributes><divisions>480</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes>
+ <sound tempo="60"/><note><pitch><step>C</step><octave>4</octave></pitch><duration>480</duration><type>quarter</type></note>
+ </measure></part></score-partwise>`;
+ const direct=await page.evaluate(xml=>{
+  const song=window.__libraryV08.readMusicXML(xml,'measure-sound.musicxml');
+  return {length:song.tracks[0].notes[0].duration,bpm:60000000/song.scoreTempoMap[0].tempo};
+ },directSound);
+ near(direct.length,1,'Direct measure-level sound tempo');
+ near(direct.bpm,60,'Direct sound tempo map');
+ const delayed=directSound.replace('<sound tempo="60"/>','<sound tempo="60"><offset>480</offset></sound>')
+ .replace('</note>','</note><note><pitch><step>D</step><octave>4</octave></pitch><duration>480</duration><type>quarter</type></note>');
+ const delays=await page.evaluate(xml=>{
+  const song=window.__libraryV08.readMusicXML(xml,'direct-sound-offset.musicxml');
+  return song.tracks[0].notes.map(n=>n.duration);
+ },delayed);
+ near(delays[0],.5,'Delayed direct sound retains preceding tempo');
+ near(delays[1],1,'Delayed direct sound changes tempo at beat one');
+ console.log('AUDIT A03/A04: first-ending state guarded; measure-level sound tempo and offset: PASS');
  assert.deepEqual(errs,[]);
  console.log('MUSIC REGRESSION: MusicXML rests, chord, tie, 4/4 to 3/4, tempo 120→60, left hand and MIDI tempo: PASS');
 }finally{if(browser)await browser.close();await new Promise(resolve=>server.close(resolve))}
