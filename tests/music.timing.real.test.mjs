@@ -200,6 +200,38 @@ try{
   return song.tracks[0].notes.map(n=>({pitch:n.pitch,start:n.start,duration:n.duration}));
  },pickup);
  near(pickupResult[1].start,.25,'Implicit pickup must not be padded to a full measure');
+
+ // Some exporters place a new time signature only in their first part.
+ // The second part may have no new <time> but both must share bar 3 onset.
+ const meterChange=`<?xml version="1.0"?>
+ <score-partwise version="4.0"><part-list>
+ <score-part id="R"><part-name>Right</part-name></score-part>
+ <score-part id="L"><part-name>Left</part-name></score-part></part-list>
+ <part id="R">
+ <measure number="1"><attributes><divisions>480</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes>
+ <note><pitch><step>C</step><octave>5</octave></pitch><duration>1920</duration><type>whole</type></note></measure>
+ <measure number="2"><attributes><time><beats>3</beats><beat-type>4</beat-type></time></attributes>
+ <note><pitch><step>D</step><octave>5</octave></pitch><duration>1440</duration><type>half</type><dot/></note></measure>
+ <measure number="3"><note><pitch><step>E</step><octave>5</octave></pitch><duration>1440</duration><type>half</type><dot/></note></measure></part>
+ <part id="L">
+ <measure number="1"><attributes><divisions>480</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes>
+ <note><pitch><step>C</step><octave>3</octave></pitch><duration>1920</duration><type>whole</type></note></measure>
+ <measure number="2"><note><pitch><step>D</step><octave>3</octave></pitch><duration>1440</duration><type>half</type><dot/></note></measure>
+ <measure number="3"><note><pitch><step>E</step><octave>3</octave></pitch><duration>1440</duration><type>half</type><dot/></note></measure></part>
+ </score-partwise>`;
+ const aligned=await page.evaluate(xml=>{
+  const song=window.__libraryV08.readMusicXML(xml,'meter-change.musicxml');
+  return song.tracks.map(t=>t.notes.map(n=>({start:n.start,duration:n.duration,pitch:n.pitch})));
+ },meterChange);
+ assert.equal(aligned.length,2);
+ for(const hand of aligned){
+  assert.equal(hand.length,3);
+  near(hand[0].start,0,'4/4 initial measure');
+  near(hand[1].start,2,'First 3/4 measure');
+  near(hand[2].start,3.5,'Second 3/4 measure must share a downbeat');
+  near(hand[2].duration,1.5,'3/4 note duration');
+ }
+ console.log('SHARED BAR GRID: single-part time-signature change remains synchronized across hands: PASS');
  console.log('PART TIMING: incomplete 4/4 bar aligned across hands, implicit pickup preserved: PASS');
 
  // Standard two-ending volta: C D(first) C E(second) F, with two synchronized hands.
