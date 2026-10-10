@@ -136,7 +136,7 @@ try{
  assert.equal(backup.settings.speed,75);
  assert.equal(backup.settings.mode,'tempo');
  assert.deepEqual(backup.smartMastery.testMastery,{value:88});
- assert.equal(await page.evaluate(async ()=>{const request=indexedDB.open('playalong-library-v08');const db=await new Promise((resolve,reject)=>{request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error)});await new Promise((resolve,reject)=>{const tx=db.transaction(['works','prefs'],'readwrite');tx.objectStore('works').clear();tx.objectStore('prefs').clear();tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});db.close();localStorage.clear();return true}),true);
+ assert.equal(await page.evaluate(async ()=>{const request=indexedDB.open('playalong-library-v08');const db=await new Promise((resolve,reject)=>{request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error)});await new Promise((resolve,reject)=>{const tx=db.transaction(['works','workIndex','prefs'],'readwrite');tx.objectStore('works').clear();tx.objectStore('workIndex').clear();tx.objectStore('prefs').clear();tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});db.close();localStorage.clear();return true}),true);
  await page.reload({waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>window.__libraryV08?.collection.length===0);
  page.on('dialog',dialog=>dialog.accept());
