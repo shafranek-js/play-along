@@ -71,14 +71,19 @@ function reviewForNote(n){
  if(live&&practice.started)return live;
  return perfLastIndex.get(reviewNoteKey(n))||null;
 }
-function metricCard(label,val){return `<div class="reviewMetric"><strong>${val}</strong><span>${label}</span></div>`}
+function metricCard(label,val){return `<div class="reviewMetric"><strong>${scoreEscape(val)}</strong><span>${scoreEscape(label)}</span></div>`}
 let reviewRefreshPending=false;function scheduleReviewRender(){if(state.rightTab!=='review'||!state.right)return;if(reviewRefreshPending)return;reviewRefreshPending=true;setTimeout(()=>{reviewRefreshPending=false;renderReview()},110)}
 function renderReview(){
  const box=$('reviewHeadline');if(!box||!current)return;
  const live=practice&&practice.started&&state.mode!=='listen';const sum=live?summarizePerformance(practice):perfLast;
  if(!sum){box.innerHTML='<strong>Пока нет попыток</strong><p>Открой Wait или Tempo и сыграй выбранную партию. Результаты сохраняются после завершения или по кнопке.</p>'; $('reviewMetrics').innerHTML='';$('reviewTiming').textContent='Нет данных';$('reviewSections').innerHTML='<p class="small">Нет ошибок для разбора.</p>';}
  else{
-  box.innerHTML=`<strong>${live?'Текущая попытка':('Сохранено · '+new Date(sum.date).toLocaleString('ru-RU'))}</strong><p>Оценка: <b>${sum.score}%</b> · ${sum.total} нот · ${sum.mode==='wait'?'Wait':'Tempo'} · ${live?'в процессе':sum.reason==='manual'?'промежуточно':sum.reason==='complete'?'полностью':'повтор'}</p>`;
+  const heading=document.createElement('strong'),summary=document.createElement('p'),value=document.createElement('b');
+  heading.textContent=live?'Текущая попытка':'Сохранено · '+new Date(sum.date).toLocaleString('ru-RU');
+  value.textContent=String(sum.score)+'%';
+  const status=live?'в процессе':sum.reason==='manual'?'промежуточно':sum.reason==='complete'?'полностью':'повтор';
+  summary.append('Оценка: ',value,' · '+sum.total+' нот · '+(sum.mode==='wait'?'Wait':'Tempo')+' · '+status);
+  box.replaceChildren(heading,summary);
   const stats=sum.stats;
   $('reviewMetrics').innerHTML=metricCard('Ноты / точность',sum.accuracy+'%')+metricCard('Рано / поздно',(stats.early||0)+' / '+(stats.late||0))+metricCard('Пропуски / лишние',stats.missed+' / '+stats.wrong)+metricCard('Коротко / долго',stats.short+' / '+(stats.long||0))+metricCard('Время · в окне',sum.timePct==null?'—':sum.timePct+'%')+metricCard('Аккорды · вместе',sum.chordPct==null?'—':sum.chordPct+'%');
   $('reviewTiming').textContent=sum.mode==='wait'?'Wait Mode: задержка входа и длительности намеренно не оцениваются. У аккордов проверяется разброс реальных нажатий.':`Средняя абсолютная ошибка времени: ${sum.avgAbsTime??'—'} мс. Допуск точного входа ±70 мс; нормального ±110 мс. Удержание: 70–140% номинальной длительности. Аккорд: разброс ≤140 мс.`;
