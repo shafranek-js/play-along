@@ -34,7 +34,12 @@ try{
  page.route('https://cdn.jsdelivr.net/**',r=>r.abort('blockedbyclient'));
  page.route('https://unpkg.com/**',r=>r.abort('blockedbyclient'));
  await page.goto(origin,{waitUntil:'domcontentloaded'});
- await page.waitForFunction(()=>window.__scoreTest&&window.__prototypeTest&&window.__libraryV08);
+ await page.waitForFunction(()=>window.__scoreTest&&window.__prototypeTest&&window.__libraryV08,null,{timeout:5000}).catch(async err=>{
+   console.log('BOOT ERRORS:',errors);
+   console.log('BACKUP CONTROL COUNT:',await page.locator('#backupExport').count());
+   console.log('PAGE DIAGNOSTIC:',await page.evaluate(()=>({ready:document.readyState,script:!!document.querySelector('script[src*="app.js"]'),state:typeof window.__prototypeTest,library:typeof window.__libraryV08})));
+   throw err;
+ });
  assert.equal(await page.evaluate(()=>window.__playAlongVersion),'0.10.2');
  const zip=makeZip('score.musicxml',SCORE).toString('base64');
  const result=await page.evaluate(async ({xml,zip})=>{
