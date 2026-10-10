@@ -1,10 +1,110 @@
 const $=id=>document.getElementById(id);
 const STORE='playalong:smart-practice:v07';const V06_STORE='playalong:performance-analyzer:v06';const PREV_STORE='playalong:smart-phrasing:v05';const PREV2_OLD_STORE='playalong:real-piano:v04';const PREV2_STORE='playalong:keyboard-engine:v03';const OLD_STORE='playalong:music-engine:v02';const OLDER_STORE='playalong:ui-prototype:v1';
 const defaults={layout:'learn',page:'practice',left:true,right:true,leftWidth:286,rightWidth:318,rightTab:'practice',mode:'listen',accompany:true,accompanyExplicit:false,autoMidi:true,preferredMidiName:'',speed:100,displayRange:'song',labels:true,highlight:true,allTracks:true,volume:40,selected:'demo-scale',track:0,deviceProfiles:{},targetRange:'device',adaptMode:'original',adaptShift:0,auditionAdapted:false,showReviewMarkers:true,scoreView:'roll',sheetZoom:100,sheetFollow:true};
-let stored={};try{stored=JSON.parse(localStorage.getItem(STORE)||localStorage.getItem(V06_STORE)||localStorage.getItem(PREV_STORE)||localStorage.getItem(PREV2_OLD_STORE)||localStorage.getItem(PREV2_STORE)||localStorage.getItem(OLD_STORE)||localStorage.getItem(OLDER_STORE)||'{}')||{}}catch{}
-const state={...defaults,...stored};if(!['roll','sheet'].includes(state.scoreView))state.scoreView='roll';state.sheetZoom=Math.max(65,Math.min(150,Number(state.sheetZoom)||100));state.deviceProfiles=typeof state.deviceProfiles==='object'&&state.deviceProfiles!==null?state.deviceProfiles:{};
-// Device configuration and panels are global; practice preferences are independent per piece.
+// Treat backups AND older localStorage snapshots as untrusted input.
+// Invalid restored values are rejected in strict backup mode; legacy
+// localStorage uses safe defaults to preserve normal upgrades.
 const SONG_PREF_FIELDS=['mode','speed','track','accompany','accompanyExplicit','targetRange','adaptMode','adaptShift','adaptProfile','auditionAdapted','displayRange','allTracks','scoreView','sheetZoom','sheetFollow'];
+const SETTING_ENUMS={
+ layout:['learn','play','analyze'],page:['practice','library','progress'],
+ rightTab:['practice','adapt','midi','review','smart','analysis'],mode:['listen','wait','tempo'],
+ displayRange:['song','device'],targetRange:['device','preview25','preview37','preview49','preview61','preview76','preview88'],
+ adaptMode:['original','transpose','adaptive'],adaptProfile:['center','low','high'],scoreView:['roll','sheet']
+};
+const SETTING_NUMBERS={
+ leftWidth:[210,520],rightWidth:[240,550],speed:[25,150],volume:[0,100],
+ sheetZoom:[65,150],track:[0,1000],adaptShift:[-72,72],position:[0,864000]
+};
+const SETTING_BOOLS=new Set(['left','right','accompany','accompanyExplicit','autoMidi','labels','highlight','allTracks','auditionAdapted','showReviewMarkers','sheetFollow']);
+const SETTING_STRINGS={preferredMidiName:200,selected:250};
+const settingPlainObject=v=>v!==null&&typeof v==='object'&&!Array.isArray(v)&&
+ (Object.getPrototypeOf(v)===Object.prototype||Object.getPrototypeOf(v)===null);
+function settingValidated(key,value){
+ if(Object.hasOwn(SETTING_ENUMS,key))return SETTING_ENUMS[key].includes(value)?value:undefined;
+ if(Object.hasOwn(SETTING_NUMBERS,key)){
+  const [min,max]=SETTING_NUMBERS[key];
+  return typeof value==='number'&&Number.isFinite(value)&&value>=min&&value<=max
+   &&(!['track'].includes(key)||Number.isInteger(value))?value:undefined;
+ }
+ if(SETTING_BOOLS.has(key))return typeof value==='boolean'?value:undefined;
+ if(Object.hasOwn(SETTING_STRINGS,key))
+  return typeof value==='string'&&value.length<=SETTING_STRINGS[key]?value:undefined;
+ return undefined;
+}
+function settingSafeProfiles(value,strict){
+ if(!settingPlainObject(value)||Object.keys(value).length>100)return strict?undefined:{};
+ const profiles=Object.create(null);
+ for(const [id,item] of Object.entries(value)){
+  if(id.length>250||['__proto__','constructor','prototype'].includes(id)||!settingPlainObject(item)
+    ||!Number.isInteger(item.low)||!Number.isInteger(item.high)
+    ||item.low<0||item.high>127||item.high<=item.low){
+   if(strict)return undefined;
+   continue;
+  }
+  profiles[id]={low:item.low,high:item.high};
+ }
+ return profiles;
+}
+function settingSongPrefs(value,strict){
+ if(!settingPlainObject(value))return strict?undefined:Object.create(null);
+ const result=Object.create(null);
+ for(const [id,prefs] of Object.entries(value)){
+  if(id.length>250||['__proto__','constructor','prototype'].includes(id)||!settingPlainObject(prefs)){
+   if(strict)return undefined;
+   continue;
+  }
+  const safe={};
+  for(const key of SONG_PREF_FIELDS){
+   if(!Object.hasOwn(prefs,key))continue;
+   const validated=settingValidated(key,prefs[key]);
+   if(validated===undefined){if(strict)return undefined;continue}
+   safe[key]=validated;
+  }
+  if(Object.hasOwn(prefs,'position')){
+   const position=settingValidated('position',prefs.position);
+   if(position===undefined){if(strict)return undefined}else safe.position=position;
+  }
+  if(Object.hasOwn(prefs,'loop')){
+   const loop=prefs.loop;
+   const valid=settingPlainObject(loop)&&typeof loop.enabled==='boolean'&&
+    ['start','end'].every(k=>loop[k]===null||(
+     typeof loop[k]==='number'&&Number.isFinite(loop[k])&&loop[k]>=0&&loop[k]<=864000));
+   if(!valid){if(strict)return undefined}
+   else safe.loop={start:loop.start,end:loop.end,enabled:loop.enabled};
+  }
+  if(Object.hasOwn(prefs,'bookmarks')){
+   const marks=prefs.bookmarks;
+   if(!Array.isArray(marks)||marks.length>80||marks.some(x=>typeof x!=='number'||!Number.isFinite(x)||x<0||x>864000)){
+    if(strict)return undefined;
+   }else safe.bookmarks=marks.slice();
+  }
+  result[id]=safe;
+ }
+ return result;
+}
+function sanitizePlayAlongSettings(value,{strict=false}={}){
+ if(!settingPlainObject(value)) {if(strict)throw Error('Повреждённые настройки');return {...defaults}}
+ const safe={...defaults};
+ for(const [key,raw] of Object.entries(value)){
+  if(key==='songSettings'){
+   const parsed=settingSongPrefs(raw,strict);
+   if(parsed===undefined&&strict)throw Error('Некорректные настройки мелодий');
+   if(parsed!==undefined)safe.songSettings=parsed;
+  }else if(key==='deviceProfiles'){
+   const parsed=settingSafeProfiles(raw,strict);
+   if(parsed===undefined&&strict)throw Error('Некорректная калибровка MIDI');
+   if(parsed!==undefined)safe.deviceProfiles=parsed;
+  }else if(Object.hasOwn(defaults,key)||key==='adaptProfile'){
+   const parsed=settingValidated(key,raw);
+   if(parsed===undefined){if(strict)throw Error('Некорректное значение настройки: '+key)}
+   else safe[key]=parsed;
+  }
+ }
+ return safe;
+}
+let stored={};try{stored=JSON.parse(localStorage.getItem(STORE)||localStorage.getItem(V06_STORE)||localStorage.getItem(PREV_STORE)||localStorage.getItem(PREV2_OLD_STORE)||localStorage.getItem(PREV2_STORE)||localStorage.getItem(OLD_STORE)||localStorage.getItem(OLDER_STORE)||'{}')||{}}catch{}
+const state=sanitizePlayAlongSettings(stored);if(!['roll','sheet'].includes(state.scoreView))state.scoreView='roll';state.sheetZoom=Math.max(65,Math.min(150,Number(state.sheetZoom)||100));state.deviceProfiles=typeof state.deviceProfiles==='object'&&state.deviceProfiles!==null?state.deviceProfiles:{};
+// Device configuration and panels are global; practice preferences are independent per piece.
 const newSongDefaults=Object.fromEntries(SONG_PREF_FIELDS.map(k=>[k,defaults[k]]));
 state.songSettings=(state.songSettings&&typeof state.songSettings==='object'&&!Array.isArray(state.songSettings))?state.songSettings:{};
 // v0.10.0 and earlier kept mode/speed/view per browser instead of per work.
