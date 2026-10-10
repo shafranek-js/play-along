@@ -190,6 +190,63 @@ try{
  await page.locator('#backupExport').click();
  const fullBackup=JSON.parse(fs.readFileSync(await (await fullBackupPromise).path(),'utf8'));
  assert.ok(fullBackup.performances.length>=35,'Backup contains only the legacy 30-attempt cache');
+ // All newly imported works use full SHA-256 IDs; no migration of the
+ // previously imported legacy identifiers is required.
+ assert.ok(fullBackup.works.every(w=>/^saved-sha256-[0-9a-f]{64}$/.test(w.id)),
+  'Newly imported works must have strong SHA-256 IDs');
+ const collision=await page.evaluate(async(xml)=>{
+  const input=new TextEncoder().encode(xml).buffer;
+  const first=await window.__libraryV08.librarySaveBinary('fixture.musicxml',input,'test');
+  const hashes=await crypto.subtle.digest('SHA-256',input);
+  const expected='saved-sha256-'+[...new Uint8Array(hashes)].map(x=>x.toString(16).padStart(2,'0')).join('');
+  const legacyBytes=new Uint8Array(input),legacyHash=legacyBytes.reduce((h,v)=>Math.imul(h^v,16777619)>>>0,2166136261);
+  const legacyId='saved-'+legacyHash.toString(16)+'-'+legacyBytes.length;
+  const q=indexedDB.open('playalong-library-v08');
+  const db=await new Promise((resolve,reject)=>{q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error)});
+  // Seed a legacy-ID collision using different bytes under the same key;
+  // the second imported work must NEVER replace the existing legacy data.
+  const other=new TextEncoder().encode(xml.replace('<step>C</step>','<step>G</step>')).buffer;
+  await new Promise((resolve,reject)=>{
+   const tx=db.transaction(['works','workIndex'],'readwrite');
+   const entry={id:legacyId,name:'previous.musicxml',title:'Protected legacy file',
+    author:'CI',origin:'legacy',added:1,format:'musicxml',data:other};
+   tx.objectStore('works').put(entry);
+   tx.objectStore('workIndex').put({...entry,data:undefined,dataSize:other.byteLength});
+   tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);
+  });
+  const saved=await window.__libraryV08.librarySaveBinary('new.musicxml',input,'test');
+  const old=await new Promise((resolve,reject)=>{
+   const rq=db.transaction('works','readonly').objectStore('works').get(legacyId);
+   rq.onsuccess=()=>resolve(rq.result);rq.onerror=()=>reject(rq.error);
+  });
+  db.close();
+  return {firstId:first.id,expected,savedId:saved.id,legacyId,oldUnchanged:
+   old.name==='previous.musicxml'&&new Uint8Array(old.data)[0]===new Uint8Array(other)[0]&&
+   new TextDecoder().decode(old.data).includes('<step>G</step>')};
+ },score34);
+ assert.equal(collision.firstId,collision.expected);
+ assert.equal(collision.savedId,collision.expected);
+ assert.ok(collision.oldUnchanged,'A colliding legacy ID overwrote another score');
+ console.log('MUSIC CONTENT IDS: SHA-256, legacy-ID collision cannot overwrite existing score: PASS');
+ // Export must fail explicitly if it could not be restored, not silently
+ // truncate thousands of performance records or issue an unusable download.
+ await page.evaluate(async()=>{
+  const q=indexedDB.open('playalong-library-v08');
+  const db=await new Promise((resolve,reject)=>{q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error)});
+  await new Promise((resolve,reject)=>{
+   const tx=db.transaction('performances','readwrite'),store=tx.objectStore('performances');
+   for(let i=0;i<5001;i++)store.put({id:'limit-'+i,profile:'stress',
+    date:'2026-10-10T00:00:00.000Z',notes:[]});
+   tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);
+  });
+  db.close();
+ });
+ await page.locator('#backupExport').click();
+ await page.waitForFunction(()=>document.querySelector('#onlineStatus')?.textContent?.includes('Экспорт отменён'),
+  null,{timeout:25000});
+ assert.ok(await page.locator('#onlineStatus').textContent().then(t=>t.includes('5000')),
+  'Oversized history export did not explain the restore limit');
+ console.log('BACKUP CONTRACT: 5001+ history entries are rejected before an unusable export: PASS');
  console.log('PERFORMANCE HISTORY: 35+ attempts survive reload and export');
  assert.deepEqual(errors,[]);
  console.log('Persistence + backup round-trip + 3/4 navigation + layout-only reset: PASS');
