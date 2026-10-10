@@ -88,6 +88,59 @@ try{
  await page.evaluate(()=>window.__prototypeTest.receiveNoteOff(60));
  assert.equal(await page.evaluate(()=>window.__prototypeTest.waitRelease),null);
  await page.locator('#playBtn').click();
+ // Verify physical articulation rather than waiting for unrelated key releases.
+ await page.locator('#viewRoll').click();
+ await page.evaluate(()=>{
+  const notes=[60,62,64,64,67,69].map((pitch,i)=>({
+   pitch,start:i*.65,duration:.45,velocity:82,track:0
+  }));
+  window.__prototypeTest.loadSong({
+   id:'legato-ci',title:'Legato CI',author:'CI',type:'demo',tempo:120,
+   tracks:[{name:'Melody',notes}]
+  });
+  window.__prototypeTest.setMode('wait');window.__prototypeTest.play();
+ });
+ await page.waitForFunction(()=>window.__prototypeTest.hold===true);
+ const hits=()=>page.evaluate(()=>window.__prototypeTest.stats.hits);
+ await page.evaluate(()=>window.__prototypeTest.receiveNoteOn(60));
+ assert.equal(await hits(),1);
+ // C stays held throughout D and E: successive new pitches must count.
+ await page.evaluate(()=>window.__prototypeTest.receiveNoteOn(62));
+ assert.equal(await hits(),2,'Legato note D missed while C held');
+ await page.evaluate(()=>window.__prototypeTest.receiveNoteOn(64));
+ assert.equal(await hits(),3,'Early E missed while D held');
+ // Repeating E without releasing it is NOT a new physical press.
+ await page.evaluate(()=>window.__prototypeTest.receiveNoteOn(64));
+ assert.equal(await hits(),3,'Held E advanced repeated note');
+ await page.evaluate(()=>window.__prototypeTest.receiveNoteOff(64));
+ await page.evaluate(()=>window.__prototypeTest.receiveNoteOn(64));
+ assert.equal(await hits(),4,'Rearticulated E not scored');
+ await page.evaluate(()=>window.__prototypeTest.receiveNoteOn(67));
+ assert.equal(await hits(),5);
+ await page.evaluate(()=>window.__prototypeTest.receiveNoteOn(69));
+ assert.equal(await hits(),6);
+ await page.evaluate(()=>{
+  for(const note of [60,62,64,67,69])window.__prototypeTest.receiveNoteOff(note);
+  window.__prototypeTest.pause();
+  window.__prototypeTest.loadSong({
+   id:'chord-ci',title:'Chord CI',author:'CI',type:'demo',tempo:120,
+   tracks:[{name:'Chords',notes:[
+    ...[60,64,67].map(pitch=>({pitch,start:0,duration:.8,velocity:80,track:0})),
+    {pitch:69,start:1,duration:.8,velocity:80,track:0}
+   ]}]
+  });
+  window.__prototypeTest.setMode('wait');window.__prototypeTest.play();
+ });
+ await page.waitForFunction(()=>window.__prototypeTest.hold===true);
+ await page.evaluate(()=>window.__prototypeTest.receiveNoteOn(60));
+ await page.evaluate(()=>window.__prototypeTest.receiveNoteOn(64));
+ assert.equal(await hits(),2,'Partial chord must count two voices only');
+ await page.evaluate(()=>window.__prototypeTest.receiveNoteOn(67));
+ assert.equal(await hits(),3,'Full chord must count all notes');
+ await page.evaluate(()=>window.__prototypeTest.receiveNoteOn(69));
+ assert.equal(await hits(),4,'Legato after completed chord must count next note');
+ await page.evaluate(()=>{for(const n of [60,64,67,69])window.__prototypeTest.receiveNoteOff(n);window.__prototypeTest.pause()});
+ console.log('WAIT REGRESSION: legato, early onset, repeated note, chord: PASS');
  assert.deepEqual(errors,[],'Browser Javascript errors');
  console.log('REAL OSMD + MXL + cursor + Wait: PASS');
 } finally{
