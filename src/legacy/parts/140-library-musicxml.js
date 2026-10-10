@@ -133,6 +133,94 @@ function musicSafeXml(xmlString){
 // parts on the same unrolled playback timeline. The returned notation is the
 // expanded sequence so OSMD's cursor, Piano Roll and sound agree.
 // Unsupported voltas, nested repeats and navigation marks remain untouched.
+// Support the common 1st/2nd ending form only: repeat two passes, skip
+// the first ending on pass 2, play the second ending, then continue normally.
+// The entire playback order is unfolded identically in all parts and OSMD.
+function musicExpandTwoEndings(doc){
+ const root=doc.documentElement,parts=xmlList(root,'part'),measures=xmlList(parts[0],'measure');
+ const decline=reason=>({expanded:false,warning:'Репризы не развёрнуты: '+reason});
+ const n=measures.length;
+ if(!n||n>600||parts.some(p=>xmlList(p,'measure').length!==n))
+  return decline('слишком много тактов или различная структура партий.');
+ const unsupported=[...root.getElementsByTagName('*')].some(x=>{
+  if(['segno','coda','dalsegno','dacapo','tocoda','fine'].includes(x.localName.toLowerCase()))return true;
+  return x.localName==='sound'&&['dacapo','dalsegno','segno','coda','tocoda','fine'].some(attr=>x.hasAttribute(attr));
+ });
+ if(unsupported)return decline('D.C./D.S., коды и переходы не поддерживаются в вольтах.');
+ const scan=part=>xmlList(part,'measure').map(m=>{
+  const bars=xmlList(m,'barline');
+  return {
+   forward:bars.flatMap(b=>xmlList(b,'repeat')).filter(x=>x.getAttribute('direction')==='forward'),
+   backward:bars.flatMap(b=>xmlList(b,'repeat')).filter(x=>x.getAttribute('direction')==='backward'),
+   endings:bars.flatMap(b=>xmlList(b,'ending')).map(x=>({number:x.getAttribute('number')||'',type:x.getAttribute('type')||''}))
+  };
+ });
+ const marks=scan(parts[0]);
+ const forwards=[],backwards=[],firstStarts=[],firstStops=[],secondStarts=[],secondStops=[];
+ for(let i=0;i<n;i++){
+  const m=marks[i];
+  if(m.forward.length>1||m.backward.length>1)return decline('повреждённая разметка повторов.');
+  if(m.forward.length)forwards.push(i);
+  if(m.backward.length)backwards.push(i);
+  for(const e of m.endings){
+   if(!['1','2'].includes(e.number)||!['start','stop','discontinue'].includes(e.type))
+    return decline('поддерживаются только первая и вторая вольты без объединённых номеров.');
+   const list=e.number==='1'
+    ?(e.type==='start'?firstStarts:firstStops)
+    :(e.type==='start'?secondStarts:secondStops);
+   list.push(i);
+  }
+ }
+ if(forwards.length>1||backwards.length!==1||firstStarts.length!==1||firstStops.length!==1||secondStarts.length!==1||secondStops.length!==1)
+  return decline('ожидается одна пара вольт с полными метками начала и окончания.');
+ const backward=backwards[0],start=forwards.length?forwards[0]:0;
+ const first=firstStarts[0],endFirst=firstStops[0],second=secondStarts[0],endSecond=secondStops[0];
+ const raw=marks[backward].backward[0].getAttribute('times');
+ if(raw!==null&&Number(raw)!==2)return decline('первый и второй варианты окончания требуют ровно два прохода.');
+ if(start>=backward||first<=start||first>backward||endFirst!==backward||second!==backward+1||endSecond<second)
+  return decline('вольты должны следовать непосредственно друг за другом после репризы.');
+ if(marks.slice(second).some(m=>m.forward.length||m.backward.length))
+  return decline('дополнительные репризы после второй вольты пока не поддерживаются.');
+ // Secondary parts may omit repeat symbols. If present, however, they
+ // must agree with the authoritative first part; no discordant ending labels.
+ for(const part of parts.slice(1)){
+  const other=scan(part);
+  for(let i=0;i<n;i++){
+   if((other[i].forward.length&&!marks[i].forward.length)||(other[i].backward.length&&!marks[i].backward.length))
+    return decline('репризы различаются между партиями.');
+   if(other[i].backward.length){
+    const otherTimes=other[i].backward[0].getAttribute('times');
+    if(otherTimes!==null&&Number(otherTimes)!==2)return decline('количество повторов различается между партиями.');
+   }
+   for(const e of other[i].endings)
+    if(!marks[i].endings.some(x=>x.number===e.number&&x.type===e.type))
+     return decline('разметка вольт различается между партиями.');
+  }
+ }
+ // Prefix includes the first pass and its first ending. On pass 2 the
+ // first ending is omitted and the second ending is played instead.
+ const sequence=[
+  ...Array.from({length:backward+1},(_,i)=>i),
+  ...Array.from({length:first-start},(_,i)=>start+i),
+  ...Array.from({length:n-second},(_,i)=>second+i)
+ ];
+ if(sequence.length>1200)return decline('слишком длинная исполняемая последовательность.');
+ for(const part of parts){
+  const written=xmlList(part,'measure');
+  const expanded=sequence.map((index,position)=>{
+   const clone=written[index].cloneNode(true);clone.setAttribute('number',String(position+1));
+   for(const barline of xmlList(clone,'barline')){
+    for(const node of [...barline.children])
+     if(node.localName==='repeat'||node.localName==='ending')node.remove();
+    if(!barline.children.length)barline.remove();
+   }
+   return clone;
+  });
+  for(const measure of written)measure.remove();
+  for(const measure of expanded)part.appendChild(measure);
+ }
+ return {expanded:true,written:n,played:sequence.length,endings:true};
+}
 function musicExpandSimpleRepeats(doc){
  const root=doc.documentElement,parts=xmlList(root,'part'),first=parts[0];
  if(!first)return {expanded:false};
@@ -148,6 +236,7 @@ function musicExpandSimpleRepeats(doc){
  const marks=markers(first);
  const hasRepeat=parts.some(p=>markers(p).some(x=>x.forward||x.backward));
  if(!hasRepeat)return {expanded:false};
+ if(root.getElementsByTagName('ending').length)return musicExpandTwoEndings(doc);
  const decline=warning=>({expanded:false,warning:'Репризы не развёрнуты: '+warning});
  if(parts.some(p=>xmlList(p,'measure').length!==measures.length))return decline('число тактов различается между партиями.');
  const unsupported=[...root.getElementsByTagName('*')].some(node=>{
