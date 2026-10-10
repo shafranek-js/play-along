@@ -50,6 +50,31 @@ try{
    window.__scoreTest.scoreSetView('sheet');
    return {mxlTracks:mxl.tracks.length,rawTracks:raw.tracks.length,notation:!!mxl.notationXML};
  },{xml:SCORE,zip});
+ // Reject malformed central directories and compressed payloads that attempt
+ // to inflate beyond the declared safe limit (ZIP bomb with forged size).
+ const malformed=Buffer.from(makeZip('score.musicxml',SCORE));
+ malformed.fill(0,malformed.length-22); // invalidate end-of-central-directory
+ const forged=(name)=>{
+  const zip=makeZip(name,'X'.repeat(16*1024*1024));
+  const nameLength=Buffer.byteLength(name),central=30+nameLength+zip.readUInt32LE(18);
+  zip.writeUInt32LE(1,central+24); // lie about raw size to exercise streaming limit
+  return zip.toString('base64');
+ };
+ const hostile=await page.evaluate(async ({broken,mxl,mscz})=>{
+  const decode=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0)).buffer;
+  const attempt=async(fn,data)=>{try{await fn(decode(data));return 'ACCEPTED'}catch(e){return String(e?.message||e)}};
+  return {
+   malformedMXL:await attempt(window.__libraryV08.zipUnpackMXL,broken),
+   malformedMSCZ:await attempt(window.__libraryV08.zipUnpackMuseScore,broken),
+   oversizedMXL:await attempt(window.__libraryV08.zipUnpackMXL,mxl),
+   oversizedMSCZ:await attempt(window.__libraryV08.zipUnpackMuseScore,mscz),
+  };
+ },{broken:malformed.toString('base64'),mxl:forged('score.musicxml'),mscz:forged('bad.mscx')});
+ console.log('ARCHIVE REJECTION:',hostile);
+ for(const [scenario,result] of Object.entries(hostile))
+  assert.notEqual(result,'ACCEPTED',scenario+' incorrectly accepted a hostile archive');
+ assert.match(hostile.oversizedMXL,/лимит|большой|превышает/i);
+ assert.match(hostile.oversizedMSCZ,/лимит|большой|превышает/i);
  assert.equal(result.mxlTracks,2);
  assert.equal(result.rawTracks,2);
  assert.ok(result.notation);
