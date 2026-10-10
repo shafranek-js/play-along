@@ -1,35 +1,46 @@
-# Play Along architecture and migration plan
+# Play Along — architecture and development plan
 
-## Current v0.10.0 architecture
+**Current version:** v0.10.13. The production GitHub Pages site is rebuilt and tested automatically from `main`.
+
+## Current implementation
 
 ```mermaid
-flowchart LR
-  UI[HTML + CSS] --> Bundle[Generated app.js]
-  Sources[20 ordered feature source files] --> Builder[Node.js build.mjs]
-  Builder --> Bundle
-  Bundle --> MIDI[Web MIDI / MicroLab]
-  Bundle --> Audio[Web Audio / shared playback clock]
-  Bundle --> OSMD[OSMD CDN on demand]
-  Bundle --> Collections[IndexedDB, local files, online catalogs]
+flowchart TD
+  A[HTML and CSS] --> B[Built app.js]
+  F[21 ordered legacy source parts] --> C[scripts/build.mjs]
+  C --> B
+  P[Pin: OSMD 2.2.0 via package-lock.json] --> C
+  B --> M[Web MIDI input]
+  B --> T[Web Audio transport]
+  B --> S[Real OSMD SVG renderer]
+  B --> L[IndexedDB v3: works, metadata, performances]
+  B --> U[localStorage: prefs and Smart Practice]
 ```
 
-The code is **not** independent ES modules yet. Feature-oriented pieces are concatenated into the preserved IIFE because functions currently reference each other via lexical shared state (`state`, `current`, `pos`, `ctx`, etc.).
+The 21 JavaScript fragments are concatenated in `scripts/manifest.json` order to create one shared-lexical-scope IIFE. Some code functions are split across adjacent fragments, and some older functions are intentionally overridden later in the bundle. This is a working transitional architecture, **not** independent ES modules. All source reordering is high-risk until boundaries are refactored.
 
-This is deliberate migration staging: minimal behavioral risk for the first release, easy source navigation and reproducible build. It is not equivalent to removing global coupling. The build manifest order is significant.
+## Data and reliability
 
-## Recommended next milestones
+- IndexedDB v3 stores original imported music in `works`, a metadata-only `workIndex`, and untruncated `performances`. Existing v1/v2 data is migrated transactionally.
+- Per-song practice settings and the selected score are restored at startup; MIDI device preferences are global.
+- Backup JSON is explicitly user-exported, checked against typed settings schema and music content IDs before import, and uses a single IDB transaction to commit binary files, favourites and history. localStorage updates occur before that transaction; failures roll back the cache.
+- GitHub Actions uses locked npm dependencies, deterministic build checks and real Chromium tests for OSMD, MusicXML, MIDI Wait, persistence, quota safety and backup XSS.
+- Browser storage is origin-specific; clearing site data removes the local repertoire unless the user has kept a backup.
 
-1. **Extract pure data parsers**: MIDI parser, MusicXML/MXL reader, MusicScore reader and validation into importable ES modules with file-based fixtures; preserve the existing output structures.
-2. **Separate catalog clients**: Mutopia, MuseTrainer, ASAP each behind a common `SearchResult` / `SongAsset` interface. Normalize provenance and license metadata in one place.
-3. **Introduce an explicit transport clock API** with one source of truth for tempo, position, note-on/off and audio scheduling, used by Piano Roll and OSMD cursor. Remove duplicate cursors and implicit global state.
-4. **Web MIDI adapter**: discovery/permission, disconnect and reconnect, note deduplication, sustain pedal handling; a fake input for automated tests and USB hardware acceptance.
-5. **OSMD offline dependency**: verify a pinned OSMD package and vendored build, test original MusicXML + synthetic MIDI transcription side by side, then remove CDN reliance.
-6. **Add CI** for Node parser tests, Playwright smoke on an unrestricted runner, and regression fixtures for Wait, simultaneous chords and rests.
+## Music invariants
 
-## Non-regression invariants
+1. One Web Audio transport clock governs audio, Piano Roll and the OSMD cursor.
+2. A new physical NoteOn may advance Wait legato; a held note may not be credited repeatedly.
+3. Tempo and Wait must count simultaneous unison voices from one physical key press; duration judgement is per written voice.
+4. Playback notes, time maps, notation cursor and rehearsal position must agree after repeats, meter changes and tempo offsets.
+5. Unsupported navigation must report limitations instead of claiming correct playback.
 
-- One Web Audio transport governs both Piano Roll and Sheet Music.
-- In Wait, a single held physical key must not advance multiple successive note groups.
-- Existing IndexedDB and localStorage schemas are retained until explicit migration code exists.
-- Original notation is used for MusicXML; notes inferred from MIDI remain clearly labeled approximate.
-- Online sources never become silently bundled into the app without review of licenses, even though Play Along is noncommercial.
+## Next milestones
+
+1. Build normalized musical event and bar-timeline data models with isolated unit tests and reference MusicXML fixtures.
+2. Replace conservative repeat/volta guards with verified restoration of divisions, time signatures, key and tempo state at each jump. Add D.C./D.S./coda in separately tested increments.
+3. Extract standalone ES modules beginning with parsers, serialization/storage and pure time conversion; then transport and MIDI.
+4. Add stress/long-score profiling, physical Web MIDI acceptance, CC64 pedal behavior and representative score samples from every catalog.
+5. Strengthen recovery under multi-tab concurrency and extremely large collections; consider a streamed backup format.
+
+License and provenance restrictions for online catalogs and bundled assets remain in force.

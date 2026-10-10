@@ -27,11 +27,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Install dependencies
-        run: npm install --ignore-scripts --no-audit --no-fund
-      - name: Capture deterministic lockfile snapshot
-        run: |
-          node -e "const fs=require('fs');const s=fs.readFileSync('package-lock.json','utf8');for(let i=0;i<s.length;i+=3000)console.log('LOCKCHUNK:'+i+':'+JSON.stringify(s.slice(i,i+3000)))"
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Install Chromium for browser tests
         run: npx playwright install --with-deps chromium
       - name: Build
