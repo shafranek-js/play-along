@@ -76,8 +76,8 @@ async function backupRestore(file){
  if(!agree)return false;
  // Write works in one IndexedDB transaction, so an error rolls back all imported binaries.
  const db=await libraryDB();
- try{await new Promise((resolve,reject)=>{const tx=db.transaction(['works','prefs','performances'],'readwrite');
-  const works=tx.objectStore('works');for(const item of validated.works)works.put(item);
+ try{await new Promise((resolve,reject)=>{const tx=db.transaction(['works','workIndex','prefs','performances'],'readwrite');
+  const works=tx.objectStore('works'),index=tx.objectStore('workIndex');for(const item of validated.works){works.put(item);index.put(libraryEntryMetadata(item))}
   tx.objectStore('prefs').put(validated.favorites,'favorites');
   const attempts=tx.objectStore('performances');attempts.clear();for(const record of validated.performances)attempts.put(record);
   tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error);

@@ -10,12 +10,61 @@ async function zipInflateBounded(data,maxBytes,label='ZIP'){
   const buffer=new Uint8Array(total);let at=0;for(const c of chunks){buffer.set(c,at);at+=c.length}return buffer;
  }finally{reader.releaseLock()}
 }
-function libraryDB(){return new Promise((resolve,reject)=>{let q=indexedDB.open(LIBRARY_DB_V08,2);q.onupgradeneeded=()=>{if(!q.result.objectStoreNames.contains('works'))q.result.createObjectStore('works',{keyPath:'id'});if(!q.result.objectStoreNames.contains('prefs'))q.result.createObjectStore('prefs');if(!q.result.objectStoreNames.contains('performances')){const records=q.result.createObjectStore('performances',{keyPath:'id'});records.createIndex('profile','profile',{unique:false})}};q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error)})}
+// Version 3 separates small searchable metadata from musical binary data.
+// The upgrade migrates old v1/v2 records one-by-one inside the SAME atomic
+// IndexedDB upgrade transaction; binary records remain completely unchanged.
+function libraryEntryMetadata(entry){
+ const {data,...meta}=entry;
+ return {...meta,dataSize:data?.byteLength??entry.dataSize??0};
+}
+function libraryDB(){return new Promise((resolve,reject)=>{
+ const q=indexedDB.open(LIBRARY_DB_V08,3);
+ q.onupgradeneeded=()=>{
+  const db=q.result,tx=q.transaction;
+  if(!db.objectStoreNames.contains('works'))db.createObjectStore('works',{keyPath:'id'});
+  if(!db.objectStoreNames.contains('prefs'))db.createObjectStore('prefs');
+  if(!db.objectStoreNames.contains('performances')){
+   const records=db.createObjectStore('performances',{keyPath:'id'});
+   records.createIndex('profile','profile',{unique:false});
+  }
+  if(!db.objectStoreNames.contains('workIndex')){
+   const index=db.createObjectStore('workIndex',{keyPath:'id'});
+   const cursor=tx.objectStore('works').openCursor();
+   cursor.onsuccess=()=>{
+    const record=cursor.result;
+    if(record){index.put(libraryEntryMetadata(record.value));record.continue()}
+   };
+  }
+ };
+ q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error);q.onblocked=()=>reject(Error('Закрой другие вкладки Play Along, чтобы обновить хранилище'));
+})}
 async function libraryTransaction(store,mode,run){const db=await libraryDB();try{return await new Promise((resolve,reject)=>{let t=db.transaction(store,mode),q=run(t.objectStore(store));t.oncomplete=()=>resolve(q?.result);t.onerror=()=>reject(t.error);t.onabort=()=>reject(t.error);})}finally{db.close()}}
-async function loadLibraryIndex(){try{collectionIndex=await libraryTransaction('works','readonly',s=>s.getAll())||[];favoritesV08=new Set(await libraryTransaction('prefs','readonly',s=>s.get('favorites'))||[]);collectionReady=true;renderLibrary();}catch(e){collectionReady=true;setLibraryStatus('Браузер не разрешил доступ к библиотеке: '+e.message);renderLibrary()}}
+async function loadLibraryIndex(){try{collectionIndex=await libraryTransaction('workIndex','readonly',s=>s.getAll())||[];favoritesV08=new Set(await libraryTransaction('prefs','readonly',s=>s.get('favorites'))||[]);collectionReady=true;renderLibrary();}catch(e){collectionReady=true;setLibraryStatus('Браузер не разрешил доступ к библиотеке: '+e.message);renderLibrary()}}
+// Binary payloads are requested only when a user opens an individual piece.
+async function libraryReadBinary(id){
+ const entry=await libraryTransaction('works','readonly',store=>store.get(id));
+ if(!entry||!entry.data)throw Error('Сохранённое произведение не найдено. Проверь коллекцию или восстанови резервную копию.');
+ return entry;
+}
+async function libraryWriteWork(entryOrId,remove=false){
+ const db=await libraryDB();
+ try{
+  return await new Promise((resolve,reject)=>{
+   const tx=db.transaction(['works','workIndex'],'readwrite');
+   const works=tx.objectStore('works'),index=tx.objectStore('workIndex');
+   if(remove){works.delete(entryOrId);index.delete(entryOrId)}
+   else {works.put(entryOrId);index.put(libraryEntryMetadata(entryOrId))}
+   tx.oncomplete=()=>resolve(true);
+   tx.onerror=()=>reject(tx.error);
+   tx.onabort=()=>reject(tx.error);
+  });
+ }finally{db.close()}
+}
 function libraryBinaryId(buffer){const arr=new Uint8Array(buffer);let h=2166136261;for(let i=0;i<arr.length;i++)h=Math.imul(h^arr[i],16777619)>>>0;return 'saved-'+h.toString(16)+'-'+arr.length}
-async function librarySaveBinary(name,buffer,origin,details={}){if(buffer.byteLength>15*1024*1024)throw Error('Файл превышает 15 МБ');const id=libraryBinaryId(buffer);const entry={id,name,title:details.title||name.replace(/\.(mid|midi|xml|musicxml|mxl|mscx|mscz)$/i,''),author:details.author||'Пользовательская коллекция',format:name.toLowerCase().split('.').pop(),origin,license:details.license||'',page:details.page||'',added:Date.now(),data:buffer};await libraryTransaction('works','readwrite',s=>s.put(entry));collectionIndex=collectionIndex.filter(e=>e.id!==id).concat(entry);renderLibrary();return entry}
-async function libraryRemoveEntry(id){await libraryTransaction('works','readwrite',s=>s.delete(id));collectionIndex=collectionIndex.filter(e=>e.id!==id);delete state.songSettings[id];if(state.selected===id)state.selected='demo-scale';persist();renderLibrary()}
+async function librarySaveBinary(name,buffer,origin,details={}){if(buffer.byteLength>15*1024*1024)throw Error('Файл превышает 15 МБ');const id=libraryBinaryId(buffer);const entry={id,name,title:details.title||name.replace(/\.(mid|midi|xml|musicxml|mxl|mscx|mscz)$/i,''),author:details.author||'Пользовательская коллекция',format:name.toLowerCase().split('.').pop(),origin,license:details.license||'',page:details.page||'',added:Date.now(),data:buffer};await libraryWriteWork(entry);
+ collectionIndex=collectionIndex.filter(e=>e.id!==id).concat(libraryEntryMetadata(entry));
+ renderLibrary();return entry}
+async function libraryRemoveEntry(id){await libraryWriteWork(id,true);collectionIndex=collectionIndex.filter(e=>e.id!==id);delete state.songSettings[id];if(state.selected===id)state.selected='demo-scale';persist();renderLibrary()}
 async function libraryFavorite(id){if(favoritesV08.has(id))favoritesV08.delete(id);else favoritesV08.add(id);try{await libraryTransaction('prefs','readwrite',s=>s.put([...favoritesV08],'favorites'))}catch(e){setLibraryStatus('Не удалось сохранить избранное: '+e.message)}renderLibrary()}
 function setLibraryStatus(s){$('onlineStatus').textContent=s}
 function libraryExt(name){return (name.split('.').pop()||'').toLowerCase()}

@@ -59,7 +59,7 @@ startupLibraryPromise.then(async()=>{
    // v0.10.0 and earlier loaded imports under transient import/online IDs.
    // Migrate them to content-based saved IDs without re-uploading the file.
    if(!entry&&startupSelectedSongId.startsWith('import-')){
-    entry=collectionIndex.find(x=>startupSelectedSongId==='import-'+x.name+'-'+x.data.byteLength);
+    entry=collectionIndex.find(x=>startupSelectedSongId==='import-'+x.name+'-'+x.dataSize);
    }
    if(!entry&&startupSelectedSongId.startsWith('online-')&&collectionIndex.length){
     entry=[...collectionIndex].sort((a,b)=>b.added-a.added)[0];
@@ -67,7 +67,7 @@ startupLibraryPromise.then(async()=>{
    if(entry){
     if(entry.id!==startupSelectedSongId&&state.songSettings[startupSelectedSongId]&&!state.songSettings[entry.id])
      state.songSettings[entry.id]=state.songSettings[startupSelectedSongId];
-    await libraryLoadFile(entry.name,entry.data,entry.id,{title:entry.title,author:entry.author,type:'saved'});
+    const binary=await libraryReadBinary(entry.id);await libraryLoadFile(binary.name,binary.data,binary.id,{title:binary.title,author:binary.author,type:'saved'});
    }
    else setLibraryStatus('Предыдущее произведение больше не найдено в локальной коллекции. Выбери его снова или импортируй файл.');
   }
