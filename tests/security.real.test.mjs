@@ -92,6 +92,11 @@ try{
    hits:1,wrong:0,missed:0,early:0,late:0,short:0,long:0,okHold:0,goodChords:0,badChords:0
   },sections:[],notes:[],extras:[],speed:100,position:0}];
  quotaBackup.settings.leftWidth=286;
+ // Valid but sufficiently large per-song preferences ensure that the
+ // real browser's exhausted localStorage quota is exercised deterministically.
+ quotaBackup.settings.songSettings=Object.fromEntries(
+  Array.from({length:1900},(_,i)=>['quota-'+i+'-'+'q'.repeat(150),{mode:'wait',speed:80}])
+ );
  quotaBackup.smartMastery={};
  await page.evaluate(()=>{
   const fill='A'.repeat(256*1024);

@@ -125,7 +125,7 @@ try{
  // A complete portable backup can recreate the saved library after browser data is wiped.
  await page.locator('#speed').evaluate(el=>{el.value='75';el.dispatchEvent(new Event('input',{bubbles:true}))});
  await page.locator('#bottomMode').selectOption('tempo');
- await page.evaluate(()=>localStorage.setItem('playalong:smart:mastery:v07',JSON.stringify({testMastery:{value:88}})));
+ await page.evaluate(()=>localStorage.setItem('playalong:smart:mastery:v07',JSON.stringify({testMastery:{best:88,mastery:1,attempts:2,lastAt:'2026-10-10T12:00:00.000Z'}})));
  const downloadPromise=page.waitForEvent('download');
  await page.locator('#backupExport').click();
  const download=await downloadPromise;
@@ -135,7 +135,7 @@ try{
  assert.equal(backup.works.length,2);
  assert.equal(backup.settings.speed,75);
  assert.equal(backup.settings.mode,'tempo');
- assert.deepEqual(backup.smartMastery.testMastery,{value:88});
+ assert.equal(backup.smartMastery.testMastery.best,88);
  assert.equal(await page.evaluate(async ()=>{const request=indexedDB.open('playalong-library-v08');const db=await new Promise((resolve,reject)=>{request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error)});await new Promise((resolve,reject)=>{const tx=db.transaction(['works','workIndex','prefs'],'readwrite');tx.objectStore('works').clear();tx.objectStore('workIndex').clear();tx.objectStore('prefs').clear();tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});db.close();localStorage.clear();return true}),true);
  await page.reload({waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>window.__libraryV08?.collection.length===0);
@@ -144,7 +144,7 @@ try{
  await page.waitForFunction(()=>window.__libraryV08?.collection.length===2&&window.__prototypeTest?.song?.title==='Second Piece',null,{timeout:25000});
  const recovered=await page.evaluate(()=>({mode:window.__prototypeTest.state.mode,speed:window.__prototypeTest.state.speed,mastery:JSON.parse(localStorage.getItem('playalong:smart:mastery:v07'))}));
  assert.equal(recovered.mode,'tempo');assert.equal(recovered.speed,75);
- assert.equal(recovered.mastery.testMastery.value,88);
+ assert.equal(recovered.mastery.testMastery.best,88);
  // Reset Layout must never touch practice preferences.
  await page.locator('#resetUI').evaluate(el=>el.click());
  assert.equal(await page.evaluate(()=>window.__prototypeTest.state.mode),'tempo');
