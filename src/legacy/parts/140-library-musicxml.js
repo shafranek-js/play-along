@@ -129,16 +129,91 @@ function musicSafeXml(xmlString){
  }
  return clean;
 }
+// Expand only unambiguous MusicXML forward/backward repeats, keeping all
+// parts on the same unrolled playback timeline. The returned notation is the
+// expanded sequence so OSMD's cursor, Piano Roll and sound agree.
+// Unsupported voltas, nested repeats and navigation marks remain untouched.
+function musicExpandSimpleRepeats(doc){
+ const root=doc.documentElement,parts=xmlList(root,'part'),first=parts[0];
+ if(!first)return {expanded:false};
+ const measures=xmlList(first,'measure');
+ if(measures.length>600)return {expanded:false,warning:'Слишком много тактов для разворачивания реприз.'};
+ const markers=part=>{
+  const ms=xmlList(part,'measure');
+  return ms.map(m=>({
+   forward:xmlList(m,'barline').some(b=>xmlList(b,'repeat').some(r=>r.getAttribute('direction')==='forward')),
+   backward:xmlList(m,'barline').flatMap(b=>xmlList(b,'repeat')).find(r=>r.getAttribute('direction')==='backward')||null
+  }));
+ };
+ const marks=markers(first);
+ const hasRepeat=parts.some(p=>markers(p).some(x=>x.forward||x.backward));
+ if(!hasRepeat)return {expanded:false};
+ const decline=warning=>({expanded:false,warning:'Репризы не развёрнуты: '+warning});
+ if(parts.some(p=>xmlList(p,'measure').length!==measures.length))return decline('число тактов различается между партиями.');
+ const unsupported=[...root.getElementsByTagName('*')].some(node=>{
+  const tag=node.localName.toLowerCase();
+  if(tag==='ending'||tag==='segno'||tag==='coda'||tag==='dalsegno'||tag==='dacapo'||tag==='tocoda'||tag==='fine')return true;
+  if(tag==='sound')return ['dacapo','dalsegno','segno','coda','tocoda','fine'].some(a=>node.hasAttribute(a));
+  return false;
+ });
+ if(unsupported)return decline('вольты, D.C./D.S., коды и другие переходы требуют отдельной обработки.');
+ for(const part of parts){
+  const its=markers(part);
+  for(let i=0;i<marks.length;i++){
+   // In many files repeat barlines are omitted from secondary staves.
+   if((its[i].forward&&!marks[i].forward)||(its[i].backward&&!marks[i].backward))
+    return decline('разметка реприз различается между партиями.');
+   if(its[i].backward&&marks[i].backward&&its[i].backward.getAttribute('times')!==marks[i].backward.getAttribute('times'))
+    return decline('разные количества повторов в партиях.');
+  }
+ }
+ let start=0,opened=false,hasBackward=false;
+ const sequence=[];
+ for(let i=0;i<marks.length;i++){
+  const m=marks[i];
+  if(m.forward){
+   if(opened)return decline('вложенные репризы пока не поддерживаются.');
+   opened=true;start=i;
+  }
+  sequence.push(i);
+  if(m.backward){
+   hasBackward=true;
+   const raw=m.backward.getAttribute('times'),times=raw==null?2:Number(raw);
+   if(!Number.isInteger(times)||times<2||times>4)return decline('число проходов должно быть от 2 до 4.');
+   for(let pass=1;pass<times;pass++)for(let j=start;j<=i;j++)sequence.push(j);
+   opened=false;start=i+1;
+  }
+  if(sequence.length>1200)return decline('слишком длинная исполняемая последовательность.');
+ }
+ if(opened||!hasBackward)return decline('неполная или несогласованная разметка повторов.');
+ // Mutation only after complete validation: unsupported scores are untouched.
+ for(const part of parts){
+  const written=xmlList(part,'measure'),expanded=sequence.map((index,position)=>{
+   const copy=written[index].cloneNode(true);
+   copy.setAttribute('number',String(position+1));
+   for(const barline of xmlList(copy,'barline')){
+    for(const repeat of xmlList(barline,'repeat'))barline.removeChild(repeat);
+    if(!barline.children.length)barline.remove();
+   }
+   return copy;
+  });
+  for(const measure of written)measure.remove();
+  for(const measure of expanded)part.appendChild(measure);
+ }
+ return {expanded:true,written:measures.length,played:sequence.length};
+}
 function readMusicXML(xmlString,filename){
  if(xmlString.length>15e6)throw Error('MusicXML слишком велик для браузерного импорта');
  const safeXml=musicSafeXml(xmlString);
  const doc=new DOMParser().parseFromString(safeXml,'application/xml');
  if(doc.querySelector('parsererror'))throw Error('Ошибка структуры XML');
  const root=doc.documentElement;if(root.localName!=='score-partwise')throw Error('Поддерживается MusicXML score-partwise (score-timewise пока нет)');
+ const repeatExpansion=musicExpandSimpleRepeats(doc);
+ const playbackXml=repeatExpansion.expanded?new XMLSerializer().serializeToString(doc):safeXml;
  const title=xmlText(xmlDirect(root,'work'),'work-title',xmlText(root,'movement-title',libraryTitleFile(filename)));
  const creator=[...root.getElementsByTagName('creator')].find(x=>x.getAttribute('type')==='composer');const author=creator?.textContent?.trim()||'MusicXML · импорт';
  const namesById={};for(const p of xmlList(xmlDirect(root,'part-list'),'score-part'))namesById[p.getAttribute('id')]=xmlText(p,'part-name','Партия');
- const segments=[],tempos=[{tick:0,tempo:500000}],ppq=10080;let warnings=new Set();
+ const segments=[],tempos=[{tick:0,tempo:500000}],ppq=10080;let warnings=new Set();if(repeatExpansion.expanded)warnings.add('Реприза развёрнута: '+repeatExpansion.written+' записанных тактов → '+repeatExpansion.played+' исполняемых. Партитура показывает каждый проход.');else if(repeatExpansion.warning)warnings.add(repeatExpansion.warning);
  const durationTicks=(duration,divisions)=>Math.round((Number(duration)||0)/Math.max(1,divisions)*ppq);
  for(const part of xmlList(root,'part')){
   let absolute=0,divisions=1,transposition=0;let beats=4,beatType=4;
@@ -196,7 +271,7 @@ function readMusicXML(xmlString,filename){
  const byTick=new Map();for(const t of tempos)byTick.set(t.tick,t.tempo);const tempoMap=[...byTick].sort((a,b)=>a[0]-b[0]).map(([tick,tempo])=>({tick,tempo}));if(tempoMap[0].tick!==0)tempoMap.unshift({tick:0,tempo:500000});let acc=0;for(let i=0;i<tempoMap.length;i++){const t=tempoMap[i],prev=tempoMap[i-1];if(prev)acc+=(t.tick-prev.tick)/ppq*prev.tempo/1e6;t.sec=acc}
  function toSeconds(tick){let lo=0,hi=tempoMap.length;while(lo+1<hi){const m=(lo+hi)>>1;if(tempoMap[m].tick<=tick)lo=m;else hi=m}const t=tempoMap[lo];return t.sec+(tick-t.tick)/ppq*t.tempo/1e6}
  const tracks=segments.map((s,i)=>({name:s.name,notes:s.notes.map(n=>({pitch:n.pitch,start:toSeconds(n.tick),duration:Math.max(.025,toSeconds(n.tick+n.len)-toSeconds(n.tick)),velocity:n.velocity,track:i,channel:0}))}));
- return{id:'xml-'+Date.now(),title:title.slice(0,100),author:author.slice(0,110),type:'import',format:'MusicXML',tracks,warnings:[...warnings],notationXML:safeXml,scoreTempoMap:tempoMap.map(t=>({beat:t.tick/ppq,sec:t.sec,tempo:t.tempo}))};
+ return{id:'xml-'+Date.now(),title:title.slice(0,100),author:author.slice(0,110),type:'import',format:'MusicXML',tracks,warnings:[...warnings],notationXML:playbackXml,originalNotationXML:repeatExpansion.expanded?safeXml:undefined,scoreTempoMap:tempoMap.map(t=>({beat:t.tick/ppq,sec:t.sec,tempo:t.tempo}))};
 }
 async function zipUnpackMXL(arrayBuffer){
  const a=new Uint8Array(arrayBuffer),d=new DataView(arrayBuffer);if(a.length>16*1024*1024)throw Error('MXL больше 16 МБ');let eocd=-1;
