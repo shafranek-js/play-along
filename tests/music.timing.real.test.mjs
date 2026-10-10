@@ -138,6 +138,36 @@ try{
  assert.equal(unsupported.original,false);
  assert.equal(unsupported.remaining,true);
  assert.ok(unsupported.warnings.some(s=>s.includes('не развёрнуты')));
+ // The actual renderer must show the expanded execution order, not keep a
+ // three-measure score while the sound plays five measures.
+ await page.evaluate(xml=>{
+  const song=window.__libraryV08.readMusicXML(xml,'repeat-render.musicxml');
+  window.__prototypeTest.loadSong(song);
+  window.__scoreTest.scoreSetView('sheet');
+ },repeatScore());
+ await page.waitForFunction(()=>window.__scoreTest.scoreLoaded||
+  document.querySelector('#sheetStatus').textContent.includes('Ошибка'),
+  null,{timeout:30000});
+ const rendered=await page.evaluate(()=>({
+  svg:document.querySelectorAll('#sheetCanvas svg').length,
+  cursorBeats:window.__scoreTest.cursorTimes.slice(),
+  length:window.__prototypeTest.song.tracks[0].notes.length,
+  warnings:window.__prototypeTest.song.warnings,
+  label:document.querySelector('#sheetStatus').textContent
+ }));
+ assert.ok(rendered.svg>0,'OSMD failed to render expanded repeat');
+ assert.ok(rendered.cursorBeats.length>=5,'OSMD cursor lacks repeated measures');
+ assert.deepEqual(rendered.cursorBeats.slice(0,5),[0,4,8,12,16],
+  'OSMD cursor timeline must follow unfolded measures');
+ assert.equal(rendered.length,5);
+ await page.evaluate(()=>window.__prototypeTest.seek(8));
+ const afterRepeatSeek=await page.evaluate(()=>({
+  pos:window.__prototypeTest.pos,
+  cursorBeat:Number(window.__scoreTest.renderer.cursor.iterator.CurrentSourceTimestamp.RealValue)*4
+ }));
+ near(afterRepeatSeek.pos,8,'Repeat seek position');
+ near(afterRepeatSeek.cursorBeat,16,'Repeat cursor beat at second pass');
+ console.log('REAL OSMD SIMPLE REPEAT: five rendered measures and synced seek: PASS');
  console.log('SIMPLE REPEATS: two-part A B C B C, three-pass, first-bar fallback, volta guarded: PASS');
  assert.deepEqual(errs,[]);
  console.log('MUSIC REGRESSION: MusicXML rests, chord, tie, 4/4 to 3/4, tempo 120→60, left hand and MIDI tempo: PASS');

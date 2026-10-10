@@ -78,6 +78,7 @@ async function scoreEnsureRendered(){
   // Original score is used verbatim: clefs, rhythms, key signatures and repeats remain visible.
   // For MIDI we expose quantisation and playback limitations to avoid pretending it is authoritative sheet music.
   const hasOriginal=!!song.notationXML;
+  if(song.originalNotationXML)scoreNotice('Повторяющиеся такты развёрнуты для точной синхронизации с воспроизведением. Исходная запись с репризами сохранена в файле.');
   const xml=hasOriginal?song.notationXML:scoreXMLFromSong(song);
   if(!hasOriginal)scoreNotice('MIDI не содержит нотной партитуры. Показана автоматически квантованная запись 4/4: длительности, группировка голосов, знаки, паузы и такты могут отличаться от оригинала. Для точных нот загрузи MusicXML/MXL.');
   scoreSetStatus('Загружаем OpenSheetMusicDisplay…');const library=await scoreLibrary();if(token!==scoreLoadSerial||song!==current)return;
