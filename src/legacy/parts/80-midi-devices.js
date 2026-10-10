@@ -58,10 +58,22 @@ function onNoteOn(note,velocity=85,from='midi',timestamp){
  playLive(note,velocity);
  if(isPlaying&&practice){
   const wait=state.mode==='wait';
-  // Never score a note before its onset or while the previous key/chord is still held.
-  if(!wait||(holdForInput&&!waitReleaseGroup)){
+  // A fresh expected NoteOn leads the timeline in Wait. This accepts legato
+  // (next key down before the old key up) and slightly early correct notes.
+  // Duplicate NoteOn for a held pitch was suppressed above, so repeated
+  // same-pitch notes still require physical rearticulation.
+  const group=wait?practice.nextGroup():null;
+  const expected=!!(group&&group.notes.some(n=>n.pitch===note&&!n.hit));
+  if(wait&&expected){
+   if(waitReleaseGroup){waitReleaseGroup=null;waitReleasePitches.clear()}
+   if(!holdForInput||pos<group.start-0.0001){
+    pos=group.start;
+    if(ctx){startAt=pos;startAudioTime=ctx.currentTime}
+   }
+   holdForInput=true;
+  }
+  if(!wait||expected||(holdForInput&&!waitReleaseGroup)){
    const at=eventPosition(timestamp);
-   const group=wait?practice.nextGroup():null;
    const result=practice.inputOn(note,at,Number.isFinite(timestamp)?timestamp:performance.now());
    if(wait&&result==='released'&&group){
     waitReleaseGroup=group;
