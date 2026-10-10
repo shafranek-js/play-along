@@ -92,6 +92,53 @@ try{
  near(dotted.notes[1].duration,1,'dotted-quarter D duration in 6/8');
  near(dotted.firstBeat,1,'OSMD shared tempo map for dotted quarter');
  near(dotted.tempo,60000000/90,'quarter microseconds with dotted beat marking');
+ // A conventional repeat spans measures 2–3. All parts must play
+ // A B C B C, and OSMD must receive the same five-bar unfolded notation.
+ function repeatScore({times=2,unsupported=false,noForward=false}={}){
+  const staff=(id,octave)=>{
+   const steps=['C','D','E'],measures=steps.map((step,i)=>{
+    const left=i===1&&!noForward?'<barline location="left"><repeat direction="forward"/></barline>':'';
+    const right=i===2?'<barline location="right"><repeat direction="backward" times="'+times+'"/></barline>':'';
+    const ending=unsupported&&i===2?'<barline location="right"><ending number="1" type="start"/></barline>':'';
+    return '<measure number="'+(i+1)+'">'+(i===0?'<attributes><divisions>480</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes>':'')+left+
+      '<note><pitch><step>'+step+'</step><octave>'+octave+'</octave></pitch><duration>1920</duration><type>whole</type></note>'+ending+right+'</measure>';
+   }).join('');
+   return '<part id="'+id+'">'+measures+'</part>';
+  };
+  return '<?xml version="1.0"?><score-partwise version="4.0"><part-list><score-part id="P1"><part-name>Right</part-name></score-part><score-part id="P2"><part-name>Left</part-name></score-part></part-list>'+
+   staff('P1',4)+staff('P2',3)+'</score-partwise>';
+ }
+ const repeated=await page.evaluate(xml=>{
+  const song=window.__libraryV08.readMusicXML(xml,'repeats.musicxml');
+  const dom=new DOMParser().parseFromString(song.notationXML,'application/xml');
+  const measures=dom.getElementsByTagName('part')[0].getElementsByTagName('measure');
+  return {perPart:song.tracks.map(t=>t.notes.map(n=>({pitch:n.pitch,start:n.start,duration:n.duration}))),measures:measures.length,
+   originals:!!song.originalNotationXML,warnings:song.warnings,repeatsRemaining:dom.getElementsByTagName('repeat').length};
+ },repeatScore());
+ assert.equal(repeated.measures,5,'Repeat must unfold to five written bars');
+ assert.equal(repeated.originals,true,'Original MusicXML must remain accessible');
+ assert.equal(repeated.repeatsRemaining,0,'Expanded notation must not repeat a second time');
+ assert.ok(repeated.warnings.some(s=>s.includes('развёрнута')));
+ assert.equal(repeated.perPart.length,2);
+ assert.deepEqual(repeated.perPart[0].map(n=>n.pitch),[60,62,64,62,64]);
+ assert.deepEqual(repeated.perPart[1].map(n=>n.pitch),[48,50,52,50,52]);
+ for(const part of repeated.perPart)part.forEach((note,i)=>{near(note.start,2*i,'repeat onset');near(note.duration,2,'repeat length')});
+ const repeatedThree=await page.evaluate(xml=>{
+  const song=window.__libraryV08.readMusicXML(xml,'triple.musicxml');
+  return {pitches:song.tracks[0].notes.map(n=>n.pitch),bars:new DOMParser().parseFromString(song.notationXML,'application/xml').getElementsByTagName('part')[0].getElementsByTagName('measure').length};
+ },repeatScore({times:3,noForward:true}));
+ assert.deepEqual(repeatedThree.pitches,[60,62,64,60,62,64,60,62,64],'Backward repeat without a forward sign starts at beginning');
+ assert.equal(repeatedThree.bars,9);
+ const unsupported=await page.evaluate(xml=>{
+  const song=window.__libraryV08.readMusicXML(xml,'volta.musicxml');
+  return {count:song.tracks[0].notes.length,original:!!song.originalNotationXML,
+    remaining:song.notationXML.includes('repeat direction="backward"'),warnings:song.warnings};
+ },repeatScore({unsupported:true}));
+ assert.equal(unsupported.count,3,'Unsupported volta must not be silently unfolded incorrectly');
+ assert.equal(unsupported.original,false);
+ assert.equal(unsupported.remaining,true);
+ assert.ok(unsupported.warnings.some(s=>s.includes('не развёрнуты')));
+ console.log('SIMPLE REPEATS: two-part A B C B C, three-pass, first-bar fallback, volta guarded: PASS');
  assert.deepEqual(errs,[]);
  console.log('MUSIC REGRESSION: MusicXML rests, chord, tie, 4/4 to 3/4, tempo 120→60, left hand and MIDI tempo: PASS');
 }finally{if(browser)await browser.close();await new Promise(resolve=>server.close(resolve))}
