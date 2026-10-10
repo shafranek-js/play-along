@@ -185,14 +185,20 @@ function musicSafeXml(xmlString){
 // Until measure-state materialization is implemented, explicit warnings are
 // safer than publishing a score with silently shortened or shifted notes.
 function musicRepeatNeedsStateRestore(parts,sequence){
- const count=new Map();
- for(const index of sequence)count.set(index,(count.get(index)||0)+1);
+ // At a backward jump, state inherited from the FIRST ending matters even
+ // when that measure itself is visited just once. Inspect every measure
+ // between the jump target and the measure we are leaving.
+ const revisit=new Set();
+ for(let i=1;i<sequence.length;i++)if(sequence[i]<=sequence[i-1]){
+  for(let j=sequence[i];j<=sequence[i-1];j++)revisit.add(j);
+ }
  for(const part of parts){
   const measures=xmlList(part,'measure');
-  for(const [index,visits] of count){
-   if(visits<2)continue;
+  for(const index of revisit){
    const measure=measures[index];
+   if(!measure)continue;
    if(index!==0&&xmlList(measure,'attributes').length)return true;
+   if(index!==0&&xmlList(measure,'sound').some(sound=>sound.hasAttribute('tempo')))return true;
    if(index!==0&&xmlList(measure,'direction').some(direction=>{
     const sound=xmlDirect(direction,'sound');
     return !!(sound?.hasAttribute('tempo')||xmlDirect(xmlDirect(direction,'direction-type'),'metronome'));
@@ -398,6 +404,19 @@ function readMusicXML(xmlString,filename){
  const namesById={};for(const p of xmlList(xmlDirect(root,'part-list'),'score-part'))namesById[p.getAttribute('id')]=xmlText(p,'part-name','Партия');
  const segments=[],tempos=[{tick:0,tempo:500000}],ppq=10080;let warnings=new Set();if(repeatExpansion.expanded)warnings.add('Реприза развёрнута: '+repeatExpansion.written+' записанных тактов → '+repeatExpansion.played+' исполняемых. Партитура показывает каждый проход.');else if(repeatExpansion.warning)warnings.add(repeatExpansion.warning);
  const durationTicks=(duration,divisions)=>Math.round((Number(duration)||0)/Math.max(1,divisions)*ppq);
+ // <sound> is legal both directly inside a measure and under <direction>.
+ // It uses the same tick/offset semantics in both locations.
+ const recordSoundTempo=(sound,direction,at,absolute,divisions,beats,beatType)=>{
+  const embedded=xmlDirect(sound,'offset'),inDirection=xmlDirect(direction,'offset');
+  const offset=embedded||inDirection;
+  const audible=!!(embedded||inDirection?.getAttribute('sound')==='yes');
+  const delta=audible&&offset?durationTicks(offset.textContent,divisions):0;
+  const measureTicks=Math.round(beats*4/Math.max(1,beatType)*ppq);
+  const tempoTick=absolute+Math.max(0,Math.min(measureTicks,at+delta));
+  const bpm=Number(sound?.getAttribute('tempo'));
+  if(bpm>0&&bpm<1000)tempos.push({tick:tempoTick,tempo:60000000/bpm});
+  return {bpm,tempoTick};
+ };
  const scoreParts=xmlList(root,'part');
  const counts=scoreParts.map(p=>xmlList(p,'measure').length);
  // Only synchronize when the parts contain matching measure counts. Scores
@@ -422,20 +441,13 @@ function readMusicXML(xmlString,filename){
     }
     if(tag==='backup'){at=Math.max(0,at-durationTicks(xmlText(el,'duration',0),divisions));continue}
     if(tag==='forward'){at+=durationTicks(xmlText(el,'duration',0),divisions);maxAt=Math.max(maxAt,at);continue}
+    if(tag==='sound'){
+     recordSoundTempo(el,null,at,absolute,divisions,beats,beatType);
+     continue;
+    }
     if(tag==='direction'){
      const sound=xmlDirect(el,'sound');
-     // MusicXML offsets are in current divisions; direction-level offset
-     // affects playback only when sound="yes". A nested <sound><offset>
-     // is an explicit playback offset and has precedence if both exist.
-     const soundOffset=xmlDirect(sound,'offset');
-     const directionOffset=xmlDirect(el,'offset');
-     const offsetNode=soundOffset||directionOffset;
-     const offsetApplies=!!(soundOffset||directionOffset?.getAttribute('sound')==='yes');
-     const delta=offsetApplies&&offsetNode?durationTicks(offsetNode.textContent,divisions):0;
-     const measureTicks=Math.round(beats*4/Math.max(1,beatType)*ppq);
-     const tempoTick=absolute+Math.max(0,Math.min(measureTicks,at+delta));
-     const bpm=Number(sound?.getAttribute('tempo'));
-     if(bpm>0&&bpm<1000)tempos.push({tick:tempoTick,tempo:60000000/bpm});
+     const {bpm,tempoTick}=recordSoundTempo(sound,el,at,absolute,divisions,beats,beatType);
      const metr=xmlDirect(xmlDirect(el,'direction-type'),'metronome');const per=Number(xmlText(metr,'per-minute'));if(!bpm&&per>0){const unit=xmlText(metr,'beat-unit','quarter');const unitQuarter=({whole:4,half:2,quarter:1,eighth:.5,'16th':.25,'32nd':.125,'64th':.0625})[unit]||1;
       // MusicXML can specify a dotted beat unit, e.g. dotted quarter = 60
       // in 6/8. A dotted quarter occupies 1.5 ordinary quarter beats.
