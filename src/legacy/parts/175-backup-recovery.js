@@ -13,6 +13,7 @@ function backupBase64ToBytes(base64){
 }
 async function backupCreate(){
  if(startupSongRestorePending)await startupLibraryPromise;
+ await startupPerformancePromise;
  if(startupSongRestorePending)throw Error('Библиотека ещё не загружена. Повтори через несколько секунд');
  if(isPlaying&&ctx)pos=clockPos();persist();
  const works=await libraryTransaction('works','readonly',s=>s.getAll())||[];
@@ -22,7 +23,7 @@ async function backupCreate(){
  const raw={format:BACKUP_FORMAT,version:BACKUP_VERSION,exportedAt:new Date().toISOString(),appVersion:window.__playAlongVersion,
   works:saved,settings:JSON.parse(localStorage.getItem(STORE)||'{}'),
   favorites:await libraryTransaction('prefs','readonly',s=>s.get('favorites'))||[],
-  performances:JSON.parse(localStorage.getItem(PERF_STORE)||'[]'),
+  performances:await libraryTransaction('performances','readonly',s=>s.getAll())||perfAttempts,
   smartMastery:JSON.parse(localStorage.getItem(SMART_STORE)||'{}')};
  return JSON.stringify(raw);
 }
@@ -51,7 +52,7 @@ function backupCheckJson(payload){
   results.push({id:entry.id,name:entry.name,title:String(entry.title||entry.name).slice(0,250),author:String(entry.author||'').slice(0,250),format:libraryExt(entry.name),origin:String(entry.origin||'backup').slice(0,250),license:String(entry.license||'').slice(0,250),page:String(entry.page||'').slice(0,1024),added:Number.isFinite(entry.added)?entry.added:Date.now(),data});
  }
  if(!Array.isArray(payload.favorites)||payload.favorites.length>10000)throw Error('Неверный список избранного');
- if(!Array.isArray(payload.performances)||payload.performances.length>5000||JSON.stringify(payload.performances).length>12*1024*1024)throw Error('Некорректная или слишком большая история тренировок');
+ if(!Array.isArray(payload.performances)||payload.performances.length>5000||payload.performances.some(r=>!r||typeof r.id!=='string'||r.id.length>100)||JSON.stringify(payload.performances).length>12*1024*1024)throw Error('Некорректная или слишком большая история тренировок');
  if(payload.smartMastery && (typeof payload.smartMastery!=='object'||Array.isArray(payload.smartMastery)||JSON.stringify(payload.smartMastery).length>4*1024*1024))throw Error('Некорректный прогресс Smart Practice');
  const settings={...defaults};
  for(const key of Object.keys(defaults))if(key!=='songSettings'&&Object.hasOwn(payload.settings,key))settings[key]=payload.settings[key];
@@ -75,9 +76,11 @@ async function backupRestore(file){
  if(!agree)return false;
  // Write works in one IndexedDB transaction, so an error rolls back all imported binaries.
  const db=await libraryDB();
- try{await new Promise((resolve,reject)=>{const tx=db.transaction(['works','prefs'],'readwrite');
+ try{await new Promise((resolve,reject)=>{const tx=db.transaction(['works','prefs','performances'],'readwrite');
   const works=tx.objectStore('works');for(const item of validated.works)works.put(item);
-  tx.objectStore('prefs').put(validated.favorites,'favorites');tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error);
+  tx.objectStore('prefs').put(validated.favorites,'favorites');
+  const attempts=tx.objectStore('performances');attempts.clear();for(const record of validated.performances)attempts.put(record);
+  tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error);
  })}finally{db.close()}
  // Settings are updated only after the whole library transaction commits.
  const keys=[STORE,PERF_STORE,SMART_STORE];
