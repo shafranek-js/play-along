@@ -54,18 +54,11 @@ function backupCheckJson(payload){
  if(!Array.isArray(payload.favorites)||payload.favorites.length>10000)throw Error('Неверный список избранного');
  if(!Array.isArray(payload.performances)||payload.performances.length>5000||payload.performances.some(r=>!r||typeof r.id!=='string'||r.id.length>100)||JSON.stringify(payload.performances).length>12*1024*1024)throw Error('Некорректная или слишком большая история тренировок');
  if(payload.smartMastery && (typeof payload.smartMastery!=='object'||Array.isArray(payload.smartMastery)||JSON.stringify(payload.smartMastery).length>4*1024*1024))throw Error('Некорректный прогресс Smart Practice');
- const settings={...defaults};
- for(const key of Object.keys(defaults))if(key!=='songSettings'&&Object.hasOwn(payload.settings,key))settings[key]=payload.settings[key];
- const songSettings=payload.settings.songSettings;
- if(songSettings&&typeof songSettings==='object'&&!Array.isArray(songSettings)){
-  settings.songSettings=Object.create(null);
-  const ids=Object.keys(songSettings);if(ids.length>4000)throw Error('Слишком много профилей мелодий');
-  for(const id of ids){if(id==='__proto__'||id==='constructor'||id==='prototype'||id.length>250)continue;
-   const original=songSettings[id];if(!original||typeof original!=='object'||Array.isArray(original))continue;
-   const safe={};for(const key of [...SONG_PREF_FIELDS,'position','loop','bookmarks'])if(Object.hasOwn(original,key))safe[key]=original[key];
-   settings.songSettings[id]=safe;
-  }
- }
+ // Strict validation is shared with startup localStorage normalization.
+ // Never interpolate untyped backup values into HTML, CSS or audio settings.
+ const settings=sanitizePlayAlongSettings(payload.settings,{strict:true});
+ if(Object.keys(settings.songSettings||{}).length>4000)
+  throw Error('Слишком много профилей мелодий');
  return {works:results,settings,performances:payload.performances,favorites:payload.favorites.filter(x=>typeof x==='string'),smartMastery:payload.smartMastery||{}};
 }
 async function backupRestore(file){
@@ -74,28 +67,49 @@ async function backupRestore(file){
  const payload=JSON.parse(await file.text()),validated=backupCheckJson(payload);
  const agree=confirm('Восстановить '+validated.works.length+' файлов и настройки Play Along? Существующие мелодии останутся, а настройки и прогресс будут заменены данными из копии.');
  if(!agree)return false;
- // Write works in one IndexedDB transaction, so an error rolls back all imported binaries.
- const db=await libraryDB();
- try{await new Promise((resolve,reject)=>{const tx=db.transaction(['works','workIndex','prefs','performances'],'readwrite');
-  const works=tx.objectStore('works'),index=tx.objectStore('workIndex');for(const item of validated.works){works.put(item);index.put(libraryEntryMetadata(item))}
-  tx.objectStore('prefs').put(validated.favorites,'favorites');
-  const attempts=tx.objectStore('performances');attempts.clear();for(const record of validated.performances)attempts.put(record);
-  tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error);
- })}finally{db.close()}
- // Settings are updated only after the whole library transaction commits.
+ // localStorage has a separate quota and cannot participate in an
+ // IndexedDB transaction. Stage ALL localStorage keys first, before modifying
+ // works or history. If this step fails, IndexedDB is still untouched.
  const keys=[STORE,PERF_STORE,SMART_STORE];
- // The complete history was already restored atomically into IndexedDB;
- // localStorage only needs the newest compatible 30-record cache.
- const historyCache=[...validated.performances].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).slice(0,30);
+ const historyCache=[...validated.performances]
+  .sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).slice(0,30);
  const values=[validated.settings,historyCache,validated.smartMastery].map(x=>JSON.stringify(x));
  const originals=keys.map(k=>localStorage.getItem(k));
+ const rollbackCache=()=>{
+  const errors=[];
+  for(let i=0;i<keys.length;i++)try{
+   if(originals[i]===null)localStorage.removeItem(keys[i]);
+   else localStorage.setItem(keys[i],originals[i]);
+  }catch(err){errors.push(err)}
+  return errors;
+ };
  window.__playAlongRestoringBackup=true;
  try{
   for(let i=0;i<keys.length;i++)localStorage.setItem(keys[i],values[i]);
- }catch(e){
-  for(let i=0;i<keys.length;i++)try{if(originals[i]===null)localStorage.removeItem(keys[i]);else localStorage.setItem(keys[i],originals[i])}catch{}
+  // Only after the entire cache is writable can the ONE atomic IndexedDB
+  // transaction replace the user's full history and add imported works.
+  const db=await libraryDB();
+  try{
+   await new Promise((resolve,reject)=>{
+    const tx=db.transaction(['works','workIndex','prefs','performances'],'readwrite');
+    const works=tx.objectStore('works'),index=tx.objectStore('workIndex');
+    for(const item of validated.works){works.put(item);index.put(libraryEntryMetadata(item))}
+    tx.objectStore('prefs').put(validated.favorites,'favorites');
+    const attempts=tx.objectStore('performances');
+    attempts.clear();for(const record of validated.performances)attempts.put(record);
+    tx.oncomplete=()=>resolve(true);
+    tx.onerror=()=>reject(tx.error);
+    tx.onabort=()=>reject(tx.error);
+   });
+  }finally{db.close()}
+ }catch(err){
+  const rollbackErrors=rollbackCache();
+  if(rollbackErrors.length){
+   setLibraryStatus('Сбой восстановления; не удалось откатить кэш настроек. Данные IndexedDB сохранены или откатились.');
+   console.error('Cache rollback failed',rollbackErrors);
+  }
   window.__playAlongRestoringBackup=false;
-  setLibraryStatus('Файлы восстановлены, но настройки не сохранены: '+e.message);throw e;
+  throw err;
  }
  location.reload();return true;
 }
