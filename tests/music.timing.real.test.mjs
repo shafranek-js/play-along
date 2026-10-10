@@ -296,6 +296,44 @@ try{
  near(voltaCursor,16,'Volta second-ending cursor alignment');
  console.log('REAL OSMD TWO ENDINGS: two hands, guards, five measures and cursor: PASS');
  console.log('SIMPLE REPEATS: two-part A B C B C, three-pass, first-bar fallback, volta guarded: PASS');
+
+ // A repeat changing divisions/time cannot be safely unrolled unless state
+ // is restored on the second pass. Preserve written notation with warning.
+ const changedDiv=`<?xml version="1.0"?>
+ <score-partwise version="4.0"><part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list><part id="P1">
+ <measure number="1"><attributes><divisions>1</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes><note><pitch><step>C</step><octave>4</octave></pitch><duration>4</duration><type>whole</type></note></measure>
+ <measure number="2"><barline location="left"><repeat direction="forward"/></barline><note><pitch><step>D</step><octave>4</octave></pitch><duration>1</duration><type>quarter</type></note></measure>
+ <measure number="3"><attributes><divisions>2</divisions><time><beats>3</beats><beat-type>4</beat-type></time></attributes><note><pitch><step>E</step><octave>4</octave></pitch><duration>2</duration><type>quarter</type></note><barline location="right"><repeat direction="backward"/></barline></measure>
+ </part></score-partwise>`;
+ const repeatSafety=await page.evaluate(xml=>{
+  const s=window.__libraryV08.readMusicXML(xml,'changed-divisions.musicxml');
+  return {notes:s.tracks[0].notes.map(n=>n.pitch),original:!!s.originalNotationXML,
+   marker:s.notationXML.includes('repeat direction="backward"'),warnings:s.warnings};
+ },changedDiv);
+ assert.deepEqual(repeatSafety.notes,[60,62,64]);
+ assert.equal(repeatSafety.original,false);
+ assert.equal(repeatSafety.marker,true);
+ assert.ok(repeatSafety.warnings.some(w=>w.includes('divisions')));
+ // Offset is expressed in the current divisions; apply it to sound only
+ // when sound="yes" (or when nested directly within <sound>).
+ const offsetScore=(offset,after=false,nested=false)=>`<?xml version="1.0"?>
+ <score-partwise version="4.0"><part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list><part id="P1">
+ <measure number="1"><attributes><divisions>1</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes>
+ ${after?'<note><pitch><step>C</step><octave>4</octave></pitch><duration>1</duration><type>quarter</type></note>':''}
+ <direction>${nested?'<sound tempo="60"><offset>'+offset+'</offset></sound>':'<offset sound="yes">'+offset+'</offset><sound tempo="60"/>'}</direction>
+ ${after?'':'<note><pitch><step>C</step><octave>4</octave></pitch><duration>1</duration><type>quarter</type></note>'}
+ <note><pitch><step>D</step><octave>4</octave></pitch><duration>1</duration><type>quarter</type></note>
+ </measure></part></score-partwise>`;
+ for(const [kind,xml,want] of [
+  ['positive',offsetScore(1),[.5,1]],
+  ['negative',offsetScore(-1,true),[1,1]],
+  ['nested',offsetScore(1,false,true),[.5,1]],
+  ['visual-only',offsetScore(1).replace('offset sound="yes"','offset sound="no"'),[1,1]]
+ ]){
+  const durations=await page.evaluate(xml=>window.__libraryV08.readMusicXML(xml,'offset.musicxml').tracks[0].notes.map(n=>n.duration),xml);
+  durations.forEach((value,i)=>near(value,want[i],kind+' offset note '+i));
+ }
+ console.log('MUSIC AUDIT REGRESSION: unsafe repeats guarded, signed and nested tempo offset honored: PASS');
  assert.deepEqual(errs,[]);
  console.log('MUSIC REGRESSION: MusicXML rests, chord, tie, 4/4 to 3/4, tempo 120→60, left hand and MIDI tempo: PASS');
 }finally{if(browser)await browser.close();await new Promise(resolve=>server.close(resolve))}
