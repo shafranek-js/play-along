@@ -116,7 +116,7 @@ function scoreFrameSync(){
  if(state.scoreView!=='sheet'||state.mode!=='wait'||!isPlaying){hint.classList.add('hidden');return}
  hint.classList.remove('hidden');
  const next=practice?.nextGroup();
- hint.textContent=waitReleaseGroup?'✓ Нота/аккорд принят. Отпусти клавиши, чтобы перейти дальше.':holdForInput&&next?'⏳ Сыграй: '+[...new Set(next.notes.filter(n=>!n.hit).map(n=>nameOf(n.pitch)))].join(' + '):'▶ Следующая нота приближается…';
+ hint.textContent=waitReleaseGroup?'✓ Засчитано. Играй следующую ноту легато или отпусти клавиши.':holdForInput&&next?'⏳ Сыграй: '+[...new Set(next.notes.filter(n=>!n.hit).map(n=>nameOf(n.pitch)))].join(' + '):'▶ Следующая нота приближается…';
 }
 function scoreChangeZoom(delta){state.sheetZoom=Math.max(65,Math.min(150,state.sheetZoom+delta));$('sheetZoomLabel').textContent=state.sheetZoom+'%';persist();if(!scoreRenderer)return;clearTimeout(scoreZoomTimer);scoreZoomTimer=setTimeout(()=>{if(scoreRenderer&&scoreSong===current&&state.scoreView==='sheet'){try{scoreRenderer.Zoom=state.sheetZoom/100;scoreRenderer.render();scoreRenderer.cursor?.show();scoreCursorIndex=0;scoreRenderer.cursor?.reset();scoreSyncCursor(true)}catch(e){scoreError(e)}}},130)}
 function scoreBarBeats(song){

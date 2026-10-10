@@ -40,7 +40,7 @@ try{
    console.log('PAGE DIAGNOSTIC:',await page.evaluate(()=>({ready:document.readyState,script:!!document.querySelector('script[src*="app.js"]'),state:typeof window.__prototypeTest,library:typeof window.__libraryV08})));
    throw err;
  });
- assert.equal(await page.evaluate(()=>window.__playAlongVersion),'0.10.2');
+ assert.equal(await page.evaluate(()=>window.__playAlongVersion),'0.10.3');
  const zip=makeZip('score.musicxml',SCORE).toString('base64');
  const result=await page.evaluate(async ({xml,zip})=>{
    const arr=Uint8Array.from(atob(zip),c=>c.charCodeAt(0));

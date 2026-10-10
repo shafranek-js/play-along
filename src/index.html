@@ -4,12 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="dark">
-<title>Play Along · v0.10.2 · Modular Project</title>
+<title>Play Along · v0.10.3 · Modular Project</title>
 <link rel="stylesheet" href="./assets/app.css">
 </head>
 <body class="">
 <header id="topbar">
- <div class="brand"><div class="brandmark">♫</div><div><strong>Play Along</strong><span>Standalone · v0.10.2</span></div></div>
+ <div class="brand"><div class="brandmark">♫</div><div><strong>Play Along</strong><span>Standalone · v0.10.3</span></div></div>
  <nav class="nav" aria-label="Основные страницы"><button data-page="practice" class="active">Тренировка</button><button data-page="library">Библиотека</button><button data-page="progress">Анализ</button></nav>
  <div style="height:23px;width:1px;background:#39414e"></div>
  <div class="workspace" aria-label="Рабочие компоновки"><button data-layout="learn" class="active" title="Панели обучения">Изучение</button><button data-layout="play" title="Максимум места для музыки">Игра</button><button data-layout="analyze" title="Расширенные показатели">Анализ</button></div>
@@ -74,7 +74,7 @@
  </aside>
  <div class="splitter" id="leftSplit" data-side="left" aria-hidden="true"></div>
  <section class="center">
-  <div class="centerHead"><div class="songTitle"><p id="songType">PLAY ALONG · INTERACTIVE SCORE v0.10.2</p><h1 id="songName">Мелодия: учебная фраза</h1><p id="songMeta">Выберите демонстрацию или загрузите MIDI</p></div><div class="scoreViewSwitcher" role="group" aria-label="Представление музыки"><button id="viewRoll" class="active" aria-pressed="true" title="Падающие ноты и виртуальная клавиатура">▥ Piano Roll</button><button id="viewSheet" aria-pressed="false" title="Нотная партитура с синхронным курсором">♬ Sheet Music</button></div><div class="chips"><span class="chip accent" id="playModeChip">Прослушивание</span><span class="chip" id="pitchChip">Диапазон: C3–C6</span></div></div>
+  <div class="centerHead"><div class="songTitle"><p id="songType">PLAY ALONG · INTERACTIVE SCORE v0.10.3</p><h1 id="songName">Мелодия: учебная фраза</h1><p id="songMeta">Выберите демонстрацию или загрузите MIDI</p></div><div class="scoreViewSwitcher" role="group" aria-label="Представление музыки"><button id="viewRoll" class="active" aria-pressed="true" title="Падающие ноты и виртуальная клавиатура">▥ Piano Roll</button><button id="viewSheet" aria-pressed="false" title="Нотная партитура с синхронным курсором">♬ Sheet Music</button></div><div class="chips"><span class="chip accent" id="playModeChip">Прослушивание</span><span class="chip" id="pitchChip">Диапазон: C3–C6</span></div></div>
   <div class="rollWrap" id="rollWrap"><canvas id="roll" aria-label="Piano Roll с падающими нотами"></canvas><div class="rollStatus" id="rollStatus">⏸ Готово к воспроизведению</div><div class="rollHint">Правая кнопка — действия с нотами · Space — Play/Pause</div></div>
   <div class="sheetWrap hidden" id="sheetWrap" role="region" aria-label="Интерактивная партитура OpenSheetMusicDisplay" tabindex="0"><div class="sheetContent" id="sheetContent"><div class="sheetInfo"><div><strong>♬ Нотная партитура</strong> · <span id="sheetStatus" aria-live="polite">Ожидание произведения</span></div><div class="sheetScrollControls"><label title="Автоматически прокручивать партитуру за курсором"><input type="checkbox" id="sheetFollow" checked> Следовать</label><button id="sheetBarBack" title="Предыдущий такт">⇤ Такт</button><button id="sheetBarNext" title="Следующий такт">Такт ⇥</button><button id="sheetZoomOut" title="Уменьшить ноты" aria-label="Уменьшить">−</button><span id="sheetZoomLabel">100%</span><button id="sheetZoomIn" title="Увеличить ноты" aria-label="Увеличить">＋</button></div></div><div id="sheetWaitStatus" class="sheetNotice hidden" aria-live="polite"></div><div id="sheetNotice" class="sheetNotice hidden"></div><div class="sheetCanvas" id="sheetCanvas" aria-label="Нотная запись произведения"></div></div></div>
   <div class="keyboardInfo"><span><strong id="keyboardRangeText">Экран: C3–C6</strong> <span id="deviceRangeText">· MIDI диапазон не определён</span></span><span id="midiLive">MIDI: ожидание</span><span id="songActive" style="font-variant-numeric:tabular-nums;white-space:nowrap">♫ 0</span></div>
