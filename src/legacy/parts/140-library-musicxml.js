@@ -262,7 +262,13 @@ function readMusicXML(xmlString,filename){
     if(xmlDirect(el,'notations')?.getElementsByTagName('ornaments')?.length)warnings.add('Украшения не развёрнуты в отдельные MIDI-ноты.');
    }
    const expected=durationTicks(beats*(4/beatType)*divisions,divisions);
-   absolute+=Math.max(0,maxAt)||expected;
+   // Written measures advance by their declared meter, even if a voice omits
+   // an explicit trailing rest. Otherwise the next bar starts early in a
+   // sparsely encoded part while fully notated parts remain on the bar line.
+   // Implicit pickup measures are intentionally shorter when notes establish
+   // their actual written length. Preserve genuine overfull bars for safety.
+   const implicit=measure.getAttribute('implicit')==='yes';
+   absolute+=implicit&&maxAt>0?Math.min(expected,maxAt):Math.max(expected,maxAt);
   }
   for(const [key,notes] of voices)if(notes.length)segments.push({name:(namesById[part.getAttribute('id')]||'Партия')+' · '+key.replace('|','/'),notes});
  }
