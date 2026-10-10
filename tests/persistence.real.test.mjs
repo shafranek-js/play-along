@@ -43,6 +43,10 @@ try{
  const initial=await page.evaluate(()=>({id:window.__prototypeTest.song.id,tracks:window.__prototypeTest.song.tracks.length}));
  assert.ok(initial.id.startsWith('saved-'),`unstable imported file ID: ${initial.id}`);
  assert.equal(initial.tracks,2);
+ // A library index must not hold ArrayBuffers for every saved work.
+ assert.equal(await page.evaluate(()=>window.__libraryV08.collection[0]?.data),undefined);
+ assert.ok(await page.evaluate(()=>window.__libraryV08.collection[0]?.dataSize)>0);
+
  await page.locator('#trackSelect').selectOption('1');
  await page.locator('#bottomMode').selectOption('wait');
  await page.locator('#speed').evaluate(el=>{el.value='65';el.dispatchEvent(new Event('input',{bubbles:true}))});
