@@ -10,6 +10,6 @@
     "build":"node scripts/build.mjs",
     "dev":"node scripts/dev-server.mjs",
     "test":"node --test tests/build.test.mjs",
-    "test:browser":"node tests/osmd.real.test.mjs && node tests/persistence.real.test.mjs && node tests/library.migration.real.test.mjs"
+    "test:browser":"node tests/osmd.real.test.mjs && node tests/persistence.real.test.mjs && node tests/library.migration.real.test.mjs && node tests/music.timing.real.test.mjs"
   }
 }
