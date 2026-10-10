@@ -157,7 +157,12 @@ function readMusicXML(xmlString,filename){
     if(tag==='forward'){at+=durationTicks(xmlText(el,'duration',0),divisions);maxAt=Math.max(maxAt,at);continue}
     if(tag==='direction'){
      const sound=xmlDirect(el,'sound');const bpm=Number(sound?.getAttribute('tempo'));if(bpm>0&&bpm<1000)tempos.push({tick:absolute+at,tempo:60000000/bpm});
-     const metr=xmlDirect(xmlDirect(el,'direction-type'),'metronome');const per=Number(xmlText(metr,'per-minute'));if(!bpm&&per>0){const unit=xmlText(metr,'beat-unit','quarter');const factor=({whole:4,half:2,quarter:1,eighth:.5,'16th':.25})[unit]||1;tempos.push({tick:absolute+at,tempo:60000000/(per*factor)})}
+     const metr=xmlDirect(xmlDirect(el,'direction-type'),'metronome');const per=Number(xmlText(metr,'per-minute'));if(!bpm&&per>0){const unit=xmlText(metr,'beat-unit','quarter');const unitQuarter=({whole:4,half:2,quarter:1,eighth:.5,'16th':.25,'32nd':.125,'64th':.0625})[unit]||1;
+      // MusicXML can specify a dotted beat unit, e.g. dotted quarter = 60
+      // in 6/8. A dotted quarter occupies 1.5 ordinary quarter beats.
+      const dots=Math.min(3,xmlList(metr,'beat-unit-dot').length);
+      let dottedFactor=1;for(let j=1;j<=dots;j++)dottedFactor+=2**(-j);
+      tempos.push({tick:absolute+at,tempo:60000000/(per*unitQuarter*dottedFactor)})}
      continue;
     }
     if(tag==='barline'){if(xmlDirect(el,'repeat'))warnings.add('Повторы MusicXML пока не разворачиваются: выполняется записанная последовательность тактов.');continue}

@@ -73,6 +73,25 @@ try{
  assert.deepEqual(result.midiNotes.map(n=>n.pitch),[60,62]);
  near(result.midiNotes[0].start,0,'MIDI first onset');near(result.midiNotes[0].duration,.5,'MIDI first length');
  near(result.midiNotes[1].start,.5,'MIDI tempo onset');near(result.midiNotes[1].duration,1,'MIDI tempo duration');
+ // A dotted-quarter metronome marking in 6/8 is NOT quarter=60.
+ // Dotted quarter = 60 means ordinary quarter = 90, so 1.5 quarters = 1 sec.
+ const compound=\`<?xml version="1.0"?>
+ <score-partwise version="4.0"><part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list>
+ <part id="P1"><measure number="1">
+ <attributes><divisions>480</divisions><time><beats>6</beats><beat-type>8</beat-type></time></attributes>
+ <direction><direction-type><metronome><beat-unit>quarter</beat-unit><beat-unit-dot/><per-minute>60</per-minute></metronome></direction-type></direction>
+ <note><pitch><step>C</step><octave>4</octave></pitch><duration>720</duration><type>quarter</type><dot/></note>
+ <note><pitch><step>D</step><octave>4</octave></pitch><duration>720</duration><type>quarter</type><dot/></note>
+ </measure></part></score-partwise>\`;
+ const dotted=await page.evaluate(xml=>{
+  const s=window.__libraryV08.readMusicXML(xml,'compound.musicxml');
+  return {notes:s.tracks.flatMap(t=>t.notes),firstBeat:window.__scoreTest.scoreBeatToSecond(s,1.5),tempo:s.scoreTempoMap[0].tempo};
+ },compound);
+ near(dotted.notes[0].duration,1,'dotted-quarter C duration in 6/8');
+ near(dotted.notes[1].start,1,'dotted-quarter D onset in 6/8');
+ near(dotted.notes[1].duration,1,'dotted-quarter D duration in 6/8');
+ near(dotted.firstBeat,1,'OSMD shared tempo map for dotted quarter');
+ near(dotted.tempo,60000000/90,'quarter microseconds with dotted beat marking');
  assert.deepEqual(errs,[]);
  console.log('MUSIC REGRESSION: MusicXML rests, chord, tie, 4/4 to 3/4, tempo 120→60, left hand and MIDI tempo: PASS');
 }finally{if(browser)await browser.close();await new Promise(resolve=>server.close(resolve))}
