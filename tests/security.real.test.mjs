@@ -36,7 +36,7 @@ try{
  await page.waitForFunction(()=>document.querySelector('#onlineStatus')?.textContent?.includes('Восстановление не выполнено')
   ||document.body.innerText.includes('Восстановление не выполнено'),null,{timeout:10000});
  assert.equal(await page.evaluate(()=>window.__auditBackupXss===1),false,'HTML executed through backup setting');
- assert.ok(!(await page.evaluate(()=>window.__prototypeTest.state.leftWidth===payload)),'Injected width accepted');
+ assert.ok(!(await page.evaluate(value=>window.__prototypeTest.state.leftWidth===value,payload)),'Injected width accepted');
  // Even a malicious previously saved localStorage snapshot must be normalized.
  const safeWidth=await page.evaluate(()=>{
   const key='playalong:smart-practice:v07';
