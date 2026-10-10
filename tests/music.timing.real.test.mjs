@@ -168,6 +168,39 @@ try{
  near(afterRepeatSeek.pos,8,'Repeat seek position');
  near(afterRepeatSeek.cursorBeat,16,'Repeat cursor beat at second pass');
  console.log('REAL OSMD SIMPLE REPEAT: five rendered measures and synced seek: PASS');
+ // Sparse right-hand notation omits the trailing rest in measure 1.
+ // The next normal 4/4 measure MUST still begin at t=2s, matching left hand.
+ const sparse=`<?xml version="1.0"?>
+ <score-partwise version="4.0"><part-list>
+ <score-part id="R"><part-name>Right</part-name></score-part>
+ <score-part id="L"><part-name>Left</part-name></score-part></part-list>
+ <part id="R">
+ <measure number="1"><attributes><divisions>480</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes>
+ <note><pitch><step>C</step><octave>5</octave></pitch><duration>480</duration><type>quarter</type></note></measure>
+ <measure number="2"><note><pitch><step>D</step><octave>5</octave></pitch><duration>1920</duration><type>whole</type></note></measure>
+ </part>
+ <part id="L">
+ <measure number="1"><attributes><divisions>480</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes>
+ <note><pitch><step>C</step><octave>3</octave></pitch><duration>1920</duration><type>whole</type></note></measure>
+ <measure number="2"><note><pitch><step>D</step><octave>3</octave></pitch><duration>1920</duration><type>whole</type></note></measure>
+ </part></score-partwise>`;
+ const sparseResult=await page.evaluate(xml=>{
+  const song=window.__libraryV08.readMusicXML(xml,'sparse.musicxml');
+  return song.tracks.map(t=>t.notes.map(n=>({pitch:n.pitch,start:n.start,duration:n.duration})));
+ },sparse);
+ assert.equal(sparseResult.length,2);
+ near(sparseResult[0][1].start,2,'Right hand sparse measure must preserve 4/4 bar boundary');
+ near(sparseResult[1][1].start,2,'Left hand normal measure boundary');
+ near(sparseResult[0][0].duration,.5,'Sparse C5 duration remains a quarter');
+ // A genuinely implicit pickup must remain short (one eighth at 120 BPM).
+ const pickup=sparse.replace('<measure number="1">','<measure number="1" implicit="yes">')
+  .replace('<duration>480</duration><type>quarter</type>','<duration>240</duration><type>eighth</type>');
+ const pickupResult=await page.evaluate(xml=>{
+  const song=window.__libraryV08.readMusicXML(xml,'pickup.musicxml');
+  return song.tracks[0].notes.map(n=>({pitch:n.pitch,start:n.start,duration:n.duration}));
+ },pickup);
+ near(pickupResult[1].start,.25,'Implicit pickup must not be padded to a full measure');
+ console.log('PART TIMING: incomplete 4/4 bar aligned across hands, implicit pickup preserved: PASS');
  console.log('SIMPLE REPEATS: two-part A B C B C, three-pass, first-bar fallback, volta guarded: PASS');
  assert.deepEqual(errs,[]);
  console.log('MUSIC REGRESSION: MusicXML rests, chord, tie, 4/4 to 3/4, tempo 120→60, left hand and MIDI tempo: PASS');
