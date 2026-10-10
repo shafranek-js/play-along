@@ -3,6 +3,7 @@
 let scoreRenderer=null,scoreSong=null,scoreBusy=null,scoreCursorIndex=0,scoreCursorTimes=[],scoreLastSecond=-1,scoreLastFrame=0;
 let scoreLibPromise=null,scoreLoadSerial=0,scoreZoomTimer=null;
 const SCORE_CDNS=[
+ './assets/vendor/opensheetmusicdisplay.min.js',
  'https://cdn.jsdelivr.net/npm/opensheetmusicdisplay@2.2.0/build/opensheetmusicdisplay.min.js',
  'https://unpkg.com/opensheetmusicdisplay@2.2.0/build/opensheetmusicdisplay.min.js'
 ];
@@ -13,7 +14,7 @@ function scoreOnSongChanged(){scoreLoadSerial++;scoreRenderer=null;scoreSong=nul
 function scoreLoadScript(url){return new Promise((resolve,reject)=>{const tag=document.createElement('script');tag.src=url;tag.async=true;tag.crossOrigin='anonymous';let timer=setTimeout(()=>{tag.remove();reject(Error('Истекло время загрузки OSMD'))},16000);tag.onload=()=>{clearTimeout(timer);resolve()};tag.onerror=()=>{clearTimeout(timer);tag.remove();reject(Error('Не удалось загрузить '+url.split('/')[2]))};document.head.append(tag);})}
 async function scoreLibrary(){
  if(window.opensheetmusicdisplay?.OpenSheetMusicDisplay)return window.opensheetmusicdisplay;
- if(!scoreLibPromise){scoreLibPromise=(async()=>{let lastError=null;for(const url of SCORE_CDNS){try{await scoreLoadScript(url);if(window.opensheetmusicdisplay?.OpenSheetMusicDisplay)return window.opensheetmusicdisplay;}catch(e){lastError=e;}}throw new Error('Библиотека OpenSheetMusicDisplay не загружается. Для первого открытия нот необходим доступ к CDN (jsDelivr или unpkg). '+(lastError?.message||''));})();scoreLibPromise.catch(()=>{scoreLibPromise=null})}
+ if(!scoreLibPromise){scoreLibPromise=(async()=>{let lastError=null;for(const url of SCORE_CDNS){try{await scoreLoadScript(url);if(window.opensheetmusicdisplay?.OpenSheetMusicDisplay)return window.opensheetmusicdisplay;}catch(e){lastError=e;}}throw new Error('Библиотека OpenSheetMusicDisplay не загружается (локальная копия, jsDelivr и unpkg недоступны). '+(lastError?.message||''));})();scoreLibPromise.catch(()=>{scoreLibPromise=null})}
  return scoreLibPromise;
 }
 function scoreEscape(text){return String(text??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));}
@@ -83,6 +84,7 @@ async function scoreEnsureRendered(){
   const el=$('sheetCanvas');el.replaceChildren();const renderer=new library.OpenSheetMusicDisplay(el,{autoResize:false,backend:'svg',drawTitle:true,drawingParameters:'compact'});
   scoreSetStatus('Вычерчиваем ноты…');await renderer.load(xml);if(token!==scoreLoadSerial||song!==current)return;
   renderer.Zoom=state.sheetZoom/100;renderer.render();if(token!==scoreLoadSerial||song!==current)return;
+  if(!el.querySelector('svg'))throw Error('OSMD не создала SVG-партитуру');
   scoreRenderer=renderer;scoreSong=song;scoreCursorIndex=0;scoreLastSecond=-1;
   scoreCursorTimes=[];try{const cur=renderer.cursor;cur.reset();let n=0;while(!cur.iterator?.EndReached&&n++<30000){const val=Number(cur.iterator.CurrentSourceTimestamp?.RealValue);if(!Number.isFinite(val))break;scoreCursorTimes.push(val*4);cur.next()}cur.reset();cur.show();}catch(e){console.warn('OSMD cursor index unavailable',e);scoreCursorTimes=[];}
   scoreSetStatus((hasOriginal?'Исходный MusicXML':'MIDI → приближённая запись')+' · '+scoreCursorTimes.length+' позиций');scoreSyncCursor(true);
@@ -99,7 +101,7 @@ function scoreSyncCursor(force=false){
  try{
   if(idx<scoreCursorIndex){cur.reset();scoreCursorIndex=0}
   // Long seeks may contain hundreds of notes; do not schedule heavy DOM work inside an audio callback.
-  let steps=0;while(scoreCursorIndex<idx&&steps++<200){cur.next();scoreCursorIndex++}
+  let steps=0;while(scoreCursorIndex<idx&&steps++<2000){cur.next();scoreCursorIndex++}
   if(state.sheetFollow!==false&&cur.cursorElement&&(force||steps>0)){
     const host=$('sheetWrap'),area=host.getBoundingClientRect(),rect=cur.cursorElement.getBoundingClientRect();
     if(rect.height&&((rect.top<area.top+35)||(rect.bottom>area.bottom-35))){

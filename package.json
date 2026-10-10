@@ -4,8 +4,15 @@
   "private": true,
   "type": "module",
   "description": "Play Along — independent browser piano practice application",
+  "dependencies": {
+    "opensheetmusicdisplay": "2.2.0"
+  },
+  "devDependencies": {
+    "playwright": "1.55.1"
+  },
   "scripts": {
     "build": "node scripts/build.mjs",
+    "test:browser": "node tests/osmd.real.test.mjs",
     "dev": "node scripts/dev-server.mjs",
     "test": "node --test tests/build.test.mjs"
   }

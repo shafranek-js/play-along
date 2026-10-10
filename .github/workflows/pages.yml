@@ -27,10 +27,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Install Chromium for browser tests
+        run: npx playwright install --with-deps chromium
       - name: Build
         run: npm run build
       - name: Test
         run: npm test
+      - name: Real OpenSheetMusicDisplay browser tests
+        run: npm run test:browser
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
       - name: Upload static site
