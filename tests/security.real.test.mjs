@@ -33,7 +33,7 @@ try{
   name:'play-along-backup.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(obj))
  });
  await upload(malicious);
- await page.waitForFunction(()=>document.querySelector('#libraryStatus')?.textContent?.includes('Восстановление не выполнено')
+ await page.waitForFunction(()=>document.querySelector('#onlineStatus')?.textContent?.includes('Восстановление не выполнено')
   ||document.body.innerText.includes('Восстановление не выполнено'),null,{timeout:10000});
  assert.equal(await page.evaluate(()=>window.__auditBackupXss===1),false,'HTML executed through backup setting');
  assert.ok(!(await page.evaluate(()=>window.__prototypeTest.state.leftWidth===payload)),'Injected width accepted');
