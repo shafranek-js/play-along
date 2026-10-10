@@ -33,17 +33,36 @@ function makePerformanceRecord(session,reason='manual'){
   notes:session.all.filter(n=>session.all.length<=900||n.miss||n.hit&&(n.timingMs!=null&&Math.abs(n.timingMs)>110||n.holdRatio!=null&&(n.holdRatio<.7||n.holdRatio>1.4)||n.chordSpreadMs>140)).slice(0,1700).map(n=>({pitch:n.pitch,start:n.start,duration:n.duration,hit:n.hit,miss:n.miss,timingMs:n.timingMs,holdRatio:n.holdRatio,chordSpreadMs:n.chordSpreadMs})),
   extras:session.extras.slice(0,400)};
 }
-function savePerfStorage(){
- try{localStorage.setItem(PERF_STORE,JSON.stringify(perfAttempts));return true}catch(e){
-  // Degrade gracefully on restrictive or full storage; keep summaries first.
-  try{localStorage.setItem(PERF_STORE,JSON.stringify(perfAttempts.map((p,i)=>i<8?p:{...p,notes:[],extras:[]})));return true}catch{return false}
+// IndexedDB holds complete attempts; localStorage is a small migration cache.
+async function loadPerformanceHistory(){
+ const legacy=perfAttempts.slice();
+ const stored=await libraryTransaction('performances','readonly',s=>s.getAll())||[];
+ const byId=new Map(stored.filter(r=>r?.id).map(r=>[r.id,r]));
+ const missing=legacy.filter(r=>r?.id&&!byId.has(r.id));
+ if(missing.length)await libraryTransaction('performances','readwrite',s=>{for(const r of missing)s.put(r);return null});
+ for(const r of missing)byId.set(r.id,r);
+ for(const r of perfAttempts)if(r?.id&&!byId.has(r.id))byId.set(r.id,r);
+ perfAttempts=[...byId.values()].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
+ if(current){rebuildPerfLast();renderReview()}
+}
+function savePerfStorage({added=null,deletedProfile=null}={}){
+ try{localStorage.setItem(PERF_STORE,JSON.stringify(perfAttempts.slice(0,30)))}catch(e){
+  try{localStorage.setItem(PERF_STORE,JSON.stringify(perfAttempts.slice(0,8).map(r=>({...r,notes:[],extras:[]}))))}catch{}
  }
+ if(added)libraryTransaction('performances','readwrite',s=>s.put(added))
+  .catch(e=>{console.warn('History could not be stored',e);notify('Не удалось сохранить историю в IndexedDB')});
+ if(deletedProfile!==null)libraryTransaction('performances','readwrite',s=>{
+  const request=s.index('profile').openCursor(IDBKeyRange.only(deletedProfile));
+  request.onsuccess=()=>{const c=request.result;if(c){c.delete();c.continue()}};
+  return request;
+ }).catch(e=>{console.warn('History could not be deleted',e);notify('Не удалось удалить историю')});
+ return true;
 }
 function finishPerformance(reason='manual'){
  if(!practice||state.mode==='listen'||!practice.started||practice.stored||reason==='manual'&&practice.lastStoredRevision===practice.revision)return false;
  if(reason==='complete'||reason==='loop')practice.finalize(reason==='loop'?pos:duration());
- const result=makePerformanceRecord(practice,reason);perfAttempts.unshift(result);perfAttempts=perfAttempts.slice(0,30);practice.lastStoredRevision=practice.revision;if(reason!=='manual')practice.stored=true;
- const stored=savePerfStorage();rebuildPerfLast();renderReview();if(!stored)notify('Не удалось сохранить историю: хранилище браузера недоступно');
+ const result=makePerformanceRecord(practice,reason);perfAttempts.unshift(result);practice.lastStoredRevision=practice.revision;if(reason!=='manual')practice.stored=true;
+ const stored=savePerfStorage({added:result});rebuildPerfLast();renderReview();if(!stored)notify('Не удалось сохранить историю: хранилище браузера недоступно');
  return true;
 }
 function reviewForNote(n){
