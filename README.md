@@ -1,4 +1,4 @@
-# Play Along — Piano Practice App (v0.10.15)
+# Play Along — Piano Practice App (v0.10.16)
 
 Play Along is an independently hosted browser piano practice application with Web MIDI, Piano Roll, OpenSheetMusicDisplay (OSMD), MusicXML/MXL and MIDI import, optional online music catalogs, and Wait/Tempo/Listen practice modes.
 
@@ -149,11 +149,11 @@ MusicXML metronome directions now apply dotted beat units correctly (for example
 - Real Chromium security regression covers HTML injection in panel width, malicious saved localStorage, genuine localStorage quota saturation and preservation of pre-existing IndexedDB history on failed restore.
 - The earlier unison scoring improvement in Tempo mode (one physical press for simultaneous same-pitch voices, independent NoteOff duration judgement) is included; its release was held until security and browser tests passed.
 
-## Display hardening (v0.10.15)
+## Display hardening (v0.10.16)
 
 Imported history records are treated as untrusted content. Summary values are inserted as DOM text and the metric table escapes its labels and dynamic values; malformed numeric-looking fields cannot inject active HTML into the Performance Review panel. The Chromium security suite checks backup settings injection, real localStorage quota failures and malicious performance result markup.
 
-## Extracted musical-time core (v0.10.15)
+## Extracted musical-time core (v0.10.16)
 
 - `src/core/music-time.mjs` is a genuine independent ES module, importable directly into Node unit tests without a DOM, browser storage or Web Audio.
 - It canonicalizes tick/tempo events, calculates cumulative seconds, and converts ticks/quarter-beats/seconds; it handles simultaneous tempo changes, variable PPQ and changing tempo without mutating inputs.
@@ -162,3 +162,10 @@ Imported history records are treated as untrusted content. Summary values are in
 - The Piano Roll performed-note highlight now handles the array of simultaneously played unison voices introduced in the Tempo/Wait scoring fix; a browser assertion ensures both notated voices are highlighted and key-up removes only released notes.
 
 This is an incremental extraction, **not** a claim that the rest of the 21 legacy parts are isolated ES modules.
+
+## Pure musical measure grid (v0.10.16)
+
+- `src/core/music-bars.mjs` is a standalone ES module that normalizes bar lengths for regular meters, incomplete measures, implicit pickups and overfull measures.
+- Both the MusicXML importer's shared part timeline and OSMD measure navigation now consume `musicBarGrid()`, rather than keeping separate barline rules. The per-part fallback shares `musicMeasureSpan()`.
+- Node unit tests cover 4/4, 3/4, 6/8, pickups, sparse notation, overfull bars and invalid inputs. A real Chromium timing fixture asserts a second measure begins at beat five in both MusicXML and OSMD when the preceding 4/4 measure contains five played beats.
+- The build adapter now injects both genuine ESM sources into the legacy IIFE; neither module depends on the DOM, MIDI or storage.

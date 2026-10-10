@@ -334,6 +334,24 @@ try{
   durations.forEach((value,i)=>near(value,want[i],kind+' offset note '+i));
  }
  console.log('MUSIC AUDIT REGRESSION: unsafe repeats guarded, signed and nested tempo offset honored: PASS');
+ // One overfull 4/4 bar has five quarter beats. Parser and OSMD bar
+ // navigation must agree that the second measure begins at beat 5, not 4.
+ const overfullXml=`<?xml version="1.0"?>
+ <score-partwise version="4.0"><part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list>
+ <part id="P1"><measure number="1">
+ <attributes><divisions>480</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes>
+ <note><pitch><step>C</step><octave>4</octave></pitch><duration>1920</duration><type>whole</type></note>
+ <note><pitch><step>D</step><octave>4</octave></pitch><duration>480</duration><type>quarter</type></note>
+ </measure><measure number="2">
+ <note><pitch><step>E</step><octave>4</octave></pitch><duration>480</duration><type>quarter</type></note>
+ </measure></part></score-partwise>`;
+ const overfullResult=await page.evaluate(xml=>{
+  const s=window.__libraryV08.readMusicXML(xml,'overfull.musicxml');
+  return {starts:window.__scoreTest.scoreBarBeats(s),notes:s.tracks[0].notes.map(n=>({pitch:n.pitch,start:n.start}))};
+ },overfullXml);
+ assert.deepEqual(overfullResult.starts,[0,5],'OSMD bar navigation must account for overfull measure');
+ near(overfullResult.notes[2].start,2.5,'Importer must agree on the second measure onset');
+ console.log('NORMALIZED BARS: OSMD and MusicXML agree on overfull measure: PASS');
  assert.deepEqual(errs,[]);
  console.log('MUSIC REGRESSION: MusicXML rests, chord, tie, 4/4 to 3/4, tempo 120→60, left hand and MIDI tempo: PASS');
 }finally{if(browser)await browser.close();await new Promise(resolve=>server.close(resolve))}

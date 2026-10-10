@@ -126,13 +126,13 @@ function scoreBarBeats(song){
  try{
   const doc=new DOMParser().parseFromString(song.notationXML,'application/xml');
   const part=[...doc.getElementsByTagName('part')][0];if(!part)throw Error('No part');
-  let divisions=1,beats=4,unit=4,at=0;const boundaries=[];
+  let divisions=1,beats=4,unit=4;const frames=[];
   for(const measure of [...part.children].filter(n=>n.localName==='measure')){
-   boundaries.push(at);if(boundaries.length>=1500)break;
+   if(frames.length>=1500)break;
    const attrs=[...measure.children].filter(n=>n.localName==='attributes');
    for(const a of attrs){const d=a.getElementsByTagName('divisions')[0];if(d){const v=Number(d.textContent);if(v>0)divisions=v}
     const time=a.getElementsByTagName('time')[0];if(time){const b=Number(time.getElementsByTagName('beats')[0]?.textContent),u=Number(time.getElementsByTagName('beat-type')[0]?.textContent);if(b>0&&u>0){beats=b;unit=u}}}
-   const nominal=beats*4/unit;let pointer=0,max=0;
+   let pointer=0,max=0;
    for(const n of [...measure.children]){
     if(!['note','backup','forward'].includes(n.localName))continue;
     const d=Number([...n.children].find(c=>c.localName==='duration')?.textContent)||0;
@@ -141,10 +141,9 @@ function scoreBarBeats(song){
     else if(n.localName==='forward'){pointer+=q;max=Math.max(max,pointer)}
     else if(!n.getElementsByTagName('grace').length && !n.getElementsByTagName('chord').length){pointer+=q;max=Math.max(max,pointer)}
    }
-   const implicit=measure.getAttribute('implicit')==='yes';
-   at+=(implicit&&max>0)?Math.min(nominal,max):nominal;
+   frames.push({beats,beatType:unit,occupied:max,implicit:measure.getAttribute('implicit')==='yes'});
   }
-  if(boundaries.length)return boundaries;
+  if(frames.length)return musicBarGrid(frames).slice(0,-1);
  }catch(e){console.warn('Unable to read score bar positions',e)}
  const end=scoreSecondToBeat(song,duration());return Array.from({length:Math.ceil(end/4)+1},(_,i)=>i*4);
 }

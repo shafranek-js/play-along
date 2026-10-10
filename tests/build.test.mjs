@@ -13,11 +13,11 @@ const html=read('dist/index.html');
 const css=read('dist/assets/app.css');
 const manifest=JSON.parse(read('scripts/manifest.json'));
 const featureSource=manifest.features.map(name=>read('src/legacy/parts/'+name)).join('');
-const musicPrelude=read('src/core/music-time.mjs').replace(/^export /gm,'');
+const musicPrelude=['music-time.mjs','music-bars.mjs'].map(f=>read('src/core/'+f).replace(/^export /gm,'')).join('\n');
 
 test('all feature parts form exactly one valid JavaScript bundle',()=>{
  assert.equal(manifest.features.length,21);
- const expected="\n(()=>{'use strict';\n"+musicPrelude+'\n'+featureSource.replace("window.__playAlongVersion='0.9.1'","window.__playAlongVersion='0.10.15'")+"})();\n";
+ const expected="\n(()=>{'use strict';\n"+musicPrelude+'\n'+featureSource.replace("window.__playAlongVersion='0.9.1'","window.__playAlongVersion='0.10.16'")+"})();\n";
  assert.equal(js,expected);
  execFileSync(process.execPath,['--check',path.join(root,'dist/assets/app.js')]);
 });
@@ -32,9 +32,10 @@ test('CSS and HTML are separate, all expected DOM anchors exist',()=>{
 });
 test('preserved features: MIDI auto connection, Wait, OSMD, imports, catalogs',()=>{
  for(const term of ['requestMIDIAccess','onstatechange','waitReleasePitches','holdForInput','scoreEnsureRendered','opensheetmusicdisplay.min.js','mutopiaLoadIndex','museTrainerLoadIndex','asapLoadIndex','zipUnpackMXL','readMusicXML','parseMidi','indexedDB']) assert.ok(js.includes(term),`Missing ${term}`);
- assert.ok(js.includes("window.__playAlongVersion='0.10.15'"));
+ assert.ok(js.includes("window.__playAlongVersion='0.10.16'"));
  assert.ok(js.includes('function musicCreateTempoTimeline('));
  assert.ok(js.includes('function musicSecondsToBeat('));
+ assert.ok(js.includes('function musicBarGrid('));
 });
 test('build is deterministic',()=>{
  const h=crypto.createHash('sha256').update(js).digest('hex');

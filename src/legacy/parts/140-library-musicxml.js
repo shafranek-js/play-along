@@ -320,7 +320,7 @@ function musicExpandSimpleRepeats(doc){
 // The first score part is the temporal authority: another staff may omit
 // redundant time signatures or trailing rests but must not drift from it.
 function musicSharedBarStarts(measures,ppq){
- const starts=[0];let divisions=1,beats=4,beatType=4,absolute=0;
+ const frames=[];let divisions=1,beats=4,beatType=4;
  const ticks=value=>Math.round((Number(value)||0)/Math.max(1,divisions)*ppq);
  for(const measure of measures){
   let at=0,maxAt=0;
@@ -337,12 +337,9 @@ function musicSharedBarStarts(measures,ppq){
     at+=ticks(xmlText(el,'duration','0'));maxAt=Math.max(maxAt,at);
    }
   }
-  const nominal=Math.round(beats*4/Math.max(1,beatType)*ppq);
-  const implicit=measure.getAttribute('implicit')==='yes';
-  absolute+=implicit&&maxAt>0?Math.min(nominal,maxAt):Math.max(nominal,maxAt);
-  starts.push(absolute);
+  frames.push({beats,beatType,occupied:maxAt/ppq,implicit:measure.getAttribute('implicit')==='yes'});
  }
- return starts;
+ return musicBarGrid(frames).map(beat=>Math.round(beat*ppq));
 }
 function readMusicXML(xmlString,filename){
  if(xmlString.length>15e6)throw Error('MusicXML слишком велик для браузерного импорта');
@@ -424,18 +421,14 @@ function readMusicXML(xmlString,filename){
     else{list.push(note);if(tied.includes('start'))ties.set(tieKey,note)}
     if(xmlDirect(el,'notations')?.getElementsByTagName('ornaments')?.length)warnings.add('Украшения не развёрнуты в отдельные MIDI-ноты.');
    }
-   const expected=durationTicks(beats*(4/beatType)*divisions,divisions);
-   // Written measures advance by their declared meter, even if a voice omits
-   // an explicit trailing rest. Otherwise the next bar starts early in a
-   // sparsely encoded part while fully notated parts remain on the bar line.
-   // Implicit pickup measures are intentionally shorter when notes establish
-   // their actual written length. Preserve genuine overfull bars for safety.
+   // The same pure measure-span rule is used by OSMD bar navigation.
    const implicit=measure.getAttribute('implicit')==='yes';
+   const spanTicks=Math.round(musicMeasureSpan(beats,beatType,maxAt/ppq,implicit)*ppq);
    if(sharedStarts){
     const barTicks=sharedStarts[measureIndex+1]-sharedStarts[measureIndex];
     if(maxAt>barTicks+2)warnings.add('Некоторые партии содержат ноты длиннее общего такта; сложный полиметр требует проверки.');
     absolute=sharedStarts[measureIndex+1];
-   }else absolute+=implicit&&maxAt>0?Math.min(expected,maxAt):Math.max(expected,maxAt);
+   }else absolute+=spanTicks;
    measureIndex++;
   }
   for(const [key,notes] of voices)if(notes.length)segments.push({name:(namesById[part.getAttribute('id')]||'Партия')+' · '+key.replace('|','/'),notes});
