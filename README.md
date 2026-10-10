@@ -176,3 +176,7 @@ This is an incremental extraction, **not** a claim that the rest of the 21 legac
 - Existing malformed IndexedDB or legacy localStorage entries are repaired or skipped safely at startup; one bad attempt no longer prevents the app from initializing.
 - Smart Practice mastery records are validated on startup, backup import and export.
 - Portable JSON backup export now fails explicitly rather than claiming success when full history exceeds the supported restore cap (5000 entries or 12 MiB). History is never silently truncated. A scalable streaming backup format remains required for larger collections.
+
+## SHA-256 music identity and legacy compatibility (v0.10.18)
+
+New imports use a full SHA-256 content ID, while files already stored under the legacy FNV-1a+length identifier retain that identifier on re-import. A legacy hash collision cannot overwrite a different work: writing the same ID with different bytes aborts the IndexedDB transaction. Restore accepts both old and new ID formats, verifies the matching digest and atomically aborts on an existing ID with different music. No mass renaming or reset of existing per-song settings is performed.

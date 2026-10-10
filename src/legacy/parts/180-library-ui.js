@@ -64,7 +64,7 @@ renderFolderListing=function(){
 };
 async function libraryLoadFolderSong(path){const entry=folderIndex.find(e=>e.path===path);if(!entry)return;try{
  const file=entry.file||(await entry.handle.getFile()),data=await file.arrayBuffer();
- await libraryLoadFile(file.name,data,libraryBinaryId(data),{author:'📁 '+path,type:'folder'});
+ await libraryLoadFile(file.name,data,await libraryContentId(data),{author:'📁 '+path,type:'folder'});
  try{await librarySaveBinary(file.name,data,'Папка пользователя',{title:current.title,author:current.author})}
  catch(e){setLibraryStatus('Файл открыт, но не сохранён для следующих запусков: '+e.message)}
  }catch(e){libraryError(e)}}

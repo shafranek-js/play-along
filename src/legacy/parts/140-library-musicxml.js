@@ -53,17 +53,61 @@ async function libraryWriteWork(entryOrId,remove=false){
    const tx=db.transaction(['works','workIndex'],'readwrite');
    const works=tx.objectStore('works'),index=tx.objectStore('workIndex');
    if(remove){works.delete(entryOrId);index.delete(entryOrId)}
-   else {works.put(entryOrId);index.put(libraryEntryMetadata(entryOrId))}
+   else {
+    const request=works.get(entryOrId.id);
+    request.onsuccess=()=>{
+     const present=request.result;
+     if(present&&!libraryBuffersEqual(present.data,entryOrId.data)){
+      console.error('Different musical bytes share the same ID; keeping existing work',entryOrId.id);
+      tx.abort();return;
+     }
+     works.put(entryOrId);index.put(libraryEntryMetadata(entryOrId));
+    };
+   }
    tx.oncomplete=()=>resolve(true);
    tx.onerror=()=>reject(tx.error);
    tx.onabort=()=>reject(tx.error);
   });
  }finally{db.close()}
 }
+// Legacy FNV IDs remain addressable for existing collection items and backups.
 function libraryBinaryId(buffer){const arr=new Uint8Array(buffer);let h=2166136261;for(let i=0;i<arr.length;i++)h=Math.imul(h^arr[i],16777619)>>>0;return 'saved-'+h.toString(16)+'-'+arr.length}
-async function librarySaveBinary(name,buffer,origin,details={}){if(buffer.byteLength>15*1024*1024)throw Error('Файл превышает 15 МБ');const id=libraryBinaryId(buffer);const entry={id,name,title:details.title||name.replace(/\.(mid|midi|xml|musicxml|mxl|mscx|mscz)$/i,''),author:details.author||'Пользовательская коллекция',format:name.toLowerCase().split('.').pop(),origin,license:details.license||'',page:details.page||'',added:Date.now(),data:buffer};await libraryWriteWork(entry);
+function libraryBuffersEqual(a,b){
+ if(!a||!b)return false;
+ const left=new Uint8Array(a),right=new Uint8Array(b);
+ if(left.length!==right.length)return false;
+ for(let i=0;i<left.length;i++)if(left[i]!==right[i])return false;
+ return true;
+}
+async function libraryStrongId(buffer){
+ if(!globalThis.crypto?.subtle)throw Error('SHA-256 недоступен: открой Play Along по HTTPS или localhost');
+ const digest=await crypto.subtle.digest('SHA-256',buffer);
+ return 'saved-sha256-'+[...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,'0')).join('');
+}
+async function libraryContentId(buffer){
+ const oldId=libraryBinaryId(buffer);
+ const existing=await libraryTransaction('works','readonly',store=>store.get(oldId));
+ // Re-importing an old saved file MUST retain its original ID and settings.
+ if(existing&&libraryBuffersEqual(existing.data,buffer))return oldId;
+ return libraryStrongId(buffer);
+}
+async function libraryMatchesContentId(buffer,id){
+ if(/^saved-[a-f0-9]{1,8}-[0-9]+$/.test(id))return id===libraryBinaryId(buffer);
+ if(/^saved-sha256-[a-f0-9]{64}$/.test(id))return id===await libraryStrongId(buffer);
+ return false;
+}
+async function librarySaveBinary(name,buffer,origin,details={}){
+ if(buffer.byteLength>15*1024*1024)throw Error('Файл превышает 15 МБ');
+ const id=await libraryContentId(buffer);
+ const existing=await libraryTransaction('works','readonly',store=>store.get(id));
+ if(existing&&libraryBuffersEqual(existing.data,buffer))return existing;
+ const entry={id,name,title:details.title||name.replace(/\.(mid|midi|xml|musicxml|mxl|mscx|mscz)$/i,''),
+  author:details.author||'Пользовательская коллекция',format:name.toLowerCase().split('.').pop(),
+  origin,license:details.license||'',page:details.page||'',added:Date.now(),data:buffer};
+ await libraryWriteWork(entry);
  collectionIndex=collectionIndex.filter(e=>e.id!==id).concat(libraryEntryMetadata(entry));
- renderLibrary();return entry}
+ renderLibrary();return entry;
+}
 async function libraryRemoveEntry(id){await libraryWriteWork(id,true);collectionIndex=collectionIndex.filter(e=>e.id!==id);delete state.songSettings[id];if(state.selected===id)state.selected='demo-scale';persist();renderLibrary()}
 async function libraryFavorite(id){if(favoritesV08.has(id))favoritesV08.delete(id);else favoritesV08.add(id);try{await libraryTransaction('prefs','readwrite',s=>s.put([...favoritesV08],'favorites'))}catch(e){setLibraryStatus('Не удалось сохранить избранное: '+e.message)}renderLibrary()}
 function setLibraryStatus(s){$('onlineStatus').textContent=s}

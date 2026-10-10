@@ -7,7 +7,7 @@ async function importMusicFiles(files){
   try{
    if(!isSupportedFile(file.name))throw Error('Неподдерживаемый файл: '+file.name);
    const buf=await file.arrayBuffer();
-   await libraryLoadFile(file.name,buf,libraryBinaryId(buf));
+   await libraryLoadFile(file.name,buf,await libraryContentId(buf));
    const title=current.title,author=current.author;
    try{await librarySaveBinary(file.name,buf,'Загружен пользователем',{title,author})}
    catch(err){setLibraryStatus('Партитура «'+title+'» открыта, но браузер не смог сохранить её в «Мою коллекцию»: '+err.message+' (попробуй HTTPS-версию приложения).')}
@@ -54,10 +54,10 @@ async function onlineOpen(e){if(onlineBusy)return;onlineBusy=true;setLibraryStat
   const entries=await mutopiaUnpackMidiZip(data);if(!entries.length)throw Error('ZIP не содержит MIDI-файлов');
   const choice=await mutopiaChooseZipEntry(entries,e.title);if(!choice){setLibraryStatus('Выбор части отменён');return}
   const name=choice.name.split('/').pop();data=choice.buffer;
-  await libraryLoadFile(name,data,libraryBinaryId(data),{title:e.title+' · '+name,author:e.author,type:'online'});
+  await libraryLoadFile(name,data,await libraryContentId(data),{title:e.title+' · '+name,author:e.author,type:'online'});
   try{await librarySaveBinary(name,data,e.source,{title:e.title+' · '+name,author:e.author,license:e.license,page:e.page})}catch(saveErr){setLibraryStatus('Произведение открыто, но не сохранено: '+saveErr.message)}
  }else{
-  const name=decodeURIComponent(selectedUrl.split('/').pop()||e.id+'.mid');await libraryLoadFile(name,data,libraryBinaryId(data),{title:e.title,author:e.author||undefined,type:'online'});
+  const name=decodeURIComponent(selectedUrl.split('/').pop()||e.id+'.mid');await libraryLoadFile(name,data,await libraryContentId(data),{title:e.title,author:e.author||undefined,type:'online'});
   try{await librarySaveBinary(name,data,e.source,{title:e.title,author:current?.author||e.author,license:e.license,page:e.page})}catch(saveErr){setLibraryStatus('Произведение открыто, но не сохранено: '+saveErr.message)}
  }
  notify('Произведение открыто для изучения; сохранение зависит от доступа к браузерному хранилищу');}catch(err){setLibraryStatus('Не удалось загрузить '+(e.source==='MuseTrainer'||e.source==='ASAP Dataset'&&/\.(?:musicxml|xml|mxl)(?:$|\?)/i.test(e.url)?'MusicXML':'MIDI')+': '+err.message+'. Возможны CORS или недоступность файла. Открой оригинальный источник ↗, скачай файл и импортируй его через «Моя коллекция».');}finally{onlineBusy=false;$('onlineStatus').classList.remove('loading')}}

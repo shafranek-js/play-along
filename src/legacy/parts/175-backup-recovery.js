@@ -44,7 +44,7 @@ async function backupDownload(){
  }catch(err){setLibraryStatus('Ошибка резервного копирования: '+err.message);throw err}
  finally{button.disabled=false}
 }
-function backupCheckJson(payload){
+async function backupCheckJson(payload){
  if(!payload||payload.format!==BACKUP_FORMAT||payload.version!==BACKUP_VERSION||!Array.isArray(payload.works)||!payload.settings||typeof payload.settings!=='object'||Array.isArray(payload.settings))throw Error('Неверный формат или неподдерживаемая версия резервной копии');
  if(payload.works.length>4000||JSON.stringify(payload.settings).length>4*1024*1024)throw Error('Слишком большая или повреждённая резервная копия');
  const results=[],seen=new Set();let total=0;
@@ -52,7 +52,7 @@ function backupCheckJson(payload){
   if(!entry||typeof entry.id!=='string'||!entry.id.startsWith('saved-')||seen.has(entry.id)||typeof entry.name!=='string'||entry.name.length>250||!isSupportedFile(entry.name))throw Error('Некорректный музыкальный файл или дубликат ID в копии');
   const data=backupBase64ToBytes(entry.data);total+=data.byteLength;
   if(total>BACKUP_MAX_BYTES)throw Error('Музыкальные файлы превышают лимит 96 МБ');
-  if(libraryBinaryId(data)!==entry.id)throw Error('Контрольная сумма не совпадает для '+entry.name);
+  if(!await libraryMatchesContentId(data,entry.id))throw Error('Контрольная сумма не совпадает для '+entry.name);
   seen.add(entry.id);
   results.push({id:entry.id,name:entry.name,title:String(entry.title||entry.name).slice(0,250),author:String(entry.author||'').slice(0,250),format:libraryExt(entry.name),origin:String(entry.origin||'backup').slice(0,250),license:String(entry.license||'').slice(0,250),page:String(entry.page||'').slice(0,1024),added:Number.isFinite(entry.added)?entry.added:Date.now(),data});
  }
@@ -71,7 +71,7 @@ function backupCheckJson(payload){
 async function backupRestore(file){
  if(!file)return;
  if(file.size>130*1024*1024)throw Error('Резервная копия слишком велика');
- const payload=JSON.parse(await file.text()),validated=backupCheckJson(payload);
+ const payload=JSON.parse(await file.text()),validated=await backupCheckJson(payload);
  const agree=confirm('Восстановить '+validated.works.length+' файлов и настройки Play Along? Существующие мелодии останутся, а настройки и прогресс будут заменены данными из копии.');
  if(!agree)return false;
  // localStorage has a separate quota and cannot participate in an
@@ -100,7 +100,16 @@ async function backupRestore(file){
    await new Promise((resolve,reject)=>{
     const tx=db.transaction(['works','workIndex','prefs','performances'],'readwrite');
     const works=tx.objectStore('works'),index=tx.objectStore('workIndex');
-    for(const item of validated.works){works.put(item);index.put(libraryEntryMetadata(item))}
+    for(const item of validated.works){
+     const request=works.get(item.id);
+     request.onsuccess=()=>{
+      if(request.result&&!libraryBuffersEqual(request.result.data,item.data)){
+       console.error('Restore aborted: same musical ID with different bytes',item.id);
+       tx.abort();return;
+      }
+      works.put(item);index.put(libraryEntryMetadata(item));
+     };
+    }
     tx.objectStore('prefs').put(validated.favorites,'favorites');
     const attempts=tx.objectStore('performances');
     attempts.clear();for(const record of validated.performances)attempts.put(record);
