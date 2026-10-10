@@ -84,7 +84,10 @@ async function backupRestore(file){
  })}finally{db.close()}
  // Settings are updated only after the whole library transaction commits.
  const keys=[STORE,PERF_STORE,SMART_STORE];
- const values=[validated.settings,validated.performances,validated.smartMastery].map(x=>JSON.stringify(x));
+ // The complete history was already restored atomically into IndexedDB;
+ // localStorage only needs the newest compatible 30-record cache.
+ const historyCache=[...validated.performances].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).slice(0,30);
+ const values=[validated.settings,historyCache,validated.smartMastery].map(x=>JSON.stringify(x));
  const originals=keys.map(k=>localStorage.getItem(k));
  window.__playAlongRestoringBackup=true;
  try{
