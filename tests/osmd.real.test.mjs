@@ -165,6 +165,62 @@ try{
  await page.evaluate(()=>window.__prototypeTest.receiveNoteOn(69));
  assert.equal(await hits(),4,'Legato after completed chord must count next note');
  await page.evaluate(()=>{for(const n of [60,64,67,69])window.__prototypeTest.receiveNoteOff(n);window.__prototypeTest.pause()});
+ // Polyphony regression: unison voices with the same pitch/onset are
+ // one physical key press. Distinct chord keys still need their own presses.
+ await page.evaluate(()=>{
+  window.__prototypeTest.loadSong({
+   id:'tempo-unison-ci',title:'Polyphonic unison',author:'CI',type:'demo',tempo:120,
+   tracks:[{name:'Unison and chord',notes:[
+    {pitch:60,start:0,duration:.5,velocity:80,track:0},
+    {pitch:60,start:0,duration:1,velocity:80,track:0},
+    {pitch:64,start:0,duration:.5,velocity:80,track:0},
+    {pitch:60,start:1.5,duration:.5,velocity:80,track:0}
+   ]}]
+  });
+  window.__prototypeTest.setMode('tempo');window.__prototypeTest.play();
+ });
+ await page.evaluate(()=>window.__prototypeTest.receiveNoteOn(60));
+ assert.equal(await hits(),2,'Tempo must credit both C4 voices from one physical press');
+ await page.evaluate(()=>window.__prototypeTest.receiveNoteOn(60));
+ assert.equal(await hits(),2,'Held-key repeat must not credit another note');
+ await page.evaluate(()=>window.__prototypeTest.receiveNoteOn(64));
+ const polyAfterChord=await page.evaluate(()=>window.__prototypeTest.stats);
+ assert.equal(polyAfterChord.hits,3,'The E4 key must complete the chord');
+ assert.equal(polyAfterChord.goodChords,1,'Unison voices should not create extra chord grades');
+ await page.evaluate(()=>window.__prototypeTest.receiveNoteOff(60));
+ const unisonReleases=await page.evaluate(()=>{
+  const notes=window.__prototypeTest.session.all.filter(n=>n.pitch===60&&n.start===0);
+  return notes.map(n=>({off:n.off,ratio:n.holdRatio,graded:n.durationErrorMs!==null}));
+ });
+ assert.equal(unisonReleases.length,2);
+ assert.ok(unisonReleases.every(n=>n.off&&n.graded&&Number.isFinite(n.ratio)),
+  'A single C4 NoteOff must evaluate both held unison voices');
+ assert.equal(await hits(),3,'Releasing C4 must not create another onset');
+ await page.evaluate(()=>{
+  window.__prototypeTest.receiveNoteOff(64);
+  window.__prototypeTest.pause();
+  const session=window.__prototypeTest.session;
+  session.seek(0);
+  session.inputOn(60,0,1000);
+  session.inputOff(60,.5);
+  session.inputOn(60,1.5,2500);
+ });
+ const repeats=await page.evaluate(()=>({
+  hits:window.__prototypeTest.stats.hits,
+  later:window.__prototypeTest.session.all.find(n=>n.pitch===60&&n.start===1.5)?.hit
+ }));
+ assert.equal(repeats.hits,3,'Later C4 must require and accept a separate NoteOn');
+ assert.equal(repeats.later,true);
+ await page.evaluate(()=>{
+  const song=window.__prototypeTest.song;
+  window.__prototypeTest.setMode('wait');
+  window.__prototypeTest.play();
+ });
+ await page.waitForFunction(()=>window.__prototypeTest.hold===true);
+ await page.evaluate(()=>window.__prototypeTest.receiveNoteOn(60));
+ assert.equal(await hits(),2,'Wait must credit both simultaneous C4 voices');
+ await page.evaluate(()=>{window.__prototypeTest.receiveNoteOff(60);window.__prototypeTest.pause()});
+ console.log('POLYPHONY REGRESSION: Tempo+Wait unison, key release, repeated pitch and chord: PASS');
  console.log('WAIT REGRESSION: legato, early onset, repeated note, chord: PASS');
  assert.deepEqual(errors,[],'Browser Javascript errors');
  console.log('REAL OSMD + MXL + cursor + Wait: PASS');

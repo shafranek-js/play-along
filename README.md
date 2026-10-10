@@ -155,3 +155,10 @@ MusicXML metronome directions now apply dotted beat units correctly (for example
 - The authoritative timeline respects meter changes, `<divisions>`, `<backup>`, `<forward>`, chord onsets and implicit pickups. Secondary parts preserve their note durations and use the common downbeats. Potential polymeter/overlong voices are warned about rather than assumed fully supported.
 - When parts have different measure counts, the legacy independent-grid behavior is preserved with a warning.
 - The browser regression corpus checks two-hand alignment across 4/4→3/4 where the changed time signature is encoded only in the right-hand part.
+
+## Polyphonic unison scoring (v0.10.11)
+
+- Tempo mode now recognizes multiple simultaneous notated voices at the same MIDI pitch with one physical NoteOn, like Wait mode already did. Every matched voice contributes to note accuracy, including when two notated hands/voices overlap on the same piano key.
+- The matching NoteOff evaluates the hold duration of each voice independently, even when their written lengths differ. A later repeated same-pitch note still requires a fresh key press.
+- Pure unisons no longer count as multi-key chords when computing chord timing; genuine different-pitch chords continue to be graded.
+- Real Chromium test covers Tempo and Wait unisons, held-key suppression, individual duration scoring, a later repeated pitch and a chord sharing one unison pitch.

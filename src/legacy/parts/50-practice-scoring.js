@@ -31,28 +31,47 @@ class PracticeSession{
   const windowSec=.24*rate();
   const candidates=(this.byPitch.get(pitch)||[]).filter(n=>!n.hit&&!n.miss&&Math.abs(n.start-now)<=windowSec).sort((a,b)=>Math.abs(a.start-now)-Math.abs(b.start-now));
   const n=candidates[0];if(!n)return this.extra(pitch,now);
-  this.accept(n,now,wallMs);
-  n.timingMs=(now-n.start)/rate()*1000;
-  if(n.timingMs < -70)this.stats.early++;else if(n.timingMs>70)this.stats.late++;
-  if(n.group.notes.every(z=>z.hit))this.gradeGroup(n.group)
+  // In a polyphonic score one physical piano key may represent multiple
+  // notated voices (or both hands) at the SAME onset and pitch. Grade all
+  // such voices on one fresh NoteOn; a later repeated note has a different
+  // onset/group and still needs a new physical key press.
+  const unisons=n.group.notes.filter(z=>z.pitch===pitch&&!z.hit&&!z.miss);
+  for(const voice of unisons){
+   this.accept(voice,now,wallMs);
+   voice.timingMs=(now-voice.start)/rate()*1000;
+   if(voice.timingMs < -70)this.stats.early++;
+   else if(voice.timingMs>70)this.stats.late++;
+  }
+  if(n.group.notes.every(z=>z.hit))this.gradeGroup(n.group);
   return true;
  }
- accept(n,now,wallMs){this.revision++;n.hit=true;n.pressedAt=now;n.wallOn=wallMs;this.played.set(n.pitch,n);this.stats.hits++}
+ accept(n,now,wallMs){
+  this.revision++;n.hit=true;n.pressedAt=now;n.wallOn=wallMs;
+  // Every accepted unison voice shares the same key-up event.
+  const active=this.played.get(n.pitch)||[];
+  active.push(n);this.played.set(n.pitch,active);
+  this.stats.hits++;
+}
  gradeGroup(g){
-  if(g.graded||g.notes.length<2||g.notes.some(n=>!n.hit))return;
+  // Two voices playing the same pitch are a unison, not a two-key chord.
+  if(g.graded||new Set(g.notes.map(n=>n.pitch)).size<2||g.notes.some(n=>!n.hit))return;
   g.graded=true;g.spreadMs=Math.max(...g.notes.map(n=>n.wallOn))-Math.min(...g.notes.map(n=>n.wallOn));
   for(const n of g.notes)n.chordSpreadMs=g.spreadMs;
   if(g.spreadMs>140)this.stats.badChords++;else this.stats.goodChords++;
  }
  inputOff(pitch,now){
-  const n=this.played.get(pitch);if(!n)return;
-  this.revision++;this.played.delete(pitch);n.off=true;n.offAt=now;
-  if(this.mode==='wait')return;
-  const realDurMs=Math.max(0,(now-n.pressedAt)/rate()*1000),targetMs=n.duration/rate()*1000;
-  n.durationErrorMs=realDurMs-targetMs;n.holdRatio=targetMs>0?realDurMs/targetMs:1;
-  if(n.holdRatio<.70)this.stats.short++;
-  else if(n.holdRatio>1.40)this.stats.long++;
-  else this.stats.okHold++;
+  const active=this.played.get(pitch);if(!active?.length)return;
+  this.revision++;this.played.delete(pitch);
+  // One MIDI NoteOff releases every voice that began with this physical key.
+  for(const n of active){
+   n.off=true;n.offAt=now;
+   if(this.mode==='wait')continue;
+   const realDurMs=Math.max(0,(now-n.pressedAt)/rate()*1000),targetMs=n.duration/rate()*1000;
+   n.durationErrorMs=realDurMs-targetMs;n.holdRatio=targetMs>0?realDurMs/targetMs:1;
+   if(n.holdRatio<.70)this.stats.short++;
+   else if(n.holdRatio>1.40)this.stats.long++;
+   else this.stats.okHold++;
+  }
  }
  advance(now){if(this.mode!=='tempo')return;const deadline=.24*rate();while(this.missCursor<this.all.length){const n=this.all[this.missCursor];if(n.start+deadline>=now)break;this.missCursor++;if(!n.hit&&!n.miss){n.miss=true;this.stats.missed++;this.revision++}}}
  finalize(end){
