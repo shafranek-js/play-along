@@ -7,6 +7,13 @@ const state={...defaults,...stored};if(!['roll','sheet'].includes(state.scoreVie
 const SONG_PREF_FIELDS=['mode','speed','track','accompany','accompanyExplicit','targetRange','adaptMode','adaptShift','adaptProfile','auditionAdapted','displayRange','allTracks','scoreView','sheetZoom','sheetFollow'];
 const newSongDefaults=Object.fromEntries(SONG_PREF_FIELDS.map(k=>[k,defaults[k]]));
 state.songSettings=(state.songSettings&&typeof state.songSettings==='object'&&!Array.isArray(state.songSettings))?state.songSettings:{};
+// v0.10.0 and earlier kept mode/speed/view per browser instead of per work.
+// Preserve those values for the selected song on the first upgrade, including demo scores.
+if(!Object.keys(state.songSettings).length && typeof stored.selected==='string' && stored.selected){
+ const legacy=Object.fromEntries(SONG_PREF_FIELDS.filter(k=>Object.hasOwn(stored,k)).map(k=>[k,stored[k]]));
+ if(Object.keys(legacy).length)state.songSettings[stored.selected]=legacy;
+}
+
 let startupSongRestorePending=false;
 function captureSongSettings(song=current){
  if(!song?.id)return;
@@ -52,7 +59,7 @@ const fmt=s=>{s=Math.max(0,s);return Math.floor(s/60)+':'+String(Math.floor(s%60
 const allNotes=s=>s?.tracks.flatMap(t=>t.notes)||[];
 const duration=()=>Math.max(1,...allNotes(current).map(n=>n.start+n.duration))+.5;
 const persist=()=>{
- if(startupSongRestorePending)return;
+ if(window.__playAlongRestoringBackup||startupSongRestorePending)return;
  try{captureSongSettings();localStorage.setItem(STORE,JSON.stringify(state))}
  catch(e){console.warn('Cannot save Play Along settings',e);try{setLibraryStatus('Не удалось сохранить настройки браузера: '+e.message)}catch{}}
 };

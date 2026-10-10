@@ -15,8 +15,8 @@ const manifest=JSON.parse(read('scripts/manifest.json'));
 const featureSource=manifest.features.map(name=>read('src/legacy/parts/'+name)).join('');
 
 test('all feature parts form exactly one valid JavaScript bundle',()=>{
- assert.equal(manifest.features.length,20);
- const expected="\n(()=>{'use strict';\n"+featureSource.replace("window.__playAlongVersion='0.9.1'","window.__playAlongVersion='0.10.1'")+"})();\n";
+ assert.equal(manifest.features.length,21);
+ const expected="\n(()=>{'use strict';\n"+featureSource.replace("window.__playAlongVersion='0.9.1'","window.__playAlongVersion='0.10.2'")+"})();\n";
  assert.equal(js,expected);
  execFileSync(process.execPath,['--check',path.join(root,'dist/assets/app.js')]);
 });
@@ -31,7 +31,7 @@ test('CSS and HTML are separate, all expected DOM anchors exist',()=>{
 });
 test('preserved features: MIDI auto connection, Wait, OSMD, imports, catalogs',()=>{
  for(const term of ['requestMIDIAccess','onstatechange','waitReleasePitches','holdForInput','scoreEnsureRendered','opensheetmusicdisplay.min.js','mutopiaLoadIndex','museTrainerLoadIndex','asapLoadIndex','zipUnpackMXL','readMusicXML','parseMidi','indexedDB']) assert.ok(js.includes(term),`Missing ${term}`);
- assert.ok(js.includes("window.__playAlongVersion='0.10.1'"));
+ assert.ok(js.includes("window.__playAlongVersion='0.10.2'"));
 });
 test('build is deterministic',()=>{
  const h=crypto.createHash('sha256').update(js).digest('hex');
@@ -39,11 +39,12 @@ test('build is deterministic',()=>{
  assert.equal(crypto.createHash('sha256').update(read('dist/assets/app.js')).digest('hex'),h);
 });
 
-test('original migration baseline is retained; CSS is unchanged',()=>{
+test('migration baseline retained for auditing; CSS preserved',()=>{
  const baseline=JSON.parse(read('scripts/source_baseline.json'));
  const hash=s=>crypto.createHash('sha256').update(s).digest('hex');
  const original="\n(()=>{'use strict';\n"+featureSource+"})();\n";
- assert.match(baseline.js_sha256,/^[a-f0-9]{64}$/); // v0.9.1 archival hash; OSMD integration now intentionally differs
- assert.ok(original.includes('OpenSheetMusicDisplay'));
+ assert.match(baseline.js_sha256,/^[a-f0-9]{64}$/);
+ assert.ok(original.includes('zipInflateBounded'));
+ assert.ok(original.includes('backupCreate')); 
  assert.equal(hash(css),baseline.css_sha256);
 });

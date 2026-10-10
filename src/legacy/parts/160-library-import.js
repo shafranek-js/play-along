@@ -30,7 +30,7 @@ async function mutopiaUnpackMidiZip(buffer){
   const payload=local+30+dv.getUint16(local+26,true)+dv.getUint16(local+28,true);
   if(payload+compressed>bytes.length)continue;
   let result=bytes.slice(payload,payload+compressed);
-  if(method===8){if(!('DecompressionStream' in window))throw Error('Распаковка ZIP требует Chrome/Edge');const stream=new Blob([result]).stream().pipeThrough(new DecompressionStream('deflate-raw'));result=new Uint8Array(await new Response(stream).arrayBuffer())}
+  if(method===8){result=await zipInflateBounded(result,12*1024*1024,'MIDI ZIP')}
   else if(method!==0)continue;
   if(result.length>12*1024*1024||String.fromCharCode(...result.slice(0,4))!=='MThd')continue;
   entries.push({name,buffer:result.buffer});

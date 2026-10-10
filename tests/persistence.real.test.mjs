@@ -118,8 +118,43 @@ try{
  await page.reload({waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>window.__prototypeTest?.song?.title==='Second Piece');
  assert.equal(await page.evaluate(()=>window.__libraryV08.collection.length),2);
+ // A complete portable backup can recreate the saved library after browser data is wiped.
+ await page.locator('#speed').evaluate(el=>{el.value='75';el.dispatchEvent(new Event('input',{bubbles:true}))});
+ await page.locator('#bottomMode').selectOption('tempo');
+ await page.evaluate(()=>localStorage.setItem('playalong:smart:mastery:v07',JSON.stringify({testMastery:{value:88}})));
+ const downloadPromise=page.waitForEvent('download');
+ await page.locator('#backupExport').click();
+ const download=await downloadPromise;
+ const backupData=fs.readFileSync(await download.path());
+ const backup=JSON.parse(backupData.toString('utf8'));
+ assert.equal(backup.format,'play-along-backup');
+ assert.equal(backup.works.length,2);
+ assert.equal(backup.settings.speed,75);
+ assert.equal(backup.settings.mode,'tempo');
+ assert.deepEqual(backup.smartMastery.testMastery,{value:88});
+ assert.equal(await page.evaluate(async ()=>{const request=indexedDB.open('playalong-library-v08');const db=await new Promise((resolve,reject)=>{request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error)});await new Promise((resolve,reject)=>{const tx=db.transaction(['works','prefs'],'readwrite');tx.objectStore('works').clear();tx.objectStore('prefs').clear();tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});db.close();localStorage.clear();return true}),true);
+ await page.reload({waitUntil:'domcontentloaded'});
+ await page.waitForFunction(()=>window.__libraryV08?.collection.length===0);
+ page.on('dialog',dialog=>dialog.accept());
+ await page.locator('#backupFile').setInputFiles({name:'play-along-backup.json',mimeType:'application/json',buffer:backupData});
+ await page.waitForFunction(()=>window.__libraryV08?.collection.length===2&&window.__prototypeTest?.song?.title==='Second Piece',null,{timeout:25000});
+ const recovered=await page.evaluate(()=>({mode:window.__prototypeTest.state.mode,speed:window.__prototypeTest.state.speed,mastery:JSON.parse(localStorage.getItem('playalong:smart:mastery:v07'))}));
+ assert.equal(recovered.mode,'tempo');assert.equal(recovered.speed,75);
+ assert.equal(recovered.mastery.testMastery.value,88);
+ // Reset Layout must never touch practice preferences.
+ await page.locator('#resetUI').evaluate(el=>el.click());
+ assert.equal(await page.evaluate(()=>window.__prototypeTest.state.mode),'tempo');
+ assert.equal(await page.evaluate(()=>window.__prototypeTest.state.speed),75);
+ // Verify true 3/4 measure navigation, including the previous-measure button.
+ const score34=`<?xml version="1.0"?><score-partwise version="4.0"><part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list><part id="P1"><measure number="1"><attributes><divisions>480</divisions><time><beats>3</beats><beat-type>4</beat-type></time></attributes><note><pitch><step>C</step><octave>4</octave></pitch><duration>1440</duration><type>half</type><dot/></note></measure><measure number="2"><note><pitch><step>D</step><octave>4</octave></pitch><duration>1440</duration><type>half</type><dot/></note></measure><measure number="3"><note><pitch><step>E</step><octave>4</octave></pitch><duration>1440</duration><type>half</type><dot/></note></measure></part></score-partwise>`;
+ await page.evaluate(xml=>window.__prototypeTest.loadSong(window.__libraryV08.readMusicXML(xml,'meter-34.musicxml')),score34);
+ await page.locator('#sheetBarNext').evaluate(el=>el.click());
+ const atSecond=await page.evaluate(()=>window.__prototypeTest.pos);
+ assert.ok(Math.abs(atSecond-1.5)<0.03,'3/4 next bar must land at 1.5 sec, got '+atSecond);
+ await page.locator('#sheetBarBack').evaluate(el=>el.click());
+ assert.ok(await page.evaluate(()=>window.__prototypeTest.pos)<0.01,'Previous bar should return to first bar');
  assert.deepEqual(errors,[]);
- console.log('Persistence: uploaded scores, last active work, per-song settings and global settings: PASS');
+ console.log('Persistence + backup round-trip + 3/4 navigation + layout-only reset: PASS');
 } finally{
  if(browser)await browser.close();
  await new Promise(resolve=>server.close(resolve));

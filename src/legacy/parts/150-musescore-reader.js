@@ -144,8 +144,5 @@ async function zipUnpackMuseScore(buffer){
   if(file.method===0)return new TextDecoder().decode(data);
   if(file.method!==8)throw Error('Неизвестный тип ZIP-сжатия MuseScore');
   if(typeof DecompressionStream==='undefined')throw Error('Для MSCZ необходим современный Chrome / Edge с DecompressionStream');
-  const stream=new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
-  const raw=await new Response(stream).arrayBuffer();if(raw.byteLength>15e6)throw Error('Слишком большой распакованный MSCX');
-  return new TextDecoder().decode(raw);
+  const raw=await zipInflateBounded(data,15e6,'MSCZ');return new TextDecoder().decode(raw);
 }
-

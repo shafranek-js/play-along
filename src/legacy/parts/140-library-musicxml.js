@@ -1,3 +1,15 @@
+async function zipInflateBounded(data,maxBytes,label='ZIP'){
+ if(typeof DecompressionStream==='undefined')throw Error('Для распаковки '+label+' необходим современный браузер');
+ const reader=new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw')).getReader();
+ const chunks=[];let total=0;
+ try{
+  while(true){const {value,done}=await reader.read();if(done)break;
+   total+=value.byteLength;if(total>maxBytes){await reader.cancel().catch(()=>{});throw Error(label+': распакованный файл превышает лимит '+Math.floor(maxBytes/1048576)+' МБ')}
+   chunks.push(value);
+  }
+  const buffer=new Uint8Array(total);let at=0;for(const c of chunks){buffer.set(c,at);at+=c.length}return buffer;
+ }finally{reader.releaseLock()}
+}
 function libraryDB(){return new Promise((resolve,reject)=>{let q=indexedDB.open(LIBRARY_DB_V08,1);q.onupgradeneeded=()=>{if(!q.result.objectStoreNames.contains('works'))q.result.createObjectStore('works',{keyPath:'id'});if(!q.result.objectStoreNames.contains('prefs'))q.result.createObjectStore('prefs')};q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error)})}
 async function libraryTransaction(store,mode,run){const db=await libraryDB();try{return await new Promise((resolve,reject)=>{let t=db.transaction(store,mode),q=run(t.objectStore(store));t.oncomplete=()=>resolve(q?.result);t.onerror=()=>reject(t.error);t.onabort=()=>reject(t.error);})}finally{db.close()}}
 async function loadLibraryIndex(){try{collectionIndex=await libraryTransaction('works','readonly',s=>s.getAll())||[];favoritesV08=new Set(await libraryTransaction('prefs','readonly',s=>s.get('favorites'))||[]);collectionReady=true;renderLibrary();}catch(e){collectionReady=true;setLibraryStatus('Браузер не разрешил доступ к библиотеке: '+e.message);renderLibrary()}}
@@ -146,8 +158,7 @@ async function zipUnpackMXL(arrayBuffer){
   if(e.method===0)return new TextDecoder().decode(src);
   if(e.method!==8)throw Error('Метод сжатия MXL не поддерживается');
   if(typeof DecompressionStream==='undefined')throw Error('Браузер не поддерживает распаковку MXL (DecompressionStream). Используй Chrome/Edge или распакованный MusicXML.');
-  const body=new Blob([src]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
-  const raw=await new Response(body).arrayBuffer();if(raw.byteLength>15*1024*1024)throw Error('MXL XML слишком большой');return new TextDecoder().decode(raw);
+  const raw=await zipInflateBounded(src,15*1024*1024,'MXL');return new TextDecoder().decode(raw);
  }
  const c=entries.find(x=>x.name==='META-INF/container.xml');let rootName='';if(c){const text=await entryText(c);const dom=new DOMParser().parseFromString(text,'text/xml');rootName=dom.querySelector('rootfile')?.getAttribute('full-path')||''}
  const target=entries.find(x=>x.name===rootName)||entries.find(x=>/\.(musicxml|xml)$/i.test(x.name)&&!x.name.startsWith('META-INF/'));
