@@ -18,3 +18,4 @@ const fmt=s=>{s=Math.max(0,s);return Math.floor(s/60)+':'+String(Math.floor(s%60
 const allNotes=s=>s?.tracks.flatMap(t=>t.notes)||[];
 const duration=()=>Math.max(1,...allNotes(current).map(n=>n.start+n.duration))+.5;
 const persist=()=>{try{let o={...state};localStorage.setItem(STORE,JSON.stringify(o))}catch(e){console.warn('Storage unavailable',e)}};
+

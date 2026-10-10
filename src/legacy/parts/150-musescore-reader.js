@@ -148,3 +148,4 @@ async function zipUnpackMuseScore(buffer){
   const raw=await new Response(stream).arrayBuffer();if(raw.byteLength>15e6)throw Error('Слишком большой распакованный MSCX');
   return new TextDecoder().decode(raw);
 }
+

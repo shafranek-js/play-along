@@ -54,3 +54,4 @@ async function importFallbackFolder(files){
 function renderFolderListing(){const box=$('folderListing'),unsupported=folderIndex.filter(e=>e.type==='score').length;box.textContent=folderIndex.filter(e=>e.type==='midi').length+' MIDI в поиске · '+unsupported+' нотных файлов (MusicXML/MXL — следующий этап)';}
 async function loadFolderSong(path){const entry=folderIndex.find(e=>e.path===path);if(!entry||entry.type!=='midi')return;
  try{let f=entry.file||(await entry.handle.getFile());let s=parseMidi(new Uint8Array(await f.arrayBuffer()),f.name);s.id='folder:'+path;s.author='📁 '+path;s.type='folder';loadSong(s);state.page='practice';applyPage();notify('Загружено: '+f.name)}catch(e){$('errorText').textContent=e.message||String(e);$('importErrorOverlay').classList.add('show')}}
+

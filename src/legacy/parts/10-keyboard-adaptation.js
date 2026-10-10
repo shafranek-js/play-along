@@ -242,3 +242,4 @@ function refreshArrangement({restart=true}={}){
  renderCapability();selectedNote=null;selectNote(null);resetPractice();updateUI();resizeCanvas();
  if(playing&&restart)play();persist();
 }
+
