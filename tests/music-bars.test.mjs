@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {musicMeasureSpan,musicBarGrid} from '../src/core/music-bars.mjs';
+import {musicMeasureSpan,musicBarGrid,musicParseMeterGroups} from '../src/core/music-bars.mjs';
 
 test('ordinary sparse 4/4 measure retains its complete four-beat span',()=>{
  assert.equal(musicMeasureSpan(4,4,1,false),4);
@@ -37,4 +37,13 @@ test('invalid meter and out-of-range musical data fail clearly',()=>{
  assert.throws(()=>musicMeasureSpan(4,4,-2),/Invalid occupied duration/);
  assert.throws(()=>musicBarGrid(null),/array/);
  assert.throws(()=>musicBarGrid([null]),/Invalid measure/);
+});
+
+test('additive and mixed-denominator MusicXML meter groups normalize accurately',()=>{
+ assert.deepEqual(musicParseMeterGroups([{beats:'3+2',beatType:'8'}]),{beats:2.5,beatType:4});
+ assert.deepEqual(musicParseMeterGroups([{beats:'3',beatType:'8'},{beats:'2',beatType:'8'}]),{beats:2.5,beatType:4});
+ assert.deepEqual(musicParseMeterGroups([{beats:'2',beatType:'4'},{beats:'3',beatType:'8'}]),{beats:3.5,beatType:4});
+ assert.equal(musicParseMeterGroups([{beats:'3+x',beatType:'8'}]),null);
+ assert.equal(musicParseMeterGroups([{beats:'3+2',beatType:'0'}]),null);
+ assert.equal(musicParseMeterGroups([{beats:'5',beatType:'7'}]),null);
 });

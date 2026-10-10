@@ -385,6 +385,38 @@ try{
  near(delays[0],.5,'Delayed direct sound retains preceding tempo');
  near(delays[1],1,'Delayed direct sound changes tempo at beat one');
  console.log('AUDIT A03/A04: first-ending state guarded; measure-level sound tempo and offset: PASS');
+ // Compound 3+2/8 occupies 2.5 quarter beats (1.25 sec at 120 BPM).
+ const compoundMeter=`<?xml version="1.0"?><score-partwise version="4.0">
+ <part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list>
+ <part id="P1"><measure number="1">
+ <attributes><divisions>480</divisions><time><beats>3+2</beats><beat-type>8</beat-type></time></attributes>
+ <note><pitch><step>C</step><octave>4</octave></pitch><duration>480</duration><type>quarter</type></note>
+ </measure><measure number="2">
+ <note><pitch><step>D</step><octave>4</octave></pitch><duration>480</duration><type>quarter</type></note>
+ </measure></part></score-partwise>`;
+ const compoundResult=await page.evaluate(xml=>{
+  const song=window.__libraryV08.readMusicXML(xml,'additive.musicxml');
+  return {notes:song.tracks[0].notes.map(n=>n.start),bars:window.__scoreTest.scoreBarBeats(song)};
+ },compoundMeter);
+ near(compoundResult.notes[1],1.25,'3+2/8 parser second-bar downbeat');
+ assert.deepEqual(compoundResult.bars,[0,2.5],'3+2/8 OSMD bar grid');
+ const inlineDivisions=`<?xml version="1.0"?><score-partwise version="4.0">
+ <part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list>
+ <part id="P1"><measure number="1">
+ <attributes><divisions>480</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes>
+ <note><pitch><step>C</step><octave>4</octave></pitch><duration>480</duration><type>quarter</type></note>
+ <attributes><divisions>960</divisions></attributes>
+ <note><pitch><step>D</step><octave>4</octave></pitch><duration>3840</duration><type>whole</type></note>
+ </measure><measure number="2">
+ <note><pitch><step>E</step><octave>4</octave></pitch><duration>960</duration><type>quarter</type></note>
+ </measure></part></score-partwise>`;
+ const divisionsResult=await page.evaluate(xml=>{
+  const song=window.__libraryV08.readMusicXML(xml,'inline-divisions.musicxml');
+  return {notes:song.tracks[0].notes.map(n=>n.start),bars:window.__scoreTest.scoreBarBeats(song)};
+ },inlineDivisions);
+ near(divisionsResult.notes[2],2.5,'Inline divisions parser must preserve five-quarter measure');
+ assert.deepEqual(divisionsResult.bars,[0,5],'OSMD must honor divisions change in written order');
+ console.log('AUDIT A05/A06: additive 3+2/8 and in-measure divisions are aligned: PASS');
  assert.deepEqual(errs,[]);
  console.log('MUSIC REGRESSION: MusicXML rests, chord, tie, 4/4 to 3/4, tempo 120→60, left hand and MIDI tempo: PASS');
 }finally{if(browser)await browser.close();await new Promise(resolve=>server.close(resolve))}

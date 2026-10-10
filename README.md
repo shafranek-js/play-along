@@ -186,3 +186,10 @@ New imports use a full SHA-256 content ID, while files already stored under the 
 - First-ending voltas now check every measure crossed by a backward jump, even if the first ending itself plays only once. An in-loop divisions/meter/tempo change is left in original written order with a warning, rather than silently corrupting durations.
 - `<sound tempo="…"/>` directly inside a MusicXML measure is recognized; it shares tempo offset rules with `<direction><sound>` and maintains the same shared beat/second timeline.
 - Chromium regression fixtures exercise both an unsafe first ending and direct measure-level tempo changes, including a nested offset.
+
+## Additive meters and mid-bar divisions (v0.10.20)
+
+- `musicParseMeterGroups()` in the pure music-bars module parses additive numerators (such as `3+2/8`) and multiple beats/beat-type groups into a common quarter-note measure span.
+- The MusicXML note parser and shared bar-grid adapter use this normalized meter. Unrecognized time signatures produce an explicit warning rather than silently inheriting a plausible but incorrect meter in the note parser.
+- OSMD bar navigation now calls the same ordered MusicXML bar adapter used by the importer; a `divisions` attribute inside a measure takes effect at its written location, not retroactively.
+- Browser regressions verify 3+2/8 begins the next bar at 1.25 seconds (120 BPM), and that a mid-bar divisions change with five total quarter beats starts the next bar at 2.5 seconds.

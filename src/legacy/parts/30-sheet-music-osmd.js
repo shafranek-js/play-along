@@ -121,31 +121,21 @@ function scoreFrameSync(){
 }
 function scoreChangeZoom(delta){state.sheetZoom=Math.max(65,Math.min(150,state.sheetZoom+delta));$('sheetZoomLabel').textContent=state.sheetZoom+'%';persist();if(!scoreRenderer)return;clearTimeout(scoreZoomTimer);scoreZoomTimer=setTimeout(()=>{if(scoreRenderer&&scoreSong===current&&state.scoreView==='sheet'){try{scoreRenderer.Zoom=state.sheetZoom/100;scoreRenderer.render();scoreRenderer.cursor?.show();scoreCursorIndex=0;scoreRenderer.cursor?.reset();scoreSyncCursor(true)}catch(e){scoreError(e)}}},130)}
 function scoreBarBeats(song){
- // The notation's actual measures take precedence over a guessed 4/4 grid.
- if(!song?.notationXML){const end=scoreSecondToBeat(song,duration());return Array.from({length:Math.ceil(end/4)+1},(_,i)=>i*4)}
+ // Import, multipart sync and notation navigation share ONE ordered parser,
+ // including attributes/divisions changes that appear mid-measure.
+ if(!song?.notationXML){
+  const end=scoreSecondToBeat(song,duration());
+  return Array.from({length:Math.ceil(end/4)+1},(_,i)=>i*4);
+ }
  try{
   const doc=new DOMParser().parseFromString(song.notationXML,'application/xml');
-  const part=[...doc.getElementsByTagName('part')][0];if(!part)throw Error('No part');
-  let divisions=1,beats=4,unit=4;const frames=[];
-  for(const measure of [...part.children].filter(n=>n.localName==='measure')){
-   if(frames.length>=1500)break;
-   const attrs=[...measure.children].filter(n=>n.localName==='attributes');
-   for(const a of attrs){const d=a.getElementsByTagName('divisions')[0];if(d){const v=Number(d.textContent);if(v>0)divisions=v}
-    const time=a.getElementsByTagName('time')[0];if(time){const b=Number(time.getElementsByTagName('beats')[0]?.textContent),u=Number(time.getElementsByTagName('beat-type')[0]?.textContent);if(b>0&&u>0){beats=b;unit=u}}}
-   let pointer=0,max=0;
-   for(const n of [...measure.children]){
-    if(!['note','backup','forward'].includes(n.localName))continue;
-    const d=Number([...n.children].find(c=>c.localName==='duration')?.textContent)||0;
-    const q=d/divisions;
-    if(n.localName==='backup')pointer=Math.max(0,pointer-q);
-    else if(n.localName==='forward'){pointer+=q;max=Math.max(max,pointer)}
-    else if(!n.getElementsByTagName('grace').length && !n.getElementsByTagName('chord').length){pointer+=q;max=Math.max(max,pointer)}
-   }
-   frames.push({beats,beatType:unit,occupied:max,implicit:measure.getAttribute('implicit')==='yes'});
-  }
-  if(frames.length)return musicBarGrid(frames).slice(0,-1);
- }catch(e){console.warn('Unable to read score bar positions',e)}
- const end=scoreSecondToBeat(song,duration());return Array.from({length:Math.ceil(end/4)+1},(_,i)=>i*4);
+  const part=[...doc.getElementsByTagName('part')][0];
+  if(!part)throw Error('No part');
+  const measures=[...part.children].filter(node=>node.localName==='measure').slice(0,1500);
+  if(measures.length)return musicSharedBarStarts(measures,10080).slice(0,-1).map(t=>t/10080);
+ }catch(err){console.warn('Unable to read score bar positions',err)}
+ const end=scoreSecondToBeat(song,duration());
+ return Array.from({length:Math.ceil(end/4)+1},(_,i)=>i*4);
 }
 function scoreJumpBar(delta){
  if(!current)return;

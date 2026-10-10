@@ -369,6 +369,19 @@ function musicExpandSimpleRepeats(doc){
 // MusicXML score-partwise shares one measure grid across synchronized staves.
 // The first score part is the temporal authority: another staff may omit
 // redundant time signatures or trailing rests but must not drift from it.
+// Canonical MusicXML meter adapter: beats and beat-type can occur as
+// additive strings and multiple paired groups within one <time> element.
+function musicXmlMeter(time,beats,beatType,warnings=null){
+ if(!time)return {beats,beatType};
+ const num=xmlList(time,'beats'),den=xmlList(time,'beat-type');
+ if(!num.length||num.length!==den.length){
+  warnings?.add('Нераспознанный музыкальный размер MusicXML; использован предыдущий.');
+  return {beats,beatType};
+ }
+ const parsed=musicParseMeterGroups(num.map((n,i)=>({beats:n.textContent.trim(),beatType:den[i].textContent.trim()})));
+ if(!parsed)warnings?.add('Неподдерживаемый музыкальный размер MusicXML; использован предыдущий.');
+ return parsed||{beats,beatType};
+}
 function musicSharedBarStarts(measures,ppq){
  const frames=[];let divisions=1,beats=4,beatType=4;
  const ticks=value=>Math.round((Number(value)||0)/Math.max(1,divisions)*ppq);
@@ -380,7 +393,7 @@ function musicSharedBarStarts(measures,ppq){
     const nextDivisions=Number(xmlText(el,'divisions',divisions));
     if(nextDivisions>0)divisions=nextDivisions;
     const time=xmlDirect(el,'time');
-    if(time){beats=Number(xmlText(time,'beats',beats))||beats;beatType=Number(xmlText(time,'beat-type',beatType))||beatType}
+    if(time)({beats,beatType}=musicXmlMeter(time,beats,beatType))
    }else if(tag==='backup')at=Math.max(0,at-ticks(xmlText(el,'duration','0')));
    else if(tag==='forward'){at+=ticks(xmlText(el,'duration','0'));maxAt=Math.max(maxAt,at)}
    else if(tag==='note'&&!xmlDirect(el,'chord')&&!xmlDirect(el,'grace')){
@@ -435,7 +448,7 @@ function readMusicXML(xmlString,filename){
     const tag=el.localName;
     if(tag==='attributes'){
      const d=Number(xmlText(el,'divisions',divisions));if(d>0)divisions=d;
-     const ts=xmlDirect(el,'time');if(ts){beats=Number(xmlText(ts,'beats',beats))||beats;beatType=Number(xmlText(ts,'beat-type',beatType))||beatType}
+     const ts=xmlDirect(el,'time');if(ts)({beats,beatType}=musicXmlMeter(ts,beats,beatType,warnings))
      const tr=xmlDirect(el,'transpose');if(tr){transposition=Number(xmlText(tr,'chromatic',0))+12*Number(xmlText(tr,'octave-change',0));if(transposition)warnings.add('Транспонирующие инструменты пересчитаны в звучащую высоту.')}
      continue;
     }
