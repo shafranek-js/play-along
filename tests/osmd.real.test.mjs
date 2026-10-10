@@ -35,7 +35,7 @@ try{
  page.route('https://unpkg.com/**',r=>r.abort('blockedbyclient'));
  await page.goto(origin,{waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>window.__scoreTest&&window.__prototypeTest&&window.__libraryV08);
- assert.equal(await page.evaluate(()=>window.__playAlongVersion),'0.10.0');
+ assert.equal(await page.evaluate(()=>window.__playAlongVersion),'0.10.1');
  const zip=makeZip('score.musicxml',SCORE).toString('base64');
  const result=await page.evaluate(async ({xml,zip})=>{
    const arr=Uint8Array.from(atob(zip),c=>c.charCodeAt(0));

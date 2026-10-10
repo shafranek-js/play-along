@@ -91,3 +91,11 @@ Play_Along_Project_v0_10_0/
 ## Testing limits
 
 The automatic browser smoke test uses a simulated OSMD renderer and simulated ASAP HTTP responses. The actual OSMD code path and live MicroLab mk3 remain to be verified in an unrestricted Chrome/Edge session. This CI environment denies `page.goto()` to every URL, including localhost. The browser smoke therefore validates the HTTP files via Python first and injects the same built JS/CSS into a Chromium document instead of claiming real browser network navigation passed.
+
+## Persistent library & preferences (v0.10.1)
+
+- Imported MIDI, MusicXML/MXL and MuseScore files are stored in **IndexedDB** under `Моя коллекция` and the last active saved work is automatically restored after reload.
+- Each composition has its own selected track, Wait/Tempo mode, speed, view (Piano Roll or Sheet Music), zoom, accompaniment, adaptation, repeat region, bookmarks and last position.
+- Global settings such as MIDI device preferences, keyboard calibration, volume, labels, and window layout are remembered in browser localStorage.
+- These preferences belong to the browser profile and web **origin** (`https://shafranek-js.github.io`): private browsing, clearing site data, switching browser/device or storage eviction can remove local records. Files are **not uploaded to GitHub**.
+- `npm run test:browser` verifies real OSMD and persistence across browser reloads with two distinct imported scores.

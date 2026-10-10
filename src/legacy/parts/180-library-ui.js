@@ -62,6 +62,11 @@ renderFolderListing=function(){
  const n=folderIndex.length,r=n%100,last=n%10,word=r>=11&&r<=14?'файлов':last===1?'файл':last>=2&&last<=4?'файла':'файлов';
  $('browseFolder').textContent='📂 Просмотреть '+n+' '+word;
 };
-async function libraryLoadFolderSong(path){const entry=folderIndex.find(e=>e.path===path);if(!entry)return;try{const file=entry.file||(await entry.handle.getFile());await libraryLoadFile(file.name,await file.arrayBuffer(),'folder:'+path,{author:'📁 '+path,type:'folder'})}catch(e){libraryError(e)}}
+async function libraryLoadFolderSong(path){const entry=folderIndex.find(e=>e.path===path);if(!entry)return;try{
+ const file=entry.file||(await entry.handle.getFile()),data=await file.arrayBuffer();
+ await libraryLoadFile(file.name,data,libraryBinaryId(data),{author:'📁 '+path,type:'folder'});
+ try{await librarySaveBinary(file.name,data,'Папка пользователя',{title:current.title,author:current.author})}
+ catch(e){setLibraryStatus('Файл открыт, но не сохранён для следующих запусков: '+e.message)}
+ }catch(e){libraryError(e)}}
 loadFolderSong=libraryLoadFolderSong;
 importMIDI=async function(file){if(!file)return;try{await importMusicFiles([file])}finally{$('midiFile').value=''}};
