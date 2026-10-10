@@ -20,11 +20,16 @@ async function backupCreate(){
  const size=works.reduce((n,w)=>n+(w.data?.byteLength||0),0);
  if(size>BACKUP_MAX_BYTES)throw Error('Коллекция больше 96 МБ. Для больших библиотек потребуется потоковый формат резервной копии.');
  const saved=works.map(({data,...info})=>({...info,data:backupBytesToBase64(data)}));
+ const history=(await libraryTransaction('performances','readonly',s=>s.getAll())||perfAttempts)
+  .map(r=>performanceNormalizeRecord(r)).filter(Boolean);
+ const historyJson=JSON.stringify(history);
+ if(history.length>5000||historyJson.length>12*1024*1024)
+  throw Error('История больше 5000 попыток или 12 МБ: такой backup нельзя восстановить. Экспорт отменён; данные не изменены.');
  const raw={format:BACKUP_FORMAT,version:BACKUP_VERSION,exportedAt:new Date().toISOString(),appVersion:window.__playAlongVersion,
   works:saved,settings:JSON.parse(localStorage.getItem(STORE)||'{}'),
   favorites:await libraryTransaction('prefs','readonly',s=>s.get('favorites'))||[],
-  performances:await libraryTransaction('performances','readonly',s=>s.getAll())||perfAttempts,
-  smartMastery:JSON.parse(localStorage.getItem(SMART_STORE)||'{}')};
+  performances:history,
+  smartMastery:smartValidateMastery(JSON.parse(localStorage.getItem(SMART_STORE)||'{}'))};
  return JSON.stringify(raw);
 }
 async function backupDownload(){
@@ -53,13 +58,15 @@ function backupCheckJson(payload){
  }
  if(!Array.isArray(payload.favorites)||payload.favorites.length>10000)throw Error('Неверный список избранного');
  if(!Array.isArray(payload.performances)||payload.performances.length>5000||payload.performances.some(r=>!r||typeof r.id!=='string'||r.id.length>100)||JSON.stringify(payload.performances).length>12*1024*1024)throw Error('Некорректная или слишком большая история тренировок');
- if(payload.smartMastery && (typeof payload.smartMastery!=='object'||Array.isArray(payload.smartMastery)||JSON.stringify(payload.smartMastery).length>4*1024*1024))throw Error('Некорректный прогресс Smart Practice');
+ if(payload.smartMastery && JSON.stringify(payload.smartMastery).length>4*1024*1024)throw Error('Некорректный прогресс Smart Practice');
+ const performances=payload.performances.map(r=>performanceNormalizeRecord(r,{strict:true}));
+ const mastery=smartValidateMastery(payload.smartMastery??{}, {strict:true});
  // Strict validation is shared with startup localStorage normalization.
  // Never interpolate untyped backup values into HTML, CSS or audio settings.
  const settings=sanitizePlayAlongSettings(payload.settings,{strict:true});
  if(Object.keys(settings.songSettings||{}).length>4000)
   throw Error('Слишком много профилей мелодий');
- return {works:results,settings,performances:payload.performances,favorites:payload.favorites.filter(x=>typeof x==='string'),smartMastery:payload.smartMastery||{}};
+ return {works:results,settings,performances,favorites:payload.favorites.filter(x=>typeof x==='string'),smartMastery:mastery};
 }
 async function backupRestore(file){
  if(!file)return;

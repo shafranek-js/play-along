@@ -169,3 +169,10 @@ This is an incremental extraction, **not** a claim that the rest of the 21 legac
 - Both the MusicXML importer's shared part timeline and OSMD measure navigation now consume `musicBarGrid()`, rather than keeping separate barline rules. The per-part fallback shares `musicMeasureSpan()`.
 - Node unit tests cover 4/4, 3/4, 6/8, pickups, sparse notation, overfull bars and invalid inputs. A real Chromium timing fixture asserts a second measure begins at beat five in both MusicXML and OSMD when the preceding 4/4 measure contains five played beats.
 - The build adapter now injects both genuine ESM sources into the legacy IIFE; neither module depends on the DOM, MIDI or storage.
+
+## Hardened performance history (v0.10.17)
+
+- Backup recovery rejects performance entries missing required scoring fields or with malformed nested sections, notes or statistics, before writing any local or IndexedDB data.
+- Existing malformed IndexedDB or legacy localStorage entries are repaired or skipped safely at startup; one bad attempt no longer prevents the app from initializing.
+- Smart Practice mastery records are validated on startup, backup import and export.
+- Portable JSON backup export now fails explicitly rather than claiming success when full history exceeds the supported restore cap (5000 entries or 12 MiB). History is never silently truncated. A scalable streaming backup format remains required for larger collections.

@@ -1,6 +1,97 @@
 // ===== v0.6 Performance Review: per-note judgements, local history and loop suggestions =====
+// Versioned performance records are imported from backup and IndexedDB.
+// Backups must have every field required by the renderer. Older, partially
+// formed browser records are repaired conservatively so boot never fails.
+const perfObj=v=>v!==null&&typeof v==='object'&&!Array.isArray(v);
+const perfNum=(v,min=0,max=1000000)=>typeof v==='number'&&Number.isFinite(v)&&v>=min&&v<=max;
+const PERF_STATS=['hits','wrong','missed','early','late','short','long','okHold','goodChords','badChords'];
+function performanceNormalizeRecord(raw,{strict=false}={}){
+ const fail=msg=>{if(strict)throw Error('Некорректная запись истории: '+msg);return null};
+ if(!perfObj(raw)||typeof raw.id!=='string'||!raw.id||raw.id.length>100||
+    typeof raw.profile!=='string'||!raw.profile||raw.profile.length>500)
+  return fail('ID или профиль');
+ if(strict&&(!perfObj(raw.stats)||!Array.isArray(raw.sections)||!Array.isArray(raw.notes)||
+   !Array.isArray(raw.extras)||!perfNum(raw.score,0,100)||!perfNum(raw.total,0,100000)||
+   !['wait','tempo'].includes(raw.mode)||typeof raw.date!=='string'||!Number.isFinite(Date.parse(raw.date))))
+  return fail('отсутствуют обязательные поля');
+ const stats={};
+ for(const key of PERF_STATS){
+  const value=raw.stats?.[key];
+  if(value!==undefined&&!perfNum(value,0,100000))return strict?fail('stats.'+key):null;
+  stats[key]=value??0;
+ }
+ if(raw.sections!==undefined&&!Array.isArray(raw.sections))return strict?fail('sections'):null;
+ if(raw.notes!==undefined&&!Array.isArray(raw.notes))return strict?fail('notes'):null;
+ if(raw.extras!==undefined&&!Array.isArray(raw.extras))return strict?fail('extras'):null;
+ const sections=[];
+ for(const section of raw.sections||[]){
+  if(!perfObj(section)||!perfNum(section.start,0,864000)||!perfNum(section.end,0,864000)||
+    section.end<section.start||!perfNum(section.errors,0,100000)||
+    !Array.isArray(section.pitches)||section.pitches.length>256||
+    section.pitches.some(p=>typeof p!=='string'||p.length>30))
+    return fail('section item');
+  sections.push({start:section.start,end:section.end,errors:section.errors,
+    events:perfNum(section.events,0,100000)?section.events:0,pitches:section.pitches.slice()});
+ }
+ if(sections.length>200)return fail('too many sections');
+ const notes=[];
+ for(const n of raw.notes||[]){
+  if(!perfObj(n)||!Number.isInteger(n.pitch)||n.pitch<0||n.pitch>127||
+   !perfNum(n.start,0,864000)||!perfNum(n.duration,0,864000)||
+   typeof n.hit!=='boolean'||typeof n.miss!=='boolean')
+   return fail('note item');
+  const result={pitch:n.pitch,start:n.start,duration:n.duration,hit:n.hit,miss:n.miss};
+  for(const field of ['timingMs','holdRatio','chordSpreadMs']){
+   const v=n[field];
+   if(v!=null&&!perfNum(v,field==='timingMs'?-864000000:0,864000000))return fail('note.'+field);
+   result[field]=v??null;
+  }
+  notes.push(result);
+ }
+ if(notes.length>1700)return fail('too many notes');
+ const extras=[];
+ for(const e of raw.extras||[]){
+  if(!perfObj(e)||!Number.isInteger(e.pitch)||e.pitch<0||e.pitch>127||!perfNum(e.at,0,864000))
+   return fail('extra item');
+  extras.push({at:e.at,pitch:e.pitch});
+ }
+ if(extras.length>400)return fail('too many extras');
+ const date=typeof raw.date==='string'&&raw.date.length<=80&&Number.isFinite(Date.parse(raw.date))
+   ?raw.date:new Date(0).toISOString();
+ const safePct=(key,optional=false)=>{
+  const v=raw[key];
+  if(v==null&&optional)return null;
+  return perfNum(v,0,100)?v:optional?null:0;
+ };
+ if(strict){
+  for(const key of ['accuracy','timePct','holdPct','chordPct','avgAbsTime','speed','position']){
+   const v=raw[key];
+   if(v!==null&&v!==undefined&&!perfNum(v,0,key==='avgAbsTime'?864000000:key==='position'?864000: key==='speed'?150:100))
+    return fail(key);
+  }
+ }
+ return {
+  version:1,id:raw.id,profile:raw.profile,date,
+  song:typeof raw.song==='string'?raw.song.slice(0,250):'',
+  track:typeof raw.track==='string'?raw.track.slice(0,250):'',
+  mode:['wait','tempo'].includes(raw.mode)?raw.mode:'tempo',
+  adaptMode:typeof raw.adaptMode==='string'?raw.adaptMode.slice(0,40):'original',
+  reason:typeof raw.reason==='string'?raw.reason.slice(0,40):'manual',
+  range:perfObj(raw.range)&&Number.isInteger(raw.range.low)&&Number.isInteger(raw.range.high)
+    ?{low:raw.range.low,high:raw.range.high}:null,
+  score:safePct('score'),accuracy:safePct('accuracy'),
+  timePct:safePct('timePct',true),holdPct:safePct('holdPct',true),
+  chordPct:safePct('chordPct',true),
+  avgAbsTime:perfNum(raw.avgAbsTime,0,864000000)?raw.avgAbsTime:null,
+  speed:perfNum(raw.speed,25,150)?raw.speed:100,
+  position:perfNum(raw.position,0,864000)?raw.position:0,
+  total:perfNum(raw.total,0,100000)?raw.total:stats.hits+stats.missed,
+  attempted:typeof raw.attempted==='boolean'?raw.attempted:true,
+  stats,sections,notes,extras
+ };
+}
 const PERF_STORE='playalong:performance:attempts:v06';
-let perfAttempts=[];try{const x=JSON.parse(localStorage.getItem(PERF_STORE)||'[]');if(Array.isArray(x))perfAttempts=x.slice(0,30)}catch{}
+let perfAttempts=[];try{const x=JSON.parse(localStorage.getItem(PERF_STORE)||'[]');if(Array.isArray(x))perfAttempts=x.slice(0,30).map(r=>performanceNormalizeRecord(r)).filter(Boolean)}catch{}
 let perfLast=null,perfLastIndex=new Map(),currentSongKey='';
 const reviewNoteKey=n=>`${n.pitch}:${Math.round(n.start*1000)}:${Math.round(n.duration*1000)}`;
 function songFingerprint(song){
@@ -35,13 +126,20 @@ function makePerformanceRecord(session,reason='manual'){
 }
 // IndexedDB holds complete attempts; localStorage is a small migration cache.
 async function loadPerformanceHistory(){
- const legacy=perfAttempts.slice();
+ const legacy=perfAttempts.map(r=>performanceNormalizeRecord(r)).filter(Boolean);
  const stored=await libraryTransaction('performances','readonly',s=>s.getAll())||[];
- const byId=new Map(stored.filter(r=>r?.id).map(r=>[r.id,r]));
+ const byId=new Map();
+ let damaged=0;
+ for(const record of stored){
+  const safe=performanceNormalizeRecord(record);
+  if(safe)byId.set(safe.id,safe);
+  else damaged++;
+ }
+ if(damaged)console.warn('Skipped '+damaged+' corrupt performance records to preserve app startup');
  const missing=legacy.filter(r=>r?.id&&!byId.has(r.id));
  if(missing.length)await libraryTransaction('performances','readwrite',s=>{for(const r of missing)s.put(r);return null});
  for(const r of missing)byId.set(r.id,r);
- for(const r of perfAttempts)if(r?.id&&!byId.has(r.id))byId.set(r.id,r);
+ for(const r of perfAttempts){const safe=performanceNormalizeRecord(r);if(safe&&!byId.has(safe.id))byId.set(safe.id,safe)}
  perfAttempts=[...byId.values()].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
  if(current){rebuildPerfLast();renderReview()}
 }

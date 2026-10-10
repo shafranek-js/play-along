@@ -1,5 +1,23 @@
 // ===== v0.7 Smart Practice: adaptive section loop, separate from normal training =====
-const SMART_STORE='playalong:smart:mastery:v07';let smartData={};try{smartData=JSON.parse(localStorage.getItem(SMART_STORE)||'{}')||{}}catch{}
+const SMART_STORE='playalong:smart:mastery:v07';
+function smartValidateMastery(raw,{strict=false}={}){
+ if(!perfObj(raw)||Object.keys(raw).length>30000){
+  if(strict)throw Error('Некорректный прогресс Smart Practice');
+  return {};
+ }
+ const result=Object.create(null);
+ for(const [key,v] of Object.entries(raw)){
+  const ok=key.length>0&&key.length<=500&&!['__proto__','constructor','prototype'].includes(key)&&
+   perfObj(v)&&perfNum(v.best,0,100)&&Number.isInteger(v.mastery)&&v.mastery>=0&&v.mastery<=2&&
+   Number.isInteger(v.attempts)&&v.attempts>=0&&v.attempts<=1000000&&
+   (v.lastAt===undefined||(typeof v.lastAt==='string'&&v.lastAt.length<=80&&Number.isFinite(Date.parse(v.lastAt))));
+  if(!ok){if(strict)throw Error('Некорректная запись Smart Practice: '+key);continue}
+  result[key]={best:v.best,mastery:v.mastery,attempts:v.attempts};
+  if(v.lastAt)result[key].lastAt=v.lastAt;
+ }
+ return result;
+}
+let smartData={};try{smartData=smartValidateMastery(JSON.parse(localStorage.getItem(SMART_STORE)||'{}'))}catch{}
 const smart={active:false,waitingNext:false,segment:null,plan:[],index:0,speed:60,streak:0,round:0,lastScore:null};
 function smartKey(seg){return performanceProfile()+':'+Math.round(seg.start*1000)+'-'+Math.round(seg.end*1000)}
 function smartMakePlan(){
