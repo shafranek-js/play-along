@@ -1,6 +1,6 @@
 # Play Along — architecture and development plan
 
-**Current version:** v0.10.14. The production GitHub Pages site is rebuilt and tested automatically from `main`.
+**Current version:** v0.10.15. The production GitHub Pages site is rebuilt and tested automatically from `main`.
 
 ## Current implementation
 
@@ -44,3 +44,7 @@ The 21 JavaScript fragments are concatenated in `scripts/manifest.json` order to
 5. Strengthen recovery under multi-tab concurrency and extremely large collections; consider a streamed backup format.
 
 License and provenance restrictions for online catalogs and bundled assets remain in force.
+
+## First extracted pure module — v0.10.15
+
+`src/core/music-time.mjs` is the single-source-of-truth for tick↔seconds and beat↔seconds conversion. It is imported directly by `tests/music-time.test.mjs`; `scripts/build.mjs` mechanically strips named `export` keywords and includes the same source in the beginning of the existing IIFE. MusicXML, SMF and the OSMD cursor use the exact same code. This intentionally avoids attempting to migrate the legacy app bootstrap to ESM in one step; later components can be extracted behind tested interfaces.

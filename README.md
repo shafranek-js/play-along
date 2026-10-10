@@ -1,4 +1,4 @@
-# Play Along — Piano Practice App (v0.10.14)
+# Play Along — Piano Practice App (v0.10.15)
 
 Play Along is an independently hosted browser piano practice application with Web MIDI, Piano Roll, OpenSheetMusicDisplay (OSMD), MusicXML/MXL and MIDI import, optional online music catalogs, and Wait/Tempo/Listen practice modes.
 
@@ -149,6 +149,16 @@ MusicXML metronome directions now apply dotted beat units correctly (for example
 - Real Chromium security regression covers HTML injection in panel width, malicious saved localStorage, genuine localStorage quota saturation and preservation of pre-existing IndexedDB history on failed restore.
 - The earlier unison scoring improvement in Tempo mode (one physical press for simultaneous same-pitch voices, independent NoteOff duration judgement) is included; its release was held until security and browser tests passed.
 
-## Display hardening (v0.10.14)
+## Display hardening (v0.10.15)
 
 Imported history records are treated as untrusted content. Summary values are inserted as DOM text and the metric table escapes its labels and dynamic values; malformed numeric-looking fields cannot inject active HTML into the Performance Review panel. The Chromium security suite checks backup settings injection, real localStorage quota failures and malicious performance result markup.
+
+## Extracted musical-time core (v0.10.15)
+
+- `src/core/music-time.mjs` is a genuine independent ES module, importable directly into Node unit tests without a DOM, browser storage or Web Audio.
+- It canonicalizes tick/tempo events, calculates cumulative seconds, and converts ticks/quarter-beats/seconds; it handles simultaneous tempo changes, variable PPQ and changing tempo without mutating inputs.
+- MusicXML, MIDI and OSMD now use the same temporal functions. The transitional `scripts/build.mjs` adapter includes this module as a source prelude in the existing IIFE so that current bootstrap order and browser permissions do not change. The module is not duplicated as a second runtime implementation.
+- Dedicated Node tests check boundary accuracy, reversibility, event ordering and invalid inputs. The real Chromium music corpus continues to test MusicXML, MIDI and the OSMD cursor with the actual production bundle.
+- The Piano Roll performed-note highlight now handles the array of simultaneously played unison voices introduced in the Tempo/Wait scoring fix; a browser assertion ensures both notated voices are highlighted and key-up removes only released notes.
+
+This is an incremental extraction, **not** a claim that the rest of the 21 legacy parts are isolated ES modules.

@@ -48,10 +48,15 @@ function soundingScoreNotes(){
 function performedScoreNotes(){
  const playing=new Set();
  if(!state.highlight||!practice)return playing;
- for(const item of practice.played.values()){
-  if(!midiHeld.has(item.pitch))continue;
-  // noteLookup indexes original arrangement objects, while played uses a copy.
-  for(const [original,record] of practice.noteLookup){if(record===item){playing.add(original);break;}}
+ for(const active of practice.played.values()){
+  // PracticeSession stores an array per pressed pitch: unison voices share a
+  // physical key and must all remain highlighted until its NoteOff.
+  for(const item of Array.isArray(active)?active:[active]){
+   if(!midiHeld.has(item.pitch))continue;
+   for(const [original,record] of practice.noteLookup){
+    if(record===item){playing.add(original);break}
+   }
+  }
  }
  return playing;
 }

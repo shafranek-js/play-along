@@ -40,7 +40,7 @@ try{
    console.log('PAGE DIAGNOSTIC:',await page.evaluate(()=>({ready:document.readyState,script:!!document.querySelector('script[src*="app.js"]'),state:typeof window.__prototypeTest,library:typeof window.__libraryV08})));
    throw err;
  });
- assert.equal(await page.evaluate(()=>window.__playAlongVersion),'0.10.14');
+ assert.equal(await page.evaluate(()=>window.__playAlongVersion),'0.10.15');
  const zip=makeZip('score.musicxml',SCORE).toString('base64');
  const result=await page.evaluate(async ({xml,zip})=>{
    const arr=Uint8Array.from(atob(zip),c=>c.charCodeAt(0));
@@ -181,6 +181,8 @@ try{
  });
  await page.evaluate(()=>window.__prototypeTest.receiveNoteOn(60));
  assert.equal(await hits(),2,'Tempo must credit both C4 voices from one physical press');
+ assert.equal(await page.evaluate(()=>window.__prototypeTest.performedNoteRefs.length),2,
+  'Both performed unison voices must light up on the Piano Roll');
  await page.evaluate(()=>window.__prototypeTest.receiveNoteOn(60));
  assert.equal(await hits(),2,'Held-key repeat must not credit another note');
  await page.evaluate(()=>window.__prototypeTest.receiveNoteOn(64));
@@ -193,6 +195,8 @@ try{
   return notes.map(n=>({off:n.off,ratio:n.holdRatio,graded:n.durationErrorMs!==null}));
  });
  assert.equal(unisonReleases.length,2);
+ assert.equal(await page.evaluate(()=>window.__prototypeTest.performedNoteRefs.length),1,
+  'Releasing the unison key must preserve only the still-held E4 highlighting');
  assert.ok(unisonReleases.every(n=>n.off&&n.graded&&Number.isFinite(n.ratio)),
   'A single C4 NoteOff must evaluate both held unison voices');
  assert.equal(await hits(),3,'Releasing C4 must not create another onset');

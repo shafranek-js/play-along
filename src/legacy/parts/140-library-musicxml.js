@@ -442,8 +442,8 @@ function readMusicXML(xmlString,filename){
  }
  if(!segments.length)throw Error('В MusicXML не обнаружены воспроизводимые ноты');
  if(segments.reduce((sum,t)=>sum+t.notes.length,0)>25000)throw Error('В MusicXML больше 25 000 нот');
- const byTick=new Map();for(const t of tempos)byTick.set(t.tick,t.tempo);const tempoMap=[...byTick].sort((a,b)=>a[0]-b[0]).map(([tick,tempo])=>({tick,tempo}));if(tempoMap[0].tick!==0)tempoMap.unshift({tick:0,tempo:500000});let acc=0;for(let i=0;i<tempoMap.length;i++){const t=tempoMap[i],prev=tempoMap[i-1];if(prev)acc+=(t.tick-prev.tick)/ppq*prev.tempo/1e6;t.sec=acc}
- function toSeconds(tick){let lo=0,hi=tempoMap.length;while(lo+1<hi){const m=(lo+hi)>>1;if(tempoMap[m].tick<=tick)lo=m;else hi=m}const t=tempoMap[lo];return t.sec+(tick-t.tick)/ppq*t.tempo/1e6}
+ const tempoMap=musicCreateTempoTimeline(tempos,ppq);
+ const toSeconds=tick=>musicTickToSeconds(tempoMap,ppq,tick);
  const tracks=segments.map((s,i)=>({name:s.name,notes:s.notes.map(n=>({pitch:n.pitch,start:toSeconds(n.tick),duration:Math.max(.025,toSeconds(n.tick+n.len)-toSeconds(n.tick)),velocity:n.velocity,track:i,channel:0}))}));
  return{id:'xml-'+Date.now(),title:title.slice(0,100),author:author.slice(0,110),type:'import',format:'MusicXML',tracks,warnings:[...warnings],notationXML:playbackXml,originalNotationXML:repeatExpansion.expanded?safeXml:undefined,scoreTempoMap:tempoMap.map(t=>({beat:t.tick/ppq,sec:t.sec,tempo:t.tempo}))};
 }

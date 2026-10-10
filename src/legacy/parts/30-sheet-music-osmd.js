@@ -19,8 +19,8 @@ async function scoreLibrary(){
 }
 function scoreEscape(text){return String(text??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));}
 function scoreTempoFor(song){if(song.scoreTempoMap?.length)return song.scoreTempoMap;return[{beat:0,sec:0,tempo:60000000/(Number(song.tempo)||120)}]}
-function scoreSecondToBeat(song,seconds){const tempos=scoreTempoFor(song);let low=0,high=tempos.length;while(low+1<high){const mid=(low+high)>>1;if(tempos[mid].sec<=seconds)low=mid;else high=mid}const t=tempos[low];return t.beat+Math.max(0,seconds-t.sec)*1e6/t.tempo}
-function scoreBeatToSecond(song,beat){const tempos=scoreTempoFor(song);let low=0,high=tempos.length;while(low+1<high){const mid=(low+high)>>1;if(tempos[mid].beat<=beat)low=mid;else high=mid}const t=tempos[low];return t.sec+Math.max(0,beat-t.beat)*t.tempo/1e6}
+function scoreSecondToBeat(song,seconds){return musicSecondsToBeat(scoreTempoFor(song),seconds)}
+function scoreBeatToSecond(song,beat){return musicBeatToSeconds(scoreTempoFor(song),beat)}
 function scorePitchXML(pitch){const names=['C','C','D','D','E','F','F','G','G','A','A','B'],alt=[0,1,0,1,0,0,1,0,1,0,1,0],pc=((pitch%12)+12)%12;return '<pitch><step>'+names[pc]+'</step>'+(alt[pc]?'<alter>1</alter>':'')+'<octave>'+(Math.floor(pitch/12)-1)+'</octave></pitch>'}
 // Synthesize an explicitly approximate 4/4 notation from original MIDI beats.
 // Distinct simultaneous durations are allocated to separate voices, not merged incorrectly into chords.

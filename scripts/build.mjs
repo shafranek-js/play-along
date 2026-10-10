@@ -12,8 +12,14 @@ const actualNames = fs.readdirSync(partsDir).filter(n => n.endsWith('.js')).sort
 if (actualNames.length !== names.length || actualNames.some(n => !names.includes(n))) throw Error('Manifest does not match source parts');
 const parts = names.map(name => fs.readFileSync(path.join(partsDir, name), 'utf8'));
 const body = parts.join('');
+// Transitional bridge: a genuine, independently importable ES module is
+// included in the legacy IIFE without duplicating its musical math.
+const musicCoreSource=fs.readFileSync(path.join(root,'src/core/music-time.mjs'),'utf8');
+if(!musicCoreSource.includes('export function musicCreateTempoTimeline'))throw Error('Missing music time module');
+const musicPrelude=musicCoreSource.replace(/^export /gm,'');
+if(/^(?:import|export) /m.test(musicPrelude))throw Error('Music core bridge supports named exports only');
 const version = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8')).version;
-const js = `\n(()=>{'use strict';\n` + body.replace("window.__playAlongVersion='0.9.1'", `window.__playAlongVersion='${version}'`) + `})();\n`;
+const js = `\n(()=>{'use strict';\n` + musicPrelude + '\n' + body.replace("window.__playAlongVersion='0.9.1'", `window.__playAlongVersion='${version}'`) + `})();\n`;
 if (!body.includes("window.__playAlongVersion='0.9.1'")) throw Error('Missing original Play Along version stamp');
 if (!js.includes(`window.__playAlongVersion='${version}'`)) throw Error('Failed to stamp version');
 const dist = path.join(root, 'dist');
