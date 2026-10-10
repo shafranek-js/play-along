@@ -1,0 +1,78 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';import http from 'node:http';import path from 'node:path';
+import {fileURLToPath} from 'node:url';import {chromium} from 'playwright';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),dist=path.join(root,'dist');
+const score=`<?xml version="1.0"?>
+<score-partwise version="4.0"><part-list>
+<score-part id="P1"><part-name>Right</part-name></score-part>
+<score-part id="P2"><part-name>Left</part-name></score-part></part-list>
+<part id="P1">
+<measure number="1"><attributes><divisions>480</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes>
+<direction><sound tempo="120"/></direction>
+<note><pitch><step>C</step><octave>4</octave></pitch><duration>480</duration><type>quarter</type></note>
+<note><rest/><duration>480</duration><type>quarter</type></note>
+<note><pitch><step>E</step><octave>4</octave></pitch><duration>480</duration><type>quarter</type></note>
+<note><chord/><pitch><step>G</step><octave>4</octave></pitch><duration>480</duration><type>quarter</type></note>
+<note><pitch><step>F</step><octave>4</octave></pitch><duration>480</duration><tie type="start"/><type>quarter</type></note>
+</measure>
+<measure number="2"><attributes><time><beats>3</beats><beat-type>4</beat-type></time></attributes>
+<direction><sound tempo="60"/></direction>
+<note><pitch><step>F</step><octave>4</octave></pitch><duration>480</duration><tie type="stop"/><type>quarter</type></note>
+<note><pitch><step>D</step><octave>4</octave></pitch><duration>480</duration><type>quarter</type></note>
+<note><rest/><duration>480</duration><type>quarter</type></note></measure>
+</part>
+<part id="P2">
+<measure number="1"><attributes><divisions>480</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes>
+<note><pitch><step>C</step><octave>3</octave></pitch><duration>1920</duration><type>whole</type></note></measure>
+<measure number="2"><attributes><time><beats>3</beats><beat-type>4</beat-type></time></attributes>
+<note><rest measure="yes"/><duration>1440</duration></note></measure>
+</part></score-partwise>`;
+function midi(){
+ const events=[
+  0,255,81,3,7,161,32,0,144,60,95,131,96,128,60,0,
+  0,255,81,3,15,66,64,0,144,62,95,131,96,128,62,0,0,255,47,0
+ ];
+ const header=Buffer.from('4d546864000000060000000101e0','hex');
+ const track=Buffer.alloc(8);track.write('MTrk',0);track.writeUInt32BE(events.length,4);
+ return [...header,...track,...events];
+}
+const server=http.createServer((req,res)=>{
+ const url=new URL(req.url,'http://localhost'),file=path.resolve(dist,'.'+(url.pathname==='/'?'/index.html':url.pathname));
+ if(!file.startsWith(dist+path.sep)||!fs.existsSync(file)){res.writeHead(404);res.end('not found');return}
+ res.setHeader('content-type',file.endsWith('.js')?'application/javascript':file.endsWith('.css')?'text/css':'text/html');res.end(fs.readFileSync(file));
+});
+await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));let browser;
+try{
+ browser=await chromium.launch({headless:true,args:['--no-sandbox']});
+ const page=await browser.newPage();
+ const errs=[];page.on('pageerror',e=>errs.push(e.message));
+ await page.goto('http://127.0.0.1:'+server.address().port);
+ await page.waitForFunction(()=>window.__libraryV08&&window.__prototypeTest&&window.__scoreTest);
+ const result=await page.evaluate(({score,midi})=>{
+  const song=window.__libraryV08.readMusicXML(score,'timing.musicxml');
+  const parsed=window.__prototypeTest.parseMidi(new Uint8Array(midi),'tempo.mid');
+  const notes=song.tracks.flatMap(t=>t.notes).map(n=>({pitch:n.pitch,start:n.start,duration:n.duration})).sort((a,b)=>a.start-b.start||a.pitch-b.pitch);
+  const midiNotes=parsed.tracks.flatMap(t=>t.notes).map(n=>({pitch:n.pitch,start:n.start,duration:n.duration})).sort((a,b)=>a.start-b.start);
+  const b2s=[0,1,2,3,4,5,6,7].map(b=>window.__scoreTest.scoreBeatToSecond(song,b));
+  const s2b=[0,1,2,3,4,5].map(sec=>window.__scoreTest.scoreSecondToBeat(song,sec));
+  return {notes,midiNotes,b2s,s2b,tempos:song.scoreTempoMap,tracks:song.tracks.length};
+ },{score,midi:midi()});
+ const byPitch=p=>result.notes.filter(n=>n.pitch===p);
+ const near=(actual,expected,label)=>assert.ok(Math.abs(actual-expected)<.0001,label+' expected '+expected+' got '+actual);
+ assert.equal(result.tracks,2);
+ near(byPitch(60)[0].start,0,'C4 start');near(byPitch(60)[0].duration,.5,'C4 length');
+ assert.equal(byPitch(60).length,1);
+ assert.equal(byPitch(64).length,1);near(byPitch(64)[0].start,1,'E4 after rest');near(byPitch(64)[0].duration,.5,'E4 quarter');
+ near(byPitch(67)[0].start,1,'G4 chord onset');
+ assert.equal(byPitch(65).length,1,'Tie must join two written F4 notes');
+ near(byPitch(65)[0].start,1.5,'F4 onset');near(byPitch(65)[0].duration,1.5,'Tie across tempo transition');
+ near(byPitch(62)[0].start,3,'D4 after 60bpm beat');near(byPitch(62)[0].duration,1,'D4 duration');
+ near(byPitch(48)[0].duration,2,'Left-hand C3 whole duration');
+ [0,.5,1,1.5,2,3,4,5].forEach((sec,i)=>near(result.b2s[i],sec,'beat '+i));
+ [0,2,4,5,6,7].forEach((beat,i)=>near(result.s2b[i],beat,'second '+i));
+ assert.deepEqual(result.midiNotes.map(n=>n.pitch),[60,62]);
+ near(result.midiNotes[0].start,0,'MIDI first onset');near(result.midiNotes[0].duration,.5,'MIDI first length');
+ near(result.midiNotes[1].start,.5,'MIDI tempo onset');near(result.midiNotes[1].duration,1,'MIDI tempo duration');
+ assert.deepEqual(errs,[]);
+ console.log('MUSIC REGRESSION: MusicXML rests, chord, tie, 4/4 to 3/4, tempo 120→60, left hand and MIDI tempo: PASS');
+}finally{if(browser)await browser.close();await new Promise(resolve=>server.close(resolve))}
