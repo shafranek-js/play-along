@@ -1,0 +1,24 @@
+{
+  "features": [
+    "00-runtime.js",
+    "10-keyboard-adaptation.js",
+    "20-workspace-ui.js",
+    "30-sheet-music-osmd.js",
+    "40-audio-transport.js",
+    "50-practice-scoring.js",
+    "60-performance-review.js",
+    "70-piano-roll.js",
+    "80-midi-devices.js",
+    "90-smart-practice.js",
+    "100-folder-browser.js",
+    "110-mutopia-catalog.js",
+    "120-musetrainer-catalog.js",
+    "130-asap-catalog.js",
+    "140-library-musicxml.js",
+    "150-musescore-reader.js",
+    "160-library-import.js",
+    "170-mutopia-downloads.js",
+    "180-library-ui.js",
+    "190-app-bootstrap.js"
+  ]
+}

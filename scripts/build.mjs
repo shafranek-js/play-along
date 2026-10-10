@@ -1,0 +1,26 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { execFileSync } from 'node:child_process';
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const manifest = JSON.parse(fs.readFileSync(path.join(root, 'scripts/manifest.json'), 'utf8'));
+const partsDir = path.join(root, 'src/legacy/parts');
+const names = manifest.features;
+if (names.length < 15 || new Set(names).size !== names.length) throw Error('Invalid feature manifest');
+const actualNames = fs.readdirSync(partsDir).filter(n => n.endsWith('.js')).sort();
+if (actualNames.length !== names.length || actualNames.some(n => !names.includes(n))) throw Error('Manifest does not match source parts');
+const parts = names.map(name => fs.readFileSync(path.join(partsDir, name), 'utf8'));
+const body = parts.join('');
+const version = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8')).version;
+const js = `\n(()=>{'use strict';\n` + body.replace("window.__playAlongVersion='0.9.1'", `window.__playAlongVersion='${version}'`) + `})();\n`;
+if (!body.includes("window.__playAlongVersion='0.9.1'")) throw Error('Missing original Play Along version stamp');
+if (!js.includes(`window.__playAlongVersion='${version}'`)) throw Error('Failed to stamp version');
+const dist = path.join(root, 'dist');
+fs.mkdirSync(path.join(dist, 'assets'), {recursive:true});
+fs.writeFileSync(path.join(dist, 'assets/app.js'), js);
+fs.copyFileSync(path.join(root, 'src/styles/app.css'), path.join(dist, 'assets/app.css'));
+fs.copyFileSync(path.join(root, 'src/index.html'), path.join(dist, 'index.html'));
+fs.writeFileSync(path.join(dist, '.nojekyll'), '');
+execFileSync(process.execPath, ['--check', path.join(dist, 'assets/app.js')], {stdio:'inherit'});
+console.log(`Built Play Along v${version}: ${names.length} feature source files, CSS + HTML -> dist/`);

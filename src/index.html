@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Play Along · v0.10.0 · Modular Project</title>
+<link rel="stylesheet" href="./assets/app.css">
+</head>
+<body class="">
+<header id="topbar">
+ <div class="brand"><div class="brandmark">♫</div><div><strong>Play Along</strong><span>Standalone · v0.10.0</span></div></div>
+ <nav class="nav" aria-label="Основные страницы"><button data-page="practice" class="active">Тренировка</button><button data-page="library">Библиотека</button><button data-page="progress">Анализ</button></nav>
+ <div style="height:23px;width:1px;background:#39414e"></div>
+ <div class="workspace" aria-label="Рабочие компоновки"><button data-layout="learn" class="active" title="Панели обучения">Изучение</button><button data-layout="play" title="Максимум места для музыки">Игра</button><button data-layout="analyze" title="Расширенные показатели">Анализ</button></div>
+ <div class="spacer"></div>
+ <button id="deviceBadge" class="devicepill" title="Устройства и калибровка"><span class="dot" id="deviceDot"></span><span id="deviceBadgeText">MIDI не подключён</span></button>
+ <button class="iconbtn" id="leftToggle" title="Показать/скрыть библиотеку (Shift+L)">☷</button>
+ <button class="iconbtn" id="rightToggle" title="Показать/скрыть настройки (Shift+R)">⚙</button>
+ <button class="iconbtn" id="commandsBtn" title="Командная палитра (Ctrl+K)">⌘</button>
+ <button class="iconbtn" id="focusBtn" title="Фокус (F)">⛶</button>
+</header>
+<div class="shell" id="shell">
+ <aside class="sidebar left" id="leftPanel">
+  <div class="sidehead"><h2>Библиотека</h2><button class="iconbtn mobilePanelToggle" id="leftClose">×</button><small id="libraryCount" class="textmuted"></small></div>
+  <div class="sidebody">
+    <div class="panelSection"><input class="search" id="librarySearch" placeholder="Поиск: название, композитор, жанр…" aria-label="Поиск в библиотеке">
+    <div class="libv8-filters"><select id="librarySourceSelect" aria-label="Источник"><option value="all">Все источники</option><option value="saved">Моя коллекция</option><option value="folder">Подключённая папка</option><option value="demo">Демо</option><option value="repertoire">Public Domain MIDI</option><option value="mutopia">Mutopia</option><option value="musetrainer">MuseTrainer · MusicXML</option><option value="asap">ASAP · Piano</option><option value="openscore">OpenScore GitHub</option></select><select id="librarySort" aria-label="Сортировка"><option value="source">По источнику</option><option value="title">По названию</option><option value="author">По композитору</option><option value="difficulty">По сложности</option></select></div>
+    <label class="libv8-switch"><input type="checkbox" id="libraryFavoritesOnly"> ★ Только избранное</label><p id="libV8Counts" class="small" style="margin:7px 0"></p>
+    </div>
+    <div class="panelSection"><div class="sectionLabel">Каталог произведений</div><div class="list" id="songList"></div></div>
+    <div class="panelSection"><div class="sectionLabel">Моя коллекция</div>
+      <label class="fileUpload">＋ Импорт MIDI · MusicXML · MXL · MuseScore<input id="importMusicInput" type="file" accept=".mid,.midi,.musicxml,.xml,.mxl,.mscx,.mscz" multiple></label>
+      <p class="small">Импортированные произведения сохраняются в браузере (IndexedDB). Личные файлы не загружаются на наш сервер. Можно открывать их повторно, пока хранилище браузера не очищено.</p>
+    </div>
+    <div class="panelSection"><div class="sectionLabel">Подключённая папка</div>
+      <div class="librarySource"><p id="folderStatus">Папка пока не подключена. Найдём MIDI, MusicXML, MXL и MuseScore во всех папках и подпапках, сохраним пути файлов.</p>
+      <button class="btn tiny primary" id="browseFolder" disabled aria-label="Просмотреть файлы подключённой папки">📂 Просмотреть файлы</button>
+      <button class="btn tiny" id="chooseFolder">▣ Подключить папку</button>
+      <label class="fileUpload" style="display:block;margin-top:7px">＋ Выбрать каталог однократно<input id="folderFallback" type="file" webkitdirectory multiple accept=".mid,.midi,.musicxml,.xml,.mxl,.mscx,.mscz"></label>
+      <button class="btn tiny ghost" id="refreshFolder">↻ Обновить индекс</button>
+      <div id="folderListing" class="small" style="margin-top:10px"></div></div>
+    </div>
+    <div class="panelSection"><div class="sectionLabel">Онлайн-библиотеки</div>
+      <div class="librarySource"><strong style="font-size:12px">100 MIDI · Mutopia · MuseTrainer · ASAP · OpenScore</strong>
+       <p>Mutopia: официальный GitHub-индекс основных партитур и ссылки на каталог опубликованных MIDI. У найденных через GitHub записей MIDI и лицензия проверяются при открытии; прямой импорт зависит от CORS сайта Mutopia.</p>
+       <button class="btn tiny ghost" id="filterRepertoire">♪ Показать 100 MIDI</button>
+       <button class="btn tiny primary" id="filterMutopia">♫ Каталог Mutopia</button><button class="btn tiny primary" id="filterMuseTrainer">♮ MuseTrainer · MusicXML</button><button class="btn tiny primary" id="filterAsap">♬ ASAP · Piano</button><button class="btn tiny ghost" id="filterOpenScore">♬ OpenScore GitHub</button>
+       <div id="mutopiaPanel" class="mutopiaPanel">
+        <div class="mutopiaActions"><button class="btn tiny" id="mutopiaSync">↻ Загрузить каталог Mutopia</button><button class="btn tiny ghost" id="mutopiaUpdate" title="Обновить каталог с GitHub">Обновить с GitHub</button></div>
+        <label class="small" for="mutopiaComposer">Композитор</label><select id="mutopiaComposer"><option value="">Все композиторы</option></select>
+        <label class="small" for="mutopiaInstrument">Инструмент (по уточнённым метаданным)</label><select id="mutopiaInstrument"><option value="">Все инструменты</option><option value="piano">Piano / Clavier</option><option value="organ">Organ</option><option value="guitar">Guitar</option><option value="violin">Violin</option><option value="voice">Voice / Choir</option><option value="flute">Flute</option><option value="cello">Cello</option></select>
+        <div class="mutopiaActions"><button class="btn tiny ghost" id="mutopiaEnrich">Уточнить первые 20 записей</button><button class="btn tiny ghost" id="mutopiaClearCache">Очистить индекс</button></div>
+        <p id="mutopiaProgress" class="small" aria-live="polite">Каталог ещё не загружен. Для поиска по архиву нажми «Загрузить».</p>
+        <p class="small">Поиск по названию и автору работает для всего индекса по структуре GitHub; точные названия, инструменты и лицензии уточняются из LilyPond при просмотре/открытии. <a href="https://www.mutopiaproject.org/browse.html" target="_blank" rel="noopener noreferrer">Официальный каталог ↗</a></p>
+       </div>
+       <div id="museTrainerPanel" class="mutopiaPanel">
+        <strong style="font-size:12px">MuseTrainer · партитуры MusicXML/MXL</strong>
+        <div class="mutopiaActions"><button class="btn tiny" id="museTrainerSync">↻ Загрузить каталог MuseTrainer</button><button class="btn tiny ghost" id="museTrainerRefresh">Обновить</button></div>
+        <p id="museTrainerProgress" class="small" aria-live="polite">Доступна стартовая подборка. Для полного списка нажми «Загрузить каталог».</p>
+        <p class="small">Файлы MXL открываются в Piano Roll и в интерактивной партитуре Sheet Music. Точный состав и права на отдельные аранжировки проверяй у источника. <a href="https://musetrainer.github.io/library/" target="_blank" rel="noopener noreferrer">Оригинальная библиотека ↗</a></p>
+       </div>
+       <div id="asapPanel" class="mutopiaPanel">
+        <strong style="font-size:12px">ASAP · Aligned Scores and Performances</strong>
+        <div class="mutopiaActions"><button class="btn tiny" id="asapSync">↻ Загрузить каталог ASAP</button><button class="btn tiny ghost" id="asapRefresh">Обновить</button></div>
+        <p id="asapProgress" class="small" aria-live="polite">Для полной библиотеки нажми «Загрузить каталог». Есть стартовая подборка.</p>
+        <p class="small">Партитура MusicXML открывается нажатием по названию. Кнопка «MIDI» открывает метрическую MIDI-версию, «Исп.» — выбор реального исполнения. Источник: <a href="https://github.com/fosfrancesco/asap-dataset" target="_blank" rel="noopener noreferrer">ASAP Dataset ↗</a>. Лицензия <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener noreferrer">CC BY-NC-SA 4.0 ↗</a>: авторство, некоммерческое использование, ShareAlike. Сохраняй эти условия при распространении данных.</p>
+       </div>
+       <button class="btn tiny ghost" id="openMutopia">↗ Поиск на сайте Mutopia</button>
+       <p id="onlineStatus" aria-live="polite">Лицензию и возможность прямой загрузки проверяй по ссылке ↗ на оригинальный источник.</p></div>
+    </div>
+ <input id="midiFile" type="file" accept=".mid,.midi,.musicxml,.xml,.mxl,.mscx,.mscz" style="display:none"><div class="panelSection"><div class="sectionLabel">Быстрые действия</div><div style="display:grid;gap:7px"><button id="calibrateLeft" class="btn ghost">⌨ Калибровать клавиатуру</button><button id="resetUI" class="btn ghost">↺ Сбросить расположение панелей</button></div></div>
+  </div>
+ </aside>
+ <div class="splitter" id="leftSplit" data-side="left" aria-hidden="true"></div>
+ <section class="center">
+  <div class="centerHead"><div class="songTitle"><p id="songType">PLAY ALONG · INTERACTIVE SCORE v0.10.0</p><h1 id="songName">Мелодия: учебная фраза</h1><p id="songMeta">Выберите демонстрацию или загрузите MIDI</p></div><div class="scoreViewSwitcher" role="group" aria-label="Представление музыки"><button id="viewRoll" class="active" aria-pressed="true" title="Падающие ноты и виртуальная клавиатура">▥ Piano Roll</button><button id="viewSheet" aria-pressed="false" title="Нотная партитура с синхронным курсором">♬ Sheet Music</button></div><div class="chips"><span class="chip accent" id="playModeChip">Прослушивание</span><span class="chip" id="pitchChip">Диапазон: C3–C6</span></div></div>
+  <div class="rollWrap" id="rollWrap"><canvas id="roll" aria-label="Piano Roll с падающими нотами"></canvas><div class="rollStatus" id="rollStatus">⏸ Готово к воспроизведению</div><div class="rollHint">Правая кнопка — действия с нотами · Space — Play/Pause</div></div>
+  <div class="sheetWrap hidden" id="sheetWrap" role="region" aria-label="Интерактивная партитура OpenSheetMusicDisplay" tabindex="0"><div class="sheetContent" id="sheetContent"><div class="sheetInfo"><div><strong>♬ Нотная партитура</strong> · <span id="sheetStatus" aria-live="polite">Ожидание произведения</span></div><div class="sheetScrollControls"><label title="Автоматически прокручивать партитуру за курсором"><input type="checkbox" id="sheetFollow" checked> Следовать</label><button id="sheetBarBack" title="Предыдущий такт">⇤ Такт</button><button id="sheetBarNext" title="Следующий такт">Такт ⇥</button><button id="sheetZoomOut" title="Уменьшить ноты" aria-label="Уменьшить">−</button><span id="sheetZoomLabel">100%</span><button id="sheetZoomIn" title="Увеличить ноты" aria-label="Увеличить">＋</button></div></div><div id="sheetWaitStatus" class="sheetNotice hidden" aria-live="polite"></div><div id="sheetNotice" class="sheetNotice hidden"></div><div class="sheetCanvas" id="sheetCanvas" aria-label="Нотная запись произведения"></div></div></div>
+  <div class="keyboardInfo"><span><strong id="keyboardRangeText">Экран: C3–C6</strong> <span id="deviceRangeText">· MIDI диапазон не определён</span></span><span id="midiLive">MIDI: ожидание</span><span id="songActive" style="font-variant-numeric:tabular-nums;white-space:nowrap">♫ 0</span></div>
+ </section>
+ <div class="splitter" id="rightSplit" data-side="right" aria-hidden="true"></div>
+ <aside class="sidebar right" id="rightPanel"><div class="sidehead"><h2>Инструменты</h2><button class="iconbtn mobilePanelToggle" id="rightClose">×</button><small class="textmuted">Контекстная панель</small></div><div class="sidebody">
+  <div class="tabs"><button data-righttab="practice" class="active">Практика</button><button data-righttab="adapt">Диапазон</button><button data-righttab="midi">MIDI</button><button data-righttab="review">Разбор</button><button data-righttab="smart">Тренер</button><button data-righttab="analysis">Система</button></div>
+  <div id="tabPractice">
+    <div class="panelSection"><div class="sectionLabel">Режим тренировки · MIDI Engine v0.8.3</div>
+    <div class="seg modeSeg" id="modeSeg" role="group" aria-label="Режим исполнения"><button data-mode="listen" class="active" title="Прослушивание всех MIDI-партий">Слушать</button><button data-mode="wait" title="Ожидание правильных нот">Wait</button><button data-mode="tempo" title="Играть в ритме и получать оценку">Tempo</button></div>
+    <p class="small" id="modeHelp" style="margin:10px 0">Прослушивание MIDI с синхронным Piano Roll.</p>
+    <label class="switch" style="margin-top:8px">Сопровождение / другие дорожки <input id="accompany" type="checkbox" checked></label>
+    <div class="metabox" id="practiceResult" aria-live="polite"><strong>Задание ещё не запущено</strong><p>Выбери Wait или Tempo, затем запусти тренировку.</p></div>
+    <div class="small" id="upcomingNotes" style="margin-top:8px">Следующая нота: —</div>
+    </div>
+    <div class="panelSection"><div class="sectionLabel">Параметры воспроизведения</div><div class="setting"><label for="speed">Скорость <strong id="speedLabel">100%</strong></label><input type="range" id="speed" min="25" max="150" step="5" value="100"></div><div class="setting"><label for="trackSelect">Партия для тренировки</label><select id="trackSelect"></select></div><div class="setting"><label for="displayRange">Видимый диапазон Piano Roll</label><select id="displayRange"><option value="song">Всё произведение / все ноты</option><option value="device">Калиброванная клавиатура</option></select></div><label class="switch">Показывать названия нот <input id="labels" type="checkbox" checked></label><label class="switch">Подсвечивать нажатые клавиши (MIDI + звук) <input id="highlight" type="checkbox" checked></label><div class="small" style="margin:-6px 0 16px"> <span style="color:#87b9fd">■</span> Звучит запись: голубые клавиши и светящиеся блоки · <span style="color:#f5a286">■</span> Играешь ты: оранжевые клавиши и контур блока. Подсветка держится до окончания звучания/отпускания.</div><label class="switch">Показать все MIDI-дорожки <input id="allTracks" type="checkbox" checked></label></div>
+    <div class="panelSection"><div class="sectionLabel">Выбранная нота</div><div id="selection" class="metabox"><strong>Ничего не выбрано</strong><p>Нажми на цветную полоску в Piano Roll. Здесь появятся свойства ноты.</p></div></div>
+    <div class="panelSection"><div class="sectionLabel">Навигация</div><div class="twocol"><button id="loopStartBtn" class="btn tiny">⟲ Начало Loop</button><button id="loopEndBtn" class="btn tiny">⟳ Конец Loop</button></div><div style="display:flex;gap:7px;margin-top:8px"><button id="loopClearBtn" class="btn tiny ghost" style="flex:1">Сброс Loop</button><button id="addBookmarkBtn" class="btn tiny ghost" style="flex:1">Закладка</button></div><div class="small" id="loopLabel" style="margin-top:10px">Повтор не выбран</div></div>
+  </div>
+  <div id="tabAdapt" class="hidden">
+    <div class="panelSection"><div class="sectionLabel">Smart Song Adaptation v0.6</div>
+      <div class="setting"><label for="targetRange">Клавиатура для анализа</label><select id="targetRange">
+        <option value="device">Подключённая / калиброванная</option>
+        <option value="preview25">25 клавиш · пример C3–C5</option>
+        <option value="preview37">37 клавиш · пример C3–C6</option>
+        <option value="preview49">49 клавиш · пример C2–C6</option>
+        <option value="preview61">61 клавиша · пример C2–C7</option>
+        <option value="preview76">76 клавиш · пример E1–G7</option>
+        <option value="preview88">88 клавиш · A0–C8</option>
+      </select></div>
+      <div class="small" id="rangeSource">Калибруй устройство для точных рекомендаций.</div>
+      <button class="btn tiny ghost" id="calibrateAdapt" style="margin-top:9px;width:100%">Калибровать реальную клавиатуру</button>
+    </div>
+    <div class="panelSection"><div class="sectionLabel">Совместимость выбранной партии</div><div class="metabox" id="capabilitySummary" aria-live="polite"><strong>Идёт анализ…</strong></div><div id="capabilityMetrics" class="small" style="margin-top:9px"></div></div>
+    <div class="panelSection"><div class="sectionLabel">Вариант исполнения</div>
+      <div class="setting"><label for="adaptMode">Режим</label><select id="adaptMode"><option value="original">Original · без изменений</option><option value="transpose">Transpose · единый перенос</option><option value="adaptive">Adaptive · октавная адаптация</option></select></div>
+      <div class="setting" id="shiftSetting"><label for="adaptShift">Единый перенос</label><select id="adaptShift"></select></div>
+      <div class="setting" id="adaptStrategySetting"><label for="adaptProfile">Приоритет музыкальной адаптации</label><select id="adaptProfile"><option value="center">Сохранять мелодию / сбалансированно</option><option value="low">Нижний регистр</option><option value="high">Верхний регистр</option></select><p class="small" style="margin:6px 0 0">Алгоритм старается сохранить последовательность высот, форму аккордов и устойчивые переходы между фразами. Перемещает ноты только октавами.</p></div>
+      <div id="adaptNotice" class="notice">Оригинальная запись не изменяется.</div>
+      <button class="btn primary" id="adaptRecommend" style="margin-top:10px;width:100%">Применить рекомендацию</button>
+      <label class="switch" style="margin-top:12px">Слушать учебную версию в режиме «Слушать» <input id="auditionAdapted" type="checkbox"></label>
+      <p class="small">Изменяется только выбранная партия. Сопровождение остаётся в оригинале. Octave +/- на контроллере изменяет передаваемые MIDI-номера — при необходимости повтори калибровку.</p>
+    </div>
+    <div class="panelSection"><div class="sectionLabel">Музыкальная диагностика аранжировки</div><div id="adaptQuality" class="metabox" style="margin-bottom:10px;font-size:12px">Данные появятся после анализа.</div></div>
+    <div class="panelSection"><div class="sectionLabel">План адаптации</div><div id="adaptPhraseList" class="metabox"><strong>Нет данных</strong></div></div>
+  </div>
+  <div id="tabMidi" class="hidden"><div class="panelSection"><div class="sectionLabel">Подключение</div><div class="notice" id="midiNotice">Play Along автоматически подключает разрешённое MIDI-устройство. При первом запуске браузер может запросить разрешение.</div><button id="connectMidi" class="btn primary" style="width:100%;margin-top:10px">Подключить MIDI</button><label class="switch" style="margin-top:10px">Автоматически подключать MIDI при запуске <input id="autoMidi" type="checkbox" checked></label><div class="setting" style="margin-top:13px"><label for="inputSelect">MIDI-вход</label><select id="inputSelect"><option value="">Не выбрано</option></select></div><button id="calibrateRight" class="btn" style="width:100%">Калибровать диапазон</button></div><div class="panelSection"><div class="sectionLabel">Профиль устройства</div><div id="profileInfo" class="metabox"><strong>Диапазон не задан</strong><p>После калибровки приложение запомнит нижнюю и верхнюю MIDI-ноты.</p></div></div><div class="panelSection"><div class="sectionLabel">Последние MIDI-события</div><div class="metabox" id="midiMonitor" style="font:12px/1.7 ui-monospace,monospace;color:#c6d4e4;min-height:70px">Нет событий</div></div></div>
+
+  <div id="tabReview" class="hidden">
+    <div class="panelSection">
+      <div class="sectionLabel">Performance Analyzer · v0.6</div>
+      <p class="small">В режиме Tempo измеряются точность входа и длительность удержания. В Wait оцениваются высота и одновременность аккордов, но не ритм.</p>
+      <div id="reviewHeadline" class="metabox" aria-live="polite"><strong>Нет сыгранных нот</strong><p>Выбери Wait / Tempo и сыграй фразу.</p></div>
+      <div id="reviewMetrics" class="reviewMetrics"></div>
+      <div id="reviewTiming" class="metabox small" style="margin-top:10px">Точность по времени появится после игры.</div>
+      <div class="setting" style="margin:10px 0 0"><label class="switch" style="margin:0">Подсвечивать ошибки на Piano Roll <input type="checkbox" id="showReviewMarkers" checked></label></div>
+      <div class="reviewLegend small"><span><i style="background:#e77878"></i>Пропуск</span><span><i style="background:#dfae5d"></i>Длительность</span><span><i style="background:#ae9cf5"></i>Рано / поздно</span><span><i style="background:#ff8a97"></i>Аккорд</span></div>
+      <div class="twocol" style="margin-top:10px"><button id="reviewSave" class="btn tiny">Сохранить попытку</button><button id="reviewExport" class="btn tiny ghost">Экспорт JSON</button></div>
+    </div>
+    <div class="panelSection"><div class="sectionLabel">Сложные фрагменты</div><div id="reviewSections" class="reviewSections"><p class="small">Появятся после выполнения задания.</p></div></div>
+    <div class="panelSection"><div class="sectionLabel">История этого произведения и партии</div><div id="reviewHistory" class="reviewHistory"></div><button class="btn tiny ghost" id="reviewDelete" style="width:100%;margin-top:10px">Удалить историю этой партии</button></div>
+    <div class="panelSection"><div class="sectionLabel">Как читать результат</div><p class="small">Цветные MIDI-блоки отмечают ошибки на выбранной партии. Нажми «Повторить» у сложного фрагмента — будет установлен Loop и открыта практика. Оценка текущей попытки отделена от предыдущих записей.</p></div>
+  </div>
+  <div id="tabSmart" class="hidden">
+ <div class="panelSection"><div class="sectionLabel">Smart Practice · v0.7</div>
+  <p class="small">Локальный тренер выбирает четырёхсекундные участки по ошибкам из Performance Analyzer. Попытка оценивается только по нотам выбранного фрагмента.</p>
+  <div id="smartHeadline" class="metabox" aria-live="polite"><strong>Подготовка программы</strong></div>
+  <div class="twocol" style="margin-top:10px"><button class="btn primary tiny" id="smartStart">▶ Начать тренировку</button><button class="btn tiny ghost" id="smartStop">■ Завершить</button></div>
+  <div class="twocol" style="margin-top:8px"><button class="btn tiny ghost" id="smartNext">Следующий фрагмент</button><button class="btn tiny ghost" id="smartRefresh">Обновить подбор</button></div>
+ </div>
+ <div class="panelSection"><div class="sectionLabel">Приоритетные фрагменты</div><div class="reviewSections" id="smartSections"></div></div>
+ <div class="panelSection"><div class="sectionLabel">Как устроено обучение</div><p class="small">Старт с 60% скорости; после двух успешных проходов подряд — увеличение на 10%. Два успешных прохода при 100% дают статус «освоено». Переход к следующей фразе можно выполнить MIDI-клавишей после завершения текущего прохода. Обычные режимы не зависят от тренера.</p></div>
+ </div>
+ <div id="tabAnalysis" class="hidden"><div class="panelSection"><div class="sectionLabel">Текущая сессия</div><div class="twocol"><div class="stat"><strong id="statNotes">0</strong><span>MIDI-нажатий</span></div><div class="stat"><strong id="statRange">—</strong><span>Диапазон устройства</span></div><div class="stat"><strong id="statTrack">0</strong><span>Нот в выбранной партии</span></div><div class="stat"><strong id="statPosition">0:00</strong><span>Текущая позиция</span></div></div><p class="small">Оценки правильных, ошибочных и пропущенных нот выводятся в панели «Практика». Для Tempo дополнительно учитывается время нажатия и удержания.</p></div><div class="panelSection"><div class="sectionLabel">Компоновка</div><div id="layoutState" class="metabox"></div><button id="resetUI2" class="btn ghost" style="width:100%;margin-top:10px">Сбросить компоновку</button></div></div>
+ </div></aside>
+</div>
+<footer class="bottom" id="bottomBar"><div class="bottomMode"><span class="textmuted" style="font-size:10px">РЕЖИМ</span><select id="bottomMode" aria-label="Режим тренировки"><option value="listen">Слушать</option><option value="wait">Wait</option><option value="tempo">Tempo</option></select></div><div class="transport"><button class="iconbtn" id="rewindBtn" title="Назад 5 секунд">⏮</button><button class="iconbtn play" id="playBtn" title="Play/Pause · Пробел">▶</button><button class="iconbtn" id="forwardBtn" title="Вперёд 5 секунд">⏭</button><button class="iconbtn" id="loopBtn" title="Повтор фрагмента">⟲</button></div><div class="seekbar"><span id="timeNow">0:00</span><input type="range" id="seek" min="0" max="1000" value="0" aria-label="Перемотка"><span id="timeTotal">0:00</span></div><div class="volume"><span>♬</span><input type="range" id="volume" min="0" max="100" value="40" aria-label="Громкость"></div><button class="btn tiny ghost" id="rightQuick">Настройки</button><button class="btn tiny ghost" id="adaptQuick" title="Открыть адаптацию диапазона">Диапазон</button></footer>
+<div class="menu" id="contextMenu" role="menu"></div>
+<div class="overlay" id="commandOverlay"><div class="dialog"><button class="iconbtn close" id="commandClose">×</button><h2>Команды</h2><p>Быстрый доступ к функциям без поиска кнопок по панелям.</p><input class="search" id="commandSearch" placeholder="Название действия…"><div class="cmdlist" id="commandList"></div></div></div>
+<div class="overlay" id="calibrationOverlay"><div class="dialog"><button class="iconbtn close" id="calibrationClose">×</button><h2>Калибровка MIDI-клавиатуры</h2><p>Количество клавиш обычно не передаётся через Web MIDI. Нажми физически самую левую, затем самую правую клавишу. Важны MIDI-ноты, которые сейчас отправляет устройство.</p><div class="calStep" id="calStep"></div><div class="notice" id="calWarning">Встроенный интерфейс не может отменить ограничения MIDI permissions policy. Для подключения используй отдельную вкладку Chrome/Edge на разрешённом источнике.</div><div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:16px"><button id="calBack" class="btn ghost">Назад</button><button id="calRedo" class="btn ghost">Начать заново</button><button id="calManual" class="btn ghost">Ручной ввод</button><button id="calSave" class="btn primary" disabled style="margin-left:auto">Сохранить профиль</button></div><div id="manualRange" class="twocol hidden" style="margin-top:14px"><div class="setting"><label>Нижняя MIDI-нота (0–127)</label><input id="manualLow" type="number" min="0" max="127" value="48"></div><div class="setting"><label>Верхняя MIDI-нота (0–127)</label><input id="manualHigh" type="number" min="0" max="127" value="72"></div><button id="manualApply" class="btn" style="grid-column:span 2">Применить границы</button></div></div></div>
+<div class="overlay" id="importErrorOverlay"><div class="dialog"><button id="errorClose" class="iconbtn close">×</button><h2>Файл не загружен</h2><p id="errorText"></p><button class="btn primary" id="errorOK">Понятно</button></div></div>
+<script defer src="./assets/app.js"></script>
+</body>
+</html>
