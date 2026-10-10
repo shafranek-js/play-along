@@ -153,6 +153,40 @@ try{
  assert.ok(Math.abs(atSecond-1.5)<0.03,'3/4 next bar must land at 1.5 sec, got '+atSecond);
  await page.locator('#sheetBarBack').evaluate(el=>el.click());
  assert.ok(await page.evaluate(()=>window.__prototypeTest.pos)<0.01,'Previous bar should return to first bar');
+ // More than thirty attempts must survive reload in IndexedDB.
+ await page.evaluate(()=>{
+  for(let i=0;i<35;i++){
+   window.__prototypeTest.setMode('wait');
+   window.__prototypeTest.play();
+   window.__prototypeTest.receiveNoteOn(60);
+   window.__prototypeTest.receiveNoteOff(60);
+   window.__prototypeTest.finishPerformance('manual');
+   window.__prototypeTest.pause();
+  }
+ });
+ const countHistory=async()=>page.evaluate(async()=>{
+  const request=indexedDB.open('playalong-library-v08');
+  const db=await new Promise((resolve,reject)=>{request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error)});
+  try{
+   const tx=db.transaction('performances','readonly'),q=tx.objectStore('performances').count();
+   return await new Promise((resolve,reject)=>{q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error)});
+  }finally{db.close()}
+ });
+ await page.waitForFunction(async()=>{
+  const q=indexedDB.open('playalong-library-v08');
+  const db=await new Promise((resolve,reject)=>{q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error)});
+  const count=await new Promise((resolve,reject)=>{const r=db.transaction('performances','readonly').objectStore('performances').count();r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
+  db.close();return count>=35;
+ },null,{timeout:25000});
+ assert.ok(await countHistory()>=35,'Full attempt history did not reach IndexedDB');
+ await page.reload({waitUntil:'domcontentloaded'});
+ await page.waitForFunction(()=>window.__prototypeTest?.performances.length>=35,null,{timeout:15000});
+ assert.ok(await page.evaluate(()=>window.__prototypeTest.performances.length)>=35,'History was truncated at 30 on reload');
+ const fullBackupPromise=page.waitForEvent('download');
+ await page.locator('#backupExport').click();
+ const fullBackup=JSON.parse(fs.readFileSync(await (await fullBackupPromise).path(),'utf8'));
+ assert.ok(fullBackup.performances.length>=35,'Backup contains only the legacy 30-attempt cache');
+ console.log('PERFORMANCE HISTORY: 35+ attempts survive reload and export');
  assert.deepEqual(errors,[]);
  console.log('Persistence + backup round-trip + 3/4 navigation + layout-only reset: PASS');
 } finally{
