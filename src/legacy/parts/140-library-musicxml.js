@@ -136,6 +136,27 @@ function musicSafeXml(xmlString){
 // Support the common 1st/2nd ending form only: repeat two passes, skip
 // the first ending on pass 2, play the second ending, then continue normally.
 // The entire playback order is unfolded identically in all parts and OSMD.
+// Do not unfold passages whose repeated execution would inherit incorrect
+// divisions/meter/transposition/key or tempo from the previous pass.
+// Until measure-state materialization is implemented, explicit warnings are
+// safer than publishing a score with silently shortened or shifted notes.
+function musicRepeatNeedsStateRestore(parts,sequence){
+ const count=new Map();
+ for(const index of sequence)count.set(index,(count.get(index)||0)+1);
+ for(const part of parts){
+  const measures=xmlList(part,'measure');
+  for(const [index,visits] of count){
+   if(visits<2)continue;
+   const measure=measures[index];
+   if(index!==0&&xmlList(measure,'attributes').length)return true;
+   if(index!==0&&xmlList(measure,'direction').some(direction=>{
+    const sound=xmlDirect(direction,'sound');
+    return !!(sound?.hasAttribute('tempo')||xmlDirect(xmlDirect(direction,'direction-type'),'metronome'));
+   }))return true;
+  }
+ }
+ return false;
+}
 function musicExpandTwoEndings(doc){
  const root=doc.documentElement,parts=xmlList(root,'part'),measures=xmlList(parts[0],'measure');
  const decline=reason=>({expanded:false,warning:'Репризы не развёрнуты: '+reason});
@@ -205,6 +226,8 @@ function musicExpandTwoEndings(doc){
   ...Array.from({length:n-second},(_,i)=>second+i)
  ];
  if(sequence.length>1200)return decline('слишком длинная исполняемая последовательность.');
+ if(musicRepeatNeedsStateRestore(parts,sequence))
+  return decline('изменения divisions/размера/темпа внутри репризы требуют восстановления музыкального состояния перед следующим проходом.');
  for(const part of parts){
   const written=xmlList(part,'measure');
   const expanded=sequence.map((index,position)=>{
@@ -275,6 +298,8 @@ function musicExpandSimpleRepeats(doc){
   if(sequence.length>1200)return decline('слишком длинная исполняемая последовательность.');
  }
  if(opened||!hasBackward)return decline('неполная или несогласованная разметка повторов.');
+ if(musicRepeatNeedsStateRestore(parts,sequence))
+  return decline('изменения divisions/размера/темпа внутри репризы требуют восстановления музыкального состояния перед следующим проходом.');
  // Mutation only after complete validation: unsupported scores are untouched.
  for(const part of parts){
   const written=xmlList(part,'measure'),expanded=sequence.map((index,position)=>{
@@ -357,13 +382,25 @@ function readMusicXML(xmlString,filename){
     if(tag==='backup'){at=Math.max(0,at-durationTicks(xmlText(el,'duration',0),divisions));continue}
     if(tag==='forward'){at+=durationTicks(xmlText(el,'duration',0),divisions);maxAt=Math.max(maxAt,at);continue}
     if(tag==='direction'){
-     const sound=xmlDirect(el,'sound');const bpm=Number(sound?.getAttribute('tempo'));if(bpm>0&&bpm<1000)tempos.push({tick:absolute+at,tempo:60000000/bpm});
+     const sound=xmlDirect(el,'sound');
+     // MusicXML offsets are in current divisions; direction-level offset
+     // affects playback only when sound="yes". A nested <sound><offset>
+     // is an explicit playback offset and has precedence if both exist.
+     const soundOffset=xmlDirect(sound,'offset');
+     const directionOffset=xmlDirect(el,'offset');
+     const offsetNode=soundOffset||directionOffset;
+     const offsetApplies=!!(soundOffset||directionOffset?.getAttribute('sound')==='yes');
+     const delta=offsetApplies&&offsetNode?durationTicks(offsetNode.textContent,divisions):0;
+     const measureTicks=Math.round(beats*4/Math.max(1,beatType)*ppq);
+     const tempoTick=absolute+Math.max(0,Math.min(measureTicks,at+delta));
+     const bpm=Number(sound?.getAttribute('tempo'));
+     if(bpm>0&&bpm<1000)tempos.push({tick:tempoTick,tempo:60000000/bpm});
      const metr=xmlDirect(xmlDirect(el,'direction-type'),'metronome');const per=Number(xmlText(metr,'per-minute'));if(!bpm&&per>0){const unit=xmlText(metr,'beat-unit','quarter');const unitQuarter=({whole:4,half:2,quarter:1,eighth:.5,'16th':.25,'32nd':.125,'64th':.0625})[unit]||1;
       // MusicXML can specify a dotted beat unit, e.g. dotted quarter = 60
       // in 6/8. A dotted quarter occupies 1.5 ordinary quarter beats.
       const dots=Math.min(3,xmlList(metr,'beat-unit-dot').length);
       let dottedFactor=1;for(let j=1;j<=dots;j++)dottedFactor+=2**(-j);
-      tempos.push({tick:absolute+at,tempo:60000000/(per*unitQuarter*dottedFactor)})}
+      tempos.push({tick:tempoTick,tempo:60000000/(per*unitQuarter*dottedFactor)})}
      continue;
     }
     if(tag==='barline'){if(xmlDirect(el,'repeat'))warnings.add('Повторы MusicXML пока не разворачиваются: выполняется записанная последовательность тактов.');continue}
