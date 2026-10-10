@@ -162,3 +162,11 @@ MusicXML metronome directions now apply dotted beat units correctly (for example
 - The matching NoteOff evaluates the hold duration of each voice independently, even when their written lengths differ. A later repeated same-pitch note still requires a fresh key press.
 - Pure unisons no longer count as multi-key chords when computing chord timing; genuine different-pitch chords continue to be graded.
 - Real Chromium test covers Tempo and Wait unisons, held-key suppression, individual duration scoring, a later repeated pitch and a chord sharing one unison pitch.
+
+## Security and transactional backup recovery (v0.10.12)
+
+- The persisted preferences are schema-validated: numeric panel sizes and speed, Boolean controls, enumerated modes/layouts, device calibration and per-song loop/bookmark fields are checked on both backup import **and** legacy localStorage startup. Invalid local legacy fields fall back safely; invalid backup settings are rejected without changing user data.
+- Layout labels use DOM text nodes rather than interpolating saved settings into HTML.
+- Backup recovery pre-stages all localStorage settings before committing the atomic IndexedDB transaction for works, metadata, favourites and full performance history. A localStorage quota error therefore cannot erase old IndexedDB performances. If IndexedDB fails, the localStorage cache is rolled back.
+- Real Chromium security regression covers HTML injection in panel width, malicious saved localStorage, genuine localStorage quota saturation and preservation of pre-existing IndexedDB history on failed restore.
+- The earlier unison scoring improvement in Tempo mode (one physical press for simultaneous same-pitch voices, independent NoteOff duration judgement) is included; its release was held until security and browser tests passed.
