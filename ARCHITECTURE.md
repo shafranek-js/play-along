@@ -1,6 +1,6 @@
 # Play Along — architecture and development plan
 
-**Current version:** v0.10.13. The production GitHub Pages site is rebuilt and tested automatically from `main`.
+**Current version:** v0.10.14. The production GitHub Pages site is rebuilt and tested automatically from `main`.
 
 ## Current implementation
 
