@@ -18,8 +18,8 @@
     "150-musescore-reader.js",
     "160-library-import.js",
     "170-mutopia-downloads.js",
-    "175-backup-recovery.js",
     "180-library-ui.js",
+    "175-backup-recovery.js",
     "190-app-bootstrap.js"
   ]
 }
