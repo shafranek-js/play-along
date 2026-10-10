@@ -86,6 +86,27 @@ try{
   return {old:rows.some(r=>r.id==='old-attempt'),new:rows.some(r=>r.id==='new-attempt')};
  });
  assert.deepEqual(remaining,{old:true,new:false},'Failed recovery replaced the user history');
+ // A forged backup history record may contain non-numeric HTML-like
+ // strings; rendering reports must be text-only even if the record is bad.
+ await page.evaluate(()=>{
+  for(const key of Object.keys(localStorage))
+   if(key.startsWith('audit-quota-filler-'))localStorage.removeItem(key);
+  window.__prototypeTest.setMode('wait');
+  window.__prototypeTest.play();
+  window.__prototypeTest.receiveNoteOn(60);
+  window.__prototypeTest.finishPerformance('manual');
+  window.__prototypeTest.receiveNoteOff(60);
+  window.__prototypeTest.pause();
+  const record=window.__prototypeTest.performances[0];
+  if(!record)throw Error('No performance was captured');
+  record.score='<img src=x onerror="window.__auditPerfXss=1">';
+  record.accuracy='<img src=x onerror="window.__auditPerfXss=1">';
+  record.stats.hits='<img src=x onerror="window.__auditPerfXss=1">';
+  window.__prototypeTest.setMode('listen');
+  window.__prototypeTest.renderReview();
+ });
+ assert.equal(await page.evaluate(()=>window.__auditPerfXss===1),false,
+  'Performance report executed injected markup');
  assert.deepEqual(errors,[],'Uncaught browser errors');
  console.log('BACKUP SECURITY: HTML injection rejected, startup preferences normalized, quota failure preserves prior IndexedDB history: PASS');
 }finally{if(browser)await browser.close();await new Promise(resolve=>server.close(resolve))}
