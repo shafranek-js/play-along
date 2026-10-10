@@ -291,6 +291,34 @@ function musicExpandSimpleRepeats(doc){
  }
  return {expanded:true,written:measures.length,played:sequence.length};
 }
+// MusicXML score-partwise shares one measure grid across synchronized staves.
+// The first score part is the temporal authority: another staff may omit
+// redundant time signatures or trailing rests but must not drift from it.
+function musicSharedBarStarts(measures,ppq){
+ const starts=[0];let divisions=1,beats=4,beatType=4,absolute=0;
+ const ticks=value=>Math.round((Number(value)||0)/Math.max(1,divisions)*ppq);
+ for(const measure of measures){
+  let at=0,maxAt=0;
+  for(const el of [...measure.children]){
+   const tag=el.localName;
+   if(tag==='attributes'){
+    const nextDivisions=Number(xmlText(el,'divisions',divisions));
+    if(nextDivisions>0)divisions=nextDivisions;
+    const time=xmlDirect(el,'time');
+    if(time){beats=Number(xmlText(time,'beats',beats))||beats;beatType=Number(xmlText(time,'beat-type',beatType))||beatType}
+   }else if(tag==='backup')at=Math.max(0,at-ticks(xmlText(el,'duration','0')));
+   else if(tag==='forward'){at+=ticks(xmlText(el,'duration','0'));maxAt=Math.max(maxAt,at)}
+   else if(tag==='note'&&!xmlDirect(el,'chord')&&!xmlDirect(el,'grace')){
+    at+=ticks(xmlText(el,'duration','0'));maxAt=Math.max(maxAt,at);
+   }
+  }
+  const nominal=Math.round(beats*4/Math.max(1,beatType)*ppq);
+  const implicit=measure.getAttribute('implicit')==='yes';
+  absolute+=implicit&&maxAt>0?Math.min(nominal,maxAt):Math.max(nominal,maxAt);
+  starts.push(absolute);
+ }
+ return starts;
+}
 function readMusicXML(xmlString,filename){
  if(xmlString.length>15e6)throw Error('MusicXML слишком велик для браузерного импорта');
  const safeXml=musicSafeXml(xmlString);
@@ -304,10 +332,19 @@ function readMusicXML(xmlString,filename){
  const namesById={};for(const p of xmlList(xmlDirect(root,'part-list'),'score-part'))namesById[p.getAttribute('id')]=xmlText(p,'part-name','Партия');
  const segments=[],tempos=[{tick:0,tempo:500000}],ppq=10080;let warnings=new Set();if(repeatExpansion.expanded)warnings.add('Реприза развёрнута: '+repeatExpansion.written+' записанных тактов → '+repeatExpansion.played+' исполняемых. Партитура показывает каждый проход.');else if(repeatExpansion.warning)warnings.add(repeatExpansion.warning);
  const durationTicks=(duration,divisions)=>Math.round((Number(duration)||0)/Math.max(1,divisions)*ppq);
- for(const part of xmlList(root,'part')){
+ const scoreParts=xmlList(root,'part');
+ const counts=scoreParts.map(p=>xmlList(p,'measure').length);
+ // Only synchronize when the parts contain matching measure counts. Scores
+ // with genuinely different structures remain on the previous safe path.
+ const sharedStarts=scoreParts.length>1&&counts.every(n=>n===counts[0])
+  ?musicSharedBarStarts(xmlList(scoreParts[0],'measure'),ppq):null;
+ if(scoreParts.length>1&&!sharedStarts)warnings.add('Число тактов различается между партиями: общая тактовая сетка не используется.');
+ for(const part of scoreParts){
   let absolute=0,divisions=1,transposition=0;let beats=4,beatType=4;
   const voices=new Map();const ties=new Map();
+  let measureIndex=0;
   for(const measure of xmlList(part,'measure')){
+   if(sharedStarts)absolute=sharedStarts[measureIndex];
    let at=0,lastOnset=0,maxAt=0;
    for(const el of [...measure.children]){
     const tag=el.localName;
@@ -357,7 +394,12 @@ function readMusicXML(xmlString,filename){
    // Implicit pickup measures are intentionally shorter when notes establish
    // their actual written length. Preserve genuine overfull bars for safety.
    const implicit=measure.getAttribute('implicit')==='yes';
-   absolute+=implicit&&maxAt>0?Math.min(expected,maxAt):Math.max(expected,maxAt);
+   if(sharedStarts){
+    const barTicks=sharedStarts[measureIndex+1]-sharedStarts[measureIndex];
+    if(maxAt>barTicks+2)warnings.add('Некоторые партии содержат ноты длиннее общего такта; сложный полиметр требует проверки.');
+    absolute=sharedStarts[measureIndex+1];
+   }else absolute+=implicit&&maxAt>0?Math.min(expected,maxAt):Math.max(expected,maxAt);
+   measureIndex++;
   }
   for(const [key,notes] of voices)if(notes.length)segments.push({name:(namesById[part.getAttribute('id')]||'Партия')+' · '+key.replace('|','/'),notes});
  }
