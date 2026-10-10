@@ -201,6 +201,68 @@ try{
  },pickup);
  near(pickupResult[1].start,.25,'Implicit pickup must not be padded to a full measure');
  console.log('PART TIMING: incomplete 4/4 bar aligned across hands, implicit pickup preserved: PASS');
+
+ // Standard two-ending volta: C D(first) C E(second) F, with two synchronized hands.
+ const voltaXml=(malformed=false)=>{
+  const staff=(id,octave)=>{
+   const entries=['C','D','E','F'].map((step,i)=>{
+    const attrs=i===0?'<attributes><divisions>480</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes>':'';
+    const forward=i===0?'<barline location="left"><repeat direction="forward"/></barline>':'';
+    const firstStart=i===1?'<barline location="left"><ending number="1" type="start"/></barline>':'';
+    const firstStop=i===1?'<barline location="right"><ending number="1" type="stop"/><repeat direction="backward" times="2"/></barline>':'';
+    const secondStart=i===2?'<barline location="left"><ending number="2" type="start"/></barline>':'';
+    const secondStop=i===2?'<barline location="right"><ending number="2" type="'+(malformed?'start':'discontinue')+'"/></barline>':'';
+    return '<measure number="'+(i+1)+'">'+attrs+forward+firstStart+
+     '<note><pitch><step>'+step+'</step><octave>'+octave+'</octave></pitch><duration>1920</duration><type>whole</type></note>'+
+     firstStop+secondStart+secondStop+'</measure>';
+   }).join('');
+   return '<part id="'+id+'">'+entries+'</part>';
+  };
+  return '<?xml version="1.0"?><score-partwise version="4.0"><part-list><score-part id="R"><part-name>Right</part-name></score-part>'+
+   '<score-part id="L"><part-name>Left</part-name></score-part></part-list>'+staff('R',4)+staff('L',3)+'</score-partwise>';
+ };
+ const volta=await page.evaluate(xml=>{
+  const song=window.__libraryV08.readMusicXML(xml,'volta-fixture.musicxml');
+  const dom=new DOMParser().parseFromString(song.notationXML,'application/xml');
+  return {pitches:song.tracks.map(t=>t.notes.map(n=>n.pitch)),
+   onsets:song.tracks.map(t=>t.notes.map(n=>n.start)),
+   bars:dom.getElementsByTagName('part')[0].getElementsByTagName('measure').length,
+   endings:dom.getElementsByTagName('ending').length,repeats:dom.getElementsByTagName('repeat').length,
+   original:!!song.originalNotationXML,warnings:song.warnings};
+ },voltaXml());
+ assert.deepEqual(volta.pitches,[[60,62,60,64,65],[48,50,48,52,53]]);
+ assert.deepEqual(volta.onsets,[[0,2,4,6,8],[0,2,4,6,8]]);
+ assert.equal(volta.bars,5);
+ assert.equal(volta.endings,0);assert.equal(volta.repeats,0);
+ assert.equal(volta.original,true);
+ assert.ok(volta.warnings.some(x=>x.includes('развёрнута')));
+ const brokenVolta=await page.evaluate(xml=>{
+  const song=window.__libraryV08.readMusicXML(xml,'volta-broken.musicxml');
+  return {notes:song.tracks[0].notes.length,hasOriginal:!!song.originalNotationXML,
+   warning:song.warnings.find(x=>x.includes('не развёрнуты'))};
+ },voltaXml(true));
+ assert.equal(brokenVolta.notes,4);
+ assert.equal(brokenVolta.hasOriginal,false);
+ assert.ok(brokenVolta.warning,'Malformed volta must remain unexpanded with warning');
+ await page.evaluate(xml=>{
+  const song=window.__libraryV08.readMusicXML(xml,'volta-osmd.musicxml');
+  window.__prototypeTest.loadSong(song);
+  window.__scoreTest.scoreSetView('sheet');
+ },voltaXml());
+ await page.waitForFunction(()=>window.__scoreTest.scoreLoaded||
+  document.querySelector('#sheetStatus').textContent.includes('Ошибка'),null,{timeout:30000});
+ const voltaRendered=await page.evaluate(()=>({
+  svg:document.querySelectorAll('#sheetCanvas svg').length,
+  beats:window.__scoreTest.cursorTimes.slice(0,5),
+  count:window.__prototypeTest.song.tracks[0].notes.length
+ }));
+ assert.ok(voltaRendered.svg>0,'OSMD must render the expanded volta');
+ assert.deepEqual(voltaRendered.beats,[0,4,8,12,16]);
+ assert.equal(voltaRendered.count,5);
+ await page.evaluate(()=>window.__prototypeTest.seek(8));
+ const voltaCursor=await page.evaluate(()=>Number(window.__scoreTest.renderer.cursor.iterator.CurrentSourceTimestamp.RealValue)*4);
+ near(voltaCursor,16,'Volta second-ending cursor alignment');
+ console.log('REAL OSMD TWO ENDINGS: two hands, guards, five measures and cursor: PASS');
  console.log('SIMPLE REPEATS: two-part A B C B C, three-pass, first-bar fallback, volta guarded: PASS');
  assert.deepEqual(errs,[]);
  console.log('MUSIC REGRESSION: MusicXML rests, chord, tie, 4/4 to 3/4, tempo 120→60, left hand and MIDI tempo: PASS');
