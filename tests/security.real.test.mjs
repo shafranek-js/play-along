@@ -60,14 +60,39 @@ try{
   });
   db.close();
  });
+ // A malformed performance is rejected BEFORE confirmation/reload.
+ const corruptHistory=structuredClone(template);
+ corruptHistory.performances=[{id:'corrupted-attempt',profile:'audit',date:'2026-10-10T00:00:00.000Z',notes:[]}];
+ await upload(corruptHistory);
+ await page.waitForFunction(()=>document.body.innerText.includes('Восстановление не выполнено: Некорректная запись истории'),
+  null,{timeout:10000});
+ assert.ok(await page.evaluate(()=>window.__prototypeTest&&window.__prototypeTest.song),
+  'Rejected backup corrupted the running application');
+ // Existing damaged IndexedDB history must not crash app boot or rendering.
+ await page.evaluate(async()=>{
+  const req=indexedDB.open('playalong-library-v08');
+  const db=await new Promise((resolve,reject)=>{req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});
+  await new Promise((resolve,reject)=>{
+   const tx=db.transaction('performances','readwrite');
+   tx.objectStore('performances').put({id:'legacy-damaged',profile:'bad',date:'2026-10-10T00:00:00.000Z',notes:[]});
+   tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);
+  });db.close();
+ });
+ await page.reload({waitUntil:'domcontentloaded'});
+ await page.waitForFunction(()=>window.__prototypeTest?.renderReview&&window.__libraryV08?.collection,
+  null,{timeout:20000});
+ await page.evaluate(()=>window.__prototypeTest.renderReview());
  // Real Chromium quota fill: no monkeypatch of Storage APIs. Settings and
  // history supplied in the backup are valid, but the master data is too big
  // to be stored together with an existing localStorage allocation.
  const quotaBackup=structuredClone(template);
  quotaBackup.works=[];
- quotaBackup.performances=[{id:'new-attempt',date:'2026-10-10T12:00:00.000Z',profile:'audit',score:91,total:1,mode:'tempo',stats:{hits:1,wrong:0,missed:0,early:0,late:0,short:0,long:0}}];
+ quotaBackup.performances=[{version:1,id:'new-attempt',date:'2026-10-10T12:00:00.000Z',
+  profile:'audit',score:91,total:1,mode:'tempo',accuracy:100,stats:{
+   hits:1,wrong:0,missed:0,early:0,late:0,short:0,long:0,okHold:0,goodChords:0,badChords:0
+  },sections:[],notes:[],extras:[],speed:100,position:0}];
  quotaBackup.settings.leftWidth=286;
- quotaBackup.smartMastery={padding:'Z'.repeat(3*1024*1024)};
+ quotaBackup.smartMastery={};
  await page.evaluate(()=>{
   const fill='A'.repeat(256*1024);
   for(let i=0;i<28;i++){
