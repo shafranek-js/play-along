@@ -4,7 +4,7 @@ const defaults={layout:'learn',page:'practice',left:true,right:true,leftWidth:28
 // Treat backups AND older localStorage snapshots as untrusted input.
 // Invalid restored values are rejected in strict backup mode; legacy
 // localStorage uses safe defaults to preserve normal upgrades.
-const SONG_PREF_FIELDS=['mode','speed','track','accompany','accompanyExplicit','targetRange','adaptMode','adaptShift','adaptProfile','auditionAdapted','displayRange','allTracks','scoreView','sheetZoom','sheetFollow','fingerGuidanceMode'];
+const SONG_PREF_FIELDS=['mode','speed','track','accompany','accompanyExplicit','targetRange','adaptMode','adaptShift','adaptProfile','auditionAdapted','displayRange','allTracks','scoreView','sheetZoom','sheetFollow'];
 const SETTING_ENUMS={
  layout:['learn','play','analyze'],page:['practice','library','progress'],
  rightTab:['practice','adapt','midi','review','smart','analysis'],mode:['listen','wait','tempo'],
