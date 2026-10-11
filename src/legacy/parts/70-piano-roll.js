@@ -16,7 +16,7 @@ function pianoKeyGeometry(min,max,w){
  for(const k of keys){k.x=(k.cx-k.unitW/2-left)*scale;k.w=k.unitW*scale;k.center=k.x+k.w/2;}
  return {keys,byPitch:new Map(keys.map(k=>[k.pitch,k])),min,max,scale,whites:keys.filter(k=>!k.black),blacks:keys.filter(k=>k.black)};
 }
-let pianoGeom=null,lastCanvasSize={w:0,h:0},keyboardTop=0,keyboardBlackH=0;
+let pianoGeom=null,lastCanvasSize={w:0,h:0},keyboardTop=0,keyboardBottom=0,keyboardBlackH=0;
 
 // ===== FG-00: opt-in visual guidance over the EXISTING Piano Roll keyboard =====
 // These are hand-entered teaching fixtures. No arbitrary MIDI is fingered here.
@@ -83,43 +83,66 @@ function drawFingerGuidanceBadge(c,keyY,keyboardH,k,finger,hand,{preview=false}=
  c.fillStyle='#fff';c.font='bold 12px system-ui';c.textAlign='center';c.textBaseline='middle';
  c.fillText(String(finger),k.center,y+.5);c.restore();
 }
-function drawFingerGuidanceHand(c,geom,keyY,keyboardH,group,hand,ghost=false){
- const pose=fingerGuidancePose(group,hand,geom);
- if(!pose)return null;
- const color=FINGER_GUIDANCE_PALETTE[hand],scale=keyboardH/175;
- const {cx,unit}=pose,half=Math.min(unit*2.3,52);
- const palmY=keyY+keyboardH*.82,shoulderY=keyY+keyboardH*.98;
- c.save();c.globalAlpha=ghost?.23:1;
- // Original schematic, not traced from PianGo. Palm + five jointed fingers.
- c.beginPath();
- c.moveTo(cx-half,palmY);
- c.quadraticCurveTo(cx-half*1.17,palmY-28*scale,cx-half*.65,palmY-32*scale);
- c.quadraticCurveTo(cx,palmY-43*scale,cx+half*.65,palmY-32*scale);
- c.quadraticCurveTo(cx+half*1.17,palmY-28*scale,cx+half,palmY);
- c.lineTo(cx+half*.74,shoulderY);c.lineTo(cx-half*.74,shoulderY);c.closePath();
- c.fillStyle=color.fill;c.strokeStyle=color.ink;c.lineWidth=Math.max(1.5,2*scale);
- if(ghost)c.setLineDash([5,4]);c.fill();c.stroke();c.setLineDash([]);
- const width=Math.max(7,Math.min(13,unit*.6));
- for(const p of pose.points){
-  const tipY=keyY+keyboardH*(p.key?.black?.38:.61);
-  const jointX=cx+pose.offsets[p.finger-1]*.79;
-  const jointY=palmY-16*scale+(p.finger===1?5*scale:0);
-  c.beginPath();c.moveTo(jointX,jointY);
-  c.quadraticCurveTo((jointX+p.x)/2,jointY-18*scale,p.x,tipY);
-  c.strokeStyle=p.active?color.ink:color.light;
-  c.lineWidth=p.active?width:width*.7;c.lineCap='round';c.stroke();
-  if(p.active){
-   c.beginPath();c.arc(p.x,tipY,Math.max(8,Math.min(11,unit*.5)),0,2*Math.PI);
-   c.fillStyle=color.ink;c.fill();c.lineWidth=1.4;c.strokeStyle='#ffffff';c.stroke();
-   if(!ghost){
-    c.textBaseline='middle';c.textAlign='center';c.fillStyle='#ffffff';
-    c.font='bold 12px system-ui';c.fillText(String(p.finger),p.x,tipY+.5);
-   }
-  }
- }
- c.restore();return pose;
+// FG-01: reusable generated PNG sprites, not copied from PianGo.
+// Only the fingertip-to-key horizontal registration is approximate; labels
+// remain tied to real score pitches. No claim of detecting played fingers.
+const FINGER_GUIDANCE_SPRITES={
+ LH:{url:'./assets/finger-guidance/left-hand.png',aspect:438/520,tipX:{1:.946,2:.637,3:.441,4:.263,5:.052}},
+ RH:{url:'./assets/finger-guidance/right-hand.png',aspect:342/520,tipX:{1:.052,2:.296,3:.511,4:.714,5:.928}}
+};
+const FINGER_GUIDANCE_IMAGES={};
+for(const hand of ['LH','RH']){
+ const image=new Image();
+ const entry=FINGER_GUIDANCE_IMAGES[hand]={image,loaded:false,error:false};
+ image.onload=()=>{entry.loaded=true;if(state.fingerGuidanceMode!=='off'&&current)renderCanvas();};
+ image.onerror=()=>{entry.error=true;if(state.fingerGuidanceMode!=='off'&&current)renderCanvas();};
+ image.src=FINGER_GUIDANCE_SPRITES[hand].url;
 }
-function drawFingerGuidance(c,geom,keyY,keyboardH,handsAllowed){
+function fingerGuidanceSpritePlacement(notes,hand,geom,keyboardH,tail=0){
+ const sprite=FINGER_GUIDANCE_SPRITES[hand],items=notes.filter(n=>n.hand===hand&&geom.byPitch.has(n.pitch));
+ if(!items.length)return null;
+ // A static pose can shift/scale as a UNIT, but cannot independently bend
+ // all fingers. Least-squares registration avoids telling a player a false
+ // story about impossible contact when chords disagree with the reference.
+ const unit=geom.whites[0]?.w||21,referenceW=unit*5.15;
+ const data=items.map(n=>({finger:n.finger,x:geom.byPitch.get(n.pitch).center,
+  tx:sprite.tipX[n.finger]}));
+ if(data.some(x=>!Number.isFinite(x.tx)))return null;
+ const mx=data.reduce((a,b)=>a+b.tx,0)/data.length;
+ const my=data.reduce((a,b)=>a+b.x,0)/data.length;
+ let width=referenceW;
+ if(data.length>=2){
+  const covariance=data.reduce((a,b)=>a+(b.tx-mx)*(b.x-my),0);
+  const variance=data.reduce((a,b)=>a+(b.tx-mx)**2,0);
+  if(variance<.0001||covariance<=0)return null;
+  width=clamp(covariance/variance,unit*3.2,unit*6.3);
+ }
+ const x=my-mx*width;
+ const error=Math.max(...data.map(d=>Math.abs(x+d.tx*width-d.x)));
+ // Without joint articulation, never portray a geometrically incorrect
+ // fingering as exact, especially for tightly clustered notes / crossovers.
+ if(error>Math.max(10,unit*.36))return null;
+ const height=width/sprite.aspect;
+ const stage=keyboardH+tail;
+ // Hands enter the keys from below, as in an overhead piano teaching view.
+ const y=keyboardTop+Math.max(7,stage-height-4);
+ return {x,y,width,height,error,unit,notes:items,hand};
+}
+function drawFingerGuidanceHand(c,geom,keyY,keyboardH,group,hand,ghost=false,tail=0){
+ const placement=fingerGuidanceSpritePlacement(group,hand,geom,keyboardH,tail);
+ if(!placement)return null;
+ const entry=FINGER_GUIDANCE_IMAGES[hand];
+ if(!entry?.loaded)return null;
+ c.save();
+ c.beginPath();c.rect(0,keyY,roll.width,keyboardH+tail);c.clip();
+ c.globalAlpha=ghost?.18:.94;
+ c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';
+ c.drawImage(entry.image,placement.x,placement.y,placement.width,placement.height);
+ c.restore();
+ return placement;
+}
+
+function drawFingerGuidance(c,geom,keyY,keyboardH,handsAllowed,handTail=0){
  const status=$('fingerGuideStatus'),mode=state.fingerGuidanceMode,steps=mode==='off'?[]:fingerGuidanceSteps();
  const hasPreset=current&&['demo-scale','demo-chords','demo-finger-duet'].includes(current.id);
  const message=mode==='off'?'':state.adaptMode!=='original'?'Адаптация: подсказки пока недоступны':
@@ -133,19 +156,40 @@ function drawFingerGuidance(c,geom,keyY,keyboardH,handsAllowed){
   for(const n of group.notes){const k=geom.byPitch.get(n.pitch);if(k)drawFingerGuidanceBadge(c,keyY,keyboardH,k,n.finger,n.hand);}
   return;
  }
+ // Static PNG is a teaching pose, not a frame-by-frame model of finger joints.
+ // Draw future sprites only when a meaningful hand relocation is required.
  if(mode==='ghost'&&next){
   for(const hand of ['LH','RH']){
-   const a=fingerGuidancePose(group.notes,hand,geom),b=fingerGuidancePose(next.notes,hand,geom);
-   if(a&&b&&Math.abs(a.cx-b.cx)>a.unit*.4){
-    c.save();c.strokeStyle=FINGER_GUIDANCE_PALETTE[hand].ink;c.globalAlpha=.46;
-    c.lineWidth=2;c.setLineDash([5,4]);c.beginPath();
-    const y=keyY+keyboardH*.9;
-    c.moveTo(a.cx,y);c.quadraticCurveTo((a.cx+b.cx)/2,y-17,b.cx,y);c.stroke();c.restore();
+   const a=fingerGuidanceSpritePlacement(group.notes,hand,geom,keyboardH,handTail);
+   const b=fingerGuidanceSpritePlacement(next.notes,hand,geom,keyboardH,handTail);
+   if(!b)continue;
+   if(!a||Math.abs((a.x+a.width*.5)-(b.x+b.width*.5))>b.unit*1.35){
+    drawFingerGuidanceHand(c,geom,keyY,keyboardH,next.notes,hand,true,handTail);
+    if(a){
+     c.save();c.strokeStyle=FINGER_GUIDANCE_PALETTE[hand].ink;c.globalAlpha=.48;
+     c.setLineDash([4,5]);c.lineWidth=2;c.beginPath();
+     const y=keyY+keyboardH*.88;
+     c.moveTo(a.x+a.width/2,y);c.quadraticCurveTo((a.x+a.width/2+b.x+b.width/2)/2,y-22,b.x+b.width/2,y);
+     c.stroke();c.restore();
+    }
+   }else{
+    for(const n of next.notes.filter(n=>n.hand===hand)){
+     if(group.notes.some(z=>z.hand===hand&&z.pitch===n.pitch))continue;
+     const k=geom.byPitch.get(n.pitch);
+     if(k)drawFingerGuidanceBadge(c,keyY,keyboardH,k,n.finger,hand,{preview:true});
+    }
    }
-   drawFingerGuidanceHand(c,geom,keyY,keyboardH,next.notes,hand,true);
   }
  }
- for(const hand of ['LH','RH'])drawFingerGuidanceHand(c,geom,keyY,keyboardH,group.notes,hand);
+ for(const hand of ['LH','RH']){
+  const drawn=drawFingerGuidanceHand(c,geom,keyY,keyboardH,group.notes,hand,false,handTail);
+  // The PNG visual is secondary: always locate the actionable circles from
+  // the music score and key geometry, never from guessed image pixels.
+  for(const n of group.notes.filter(n=>n.hand===hand)){
+   const k=geom.byPitch.get(n.pitch);
+   if(k)drawFingerGuidanceBadge(c,keyY,keyboardH,k,n.finger,hand);
+  }
+ }
 }
 
 function resizeCanvas(){
@@ -164,8 +208,8 @@ function renderCanvas(){
  if(!current)return;
  const {w,h}=resizeCanvas();lastCanvasSize={w,h};const c=roll.getContext('2d');
  c.clearRect(0,0,w,h);c.fillStyle='#111720';c.fillRect(0,0,w,h);
- const r=noteRange(),notes=notesToShow(),handsAllowed=h>=310&&['hands','ghost'].includes(state.fingerGuidanceMode),keyboardH=handsAllowed?Math.max(145,Math.min(184,h*.34)):Math.min(90,Math.max(64,h*.22)),keyY=h-keyboardH,strikeY=keyY-10,pxPerSec=Math.max(8,(strikeY-14)/6);
- keyboardTop=keyY;keyboardBlackH=keyboardH*.61;
+ const r=noteRange(),notes=notesToShow(),handsAllowed=h>=360&&['hands','ghost'].includes(state.fingerGuidanceMode),handTail=handsAllowed?Math.max(48,Math.min(82,h*.13)):0,keyboardH=handsAllowed?Math.max(174,Math.min(220,h*.35)):Math.min(90,Math.max(64,h*.22)),keyY=h-keyboardH-handTail,strikeY=keyY-10,pxPerSec=Math.max(8,(strikeY-14)/6);
+ keyboardTop=keyY;keyboardBottom=keyY+keyboardH;keyboardBlackH=keyboardH*.61;
  const pad=4,geom=pianoGeom=pianoKeyGeometry(r.min,r.max,w-2*pad);
  // Shift computed geometry into the padded canvas coordinate system.
  geom.keys.forEach(k=>{k.x+=pad;k.center+=pad;});
@@ -240,6 +284,7 @@ function renderCanvas(){
  // Realistic two-layer piano: white naturals full height, black accidentals
  // above the whites. Both are driven by the calibrated MIDI note range.
  c.fillStyle='#090d13';c.fillRect(0,keyY,w,keyboardH);
+ if(handTail){const gradient=c.createLinearGradient(0,keyboardBottom,0,h);gradient.addColorStop(0,'#17212e');gradient.addColorStop(1,'#101724');c.fillStyle=gradient;c.fillRect(0,keyboardBottom,w,handTail);c.strokeStyle='#3b4555';c.beginPath();c.moveTo(0,keyboardBottom);c.lineTo(w,keyboardBottom);c.stroke();}
  for(const k of geom.whites){
   const physical=state.highlight&&midiHeld.has(k.pitch),audible=state.highlight&&playbackHeld.has(k.pitch);
   const down=physical||audible,offset=down?2:0;
@@ -260,13 +305,13 @@ function renderCanvas(){
   c.fillStyle=physical?'#bb6c5b':audible?'#3876c5':'#0c1018';c.fillRect(k.x+1,y+ht-8,Math.max(0,k.w-2),6);
  }
  c.strokeStyle='#e5997f';c.lineWidth=2;c.beginPath();c.moveTo(0,strikeY);c.lineTo(w,strikeY);c.stroke();
- drawFingerGuidance(c,geom,keyY,keyboardH,handsAllowed);
+ drawFingerGuidance(c,geom,keyY,keyboardH,handsAllowed,handTail);
 }
 function noteHit(e){const box=roll.getBoundingClientRect(),x=e.clientX-box.left,y=e.clientY-box.top;return hitboxes.slice().reverse().find(b=>x>=b.x&&x<=b.x+b.w&&y>=b.y&&y<=b.y+b.h)?.n||null;}
 function virtualKeyAt(e){
  if(!pianoGeom)return null;
  const rect=roll.getBoundingClientRect(),x=e.clientX-rect.left,y=e.clientY-rect.top;
- if(y<keyboardTop||y>rect.height)return null;
+ if(y<keyboardTop||y>keyboardBottom)return null;
  // Black keys win hit-testing only over their actual short raised section.
  if(y<=keyboardTop+keyboardBlackH+3){const black=pianoGeom.blacks.find(k=>x>=k.x&&x<k.x+k.w);if(black)return black.pitch;}
  const natural=pianoGeom.whites.find(k=>x>=k.x&&x<k.x+k.w);
