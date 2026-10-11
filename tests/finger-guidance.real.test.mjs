@@ -38,7 +38,8 @@ try{
  await page.evaluate(()=>window.__prototypeTest.seek(.46));
  assert.deepEqual(await page.evaluate(()=>window.__fingerGuideTest.frame),{current:.46,next:.92});
  await page.evaluate(()=>window.__prototypeTest.seek(.92));
- assert.deepEqual(await page.evaluate(()=>window.__fingerGuideTest.frame),{current:.92,next:1.38});
+ const third=await page.evaluate(()=>window.__fingerGuideTest.frame);
+ assert.ok(Math.abs(third.current-.92)<1e-6&&Math.abs(third.next-1.38)<1e-6);
  // Switching off restores the original keyboard dimensions.
  await page.locator('#fingerGuideMode').selectOption('off');
  await page.waitForTimeout(50);
