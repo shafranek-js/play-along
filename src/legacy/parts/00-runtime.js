@@ -1,15 +1,16 @@
 const $=id=>document.getElementById(id);
 const STORE='playalong:smart-practice:v07';const V06_STORE='playalong:performance-analyzer:v06';const PREV_STORE='playalong:smart-phrasing:v05';const PREV2_OLD_STORE='playalong:real-piano:v04';const PREV2_STORE='playalong:keyboard-engine:v03';const OLD_STORE='playalong:music-engine:v02';const OLDER_STORE='playalong:ui-prototype:v1';
-const defaults={layout:'learn',page:'practice',left:true,right:true,leftWidth:286,rightWidth:318,rightTab:'practice',mode:'listen',accompany:true,accompanyExplicit:false,autoMidi:true,preferredMidiName:'',speed:100,displayRange:'song',labels:true,highlight:true,allTracks:true,volume:40,selected:'demo-scale',track:0,deviceProfiles:{},targetRange:'device',adaptMode:'original',adaptShift:0,auditionAdapted:false,showReviewMarkers:true,scoreView:'roll',sheetZoom:100,sheetFollow:true};
+const defaults={layout:'learn',page:'practice',left:true,right:true,leftWidth:286,rightWidth:318,rightTab:'practice',mode:'listen',accompany:true,accompanyExplicit:false,autoMidi:true,preferredMidiName:'',speed:100,displayRange:'song',labels:true,highlight:true,allTracks:true,volume:40,selected:'demo-scale',track:0,deviceProfiles:{},targetRange:'device',adaptMode:'original',adaptShift:0,auditionAdapted:false,showReviewMarkers:true,scoreView:'roll',sheetZoom:100,sheetFollow:true,fingerGuidanceMode:'off'};
 // Treat backups AND older localStorage snapshots as untrusted input.
 // Invalid restored values are rejected in strict backup mode; legacy
 // localStorage uses safe defaults to preserve normal upgrades.
-const SONG_PREF_FIELDS=['mode','speed','track','accompany','accompanyExplicit','targetRange','adaptMode','adaptShift','adaptProfile','auditionAdapted','displayRange','allTracks','scoreView','sheetZoom','sheetFollow'];
+const SONG_PREF_FIELDS=['mode','speed','track','accompany','accompanyExplicit','targetRange','adaptMode','adaptShift','adaptProfile','auditionAdapted','displayRange','allTracks','scoreView','sheetZoom','sheetFollow','fingerGuidanceMode'];
 const SETTING_ENUMS={
  layout:['learn','play','analyze'],page:['practice','library','progress'],
  rightTab:['practice','adapt','midi','review','smart','analysis'],mode:['listen','wait','tempo'],
  displayRange:['song','device'],targetRange:['device','preview25','preview37','preview49','preview61','preview76','preview88'],
- adaptMode:['original','transpose','adaptive'],adaptProfile:['center','low','high'],scoreView:['roll','sheet']
+ adaptMode:['original','transpose','adaptive'],adaptProfile:['center','low','high'],scoreView:['roll','sheet'],
+ fingerGuidanceMode:['off','numbers','hands','ghost']
 };
 const SETTING_NUMBERS={
  leftWidth:[210,520],rightWidth:[240,550],speed:[25,150],volume:[0,100],
@@ -141,13 +142,20 @@ function syncSongSettingsUI(){
  $('bottomMode').value=state.mode;document.querySelectorAll('[data-mode]').forEach(b=>b.classList.toggle('active',b.dataset.mode===state.mode));
  $('accompany').checked=state.accompany;$('allTracks').checked=state.allTracks;
  $('displayRange').value=state.displayRange;
+ $('fingerGuideMode').value=state.fingerGuidanceMode;
  $('sheetZoomLabel').textContent=state.sheetZoom+'%';$('sheetFollow').checked=state.sheetFollow!==false;
 }
 
 const demoSongs=[
  {id:'demo-scale',title:'Упражнение: гамма C major',author:'Демонстрационная фраза · 8 нот',type:'demo',tempo:92,tracks:[{name:'Мелодия',notes:[60,62,64,65,67,69,71,72,71,69,67,65,64,62,60].map((p,i)=>({pitch:p,start:i*.46,duration:.39,velocity:84,track:0}))}]},
  {id:'demo-chords',title:'Упражнение: C · F · G · C',author:'Демонстрационная фраза · аккорды',type:'demo',tempo:85,tracks:[{name:'Аккорды',notes:[[60,64,67],[65,69,72],[67,71,74],[60,64,67]].flatMap((ch,i)=>ch.map(p=>({pitch:p,start:i*1.6,duration:1.35,velocity:85,track:0})))}]},
- {id:'demo-intervals',title:'Упражнение: интервалы',author:'Демонстрационная фраза · две дорожки',type:'demo',tempo:105,tracks:[{name:'Мелодия',notes:[60,67,62,69,64,72,65,72].map((p,i)=>({pitch:p,start:i*.65,duration:.5,velocity:86,track:0}))},{name:'Нижний голос',notes:[48,50,52,53].map((p,i)=>({pitch:p,start:i*1.3,duration:1.1,velocity:70,track:1}))}]}
+ {id:'demo-intervals',title:'Упражнение: интервалы',author:'Демонстрационная фраза · две дорожки',type:'demo',tempo:105,tracks:[{name:'Мелодия',notes:[60,67,62,69,64,72,65,72].map((p,i)=>({pitch:p,start:i*.65,duration:.5,velocity:86,track:0}))},{name:'Нижний голос',notes:[48,50,52,53].map((p,i)=>({pitch:p,start:i*1.3,duration:1.1,velocity:70,track:1}))}]},
+ // FG-00: explicit, manually verified preset. No automatic fingering inference.
+ {id:'demo-finger-duet',title:'Упражнение: две руки · C–F–G–C',author:'Finger Guidance · демо-аппликатура',type:'demo',tempo:90,
+  tracks:[
+   {name:'Правая рука',notes:[[60,64,67],[65,69,72],[67,71,74],[60,64,67]].flatMap((ch,i)=>ch.map(p=>({pitch:p,start:i*1.8,duration:1.25,velocity:85,track:0})))},
+   {name:'Левая рука',notes:[[48,52,55],[53,57,60],[55,59,62],[48,52,55]].flatMap((ch,i)=>ch.map(p=>({pitch:p,start:i*1.8,duration:1.25,velocity:76,track:1}))}
+  ]}
 ];
 let imports=[],current=null,selectedNote=null,pos=0,isPlaying=false,startAt=0,startAudioTime=0,playNext=0,ctx=null,activeVoices=new Set(),mouseNote=null;let schedulerTimer=null,practice=null,holdForInput=false,liveVoices=new Map();
 let midiAccess=null,midiInput=null,deviceName='',midiConnecting=null,monitor=[],midiHeld=new Set(),noteCount=0,cal={step:0,low:null,high:null},pointerDrag=null,hitboxes=[];
