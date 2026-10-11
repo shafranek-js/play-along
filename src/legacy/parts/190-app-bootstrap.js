@@ -86,10 +86,14 @@ window.__prototypeTest={get pianoGeometry(){return pianoGeom},get soundingKeys()
 // FG-00 non-mutating observability for regression tests. Fingering is demo-only.
 window.__fingerGuideTest={
  get mode(){return state.fingerGuidanceMode},
- get imageAssets(){return Object.fromEntries(['LH','RH'].map(h=>[h,{
-  loaded:FINGER_GUIDANCE_IMAGES[h].loaded,error:FINGER_GUIDANCE_IMAGES[h].error,
-  width:FINGER_GUIDANCE_IMAGES[h].image.naturalWidth,
-  height:FINGER_GUIDANCE_IMAGES[h].image.naturalHeight}]))},
+ get imageAssets(){return Object.fromEntries(['LH','RH'].map(h=>[h,Object.fromEntries(
+  ['thumb','index','middle','ring','pinky','rest','spread'].map(p=>{
+   const a=FINGER_GUIDANCE_IMAGES[h+':'+p];
+   return [p,{loaded:a?.loaded===true,error:a?.error===true,
+    requested:!!a,width:a?.image?.naturalWidth||0,height:a?.image?.naturalHeight||0}]
+  }))]))},
+ preloadAllPoses(){for(const h of ['LH','RH'])for(const p of
+  ['thumb','index','middle','ring','pinky','rest','spread'])fingerGuidanceGetImage(h,p)},
  get spritePlacements(){const notes=fingerGuidanceFrame(fingerGuidanceSteps(),pos).current?.notes||[];
   return Object.fromEntries(['LH','RH'].map(h=>[h,fingerGuidanceSpritePlacement(notes,h,pianoGeom,keyboardBottom-keyboardTop,lastCanvasSize.h-keyboardBottom)]))},
 
