@@ -154,7 +154,7 @@ const demoSongs=[
  {id:'demo-finger-duet',title:'Упражнение: две руки · C–F–G–C',author:'Finger Guidance · демо-аппликатура',type:'demo',tempo:90,
   tracks:[
    {name:'Правая рука',notes:[[60,64,67],[65,69,72],[67,71,74],[60,64,67]].flatMap((ch,i)=>ch.map(p=>({pitch:p,start:i*1.8,duration:1.25,velocity:85,track:0})))},
-   {name:'Левая рука',notes:[[48,52,55],[53,57,60],[55,59,62],[48,52,55]].flatMap((ch,i)=>ch.map(p=>({pitch:p,start:i*1.8,duration:1.25,velocity:76,track:1}))}
+   {name:'Левая рука',notes:[[48,52,55],[53,57,60],[55,59,62],[48,52,55]].flatMap((ch,i)=>ch.map(p=>({pitch:p,start:i*1.8,duration:1.25,velocity:76,track:1})))}
   ]}
 ];
 let imports=[],current=null,selectedNote=null,pos=0,isPlaying=false,startAt=0,startAudioTime=0,playNext=0,ctx=null,activeVoices=new Set(),mouseNote=null;let schedulerTimer=null,practice=null,holdForInput=false,liveVoices=new Map();
