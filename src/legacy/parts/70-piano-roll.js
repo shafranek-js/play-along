@@ -216,6 +216,12 @@ function drawFingerGuidance(c,geom,keyY,keyboardH,handsAllowed,handTail=0){
    }
   }
  }
+ // MusicXML may specify a correct finger number without a reliable hand.
+ // Show a neutral numeric marker instead of guessing the hand.
+ for(const n of group.notes.filter(n=>!n.hand)){
+  const k=geom.byPitch.get(n.pitch);
+  if(k)drawFingerGuidanceBadge(c,keyY,keyboardH,k,n.finger,null);
+ }
  for(const hand of ['LH','RH']){
   const drawn=drawFingerGuidanceHand(c,geom,keyY,keyboardH,group.notes,hand,false,handTail);
   // The PNG visual is secondary: always locate the actionable circles from
