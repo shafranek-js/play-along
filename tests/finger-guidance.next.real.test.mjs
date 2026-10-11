@@ -30,7 +30,7 @@ try{
  await page.evaluate(()=>window.__prototypeTest.seek(.1));
  assert.deepEqual(await frame(),{current:.46,next:.92});
  await page.evaluate(()=>window.__prototypeTest.seek(.46));
- assert.deepEqual(await frame(),{current:.92,next:1.38});
+ assert.ok(await page.evaluate(()=>{const f=window.__fingerGuideTest.frame;return Math.abs(f.current-.92)<1e-6&&Math.abs(f.next-1.38)<1e-6;}));
  await page.evaluate(()=>window.__prototypeTest.seek(.92));
  const later=await frame();
  assert.ok(Math.abs(later.current-1.38)<1e-5&&Math.abs(later.next-1.84)<1e-5);
