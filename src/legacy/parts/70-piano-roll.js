@@ -144,7 +144,7 @@ function fingerGuidanceSpritePlacement(notes,hand,geom,keyboardH,tail=0){
  const ih=entry?.image.naturalHeight||{'thumb':558,'index':586,'middle':521,'ring':569,'pinky':545,'rest':532,'spread':592}[pose];
  const height=width*ih/iw;
  const key=geom.byPitch.get(items[0].pitch);
- const tipY=pose==='spread'?.11:FINGER_GUIDANCE_TIP_Y[pose];
+ const tipY=pose==='spread' ? .11 : FINGER_GUIDANCE_TIP_Y[pose];
  const registrationY=keyboardTop+keyboardH*(key?.black?.35:.57);
  const y=registrationY-tipY*height;
  return {x,y,width,height,error,unit,notes:items,hand,pose};
