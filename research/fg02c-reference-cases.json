@@ -437,12 +437,85 @@
       "source": "https://piano.org/chords/major/c/",
       "engine": "poly",
       "description": "C3 E3 G3 simultaneous"
+    },
+    {
+      "id": "C-first-inversion-RH",
+      "category": "inversion",
+      "hand": "RH",
+      "pitches": [
+        64,
+        67,
+        72
+      ],
+      "expected": [
+        1,
+        2,
+        5
+      ],
+      "source": "https://www.pianochord.org/c-major.html",
+      "engine": "poly",
+      "description": "E G C: close-position C/E"
+    },
+    {
+      "id": "C-first-inversion-LH",
+      "category": "inversion",
+      "hand": "LH",
+      "pitches": [
+        52,
+        55,
+        60
+      ],
+      "expected": [
+        5,
+        3,
+        1
+      ],
+      "source": "https://www.pianochord.org/c-major.html",
+      "engine": "poly",
+      "description": "E G C: close-position C/E"
+    },
+    {
+      "id": "C-second-inversion-RH",
+      "category": "inversion",
+      "hand": "RH",
+      "pitches": [
+        67,
+        72,
+        76
+      ],
+      "expected": [
+        1,
+        3,
+        5
+      ],
+      "source": "https://www.pianochord.org/c-major.html",
+      "engine": "poly",
+      "description": "G C E: close-position C/G"
+    },
+    {
+      "id": "C-second-inversion-LH",
+      "category": "inversion",
+      "hand": "LH",
+      "pitches": [
+        55,
+        60,
+        64
+      ],
+      "expected": [
+        5,
+        2,
+        1
+      ],
+      "source": "https://www.pianochord.org/c-major.html",
+      "engine": "poly",
+      "description": "G C E: close-position C/G"
     }
   ],
   "sources": {
     "cScale": "https://piano.org/scales/major/c/",
     "gScale": "https://piano.org/scales/major/g/",
     "cArpeggio": "https://piano.org/arpeggios/major/",
-    "cChord": "https://piano.org/chords/major/c/"
+    "cChord": "https://piano.org/chords/major/c/",
+    "cInversions": "https://www.pianochord.org/c-major.html"
   }
 }
