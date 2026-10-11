@@ -31,7 +31,7 @@ Other 0–9 datasets and substitutions like `3_1` are *not* silently coerced. Th
 
 `npm run benchmark:fingering:repertoire` (requires GitHub runner or host with internet):
 
-1. Downloads each source file **by immutable source commit and fixed filename**. A changed event count, wrong version, malformed line, unexpected path, or broken network is a **hard failure**, not a test that gets silently skipped.
+1. Downloads each source file **by immutable source commit and fixed filename**. A changed event count, wrong version, malformed line, unexpected path, mismatched **SHA-256**, or broken network is a **hard failure**, not a test that gets silently skipped.
 2. Parses original onset and offset seconds, MIDI pitches (scientific pitch notation), signed hand and finger, and stable source note IDs.
 3. Separately examines RH and LH. Both overlapping notes in a **same-hand chord** are excluded from a *monophonic* test (and counted), as are tiny 1–2 note fragments. Independently sounding LH/RH voices are **not** misclassified as one-hand polyphony.
 4. Removes all reference finger labels from algorithm input for the unannotated FG-02A/FG-02F comparison; source fingers are used only for scoring **after** prediction. A *separate* author-pinned run checks the source finger-annotation constraint.
@@ -39,6 +39,59 @@ Other 0–9 datasets and substitutions like `3_1` are *not* silently coerced. Th
 6. Prints a trace and uploads a JSON report including each reference/actual finger sequence and SHA-256 of fetched source data.
 
 Run `npm test` for the **offline** contract tests without downloading third-party files. Continuous integration executes the actual 5-piece benchmark separately and uploads `fg02g-real-piece-reference-report`.
+
+## First measured CI result — 11 October 2026
+
+First green [PR #14 CI run](https://github.com/shafranek-js/play-along/actions/runs/38172475599).
+The report was produced from all **5 pinned third-party source files**, with
+exactly **148 events**. Full original-source SHA-256 digests from this first run
+are now included in `research/fg02g-repertoire-manifest.json`. Later runs
+verify them before benchmarking; changed data must fail rather than silently
+change the denominator.
+
+| Piece | Total annotated notes | FG-02A matched | FG-02F matched |
+|---|---:|---:|---:|
+| Bach Minuet G (dataset label) | 32 | 22 | 22 |
+| Für Elise theme | 36 (27 RH + 9 LH) | 19 | 19 |
+| Au clair de la lune | 22 | 15 | 15 |
+| Frère Jacques | 32 | 14 | 14 |
+| Amazing Grace | 26 (18 RH + 8 LH) | 11 | 11 |
+| **TOTAL** | **148** | **81 (54.73%)** | **81 (54.73%)** |
+
+- **7/7 unannotated hand-specific monophonic runs scored**, no omitted notes
+  for this deliberately simplified five-piece set and no independent
+  physical-audit conflicts detected.
+- **0/7 completely exact unannotated runs**.
+- **0 generalized-monotonic run activations**: all melodies mix direction
+  and/or intervals, so FG-02F falls back to FG-02A. The unchanged algorithm
+  did not improve real-piece note-level agreement.
+- **Critical author-compatibility finding:** 4/7 fully source-pinned runs
+  (90 notes) return a *no-valid-path* error under the monophonic model's
+  restrictive transitions; **3/7** runs (58 notes) are accepted exactly.
+  Thus **author-compatibility coverage is only 58/148 = 39.19%**. Saying
+  '100% author accuracy' without its low coverage would be **misleading**.
+  In the accepted runs, anchors are correctly preserved; rejected runs do
+  not override the author's fingers.
+- The 14 offline parser and integrity tests passed in the initial run.
+  Subsequent tests add strict checksum verification and explicit rejected
+  note coverage. No source note was silently omitted in either run.
+
+**Do not conclude that the original fingering is incorrect or that the model
+is an expert tutor.** The failures identify where FG-02A's hard assumptions
+(repeated finger on successive differing pitches, performance-time context)
+reject some *hand-authored* source paths. This is precisely why production
+automation remains disabled.
+
+### No-go outcome and next research
+
+The current model **does not support mixed-direction musical phrasing well**.
+The next development stage should improve phrase segmentation and lead-in /
+lead-out continuity across rests and direction changes, and separately test
+polyphonic coordination. New models must preserve every author anchor, explicitly
+refuse physically impossible assignments, and be evaluated against another
+fresh score set before claiming a quality improvement.
+
+**Release decision: NO-GO for automatic learner-facing fingering.**
 
 ## Validity and licensing boundaries
 
