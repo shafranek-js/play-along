@@ -27,8 +27,19 @@ jobs:
         run: npm run build
       - name: Unit tests
         run: npm test
+      - name: FG-02C educational reference benchmark
+        run: |
+          mkdir -p artifacts
+          FG02C_REPORT=artifacts/fg02c-reference-benchmark.json npm run benchmark:fingering
       - name: Browser regressions
         run: npm run test:browser
+      - name: Upload FG-02C reference comparison
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: fg02c-educational-reference-comparison
+          path: artifacts/fg02c-reference-benchmark.json
+          if-no-files-found: warn
       - name: Dependency audit
         run: npm audit --audit-level=high
 
