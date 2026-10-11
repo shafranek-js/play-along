@@ -203,3 +203,7 @@ When transport is paused, all active practice NoteOn duration measurements are c
 - When the player performs an expected Wait note/chord, accompaniment notes starting on the same beat are scheduled immediately and exactly once, independently of waiting for the physical key release. The next group works when the player changes keys legato. This resolves audit A09.
 - Play/resume after a seek restores any note already started but still sounding at the seek position, for its **remaining** time only. This applies to Listen melodies and scheduled accompaniment. Ended notes are not replayed. Loop end truncates recovered notes. This resolves audit A10.
 - Real Chromium tests simulate a Wait melody/accompaniment pair at shared beats and a 10-second sustained note resumed at 5 seconds, plus pause/resume and ended-note guards.
+
+## Cancel ZIP import dialog (v0.10.23)
+
+The asynchronous multi-part MIDI ZIP selection now has a single idempotent completion path for the Cancel button, backdrop and global Escape key. Escape dispatches a cancellable dialog lifecycle event rather than hiding the dialog and leaving the online loader permanently busy. A Chromium test uses a real two-entry MIDI ZIP to verify Escape unblocks loading and a second download succeeds without reloading the page. Resolves audit A12.

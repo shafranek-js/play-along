@@ -44,7 +44,11 @@ function mutopiaChooseZipEntry(entries,title){
   const panel=document.createElement('div');panel.className='modal';panel.style.maxHeight='80vh';panel.style.overflowY='auto';
   const h=document.createElement('h2');h.textContent='Выбери часть: '+title;panel.append(h);
   const desc=document.createElement('p');desc.textContent='В архиве '+entries.length+' MIDI-файлов. Каждая часть открывается отдельно.';panel.append(desc);
-  const finish=(entry)=>{overlay.remove();resolve(entry)};
+  let settled=false;
+  const finish=(entry)=>{if(settled)return;settled=true;overlay.remove();resolve(entry)};
+  // All cancellation routes (Escape, backdrop, Cancel) must settle this
+  // Promise; hiding the DOM alone leaves onlineBusy permanently true.
+  overlay.addEventListener('playalong:cancel',event=>{event.preventDefault();finish(null)});
   for(const e of entries){const b=document.createElement('button');b.className='btn tiny';b.style.cssText='display:block;width:100%;text-align:left;margin:6px 0';b.textContent=e.name;b.onclick=()=>finish(e);panel.append(b)}
   const close=document.createElement('button');close.className='btn ghost';close.textContent='Отмена';close.onclick=()=>finish(null);panel.append(close);
   overlay.onclick=ev=>{if(ev.target===overlay)finish(null)};overlay.append(panel);document.body.append(overlay);
