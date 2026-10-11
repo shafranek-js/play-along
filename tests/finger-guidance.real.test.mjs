@@ -39,7 +39,7 @@ try{
  assert.ok(high.keyboardBlackH>75,'Hands should use enlarged existing canvas keyboard');
  assert.deepEqual(await page.evaluate(()=>window.__fingerGuideTest.frame),{current:0,next:.46});
  await page.evaluate(()=>window.__prototypeTest.seek(.46));
- assert.deepEqual(await page.evaluate(()=>window.__fingerGuideTest.frame),{current:.92,next:1.38});
+ assert.ok(await page.evaluate(()=>{const f=window.__fingerGuideTest.frame;return Math.abs(f.current-.92)<1e-6&&Math.abs(f.next-1.38)<1e-6;}));
  await page.evaluate(()=>window.__prototypeTest.seek(.92));
  const third=await page.evaluate(()=>window.__fingerGuideTest.frame);
  assert.ok(Math.abs(third.current-1.38)<1e-6&&Math.abs(third.next-1.84)<1e-6);
