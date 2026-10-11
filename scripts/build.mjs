@@ -32,16 +32,22 @@ fs.writeFileSync(path.join(dist, 'assets/app.js'), js);
 fs.copyFileSync(path.join(root, 'src/styles/app.css'), path.join(dist, 'assets/app.css'));
 fs.copyFileSync(path.join(root, 'src/index.html'), path.join(dist, 'index.html'));
 
-const handAssetDir=path.join(root,'src/assets/finger-guidance');
-const handDistDir=path.join(dist,'assets/finger-guidance');
-fs.mkdirSync(handDistDir,{recursive:true});
-for(const name of ['left-hand.png','right-hand.png']){
- const input=path.join(handAssetDir,name);
- const bytes=fs.readFileSync(input);
- // PNG signature guard: never deploy a missing/placeholder asset.
- if(bytes.length<1000||bytes.subarray(0,8).toString('hex')!=='89504e470d0a1a0a')
-  throw Error('Finger Guidance asset is not a PNG: '+name);
- fs.writeFileSync(path.join(handDistDir,name),bytes);
+// Preserve all 14 user-owned alpha PNG files bit-for-bit (seven poses per hand).
+const handAssetDir=path.join(root,'src/assets/finger-guidance/poses');
+const handDistDir=path.join(dist,'assets/finger-guidance/poses');
+for(const side of ['left','right']){
+ const output=path.join(handDistDir,side);
+ fs.mkdirSync(output,{recursive:true});
+ for(const pose of ['thumb','index','middle','ring','pinky','rest','spread']){
+  const filename=side+'-'+pose+'.png';
+  const bytes=fs.readFileSync(path.join(handAssetDir,side,filename));
+  if(bytes.length<10000||bytes.subarray(0,8).toString('hex')!=='89504e470d0a1a0a'
+     ||bytes.readUInt32BE(16)<250||bytes.readUInt32BE(20)<500)
+   throw Error('Missing or invalid user hand pose PNG: '+side+'/'+filename);
+  // PNG color type RGBA (6), preserving the supplied alpha channel.
+  if(bytes[25]!==6)throw Error('Hand pose must preserve source RGBA: '+filename);
+  fs.writeFileSync(path.join(output,filename),bytes);
+ }
 }
 
 const vendoredDir = path.join(root, 'node_modules/opensheetmusicdisplay');

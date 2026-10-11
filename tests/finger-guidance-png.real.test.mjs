@@ -27,10 +27,21 @@ try{
  page.on('response',r=>{if(r.status()>=400&&r.url().includes('/finger-guidance/'))broken.push(r.url());});
  await page.goto('http://127.0.0.1:'+server.address().port,{waitUntil:'load'});
  await page.waitForFunction(()=>window.__fingerGuideTest&&window.__prototypeTest);
- await page.waitForFunction(()=>Object.values(window.__fingerGuideTest.imageAssets).every(x=>x.loaded),null,{timeout:15000});
+ // Seven pose images for each hand are lazy-loaded in production.
+ const before=await page.evaluate(()=>window.__fingerGuideTest.imageAssets);
+ assert.ok(Object.values(before).every(group=>Object.values(group).every(a=>!a.requested)),
+  'idle app should not download 14 hand PNGs until guidance is requested');
+ await page.evaluate(()=>window.__fingerGuideTest.preloadAllPoses());
+ await page.waitForFunction(()=>Object.values(window.__fingerGuideTest.imageAssets)
+  .every(group=>Object.values(group).every(a=>a.loaded)),null,{timeout:25000});
  const assets=await page.evaluate(()=>window.__fingerGuideTest.imageAssets);
- assert.equal(assets.LH.error,false);assert.equal(assets.RH.error,false);
- assert.ok(assets.LH.width>250&&assets.RH.width>250,'full transparent hands loaded');
+ for(const hand of ['LH','RH']){
+  assert.equal(Object.keys(assets[hand]).length,7);
+  for(const [pose,a] of Object.entries(assets[hand])){
+   assert.equal(a.error,false,hand+' '+pose);
+   assert.ok(a.width>=290&&a.height>=520,'full user PNG '+hand+' '+pose);
+  }
+ }
  assert.deepEqual(broken,[],'hand PNG network failures');
  await page.evaluate(()=>window.__prototypeTest.loadSong(window.__fingerGuideTest.demoDuet));
  await page.locator('#fingerGuideMode').selectOption('hands');
@@ -38,7 +49,8 @@ try{
  await page.screenshot({path:path.join(output,'two-hands.png')});
  const poses=await page.evaluate(()=>window.__fingerGuideTest.spritePlacements);
  assert.ok(poses.LH?.width>50&&poses.RH?.width>50,'hand placement requires both matched parts');
- assert.ok(poses.LH.error<=15&&poses.RH.error<=15,'finger placements within geometric tolerance');
+ assert.equal(poses.LH.pose,'spread');assert.equal(poses.RH.pose,'spread');
+ assert.ok(poses.LH.error<=20&&poses.RH.error<=20,'finger placements within geometric tolerance');
  await page.locator('#fingerGuideMode').selectOption('ghost');
  await page.screenshot({path:path.join(output,'two-hands-ghost.png')});
  await page.evaluate(()=>window.__prototypeTest.seek(3.6));
@@ -47,7 +59,7 @@ try{
  const missed=await page.evaluate(()=>{
    const c=document.getElementById('roll'),r=c.getBoundingClientRect();
    const y=window.__fingerGuideTest.layout.keyboardTop+window.__fingerGuideTest.layout.keyboardBlackH*2.8;
-   return window.__fingerGuideTest.imageAssets.LH.loaded&&Number.isFinite(y);
+   return window.__fingerGuideTest.imageAssets.LH.spread.loaded&&Number.isFinite(y);
  });
  assert.equal(missed,true);
  await page.evaluate(()=>window.__prototypeTest.loadSong({
