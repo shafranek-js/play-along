@@ -35,10 +35,17 @@ export function runBenchmark({useAnchors=false}={}){
 const direct=process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url);
 if(direct){
  const result=runBenchmark(),anchored=runBenchmark({useAnchors:true});
+ console.log('RELEASE GATE: RESEARCH_ONLY — expert musical review required before enabling the player UI');
  const fmt=c=>[c.status.padEnd(27),c.id.padEnd(35),
    (' '+c.correct+'/'+c.total).padStart(6),c.reason??''].join(' ');
  console.log('FG-02C PUBLICLY SOURCED REFERENCE COMPARISON — unannotated');
- for(const c of result.cases)console.log(fmt(c));
+ for(const c of result.cases){
+  console.log(fmt(c));
+  if(c.status!=='EXACT'){
+   console.log('  expected: '+c.expected.join('-'));
+   console.log('  actual:   '+(c.actual?.join('-')??'NO ASSIGNMENT'));
+  }
+ }
  console.log(JSON.stringify(result.totals));
  console.log('FG-02C AUTHOR ANCHOR COMPATIBILITY');
  console.log(JSON.stringify(anchored.totals));
