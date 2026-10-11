@@ -31,7 +31,7 @@ const isValidShape=(sorted)=>{
  const intervals=diffs.map(Math.abs);
  // This is an interval-shape classifier, NOT a key or pitch-class lookup.
  // Does not presume that a musical piece follows a complete major scale.
- if(sorted.length>=6&&intervals.every(x=>x===1||x===2))
+ if(sorted.length>=6&&intervals.includes(1)&&intervals.filter(x=>x===2).length>=2&&intervals.every(x=>x===1||x===2))
   return {kind:'monotone-stepwise',direction:asc?1:-1};
  if(sorted.length>=4&&intervals.every(x=>x>=3&&x<=7))
   return {kind:'monotone-arpeggiated',direction:asc?1:-1};
