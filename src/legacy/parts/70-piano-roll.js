@@ -89,7 +89,7 @@ function drawFingerGuidanceBadge(c,keyY,keyboardH,k,finger,hand,{preview=false}=
 function drawFingerGuidanceHand(c,geom,keyY,keyboardH,group,hand,ghost=false){
  const pose=fingerGuidancePose(group,hand,geom);
  if(!pose)return null;
- const u=Math.max(14,Math.min(27,pose.unit));
+ const u=Math.max(14,Math.min(42,pose.unit));
  const H=keyboardH,cx=pose.cx;
  const ordered=pose.points.map(p=>{
   const isThumb=p.finger===1,isLittle=p.finger===5;
