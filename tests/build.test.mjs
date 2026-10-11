@@ -17,7 +17,7 @@ const musicPrelude=['music-time.mjs','music-bars.mjs'].map(f=>read('src/core/'+f
 
 test('all feature parts form exactly one valid JavaScript bundle',()=>{
  assert.equal(manifest.features.length,21);
- const expected="\n(()=>{'use strict';\n"+musicPrelude+'\n'+featureSource.replace("window.__playAlongVersion='0.9.1'","window.__playAlongVersion='0.10.26'")+"})();\n";
+ const expected="\n(()=>{'use strict';\n"+musicPrelude+'\n'+featureSource.replace("window.__playAlongVersion='0.9.1'","window.__playAlongVersion='0.10.27'")+"})();\n";
  assert.equal(js,expected);
  execFileSync(process.execPath,['--check',path.join(root,'dist/assets/app.js')]);
 });
@@ -32,7 +32,7 @@ test('CSS and HTML are separate, all expected DOM anchors exist',()=>{
 });
 test('preserved features: MIDI auto connection, Wait, OSMD, imports, catalogs',()=>{
  for(const term of ['requestMIDIAccess','onstatechange','waitReleasePitches','holdForInput','scoreEnsureRendered','opensheetmusicdisplay.min.js','mutopiaLoadIndex','museTrainerLoadIndex','asapLoadIndex','zipUnpackMXL','readMusicXML','parseMidi','indexedDB']) assert.ok(js.includes(term),`Missing ${term}`);
- assert.ok(js.includes("window.__playAlongVersion='0.10.26'"));
+ assert.ok(js.includes("window.__playAlongVersion='0.10.27'"));
  assert.ok(js.includes('function musicCreateTempoTimeline('));
  assert.ok(js.includes('function musicSecondsToBeat('));
  assert.ok(js.includes('function musicBarGrid('));
@@ -50,5 +50,7 @@ test('migration baseline retained for auditing; CSS preserved',()=>{
  assert.match(baseline.js_sha256,/^[a-f0-9]{64}$/);
  assert.ok(original.includes('zipInflateBounded'));
  assert.ok(original.includes('backupCreate')); 
- assert.equal(hash(css.replace(/\r\n/g,'\n')),baseline.css_sha256);
+ const legacyCss=css.split('/* FG-00 appended styles; original CSS above is unchanged. */')[0];
+ assert.equal(hash(legacyCss.replace(/\r\n/g,'\n')),baseline.css_sha256);
+ assert.match(css,/\.fingerGuideControls\{/);
 });

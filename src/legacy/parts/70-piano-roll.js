@@ -17,6 +17,137 @@ function pianoKeyGeometry(min,max,w){
  return {keys,byPitch:new Map(keys.map(k=>[k.pitch,k])),min,max,scale,whites:keys.filter(k=>!k.black),blacks:keys.filter(k=>k.black)};
 }
 let pianoGeom=null,lastCanvasSize={w:0,h:0},keyboardTop=0,keyboardBlackH=0;
+
+// ===== FG-00: opt-in visual guidance over the EXISTING Piano Roll keyboard =====
+// These are hand-entered teaching fixtures. No arbitrary MIDI is fingered here.
+// Finger numbers (1 thumb ... 5 little finger) are not observable through Web MIDI.
+const FINGER_GUIDANCE_PALETTE={
+ RH:{ink:'#4b94ff',fill:'rgba(74,143,240,.29)',light:'rgba(125,178,249,.5)'},
+ LH:{ink:'#ec9866',fill:'rgba(242,158,104,.29)',light:'rgba(244,188,141,.5)'}
+};
+function fingerGuidanceSteps(){
+ if(!current||state.adaptMode!=='original')return [];
+ const id=current.id,valid=new Set(['demo-scale','demo-chords','demo-finger-duet']);
+ if(!valid.has(id))return [];
+ const scale=[1,2,3,1,2,3,4,5,4,3,2,1,3,2,1];
+ const groups=new Map();
+ current.tracks.forEach((track,trackIndex)=>{
+  if(!state.allTracks&&trackIndex!==state.track)return;
+  track.notes.forEach((n,index)=>{
+   let hand='RH',finger=null;
+   if(id==='demo-scale'&&trackIndex===0)finger=scale[index];
+   if(id==='demo-chords'&&trackIndex===0)finger=[1,3,5][index%3];
+   if(id==='demo-finger-duet'&&trackIndex<=1){
+    hand=trackIndex===0?'RH':'LH';
+    finger=(hand==='RH'?[1,3,5]:[5,3,1])[index%3];
+   }
+   if(!Number.isInteger(finger)||!Number.isInteger(n.pitch)||!Number.isFinite(n.start))return;
+   // Group by original score onset, not by current time or MIDI NoteOn.
+   const key=String(Math.round(n.start*1000));
+   if(!groups.has(key))groups.set(key,{start:n.start,notes:[]});
+   groups.get(key).notes.push({pitch:n.pitch,start:n.start,duration:n.duration,hand,finger,track:trackIndex});
+  });
+ });
+ return [...groups.values()].sort((a,b)=>a.start-b.start);
+}
+function fingerGuidanceFrame(steps,now){
+ const available=loop.enabled&&loop.start!==null&&loop.end!==null
+  ?steps.filter(g=>g.start>=loop.start-.001&&g.start<loop.end-.001):steps;
+ // Prefer the group that has begun and is still sounding; otherwise preview
+ // the next onset. Deterministic across playback, Pause, Seek and Loop.
+ const active=available.find(g=>g.start<=now+.015&&g.notes.some(n=>n.start+n.duration>now-.002));
+ const index=active?available.indexOf(active):available.findIndex(g=>g.start>=now-.015);
+ if(index<0)return {current:null,next:null};
+ return {current:available[index],next:available[index+1]||null};
+}
+function fingerGuidancePose(items,hand,geom){
+ const notes=items?.filter(n=>n.hand===hand&&geom.byPitch.has(n.pitch))||[];
+ if(!notes.length)return null;
+ const unit=geom.whites[0]?.w||21;
+ const offsets=(hand==='RH'?[-1.75,-.95,-.12,.83,1.68]:[1.75,.95,.12,-.83,-1.68]).map(n=>n*unit);
+ const cx=notes.reduce((sum,n)=>sum+geom.byPitch.get(n.pitch).center-offsets[n.finger-1],0)/notes.length;
+ const points=offsets.map((dx,i)=>{
+  const n=notes.find(item=>item.finger===i+1);
+  const key=n&&geom.byPitch.get(n.pitch);
+  return {finger:i+1,x:key?key.center:cx+dx,active:!!key,key};
+ });
+ return {cx,unit,offsets,points};
+}
+function drawFingerGuidanceBadge(c,keyY,keyboardH,k,finger,hand,{preview=false}={}){
+ const color=FINGER_GUIDANCE_PALETTE[hand];
+ const y=keyY+keyboardH*(k.black?.38:.61);
+ const r=Math.max(8,Math.min(11,k.w*.45));
+ c.save();c.lineWidth=2;c.strokeStyle=color.ink;c.globalAlpha=preview?.55:1;
+ c.beginPath();c.arc(k.center,y,r,0,2*Math.PI);
+ c.fillStyle=preview?'#121820':color.ink;c.fill();c.stroke();
+ c.fillStyle='#fff';c.font='bold 12px system-ui';c.textAlign='center';c.textBaseline='middle';
+ c.fillText(String(finger),k.center,y+.5);c.restore();
+}
+function drawFingerGuidanceHand(c,geom,keyY,keyboardH,group,hand,ghost=false){
+ const pose=fingerGuidancePose(group,hand,geom);
+ if(!pose)return null;
+ const color=FINGER_GUIDANCE_PALETTE[hand],scale=keyboardH/175;
+ const {cx,unit}=pose,half=Math.min(unit*2.3,52);
+ const palmY=keyY+keyboardH*.82,shoulderY=keyY+keyboardH*.98;
+ c.save();c.globalAlpha=ghost?.23:1;
+ // Original schematic, not traced from PianGo. Palm + five jointed fingers.
+ c.beginPath();
+ c.moveTo(cx-half,palmY);
+ c.quadraticCurveTo(cx-half*1.17,palmY-28*scale,cx-half*.65,palmY-32*scale);
+ c.quadraticCurveTo(cx,palmY-43*scale,cx+half*.65,palmY-32*scale);
+ c.quadraticCurveTo(cx+half*1.17,palmY-28*scale,cx+half,palmY);
+ c.lineTo(cx+half*.74,shoulderY);c.lineTo(cx-half*.74,shoulderY);c.closePath();
+ c.fillStyle=color.fill;c.strokeStyle=color.ink;c.lineWidth=Math.max(1.5,2*scale);
+ if(ghost)c.setLineDash([5,4]);c.fill();c.stroke();c.setLineDash([]);
+ const width=Math.max(7,Math.min(13,unit*.6));
+ for(const p of pose.points){
+  const tipY=keyY+keyboardH*(p.key?.black?.38:.61);
+  const jointX=cx+pose.offsets[p.finger-1]*.79;
+  const jointY=palmY-16*scale+(p.finger===1?5*scale:0);
+  c.beginPath();c.moveTo(jointX,jointY);
+  c.quadraticCurveTo((jointX+p.x)/2,jointY-18*scale,p.x,tipY);
+  c.strokeStyle=p.active?color.ink:color.light;
+  c.lineWidth=p.active?width:width*.7;c.lineCap='round';c.stroke();
+  if(p.active){
+   c.beginPath();c.arc(p.x,tipY,Math.max(8,Math.min(11,unit*.5)),0,2*Math.PI);
+   c.fillStyle=color.ink;c.fill();c.lineWidth=1.4;c.strokeStyle='#ffffff';c.stroke();
+   if(!ghost){
+    c.textBaseline='middle';c.textAlign='center';c.fillStyle='#ffffff';
+    c.font='bold 12px system-ui';c.fillText(String(p.finger),p.x,tipY+.5);
+   }
+  }
+ }
+ c.restore();return pose;
+}
+function drawFingerGuidance(c,geom,keyY,keyboardH,handsAllowed){
+ const status=$('fingerGuideStatus'),mode=state.fingerGuidanceMode,steps=mode==='off'?[]:fingerGuidanceSteps();
+ const hasPreset=current&&['demo-scale','demo-chords','demo-finger-duet'].includes(current.id);
+ const message=mode==='off'?'':state.adaptMode!=='original'?'Адаптация: подсказки пока недоступны':
+  !hasPreset?'Для этой пьесы пока нет подтверждённой аппликатуры':
+  !steps.length?'Для выбранной партии пока нет подсказок':'Демо-аппликатура · MIDI не определяет реальные пальцы';
+ if(status&&status.textContent!==message)status.textContent=message;
+ if(!steps.length)return;
+ const {current:group,next}=fingerGuidanceFrame(steps,pos);
+ if(!group)return;
+ if(mode==='numbers'||!handsAllowed){
+  for(const n of group.notes){const k=geom.byPitch.get(n.pitch);if(k)drawFingerGuidanceBadge(c,keyY,keyboardH,k,n.finger,n.hand);}
+  return;
+ }
+ if(mode==='ghost'&&next){
+  for(const hand of ['LH','RH']){
+   const a=fingerGuidancePose(group.notes,hand,geom),b=fingerGuidancePose(next.notes,hand,geom);
+   if(a&&b&&Math.abs(a.cx-b.cx)>a.unit*.4){
+    c.save();c.strokeStyle=FINGER_GUIDANCE_PALETTE[hand].ink;c.globalAlpha=.46;
+    c.lineWidth=2;c.setLineDash([5,4]);c.beginPath();
+    const y=keyY+keyboardH*.9;
+    c.moveTo(a.cx,y);c.quadraticCurveTo((a.cx+b.cx)/2,y-17,b.cx,y);c.stroke();c.restore();
+   }
+   drawFingerGuidanceHand(c,geom,keyY,keyboardH,next.notes,hand,true);
+  }
+ }
+ for(const hand of ['LH','RH'])drawFingerGuidanceHand(c,geom,keyY,keyboardH,group.notes,hand);
+}
+
 function resizeCanvas(){
  const wrap=$('rollWrap'),r=wrap.getBoundingClientRect(),visibleW=Math.max(1,Math.floor(r.width));
  const range=noteRange(),naturalCount=Array.from({length:range.max-range.min+1},(_,i)=>range.min+i).filter(p=>!isBlackPitch(p)).length;
@@ -33,7 +164,7 @@ function renderCanvas(){
  if(!current)return;
  const {w,h}=resizeCanvas();lastCanvasSize={w,h};const c=roll.getContext('2d');
  c.clearRect(0,0,w,h);c.fillStyle='#111720';c.fillRect(0,0,w,h);
- const r=noteRange(),notes=notesToShow(),keyboardH=Math.min(90,Math.max(64,h*.22)),keyY=h-keyboardH,strikeY=keyY-10,pxPerSec=Math.max(8,(strikeY-14)/6);
+ const r=noteRange(),notes=notesToShow(),handsAllowed=h>=310&&['hands','ghost'].includes(state.fingerGuidanceMode),keyboardH=handsAllowed?Math.max(145,Math.min(184,h*.34)):Math.min(90,Math.max(64,h*.22)),keyY=h-keyboardH,strikeY=keyY-10,pxPerSec=Math.max(8,(strikeY-14)/6);
  keyboardTop=keyY;keyboardBlackH=keyboardH*.61;
  const pad=4,geom=pianoGeom=pianoKeyGeometry(r.min,r.max,w-2*pad);
  // Shift computed geometry into the padded canvas coordinate system.
@@ -129,6 +260,7 @@ function renderCanvas(){
   c.fillStyle=physical?'#bb6c5b':audible?'#3876c5':'#0c1018';c.fillRect(k.x+1,y+ht-8,Math.max(0,k.w-2),6);
  }
  c.strokeStyle='#e5997f';c.lineWidth=2;c.beginPath();c.moveTo(0,strikeY);c.lineTo(w,strikeY);c.stroke();
+ drawFingerGuidance(c,geom,keyY,keyboardH,handsAllowed);
 }
 function noteHit(e){const box=roll.getBoundingClientRect(),x=e.clientX-box.left,y=e.clientY-box.top;return hitboxes.slice().reverse().find(b=>x>=b.x&&x<=b.x+b.w&&y>=b.y&&y<=b.y+b.h)?.n||null;}
 function virtualKeyAt(e){
