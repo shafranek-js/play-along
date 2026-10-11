@@ -95,6 +95,9 @@ function detectChord(ordered,hand){
 }
 const withStrategy=(baseline,strategy)=>baseline.ok?{...baseline,strategy}:baseline;
 function propose(notes,{hand,handSize='M',beamWidth=40}={},engine){
+ // A known opposing hand is an input error, not a reason to emit a proposal.
+ if(Array.isArray(notes)&&isHand(hand)&&notes.some(n=>n?.hand!=null&&n.hand!==hand))
+  return {ok:false,reason:'HAND_CONFLICT'};
  const opts={hand,handSize,beamWidth};
  const baseline=engine==='mono'
   ?proposeMonophonicFingering(notes,{hand,handSize})
