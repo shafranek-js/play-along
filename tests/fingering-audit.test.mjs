@@ -75,7 +75,7 @@ test('FG-02C reference comparison is deterministic and never fabricates matching
  const a=runBenchmark(),b=runBenchmark();
  assert.deepEqual(a,b);
  assert.equal(a.totals.cases,20);
- assert.equal(a.totals.exactCases+a.totals.differentCandidates+a.totals.rejected+a.totals.physicalConflicts,16);
+ assert.equal(a.totals.exactCases+a.totals.differentCandidates+a.totals.rejected+a.totals.physicalConflicts,20);
  assert(a.totals.matchPercent>=0&&a.totals.matchPercent<=100);
  assert(a.cases.every(x=>['EXACT','DIFFERENT_VALID_CANDIDATE','REJECTED','PHYSICAL_CONFLICT'].includes(x.status)));
 });
