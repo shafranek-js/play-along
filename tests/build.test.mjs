@@ -17,7 +17,7 @@ const musicPrelude=['music-time.mjs','music-bars.mjs'].map(f=>read('src/core/'+f
 
 test('all feature parts form exactly one valid JavaScript bundle',()=>{
  assert.equal(manifest.features.length,21);
- const expected="\n(()=>{'use strict';\n"+musicPrelude+'\n'+featureSource.replace("window.__playAlongVersion='0.9.1'","window.__playAlongVersion='0.10.27'")+"})();\n";
+ const expected="\n(()=>{'use strict';\n"+musicPrelude+'\n'+featureSource.replace("window.__playAlongVersion='0.9.1'","window.__playAlongVersion='0.10.28'")+"})();\n";
  assert.equal(js,expected);
  execFileSync(process.execPath,['--check',path.join(root,'dist/assets/app.js')]);
 });
@@ -32,7 +32,7 @@ test('CSS and HTML are separate, all expected DOM anchors exist',()=>{
 });
 test('preserved features: MIDI auto connection, Wait, OSMD, imports, catalogs',()=>{
  for(const term of ['requestMIDIAccess','onstatechange','waitReleasePitches','holdForInput','scoreEnsureRendered','opensheetmusicdisplay.min.js','mutopiaLoadIndex','museTrainerLoadIndex','asapLoadIndex','zipUnpackMXL','readMusicXML','parseMidi','indexedDB']) assert.ok(js.includes(term),`Missing ${term}`);
- assert.ok(js.includes("window.__playAlongVersion='0.10.27'"));
+ assert.ok(js.includes("window.__playAlongVersion='0.10.28'"));
  assert.ok(js.includes('function musicCreateTempoTimeline('));
  assert.ok(js.includes('function musicSecondsToBeat('));
  assert.ok(js.includes('function musicBarGrid('));
@@ -53,4 +53,16 @@ test('migration baseline retained for auditing; CSS preserved',()=>{
  const legacyCss=css.split('/* FG-00 appended styles; original CSS above is unchanged. */')[0];
  assert.equal(hash(legacyCss.replace(/\r\n/g,'\n')),baseline.css_sha256);
  assert.match(css,/\.fingerGuideControls\{/);
+});
+
+test('generated PNG hands are packaged with intact transparent image bytes',()=>{
+ const names=['left-hand.png','right-hand.png'];
+ for(const name of names){
+  const original=fs.readFileSync(path.join(root,'src/assets/finger-guidance',name));
+  const deployed=fs.readFileSync(path.join(root,'dist/assets/finger-guidance',name));
+  assert.ok(original.length>10000&&original.length<120000,'reasonable offline image size');
+  assert.equal(original.subarray(0,8).toString('hex'),'89504e470d0a1a0a');
+  assert.ok(original.readUInt32BE(16)>250&&original.readUInt32BE(20)>400);
+  assert.deepEqual(deployed,original,'build must not corrupt image bytes');
+ }
 });
