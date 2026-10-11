@@ -28,7 +28,7 @@ const solo=begin+'<measure number="1"><attributes><divisions>480</divisions></at
  '<note><pitch><step>F</step><octave>4</octave></pitch><duration>480</duration><notations><technical><fingering>9</fingering></technical></notations></note>'+
  '</measure></part></score-partwise>';
 const tie='<score-partwise version="4.0"><part-list><score-part id="P1"><part-name>Right hand</part-name></score-part></part-list>'+
- '<part id="P1"><measure number="1"><attributes><divisions>480</divisions></attributes>'+
+ '<part id="P1"><measure number="1" implicit="yes"><attributes><divisions>480</divisions></attributes>'+
  '<note><pitch><step>F</step><octave>4</octave></pitch><duration>480</duration><tie type="start"/>'+
  '<notations><technical><fingering>4</fingering></technical></notations></note></measure>'+
  '<measure number="2"><note><pitch><step>F</step><octave>4</octave></pitch><duration>480</duration><tie type="stop"/>'+
