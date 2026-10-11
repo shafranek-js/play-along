@@ -38,7 +38,7 @@ function libraryDB(){return new Promise((resolve,reject)=>{
  };
  q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error);q.onblocked=()=>reject(Error('Закрой другие вкладки Play Along, чтобы обновить хранилище'));
 })}
-async function libraryTransaction(store,mode,run){const db=await libraryDB();try{return await new Promise((resolve,reject)=>{let t=db.transaction(store,mode),q=run(t.objectStore(store));t.oncomplete=()=>resolve(q?.result);t.onerror=()=>reject(t.error);t.onabort=()=>reject(t.error);})}finally{db.close()}}
+async function libraryTransaction(store,mode,run){const db=await libraryDB();try{return await new Promise((resolve,reject)=>{let t=db.transaction(store,mode),q=run(t.objectStore(store));t.oncomplete=()=>resolve(q?.result);t.onerror=()=>reject(t.error);t.onabort=()=>reject(t.error??new Error('Операция с библиотекой отменена'));})}finally{db.close()}}
 async function loadLibraryIndex(){try{collectionIndex=await libraryTransaction('workIndex','readonly',s=>s.getAll())||[];favoritesV08=new Set(await libraryTransaction('prefs','readonly',s=>s.get('favorites'))||[]);collectionReady=true;renderLibrary();}catch(e){collectionReady=true;setLibraryStatus('Браузер не разрешил доступ к библиотеке: '+e.message);renderLibrary()}}
 // Binary payloads are requested only when a user opens an individual piece.
 async function libraryReadBinary(id){
@@ -52,12 +52,14 @@ async function libraryWriteWork(entryOrId,remove=false){
   return await new Promise((resolve,reject)=>{
    const tx=db.transaction(['works','workIndex'],'readwrite');
    const works=tx.objectStore('works'),index=tx.objectStore('workIndex');
+   let abortReason=null;
    if(remove){works.delete(entryOrId);index.delete(entryOrId)}
    else {
     const request=works.get(entryOrId.id);
     request.onsuccess=()=>{
      const present=request.result;
      if(present&&!libraryBuffersEqual(present.data,entryOrId.data)){
+      abortReason=new Error('Конфликт ID музыкального файла '+entryOrId.id+': исходный файл сохранён без изменений.');
       console.error('Different musical bytes share the same ID; keeping existing work',entryOrId.id);
       tx.abort();return;
      }
@@ -65,8 +67,8 @@ async function libraryWriteWork(entryOrId,remove=false){
     };
    }
    tx.oncomplete=()=>resolve(true);
-   tx.onerror=()=>reject(tx.error);
-   tx.onabort=()=>reject(tx.error);
+   tx.onerror=()=>reject(abortReason??tx.error??new Error('Ошибка сохранения музыкального файла'));
+   tx.onabort=()=>reject(abortReason??tx.error??new Error('Сохранение музыкального файла отменено'));
   });
  }finally{db.close()}
 }
