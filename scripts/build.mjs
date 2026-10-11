@@ -31,6 +31,19 @@ fs.mkdirSync(path.join(dist, 'assets'), {recursive:true});
 fs.writeFileSync(path.join(dist, 'assets/app.js'), js);
 fs.copyFileSync(path.join(root, 'src/styles/app.css'), path.join(dist, 'assets/app.css'));
 fs.copyFileSync(path.join(root, 'src/index.html'), path.join(dist, 'index.html'));
+
+const handAssetDir=path.join(root,'src/assets/finger-guidance');
+const handDistDir=path.join(dist,'assets/finger-guidance');
+fs.mkdirSync(handDistDir,{recursive:true});
+for(const name of ['left-hand.png','right-hand.png']){
+ const input=path.join(handAssetDir,name);
+ const bytes=fs.readFileSync(input);
+ // PNG signature guard: never deploy a missing/placeholder asset.
+ if(bytes.length<1000||bytes.subarray(0,8).toString('hex')!=='89504e470d0a1a0a')
+  throw Error('Finger Guidance asset is not a PNG: '+name);
+ fs.writeFileSync(path.join(handDistDir,name),bytes);
+}
+
 const vendoredDir = path.join(root, 'node_modules/opensheetmusicdisplay');
 const osmdBundle = path.join(vendoredDir, 'build/opensheetmusicdisplay.min.js');
 if (!fs.existsSync(osmdBundle)) throw Error('OSMD 2.2.0 is missing; run npm install before npm run build');
