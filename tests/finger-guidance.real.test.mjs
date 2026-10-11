@@ -23,7 +23,7 @@ try{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('http://127.0.0.1:'+server.address().port,{waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>window.__prototypeTest&&window.__fingerGuideTest);
- const demoRows=await page.evaluate(()=>[...document.querySelectorAll('#songList .songRow')].map(r=>r.textContent));
+ const demoRows=await page.evaluate(()=>[...document.querySelectorAll('#songList .libv8-main')].map(r=>r.textContent));
  assert.ok(demoRows.some(t=>t.includes('две руки · C–F–G–C')),
   'Two-hand demo must be accessible from the song list: '+JSON.stringify(demoRows));
 
