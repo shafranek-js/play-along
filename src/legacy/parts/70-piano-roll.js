@@ -22,8 +22,8 @@ let pianoGeom=null,lastCanvasSize={w:0,h:0},keyboardTop=0,keyboardBottom=0,keybo
 // These are hand-entered teaching fixtures. No arbitrary MIDI is fingered here.
 // Finger numbers (1 thumb ... 5 little finger) are not observable through Web MIDI.
 const FINGER_GUIDANCE_PALETTE={
- RH:{ink:'#4b94ff',fill:'rgba(74,143,240,.29)',light:'rgba(125,178,249,.5)'},
- LH:{ink:'#ec9866',fill:'rgba(242,158,104,.29)',light:'rgba(244,188,141,.5)'}
+ RH:{ink:'#cd7d4f',fill:'rgba(229,157,112,.29)',light:'rgba(245,195,155,.5)'},
+ LH:{ink:'#397be2',fill:'rgba(73,134,234,.29)',light:'rgba(134,180,247,.5)'}
 };
 function fingerGuidanceSteps(){
  if(!current||state.adaptMode!=='original')return [];
@@ -83,59 +83,80 @@ function drawFingerGuidanceBadge(c,keyY,keyboardH,k,finger,hand,{preview=false}=
  c.fillStyle='#fff';c.font='bold 12px system-ui';c.textAlign='center';c.textBaseline='middle';
  c.fillText(String(finger),k.center,y+.5);c.restore();
 }
-// FG-01: reusable generated PNG sprites, not copied from PianGo.
-// Only the fingertip-to-key horizontal registration is approximate; labels
-// remain tied to real score pitches. No claim of detecting played fingers.
-const FINGER_GUIDANCE_SPRITES={
- LH:{url:'./assets/finger-guidance/left-hand.png',aspect:438/520,tipX:{1:.946,2:.637,3:.441,4:.263,5:.052}},
- RH:{url:'./assets/finger-guidance/right-hand.png',aspect:342/520,tipX:{1:.052,2:.296,3:.511,4:.714,5:.928}}
-};
+// FG-01A: original user-provided hand poses: 7 for LH and 7 for RH.
+// Each finger silhouette is a distinct PNG. Finger contact markers remain
+// driven by the score and pianoKeyGeometry, NEVER guessed from a bitmap.
+const FINGER_GUIDANCE_POSE_NAMES={1:'thumb',2:'index',3:'middle',4:'ring',5:'pinky'};
 const FINGER_GUIDANCE_IMAGES={};
-for(const hand of ['LH','RH']){
+const FINGER_GUIDANCE_TIPS={
+ RH:{thumb:{1:.078},index:{2:.270},middle:{3:.475},ring:{4:.690},pinky:{5:.908},
+     spread:{1:.074,2:.285,3:.488,4:.704,5:.917}},
+ LH:{thumb:{1:.921},index:{2:.730},middle:{3:.515},ring:{4:.310},pinky:{5:.091},
+     spread:{1:.923,2:.706,3:.505,4:.302,5:.088}}
+};
+// Height of the active fingertip within each original image. This is only
+// visual registration; scoring/actual keyboard interaction does not use it.
+const FINGER_GUIDANCE_TIP_Y={
+ thumb:.40,index:.035,middle:.04,ring:.055,pinky:.075,spread:.075
+};
+function fingerGuidancePoseName(items,hand){
+ const notes=(items||[]).filter(n=>n.hand===hand&&Number.isInteger(n.finger));
+ if(!notes.length)return 'rest';
+ if(notes.length>1)return 'spread';
+ return FINGER_GUIDANCE_POSE_NAMES[notes[0].finger]||'rest';
+}
+function fingerGuidanceGetImage(hand,pose){
+ if(!['LH','RH'].includes(hand))return null;
+ const name=['thumb','index','middle','ring','pinky','rest','spread'].includes(pose)?pose:'rest';
+ const id=hand+':'+name;
+ if(FINGER_GUIDANCE_IMAGES[id])return FINGER_GUIDANCE_IMAGES[id];
  const image=new Image();
- const entry=FINGER_GUIDANCE_IMAGES[hand]={image,loaded:false,error:false};
- image.onload=()=>{entry.loaded=true;if(state.fingerGuidanceMode!=='off'&&current)renderCanvas();};
- image.onerror=()=>{entry.error=true;if(state.fingerGuidanceMode!=='off'&&current)renderCanvas();};
- image.src=FINGER_GUIDANCE_SPRITES[hand].url;
+ const entry=FINGER_GUIDANCE_IMAGES[id]={image,loaded:false,error:false,hand,pose:name};
+ image.onload=()=>{entry.loaded=true;if(state.fingerGuidanceMode!=='off'&&current)renderCanvas()};
+ image.onerror=()=>{entry.error=true;if(state.fingerGuidanceMode!=='off'&&current)renderCanvas()};
+ // Lazy load: do not transfer 14 images when guidance is disabled.
+ const side=hand==='LH'?'left':'right';
+ image.src='./assets/finger-guidance/poses/'+side+'/'+side+'-'+name+'.png';
+ return entry;
 }
 function fingerGuidanceSpritePlacement(notes,hand,geom,keyboardH,tail=0){
- const sprite=FINGER_GUIDANCE_SPRITES[hand],items=notes.filter(n=>n.hand===hand&&geom.byPitch.has(n.pitch));
+ if(!geom?.whites?.length)return null;
+ const items=(notes||[]).filter(n=>n.hand===hand&&Number.isInteger(n.finger)&&geom.byPitch.has(n.pitch));
  if(!items.length)return null;
- // A static pose can shift/scale as a UNIT, but cannot independently bend
- // all fingers. Least-squares registration avoids telling a player a false
- // story about impossible contact when chords disagree with the reference.
- const unit=geom.whites[0]?.w||21,referenceW=unit*5.15;
- const data=items.map(n=>({finger:n.finger,x:geom.byPitch.get(n.pitch).center,
-  tx:sprite.tipX[n.finger]}));
- if(data.some(x=>!Number.isFinite(x.tx)))return null;
+ const pose=fingerGuidancePoseName(items,hand),tips=FINGER_GUIDANCE_TIPS[hand][pose];
+ const unit=geom.whites[0].w,refW=unit*(pose==='spread'?5.25:4.85);
+ const data=items.map(n=>({finger:n.finger,x:geom.byPitch.get(n.pitch).center,tx:tips[n.finger]}));
+ if(data.some(n=>!Number.isFinite(n.tx)))return null;
  const mx=data.reduce((a,b)=>a+b.tx,0)/data.length;
  const my=data.reduce((a,b)=>a+b.x,0)/data.length;
- let width=referenceW;
- if(data.length>=2){
+ let width=refW;
+ if(data.length>1){
   const covariance=data.reduce((a,b)=>a+(b.tx-mx)*(b.x-my),0);
   const variance=data.reduce((a,b)=>a+(b.tx-mx)**2,0);
-  if(variance<.0001||covariance<=0)return null;
-  width=clamp(covariance/variance,unit*3.2,unit*6.3);
+  if(variance<.00001||covariance<=0)return null;
+  width=clamp(covariance/variance,unit*3.3,unit*6.6);
  }
  const x=my-mx*width;
  const error=Math.max(...data.map(d=>Math.abs(x+d.tx*width-d.x)));
- // Without joint articulation, never portray a geometrically incorrect
- // fingering as exact, especially for tightly clustered notes / crossovers.
- if(error>Math.max(10,unit*.36))return null;
- const height=width/sprite.aspect;
- const stage=keyboardH+tail;
- // Hands enter the keys from below, as in an overhead piano teaching view.
- const y=keyboardTop+Math.max(7,stage-height-4);
- return {x,y,width,height,error,unit,notes:items,hand};
+ if(error>Math.max(12,unit*.48))return null;
+ const entry=fingerGuidanceGetImage(hand,pose);
+ const iw=entry?.image.naturalWidth||{'thumb':424,'index':294,'middle':292,'ring':313,'pinky':312,'rest':303,'spread':421}[pose];
+ const ih=entry?.image.naturalHeight||{'thumb':558,'index':586,'middle':521,'ring':569,'pinky':545,'rest':532,'spread':592}[pose];
+ const height=width*ih/iw;
+ const key=geom.byPitch.get(items[0].pitch);
+ const tipY=pose==='spread'?.11:FINGER_GUIDANCE_TIP_Y[pose];
+ const registrationY=keyboardTop+keyboardH*(key?.black?.35:.57);
+ const y=registrationY-tipY*height;
+ return {x,y,width,height,error,unit,notes:items,hand,pose};
 }
 function drawFingerGuidanceHand(c,geom,keyY,keyboardH,group,hand,ghost=false,tail=0){
  const placement=fingerGuidanceSpritePlacement(group,hand,geom,keyboardH,tail);
  if(!placement)return null;
- const entry=FINGER_GUIDANCE_IMAGES[hand];
+ const entry=fingerGuidanceGetImage(hand,placement.pose);
  if(!entry?.loaded)return null;
  c.save();
- c.beginPath();c.rect(0,keyY,roll.width,keyboardH+tail);c.clip();
- c.globalAlpha=ghost?.18:.94;
+ c.beginPath();c.rect(0,keyY,lastCanvasSize.w,keyboardH+tail);c.clip();
+ c.globalAlpha=ghost?.25:.87;
  c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';
  c.drawImage(entry.image,placement.x,placement.y,placement.width,placement.height);
  c.restore();
