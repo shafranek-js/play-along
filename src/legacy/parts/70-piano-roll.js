@@ -16,7 +16,7 @@ function pianoKeyGeometry(min,max,w){
  for(const k of keys){k.x=(k.cx-k.unitW/2-left)*scale;k.w=k.unitW*scale;k.center=k.x+k.w/2;}
  return {keys,byPitch:new Map(keys.map(k=>[k.pitch,k])),min,max,scale,whites:keys.filter(k=>!k.black),blacks:keys.filter(k=>k.black)};
 }
-let pianoGeom=null,lastCanvasSize={w:0,h:0},keyboardTop=0,keyboardBlackH=0;
+let pianoGeom=null,lastCanvasSize={w:0,h:0},keyboardTop=0,keyboardBottom=0,keyboardBlackH=0;
 
 // ===== FG-00: opt-in visual guidance over the EXISTING Piano Roll keyboard =====
 // These are hand-entered teaching fixtures. No arbitrary MIDI is fingered here.
@@ -101,8 +101,9 @@ function drawFingerGuidanceHand(c,geom,keyY,keyboardH,group,hand,ghost=false){
    :({1:.64,2:.555,3:.515,4:.555,5:.625}[p.finger]));
   return {...p,baseX,baseY,tipY};
  }).sort((a,b)=>a.baseX-b.baseX);
- const wristY=keyY+H*1.01;
- const innerWristY=keyY+H*.93;
+ const tail=Math.max(0,lastCanvasSize.h-(keyY+H));
+ const wristY=keyY+H+tail*.82;
+ const innerWristY=keyY+H+tail*.10;
  const leftWrist=cx-u*.96,rightWrist=cx+u*.96;
  const path=new Path2D();
  path.moveTo(leftWrist,wristY);
@@ -235,8 +236,8 @@ function renderCanvas(){
  if(!current)return;
  const {w,h}=resizeCanvas();lastCanvasSize={w,h};const c=roll.getContext('2d');
  c.clearRect(0,0,w,h);c.fillStyle='#111720';c.fillRect(0,0,w,h);
- const r=noteRange(),notes=notesToShow(),handsAllowed=h>=310&&['hands','ghost'].includes(state.fingerGuidanceMode),keyboardH=handsAllowed?Math.max(190,Math.min(244,h*.40)):Math.min(90,Math.max(64,h*.22)),keyY=h-keyboardH,strikeY=keyY-10,pxPerSec=Math.max(8,(strikeY-14)/6);
- keyboardTop=keyY;keyboardBlackH=keyboardH*.61;
+ const r=noteRange(),notes=notesToShow(),handsAllowed=h>=370&&['hands','ghost'].includes(state.fingerGuidanceMode),handTail=handsAllowed?Math.max(50,Math.min(84,h*.12)):0,keyboardH=handsAllowed?Math.max(170,Math.min(216,h*.34)):Math.min(90,Math.max(64,h*.22)),keyY=h-keyboardH-handTail,strikeY=keyY-10,pxPerSec=Math.max(8,(strikeY-14)/6);
+ keyboardTop=keyY;keyboardBottom=keyY+keyboardH;keyboardBlackH=keyboardH*.61;
  const pad=4,geom=pianoGeom=pianoKeyGeometry(r.min,r.max,w-2*pad);
  // Shift computed geometry into the padded canvas coordinate system.
  geom.keys.forEach(k=>{k.x+=pad;k.center+=pad;});
@@ -311,6 +312,12 @@ function renderCanvas(){
  // Realistic two-layer piano: white naturals full height, black accidentals
  // above the whites. Both are driven by the calibrated MIDI note range.
  c.fillStyle='#090d13';c.fillRect(0,keyY,w,keyboardH);
+ if(handTail){
+  const bg=c.createLinearGradient(0,keyboardBottom,0,h);
+  bg.addColorStop(0,'#17202f');bg.addColorStop(1,'#111824');
+  c.fillStyle=bg;c.fillRect(0,keyboardBottom,w,handTail);
+  c.strokeStyle='#3e4d63';c.lineWidth=1;c.beginPath();c.moveTo(0,keyboardBottom+.5);c.lineTo(w,keyboardBottom+.5);c.stroke();
+ }
  for(const k of geom.whites){
   const physical=state.highlight&&midiHeld.has(k.pitch),audible=state.highlight&&playbackHeld.has(k.pitch);
   const down=physical||audible,offset=down?2:0;
@@ -337,7 +344,7 @@ function noteHit(e){const box=roll.getBoundingClientRect(),x=e.clientX-box.left,
 function virtualKeyAt(e){
  if(!pianoGeom)return null;
  const rect=roll.getBoundingClientRect(),x=e.clientX-rect.left,y=e.clientY-rect.top;
- if(y<keyboardTop||y>rect.height)return null;
+ if(y<keyboardTop||y>keyboardBottom)return null;
  // Black keys win hit-testing only over their actual short raised section.
  if(y<=keyboardTop+keyboardBlackH+3){const black=pianoGeom.blacks.find(k=>x>=k.x&&x<k.x+k.w);if(black)return black.pitch;}
  const natural=pianoGeom.whites.find(k=>x>=k.x&&x<k.x+k.w);
