@@ -12,35 +12,41 @@
       "label": "Bach Minuet in G major (dataset label)",
       "path": "stage3_pieces/piece_bach_minuet_g_major_100bpm.fingering.txt",
       "expectedNotes": 32,
-      "sourceUrl": "https://huggingface.co/datasets/riyaranjan/piano-protege-curriculum/blob/1b1ef9c1a17d3eb0ff73c701b6f4685955d4833c/stage3_pieces/piece_bach_minuet_g_major_100bpm.fingering.txt"
+      "sourceUrl": "https://huggingface.co/datasets/riyaranjan/piano-protege-curriculum/blob/1b1ef9c1a17d3eb0ff73c701b6f4685955d4833c/stage3_pieces/piece_bach_minuet_g_major_100bpm.fingering.txt",
+      "sha256": "a246d0741c0d5bd678ab25fde44de70ef94827adb133645ef5cfb77839d2725d"
     },
     {
       "id": "fur-elise-theme",
       "label": "Für Elise theme (dataset arrangement)",
       "path": "stage3_pieces/piece_fur_elise_theme_100bpm.fingering.txt",
       "expectedNotes": 36,
-      "sourceUrl": "https://huggingface.co/datasets/riyaranjan/piano-protege-curriculum/blob/1b1ef9c1a17d3eb0ff73c701b6f4685955d4833c/stage3_pieces/piece_fur_elise_theme_100bpm.fingering.txt"
+      "sourceUrl": "https://huggingface.co/datasets/riyaranjan/piano-protege-curriculum/blob/1b1ef9c1a17d3eb0ff73c701b6f4685955d4833c/stage3_pieces/piece_fur_elise_theme_100bpm.fingering.txt",
+      "sha256": "51f380234b4a43a1e1192a42d7cd667f0430167c0867a8f61545aff50acf1f41"
     },
     {
       "id": "au-clair-de-la-lune",
       "label": "Au clair de la lune",
       "path": "stage3_pieces/piece_au_clair_de_la_lune_100bpm.fingering.txt",
       "expectedNotes": 22,
-      "sourceUrl": "https://huggingface.co/datasets/riyaranjan/piano-protege-curriculum/blob/1b1ef9c1a17d3eb0ff73c701b6f4685955d4833c/stage3_pieces/piece_au_clair_de_la_lune_100bpm.fingering.txt"
+      "sourceUrl": "https://huggingface.co/datasets/riyaranjan/piano-protege-curriculum/blob/1b1ef9c1a17d3eb0ff73c701b6f4685955d4833c/stage3_pieces/piece_au_clair_de_la_lune_100bpm.fingering.txt",
+      "sha256": "3b83a5393a3f56e25b234c8a3e970a8052cd450f4b6c30a80a0a1baa0d4fb62a"
     },
     {
       "id": "frere-jacques",
       "label": "Frère Jacques",
       "path": "stage3_pieces/piece_frere_jacques_100bpm.fingering.txt",
       "expectedNotes": 32,
-      "sourceUrl": "https://huggingface.co/datasets/riyaranjan/piano-protege-curriculum/blob/1b1ef9c1a17d3eb0ff73c701b6f4685955d4833c/stage3_pieces/piece_frere_jacques_100bpm.fingering.txt"
+      "sourceUrl": "https://huggingface.co/datasets/riyaranjan/piano-protege-curriculum/blob/1b1ef9c1a17d3eb0ff73c701b6f4685955d4833c/stage3_pieces/piece_frere_jacques_100bpm.fingering.txt",
+      "sha256": "d85bbb2126ba8494a2a5c858f81d5b4d679782c6c3ff72517a2c074daf4183bb"
     },
     {
       "id": "amazing-grace",
       "label": "Amazing Grace",
       "path": "stage3_pieces/piece_amazing_grace_100bpm.fingering.txt",
       "expectedNotes": 26,
-      "sourceUrl": "https://huggingface.co/datasets/riyaranjan/piano-protege-curriculum/blob/1b1ef9c1a17d3eb0ff73c701b6f4685955d4833c/stage3_pieces/piece_amazing_grace_100bpm.fingering.txt"
+      "sourceUrl": "https://huggingface.co/datasets/riyaranjan/piano-protege-curriculum/blob/1b1ef9c1a17d3eb0ff73c701b6f4685955d4833c/stage3_pieces/piece_amazing_grace_100bpm.fingering.txt",
+      "sha256": "f2e5ec3f1f3d909d009bf235983ad601594a65785e3190a6252f74ee1846f61c"
     }
-  ]
+  ],
+  "integrity": "Full-source SHA-256 fingerprints verified on initial GitHub Actions CI run 38172475599, from pinned Hugging Face 1b1ef9c revision. Any mismatch fails closed."
 }
