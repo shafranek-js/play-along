@@ -103,7 +103,6 @@ function drawFingerGuidanceHand(c,geom,keyY,keyboardH,group,hand,ghost=false){
  }).sort((a,b)=>a.baseX-b.baseX);
  const tail=Math.max(0,lastCanvasSize.h-(keyY+H));
  const wristY=keyY+H+tail*.82;
- const innerWristY=keyY+H+tail*.10;
  const leftWrist=cx-u*.96,rightWrist=cx+u*.96;
  const path=new Path2D();
  path.moveTo(leftWrist,wristY);
@@ -125,8 +124,8 @@ function drawFingerGuidanceHand(c,geom,keyY,keyboardH,group,hand,ghost=false){
   }
  }
  path.bezierCurveTo(cx+u*2.15,keyY+H*.82,cx+u*1.12,keyY+H*.89,rightWrist,wristY);
- path.lineTo(rightWrist,innerWristY+H*.11);
- path.quadraticCurveTo(cx,wristY+u*.15,leftWrist,innerWristY+H*.11);
+ path.lineTo(rightWrist,wristY+u*.10);
+ path.quadraticCurveTo(cx,wristY+u*.24,leftWrist,wristY+u*.10);
  path.closePath();
  c.save();
  const fill=c.createLinearGradient(0,keyY+H*.38,0,wristY);
