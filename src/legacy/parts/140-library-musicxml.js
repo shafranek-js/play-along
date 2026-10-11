@@ -417,7 +417,25 @@ function readMusicXML(xmlString,filename){
  const title=xmlText(xmlDirect(root,'work'),'work-title',xmlText(root,'movement-title',libraryTitleFile(filename)));
  const creator=[...root.getElementsByTagName('creator')].find(x=>x.getAttribute('type')==='composer');const author=creator?.textContent?.trim()||'MusicXML · импорт';
  const namesById={};for(const p of xmlList(xmlDirect(root,'part-list'),'score-part'))namesById[p.getAttribute('id')]=xmlText(p,'part-name','Партия');
- const segments=[],tempos=[{tick:0,tempo:500000}],ppq=10080;let warnings=new Set();if(repeatExpansion.expanded)warnings.add('Реприза развёрнута: '+repeatExpansion.written+' записанных тактов → '+repeatExpansion.played+' исполняемых. Партитура показывает каждый проход.');else if(repeatExpansion.warning)warnings.add(repeatExpansion.warning);
+ const segments=[],tempos=[{tick:0,tempo:500000}],ppq=10080;let warnings=new Set();
+ // MusicXML fingerings are optional authorial annotations (not inferred).
+ // Preserve only a single unambiguous finger 1..5; never invent one.
+ const authorFinger=(el)=>{
+  const technical=xmlDirect(xmlDirect(el,'notations'),'technical');
+  const annotations=xmlList(technical,'fingering');
+  if(!annotations.length)return null;
+  if(annotations.length!==1||annotations[0].getAttribute('alternate')==='yes'||annotations[0].getAttribute('substitution')==='yes'){
+   warnings.add('Есть альтернативная или заменяемая аппликатура: такие обозначения пока не отображаются.');return null;
+  }
+  const value=annotations[0].textContent.trim();
+  if(!/^[1-5]$/.test(value)){warnings.add('Некоторые обозначения пальцев MusicXML не распознаны (допустимы цифры 1–5).');return null;}
+  return Number(value);
+ };
+ const partHand=(name)=>{
+  if(/(?:\bright\s*hand\b|\bRH\b|mano\s+destra|main\s+droite)/i.test(name))return 'RH';
+  if(/(?:\bleft\s*hand\b|\bLH\b|mano\s+sinistra|main\s+gauche)/i.test(name))return 'LH';
+  return null;
+ };if(repeatExpansion.expanded)warnings.add('Реприза развёрнута: '+repeatExpansion.written+' записанных тактов → '+repeatExpansion.played+' исполняемых. Партитура показывает каждый проход.');else if(repeatExpansion.warning)warnings.add(repeatExpansion.warning);
  const durationTicks=(duration,divisions)=>Math.round((Number(duration)||0)/Math.max(1,divisions)*ppq);
  // <sound> is legal both directly inside a measure and under <direction>.
  // It uses the same tick/offset semantics in both locations.
@@ -441,6 +459,12 @@ function readMusicXML(xmlString,filename){
  if(scoreParts.length>1&&!sharedStarts)warnings.add('Число тактов различается между партиями: общая тактовая сетка не используется.');
  for(const part of scoreParts){
   let absolute=0,divisions=1,transposition=0;let beats=4,beatType=4;
+  const partId=part.getAttribute('id')||'part',partName=namesById[partId]||'Партия';
+  const staffNumbers=new Set(xmlList(part,'measure').flatMap(m=>[...m.getElementsByTagName('staff')].map(x=>x.textContent.trim())));
+  const declaredStaves=Math.max(1,...xmlList(part,'measure').flatMap(m=>[...m.getElementsByTagName('staves')].map(x=>Number(x.textContent)||1)));
+  const hasGrandStaff=declaredStaves>1||staffNumbers.size>1;
+  const explicitHand=partHand(partName);
+  let sourceOrdinal=0;
   const voices=new Map();const ties=new Map();
   let measureIndex=0;
   for(const measure of xmlList(part,'measure')){
@@ -483,12 +507,23 @@ function readMusicXML(xmlString,filename){
     const pitchNumber=({C:0,D:2,E:4,F:5,G:7,A:9,B:11})[step]+alter+(octave+1)*12+transposition;
     if(!Number.isFinite(pitchNumber)||pitchNumber<0||pitchNumber>127||Math.round(pitchNumber)!==pitchNumber)continue;
     const voice=xmlText(el,'voice','1'),staff=xmlText(el,'staff','1'),key=staff+'|'+voice;
+    const finger=authorFinger(el);
+    const hand=explicitHand||(hasGrandStaff?(staff==='1'?'RH':staff==='2'?'LH':null):null);
     const id=part.getAttribute('id')||'part',fullKey=id+'|'+key;
     let list=voices.get(key);if(!list){list=[];voices.set(key,list)}
     const tied=xmlList(el,'tie').map(t=>t.getAttribute('type'));
-    const note={pitch:pitchNumber,tick:absolute+onset,len:Math.max(1,noteDur),velocity:85,channel:0};
+    const note={pitch:pitchNumber,tick:absolute+onset,len:Math.max(1,noteDur),velocity:85,channel:0,
+     noteId:'xml:'+partId+':'+measureIndex+':'+(++sourceOrdinal),partId,staff,voice};
+    if(finger!==null){note.finger=finger;note.fingeringSource='musicxml';if(hand)note.hand=hand;}
     const tieKey=fullKey+'|'+pitchNumber;const last=ties.get(tieKey);
-    if(tied.includes('stop')&&last&&Math.abs(last.tick+last.len-note.tick)<=2){last.len+=note.len;if(!tied.includes('start'))ties.delete(tieKey)}
+    if(tied.includes('stop')&&last&&Math.abs(last.tick+last.len-note.tick)<=2){
+     last.len+=note.len;
+     if(finger!==null){
+      if(last.finger==null){last.finger=finger;last.fingeringSource='musicxml';if(hand)last.hand=hand;}
+      else if(last.finger!==finger)warnings.add('Связанные лигой ноты содержат разные номера пальцев: первое обозначение сохранено, возможная замена пальца не воспроизводится.');
+     }
+     if(!tied.includes('start'))ties.delete(tieKey);
+    }
     else{list.push(note);if(tied.includes('start'))ties.set(tieKey,note)}
     if(xmlDirect(el,'notations')?.getElementsByTagName('ornaments')?.length)warnings.add('Украшения не развёрнуты в отдельные MIDI-ноты.');
    }
@@ -502,13 +537,17 @@ function readMusicXML(xmlString,filename){
    }else absolute+=spanTicks;
    measureIndex++;
   }
-  for(const [key,notes] of voices)if(notes.length)segments.push({name:(namesById[part.getAttribute('id')]||'Партия')+' · '+key.replace('|','/'),notes});
+  for(const [key,notes] of voices)if(notes.length)segments.push({name:partName+' · '+key.replace('|','/'),notes});
  }
  if(!segments.length)throw Error('В MusicXML не обнаружены воспроизводимые ноты');
  if(segments.reduce((sum,t)=>sum+t.notes.length,0)>25000)throw Error('В MusicXML больше 25 000 нот');
  const tempoMap=musicCreateTempoTimeline(tempos,ppq);
  const toSeconds=tick=>musicTickToSeconds(tempoMap,ppq,tick);
- const tracks=segments.map((s,i)=>({name:s.name,notes:s.notes.map(n=>({pitch:n.pitch,start:toSeconds(n.tick),duration:Math.max(.025,toSeconds(n.tick+n.len)-toSeconds(n.tick)),velocity:n.velocity,track:i,channel:0}))}));
+ const tracks=segments.map((s,i)=>({name:s.name,notes:s.notes.map(n=>({
+  pitch:n.pitch,start:toSeconds(n.tick),duration:Math.max(.025,toSeconds(n.tick+n.len)-toSeconds(n.tick)),velocity:n.velocity,track:i,channel:0,
+  noteId:n.noteId,partId:n.partId,staff:n.staff,voice:n.voice,
+  ...(n.finger!=null?{finger:n.finger,fingeringSource:n.fingeringSource,...(n.hand?{hand:n.hand}:{})}:{})
+ }))}));
  return{id:'xml-'+Date.now(),title:title.slice(0,100),author:author.slice(0,110),type:'import',format:'MusicXML',tracks,warnings:[...warnings],notationXML:playbackXml,originalNotationXML:repeatExpansion.expanded?safeXml:undefined,scoreTempoMap:tempoMap.map(t=>({beat:t.tick/ppq,sec:t.sec,tempo:t.tempo}))};
 }
 async function zipUnpackMXL(arrayBuffer){
