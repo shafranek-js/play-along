@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
 import {readPitchSPN,parsePIGFingering,partitionMonophonicHand} from '../src/core/fingering-repertoire-pig.mjs';
 import {compareRepertoire,corpus,loadRepertoireSource} from '../scripts/fingering-repertoire-benchmark.mjs';
 
@@ -105,7 +106,8 @@ test('FG-02G pinned fetch is validated against a fixed revision and exact note c
  let seenUrl=null;
  const fake=async url=>{seenUrl=url;return {ok:true,url:'https://huggingface.co/test',
   text:async()=>text}};
- const r=await loadRepertoireSource(entry,{download:fake});
+ const sample={...entry,sha256:createHash('sha256').update(text).digest('hex')};
+ const r=await loadRepertoireSource(sample,{download:fake});
  assert.equal(r.parsed.notes.length,entry.expectedNotes);
  assert.match(seenUrl,new RegExp(corpus.revision));
  assert.match(r.sha256,/^[0-9a-f]{64}$/);
@@ -120,4 +122,19 @@ test('FG-02G rejects manifest path traversal before network request',async()=>{
  await assert.rejects(loadRepertoireSource({id:'evil',path:'../../user-data.txt',
    expectedNotes:1},{download:async()=>{throw Error('SHOULD_NOT_BE_FETCHED')}}),
   /SOURCE_MANIFEST_INVALID/);
+});
+
+test('FG-02G same-count upstream data changed without a revision bump is rejected by SHA-256',async()=>{
+ const entry=corpus.cases[0];
+ const changed=pig(Array.from({length:entry.expectedNotes},(_,i)=>
+  line(i,i*.6,i*.6+.5,'D4',i%5+1)));
+ const fake=async ()=>({ok:true,url:'https://huggingface.co/test',text:async()=>changed});
+ await assert.rejects(loadRepertoireSource(entry,{download:fake}),/SOURCE_SHA256_MISMATCH/);
+});
+test('FG-02G rejects altered pinned source checksum before scoring',async()=>{
+ const entry={...corpus.cases[0],sha256:'invalid'};
+ const text=pig(Array.from({length:entry.expectedNotes},(_,i)=>
+  line(i,i*.6,i*.6+.5,'C4',i%5+1)));
+ const fake=async ()=>({ok:true,url:'https://huggingface.co/test',text:async()=>text});
+ await assert.rejects(loadRepertoireSource(entry,{download:fake}),/SOURCE_MANIFEST_INVALID_SHA256/);
 });
