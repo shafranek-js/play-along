@@ -55,14 +55,20 @@ test('migration baseline retained for auditing; CSS preserved',()=>{
  assert.match(css,/\.fingerGuideControls\{/);
 });
 
-test('generated PNG hands are packaged with intact transparent image bytes',()=>{
- const names=['left-hand.png','right-hand.png'];
- for(const name of names){
-  const original=fs.readFileSync(path.join(root,'src/assets/finger-guidance',name));
-  const deployed=fs.readFileSync(path.join(root,'dist/assets/finger-guidance',name));
-  assert.ok(original.length>10000&&original.length<120000,'reasonable offline image size');
+test('all 14 original user PNG hand poses are packaged with intact RGBA bytes',()=>{
+ const poses=['thumb','index','middle','ring','pinky','rest','spread'];
+ let count=0;
+ for(const side of ['left','right'])for(const pose of poses){
+  const name=side+'-'+pose+'.png';
+  const rel='assets/finger-guidance/poses/'+side+'/'+name;
+  const original=fs.readFileSync(path.join(root,'src',rel));
+  const deployed=fs.readFileSync(path.join(root,'dist',rel));
+  assert.ok(original.length>10000,'full-quality PNG: '+rel);
   assert.equal(original.subarray(0,8).toString('hex'),'89504e470d0a1a0a');
-  assert.ok(original.readUInt32BE(16)>250&&original.readUInt32BE(20)>400);
-  assert.deepEqual(deployed,original,'build must not corrupt image bytes');
+  assert.ok(original.readUInt32BE(16)>=290&&original.readUInt32BE(20)>=520,rel);
+  assert.equal(original[25],6,'RGBA PNG with alpha: '+rel);
+  assert.deepEqual(deployed,original,'build must not alter the user asset: '+rel);
+  count++;
  }
+ assert.equal(count,14);
 });
