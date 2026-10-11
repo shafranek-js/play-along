@@ -1,0 +1,521 @@
+{
+  "schema": "fg02c-sourced-reference-v1",
+  "comment": "Reference-specific educational fingering, NOT a single globally optimal solution. Reference labels and exact octave/direction matter; do not use outputs as player guidance.",
+  "cases": [
+    {
+      "id": "C-major-1oct-RH-asc",
+      "category": "scale",
+      "hand": "RH",
+      "pitches": [
+        60,
+        62,
+        64,
+        65,
+        67,
+        69,
+        71,
+        72
+      ],
+      "expected": [
+        1,
+        2,
+        3,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "source": "https://piano.org/scales/major/c/",
+      "engine": "mono",
+      "description": "C major, one octave ascending, C4–C5"
+    },
+    {
+      "id": "C-major-1oct-RH-desc",
+      "category": "scale",
+      "hand": "RH",
+      "pitches": [
+        72,
+        71,
+        69,
+        67,
+        65,
+        64,
+        62,
+        60
+      ],
+      "expected": [
+        5,
+        4,
+        3,
+        2,
+        1,
+        3,
+        2,
+        1
+      ],
+      "source": "https://piano.org/scales/major/c/",
+      "engine": "mono",
+      "description": "C major, one octave descending, C5–C4"
+    },
+    {
+      "id": "G-major-1oct-RH-asc",
+      "category": "scale",
+      "hand": "RH",
+      "pitches": [
+        67,
+        69,
+        71,
+        72,
+        74,
+        76,
+        78,
+        79
+      ],
+      "expected": [
+        1,
+        2,
+        3,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "source": "https://piano.org/scales/major/g/",
+      "engine": "mono",
+      "description": "G major, F sharp, G4–G5"
+    },
+    {
+      "id": "G-major-1oct-RH-desc",
+      "category": "scale",
+      "hand": "RH",
+      "pitches": [
+        79,
+        78,
+        76,
+        74,
+        72,
+        71,
+        69,
+        67
+      ],
+      "expected": [
+        5,
+        4,
+        3,
+        2,
+        1,
+        3,
+        2,
+        1
+      ],
+      "source": "https://piano.org/scales/major/g/",
+      "engine": "mono",
+      "description": "G major, descending G5–G4"
+    },
+    {
+      "id": "C-major-1oct-LH-asc",
+      "category": "scale",
+      "hand": "LH",
+      "pitches": [
+        60,
+        62,
+        64,
+        65,
+        67,
+        69,
+        71,
+        72
+      ],
+      "expected": [
+        5,
+        4,
+        3,
+        2,
+        1,
+        3,
+        2,
+        1
+      ],
+      "source": "https://piano.org/scales/major/c/",
+      "engine": "mono",
+      "description": "C major, one octave ascending, C4–C5"
+    },
+    {
+      "id": "C-major-1oct-LH-desc",
+      "category": "scale",
+      "hand": "LH",
+      "pitches": [
+        72,
+        71,
+        69,
+        67,
+        65,
+        64,
+        62,
+        60
+      ],
+      "expected": [
+        1,
+        2,
+        3,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "source": "https://piano.org/scales/major/c/",
+      "engine": "mono",
+      "description": "C major, one octave descending, C5–C4"
+    },
+    {
+      "id": "G-major-1oct-LH-asc",
+      "category": "scale",
+      "hand": "LH",
+      "pitches": [
+        67,
+        69,
+        71,
+        72,
+        74,
+        76,
+        78,
+        79
+      ],
+      "expected": [
+        5,
+        4,
+        3,
+        2,
+        1,
+        3,
+        2,
+        1
+      ],
+      "source": "https://piano.org/scales/major/g/",
+      "engine": "mono",
+      "description": "G major, F sharp, G4–G5"
+    },
+    {
+      "id": "G-major-1oct-LH-desc",
+      "category": "scale",
+      "hand": "LH",
+      "pitches": [
+        79,
+        78,
+        76,
+        74,
+        72,
+        71,
+        69,
+        67
+      ],
+      "expected": [
+        1,
+        2,
+        3,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "source": "https://piano.org/scales/major/g/",
+      "engine": "mono",
+      "description": "G major, descending G5–G4"
+    },
+    {
+      "id": "C-major-2oct-RH-asc",
+      "category": "scale",
+      "hand": "RH",
+      "pitches": [
+        60,
+        62,
+        64,
+        65,
+        67,
+        69,
+        71,
+        72,
+        74,
+        76,
+        77,
+        79,
+        81,
+        83,
+        84
+      ],
+      "expected": [
+        1,
+        2,
+        3,
+        1,
+        2,
+        3,
+        4,
+        1,
+        2,
+        3,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "source": "https://piano.org/scales/major/c/",
+      "engine": "mono",
+      "description": "C4–C6 continuous ascent"
+    },
+    {
+      "id": "C-major-2oct-LH-asc",
+      "category": "scale",
+      "hand": "LH",
+      "pitches": [
+        60,
+        62,
+        64,
+        65,
+        67,
+        69,
+        71,
+        72,
+        74,
+        76,
+        77,
+        79,
+        81,
+        83,
+        84
+      ],
+      "expected": [
+        5,
+        4,
+        3,
+        2,
+        1,
+        3,
+        2,
+        1,
+        4,
+        3,
+        2,
+        1,
+        3,
+        2,
+        1
+      ],
+      "source": "https://piano.org/scales/major/c/",
+      "engine": "mono",
+      "description": "C4–C6 continuous ascent"
+    },
+    {
+      "id": "C-arpeggio-1oct-RH-finish",
+      "category": "arpeggio",
+      "hand": "RH",
+      "pitches": [
+        60,
+        64,
+        67,
+        72
+      ],
+      "expected": [
+        1,
+        2,
+        3,
+        5
+      ],
+      "source": "https://piano.org/arpeggios/major/",
+      "engine": "mono",
+      "description": "C E G C, terminates on high C (NOT continued)"
+    },
+    {
+      "id": "C-arpeggio-1oct-LH-finish",
+      "category": "arpeggio",
+      "hand": "LH",
+      "pitches": [
+        60,
+        64,
+        67,
+        72
+      ],
+      "expected": [
+        5,
+        3,
+        2,
+        1
+      ],
+      "source": "https://piano.org/arpeggios/major/",
+      "engine": "mono",
+      "description": "C E G C, terminates on high C, one of accepted variations"
+    },
+    {
+      "id": "C-arpeggio-2oct-RH-continuous",
+      "category": "arpeggio",
+      "hand": "RH",
+      "pitches": [
+        60,
+        64,
+        67,
+        72,
+        76,
+        79,
+        84
+      ],
+      "expected": [
+        1,
+        2,
+        3,
+        1,
+        2,
+        3,
+        5
+      ],
+      "source": "https://piano.org/arpeggios/major/",
+      "engine": "mono",
+      "description": "C E G C E G C, thumb moves for next octave"
+    },
+    {
+      "id": "C-arpeggio-2oct-LH-continuous",
+      "category": "arpeggio",
+      "hand": "LH",
+      "pitches": [
+        60,
+        64,
+        67,
+        72,
+        76,
+        79,
+        84
+      ],
+      "expected": [
+        5,
+        3,
+        2,
+        1,
+        3,
+        2,
+        1
+      ],
+      "source": "https://piano.org/arpeggios/major/",
+      "engine": "mono",
+      "description": "C E G C E G C, continuous ascent; method-specific"
+    },
+    {
+      "id": "C-triad-RH-root",
+      "category": "chord",
+      "hand": "RH",
+      "pitches": [
+        60,
+        64,
+        67
+      ],
+      "expected": [
+        1,
+        3,
+        5
+      ],
+      "source": "https://piano.org/chords/major/c/",
+      "engine": "poly",
+      "description": "C4 E4 G4 simultaneous"
+    },
+    {
+      "id": "C-triad-LH-root",
+      "category": "chord",
+      "hand": "LH",
+      "pitches": [
+        48,
+        52,
+        55
+      ],
+      "expected": [
+        5,
+        3,
+        1
+      ],
+      "source": "https://piano.org/chords/major/c/",
+      "engine": "poly",
+      "description": "C3 E3 G3 simultaneous"
+    },
+    {
+      "id": "C-first-inversion-RH",
+      "category": "inversion",
+      "hand": "RH",
+      "pitches": [
+        64,
+        67,
+        72
+      ],
+      "expected": [
+        1,
+        2,
+        5
+      ],
+      "source": "https://www.pianochord.org/c-major.html",
+      "engine": "poly",
+      "description": "E G C: close-position C/E"
+    },
+    {
+      "id": "C-first-inversion-LH",
+      "category": "inversion",
+      "hand": "LH",
+      "pitches": [
+        52,
+        55,
+        60
+      ],
+      "expected": [
+        5,
+        3,
+        1
+      ],
+      "source": "https://www.pianochord.org/c-major.html",
+      "engine": "poly",
+      "description": "E G C: close-position C/E"
+    },
+    {
+      "id": "C-second-inversion-RH",
+      "category": "inversion",
+      "hand": "RH",
+      "pitches": [
+        67,
+        72,
+        76
+      ],
+      "expected": [
+        1,
+        3,
+        5
+      ],
+      "source": "https://www.pianochord.org/c-major.html",
+      "engine": "poly",
+      "description": "G C E: close-position C/G"
+    },
+    {
+      "id": "C-second-inversion-LH",
+      "category": "inversion",
+      "hand": "LH",
+      "pitches": [
+        55,
+        60,
+        64
+      ],
+      "expected": [
+        5,
+        2,
+        1
+      ],
+      "source": "https://www.pianochord.org/c-major.html",
+      "engine": "poly",
+      "description": "G C E: close-position C/G"
+    }
+  ],
+  "sources": {
+    "cScale": "https://piano.org/scales/major/c/",
+    "gScale": "https://piano.org/scales/major/g/",
+    "cArpeggio": "https://piano.org/arpeggios/major/",
+    "cChord": "https://piano.org/chords/major/c/",
+    "cInversions": "https://www.pianochord.org/c-major.html"
+  }
+}
