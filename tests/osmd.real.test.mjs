@@ -336,6 +336,32 @@ try{
   'Fully finished note was incorrectly retriggered');
  await page.evaluate(()=>window.__prototypeTest.pause());
  console.log('SEEK / RESUME: sustained notes recover remaining duration without restarting ended notes: PASS');
+ // A11: Transpose must compute its arrangement AFTER normalizing the
+ // selected shift. A low C2 (36) must be transposed to C3 (48) in preview25.
+ await page.evaluate(()=>{
+  window.__prototypeTest.loadSong({
+   id:'transpose-shift-fixture',title:'Transpose shift',type:'demo',tempo:120,
+   tracks:[{name:'Piano',notes:[
+    {pitch:36,start:0,duration:.5,velocity:90,track:0}
+   ]}]
+  });
+  window.__prototypeTest.setMode('tempo');
+  window.__prototypeTest.setTarget('preview25','transpose');
+ });
+ const shifted=await page.evaluate(()=>({
+  selected:window.__prototypeTest.state.adaptShift,
+  ui:document.querySelector('#adaptShift').value,
+  feasible:window.__prototypeTest.capability.arrangement.feasible,
+  plan:window.__prototypeTest.capability.arrangement.notes.map(n=>n.pitch),
+  actual:window.__prototypeTest.adaptedNotes.map(n=>n.pitch)
+ }));
+ assert.deepEqual(shifted,{selected:12,ui:'12',feasible:true,plan:[48],actual:[48]},
+  'Transpose must use one feasible +12 shift for UI, plan, and playback');
+ await page.evaluate(()=>window.__prototypeTest.play());
+ assert.equal(await page.evaluate(()=>window.__prototypeTest.isPlaying),true,
+  'An incorrectly stale infeasible plan blocked Play');
+ await page.evaluate(()=>window.__prototypeTest.pause());
+ console.log('TRANSPOSE: corrected +12 shift is feasible in UI, adapted notes and playback: PASS');
  console.log('MIDI PAUSE REGRESSION: held note closes on pause; late NoteOff cannot corrupt next note: PASS');
  console.log('POLYPHONY REGRESSION: Tempo+Wait unison, key release, repeated pitch and chord: PASS');
  console.log('WAIT REGRESSION: legato, early onset, repeated note, chord: PASS');

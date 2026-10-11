@@ -207,3 +207,7 @@ When transport is paused, all active practice NoteOn duration measurements are c
 ## Cancel ZIP import dialog (v0.10.23)
 
 The asynchronous multi-part MIDI ZIP selection now has a single idempotent completion path for the Cancel button, backdrop and global Escape key. Escape dispatches a cancellable dialog lifecycle event rather than hiding the dialog and leaving the online loader permanently busy. A Chromium test uses a real two-entry MIDI ZIP to verify Escape unblocks loading and a second download succeeds without reloading the page. Resolves audit A12.
+
+## Transpose plan/UI consistency (v0.10.24)
+
+Corrects audit A11: an out-of-range chosen transpose shift is replaced by the best feasible candidate before the arrangement is analyzed again and committed to `adaptPlan`. The UI choice, adapted notes, practice scoring and Play gating now share one calculated result. Real Chromium covers a C2 note placed in preview25 (C3–C5), requiring shift +12 to play C3 and allowing Tempo to start.

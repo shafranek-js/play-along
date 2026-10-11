@@ -200,8 +200,17 @@ function selectedArrangement(){if(state.adaptMode==='original'||!adaptPlan?.read
 function useAdaptedArrangement(){return state.mode!=='listen'||state.auditionAdapted;}
 function selectedPlaybackNotes(){return useAdaptedArrangement()?selectedArrangement():originalSelectedNotes();}
 function renderCapability(){
- const r=adaptPlan=$('targetRange')?analyzeCapability():null;
+ let r=$('targetRange')?analyzeCapability():null;
  if(!r)return;
+ // Normalize an infeasible Transpose shift BEFORE publishing adaptPlan.
+ // Otherwise the UI shows a corrected +12 but playback/scoring still use
+ // the stale arrangement computed for the old shift.
+ if(r.ready&&!r.empty&&state.adaptMode==='transpose'&&r.shifts.length&&
+    !r.shifts.includes(Number(state.adaptShift))){
+  state.adaptShift=r.shifts[0];
+  r=analyzeCapability();
+ }
+ adaptPlan=r;
  $('targetRange').value=state.targetRange;$('adaptMode').value=state.adaptMode;$('auditionAdapted').checked=!!state.auditionAdapted;
  $('adaptProfile').value=state.adaptProfile||'center';
  const summary=$('capabilitySummary'),metrics=$('capabilityMetrics'),notice=$('adaptNotice'),phrases=$('adaptPhraseList'),shiftSelect=$('adaptShift'),qualityEl=$('adaptQuality');
@@ -225,7 +234,7 @@ function renderCapability(){
  const oldShift=String(state.adaptShift);shiftSelect.replaceChildren();
  if(!r.shifts.length)shiftSelect.add(new Option('Единый перенос невозможен',''));
  else r.shifts.forEach(k=>shiftSelect.add(new Option((k===0?'0':k>0?'+'+k:String(k))+' полутонов'+(k%12===0?' · сохраняет тональность':' · меняет тональность'),String(k))));
- if(r.shifts.length){if(!r.shifts.includes(Number(state.adaptShift)))state.adaptShift=r.shifts[0];shiftSelect.value=String(state.adaptShift);}
+ if(r.shifts.length)shiftSelect.value=String(state.adaptShift);
  let message=state.adaptMode==='original'?(r.originalFits?'Original: все ноты выбранной партии входят в диапазон.':'Original: часть нот вне доступного диапазона. Оригинальная партия не меняется.'):
  state.adaptMode==='transpose'?(r.shifts.length?'Transpose: '+r.arrangement.changed+' нот перенесено; тайминг и интервалы партии сохранены.'+(Number(state.adaptShift)%12?' Внимание: изменится тональность партии относительно оригинального сопровождения.':''):'Единого переноса не существует. Выбери Adaptive или другую клавиатуру.'):
  r.adaptive.valid?'Adaptive: '+r.arrangement.changed+' нот перенесено по октавам; звуковысотные классы сохранены, регистр/контур могли измениться.'+(r.quality?.contourReversals?' Изменения мелодического направления: '+r.quality.contourReversals+'.':''):'Adaptive не смог сохранить все одновременные ноты без конфликтов. '+r.adaptive.issues.join('; ');
