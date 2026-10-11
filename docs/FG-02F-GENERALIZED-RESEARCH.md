@@ -32,6 +32,40 @@ The estimated cost is an **engineering heuristic** with no human-calibrated forc
 
 **Important:** FG-02E results were already inspected and motivated FG-02F. Even though the 34 rows are unmodified and no fingering answers are embedded in the new algorithm, FG-02F's comparison against them is a **post-exposure diagnostic**, not a new truly blind test of musical accuracy. Treat any improved metric as a candidate requiring a fresh independent corpus, not a validated success.
 
+## First measured retrospective comparison (11 October 2026)
+
+GitHub PR CI run: [38171482937](https://github.com/shafranek-js/play-along/actions/runs/38171482937).
+The full JSON including all individual fingers is uploaded as
+`fg02f-retrospective-generalized-diagnostic`.
+
+| Measure on unchanged FG-02E references | FG-02A / FG-02D | FG-02F |
+|---|---:|---:|
+| Exact case matches, all 34 | 8/34 | **13/34** |
+| Exact case matches, 30 source-consensus cases | 8/30 | **12/30** |
+| Matching individual fingers vs primary publisher | 144/314 | **221/314** |
+| Model-reported physical conflicts | 0 | 0 |
+| Rejected cases | 0 | 0 |
+| Full author anchors preserved | 314/314 | 314/314 |
+| Key-agnostic general phrase candidates evaluated | 0 (FG-02D tonic list) | **34/34** |
+
+For the 14 older FG-02C **development melody cases** (116 fingers),
+FG-02F matches 10 cases exactly and 101 individual finger labels.
+This secondary result also is *not independent*. The original 20-case
+FG-02C total includes six chord examples, which this strictly monophonic
+engine is deliberately **not** allowed to replace.
+
+The improvement on already-exposed FG-02E data is useful engineering
+feedback, but **does not support an unbiased accuracy claim**. Agreement
+among the two published source providers is only 12/30 (40%) and remains
+far below the earlier 90% exploratory criterion. No expert pianist has
+adjudicated disagreements or approved these assignments for teaching.
+
+**Decision: FG-02F remains NO-GO for production automatic finger prompts.**
+The existing MusicXML authored finger hints and the original 14 PNG
+hand images remain unchanged. Future algorithm revisions must use a
+*new* prospective, locked, independently sourced evaluation set and
+must not rewrite this FG-02E record.
+
 ## Release criteria
 
 - Independently annotated full musical passages not used to choose model rules or penalties, with legato/repeated notes, actual chords, black-key thumb questions, complex inversions, non-major scales, and realistic tempos.
