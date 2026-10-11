@@ -62,12 +62,45 @@ function fingerGuidanceSteps(){
 function fingerGuidanceFrame(steps,now){
  const available=loop.enabled&&loop.start!==null&&loop.end!==null
   ?steps.filter(g=>g.start>=loop.start-.001&&g.start<loop.end-.001):steps;
- // Prefer the group that has begun and is still sounding; otherwise preview
- // the next onset. Deterministic across playback, Pause, Seek and Loop.
- const active=available.find(g=>g.start<=now+.015&&g.notes.some(n=>n.start+n.duration>now-.002));
- const index=active?available.indexOf(active):available.findIndex(g=>g.start>=now-.015);
- if(index<0)return {current:null,next:null};
- return {current:available[index],next:available[index+1]||null};
+ const empty={current:null,next:null};
+ if(!available.length)return empty;
+ const looping=loop.enabled&&loop.start!==null&&loop.end!==null;
+ const following=i=>available[i+1]||(looping?available[0]:null);
+ // In Wait, the transport is deliberately frozen on the expected onset.
+ // Use scoring progress, not the frozen audio clock, to decide which keys
+ // still need to be pressed. Partially played chords keep only missing keys.
+ if(state.mode==='wait'&&practice){
+  const pending=practice.nextGroup();
+  if(!pending)return empty;
+  const onset=practice.playableStart(pending);
+  const index=available.findIndex(g=>Math.abs(g.start-onset)<=.026);
+  if(index<0)return empty; // No annotated fingering for the next task.
+  const finishedPitches=new Set(pending.notes.filter(n=>!n.skipped&&(n.hit||n.miss)).map(n=>n.pitch));
+  const target=available[index];
+  const remaining=target.notes.filter(n=>!finishedPitches.has(n.pitch));
+  if(!remaining.length)return empty;
+  return {current:{...target,notes:remaining},next:following(index)};
+ }
+ // In Listen/Tempo, the active note is NOT a teaching hint: show the next
+ // onset, even while earlier keys remain down or their sound sustains.
+ // At the initial playback/loop boundary, preview the first group.
+ const origin=looping?loop.start:0;
+ let index=now<=origin+.001?0:available.findIndex(g=>g.start>now+.001);
+ if(index<0&&looping)index=0; // Prepare the next iteration of a loop.
+ if(index<0)return empty;
+ if(state.mode==='tempo'&&practice){
+  // An accurately played early note is no longer the next task.
+  while(index>=0&&index<available.length){
+   const target=available[index];
+   const scored=practice.groups.find(g=>Math.abs(g.start-target.start)<=.026);
+   const completed=scored?.notes.some(n=>!n.skipped)&&scored.notes.every(n=>n.skipped||n.hit);
+   if(!completed)break;
+   index++;
+  }
+  if(index>=available.length)index=looping?0:-1;
+ }
+ if(index<0)return empty;
+ return {current:available[index],next:following(index)};
 }
 function fingerGuidancePose(items,hand,geom){
  const notes=items?.filter(n=>n.hand===hand&&geom.byPitch.has(n.pitch))||[];
