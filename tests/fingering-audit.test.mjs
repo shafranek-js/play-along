@@ -5,8 +5,8 @@ import {references,runBenchmark,benchmarkReference} from '../scripts/fingering-b
 
 const n=(pitch,start=0,duration=.6,finger=null,hand='RH')=>({pitch,start,duration,hand,...(finger==null?{}:{finger})});
 const out=(pitch,start,duration,finger,hand='RH')=>({pitch,start,duration,finger,hand});
-test('FG-02C reference dataset: 16 sourced scenarios with exact pitches and finger sequences',()=>{
- assert.equal(references.cases.length,16);
+test('FG-02C reference dataset: 20 sourced scenarios with exact pitches and finger sequences',()=>{
+ assert.equal(references.cases.length,20);
  const ids=new Set();
  for(const x of references.cases){
   assert.ok(!ids.has(x.id));ids.add(x.id);
@@ -74,14 +74,14 @@ test('FG-02C auditor reports invalid hand, hand size and length mismatch',()=>{
 test('FG-02C reference comparison is deterministic and never fabricates matching',()=>{
  const a=runBenchmark(),b=runBenchmark();
  assert.deepEqual(a,b);
- assert.equal(a.totals.cases,16);
+ assert.equal(a.totals.cases,20);
  assert.equal(a.totals.exactCases+a.totals.differentCandidates+a.totals.rejected+a.totals.physicalConflicts,16);
  assert(a.totals.matchPercent>=0&&a.totals.matchPercent<=100);
  assert(a.cases.every(x=>['EXACT','DIFFERENT_VALID_CANDIDATE','REJECTED','PHYSICAL_CONFLICT'].includes(x.status)));
 });
 test('FG-02C author-pinned references preserve every finger if feasible',()=>{
  const output=runBenchmark({useAnchors:true});
- assert.equal(output.totals.cases,16);
+ assert.equal(output.totals.cases,20);
  // An algorithm may reasonably refuse an unplayable source; it must never
  // substitute an invented finger in place of an explicit source anchor.
  assert.equal(output.totals.physicalConflicts,0);
