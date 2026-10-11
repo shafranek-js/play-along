@@ -64,7 +64,7 @@ function fingerGuidancePose(items,hand,geom){
  const notes=items?.filter(n=>n.hand===hand&&geom.byPitch.has(n.pitch))||[];
  if(!notes.length)return null;
  const unit=geom.whites[0]?.w||21;
- const offsets=(hand==='RH'?[-1.75,-.95,-.12,.83,1.68]:[1.75,.95,.12,-.83,-1.68]).map(n=>n*unit);
+ const offsets=(hand==='RH'?[-2.15,-1.05,0,1.08,2.17]:[2.15,1.05,0,-1.08,-2.17]).map(n=>n*unit);
  const cx=notes.reduce((sum,n)=>sum+geom.byPitch.get(n.pitch).center-offsets[n.finger-1],0)/notes.length;
  const points=offsets.map((dx,i)=>{
   const n=notes.find(item=>item.finger===i+1);
@@ -83,38 +83,96 @@ function drawFingerGuidanceBadge(c,keyY,keyboardH,k,finger,hand,{preview=false}=
  c.fillStyle='#fff';c.font='bold 12px system-ui';c.textAlign='center';c.textBaseline='middle';
  c.fillText(String(finger),k.center,y+.5);c.restore();
 }
+// FG-00B: original vector silhouette, not traced from third-party graphics.
+// One continuous Bezier outline for five fingers and the palm.
+// Fingertips remain anchored to real score pitches; MIDI cannot identify fingers.
 function drawFingerGuidanceHand(c,geom,keyY,keyboardH,group,hand,ghost=false){
  const pose=fingerGuidancePose(group,hand,geom);
  if(!pose)return null;
- const color=FINGER_GUIDANCE_PALETTE[hand],scale=keyboardH/175;
- const {cx,unit}=pose,half=Math.min(unit*2.3,52);
- const palmY=keyY+keyboardH*.82,shoulderY=keyY+keyboardH*.98;
- c.save();c.globalAlpha=ghost?.23:1;
- // Original schematic, not traced from PianGo. Palm + five jointed fingers.
- c.beginPath();
- c.moveTo(cx-half,palmY);
- c.quadraticCurveTo(cx-half*1.17,palmY-28*scale,cx-half*.65,palmY-32*scale);
- c.quadraticCurveTo(cx,palmY-43*scale,cx+half*.65,palmY-32*scale);
- c.quadraticCurveTo(cx+half*1.17,palmY-28*scale,cx+half,palmY);
- c.lineTo(cx+half*.74,shoulderY);c.lineTo(cx-half*.74,shoulderY);c.closePath();
- c.fillStyle=color.fill;c.strokeStyle=color.ink;c.lineWidth=Math.max(1.5,2*scale);
- if(ghost)c.setLineDash([5,4]);c.fill();c.stroke();c.setLineDash([]);
- const width=Math.max(7,Math.min(13,unit*.6));
- for(const p of pose.points){
-  const tipY=keyY+keyboardH*(p.key?.black?.38:.61);
-  const jointX=cx+pose.offsets[p.finger-1]*.79;
-  const jointY=palmY-16*scale+(p.finger===1?5*scale:0);
-  c.beginPath();c.moveTo(jointX,jointY);
-  c.quadraticCurveTo((jointX+p.x)/2,jointY-18*scale,p.x,tipY);
-  c.strokeStyle=p.active?color.ink:color.light;
-  c.lineWidth=p.active?width:width*.7;c.lineCap='round';c.stroke();
-  if(p.active){
-   c.beginPath();c.arc(p.x,tipY,Math.max(8,Math.min(11,unit*.5)),0,2*Math.PI);
-   c.fillStyle=color.ink;c.fill();c.lineWidth=1.4;c.strokeStyle='#ffffff';c.stroke();
+ const u=Math.max(14,Math.min(27,pose.unit));
+ const H=keyboardH,cx=pose.cx;
+ const ordered=pose.points.map(p=>{
+  const isThumb=p.finger===1,isLittle=p.finger===5;
+  // The thumb emerges from the side of the palm, unlike the four long fingers.
+  const baseX=isThumb?cx+(hand==='RH'?-1.8:1.8)*u:cx+pose.offsets[p.finger-1]*.91;
+  const baseY=keyY+H*(isThumb?.84:isLittle?.75:.745);
+  const tipY=keyY+H*(p.active
+   ?(p.key.black?.34:({1:.54,2:.455,3:.405,4:.465,5:.535}[p.finger]))
+   :({1:.64,2:.555,3:.515,4:.555,5:.625}[p.finger]));
+  return {...p,baseX,baseY,tipY};
+ }).sort((a,b)=>a.baseX-b.baseX);
+ const wristY=keyY+H*1.01;
+ const innerWristY=keyY+H*.93;
+ const leftWrist=cx-u*.96,rightWrist=cx+u*.96;
+ const path=new Path2D();
+ path.moveTo(leftWrist,wristY);
+ path.bezierCurveTo(cx-u*1.12,keyY+H*.89,cx-u*2.15,keyY+H*.82,ordered[0].baseX-u*.36,ordered[0].baseY);
+ for(let i=0;i<ordered.length;i++){
+  const p=ordered[i],isThumb=p.finger===1,isLittle=p.finger===5;
+  const bw=u*(isThumb?.60:.72),tw=u*(isThumb?.47:isLittle?.47:.53);
+  const left=p.baseX-bw/2,right=p.baseX+bw/2;
+  const tipLeft=p.x-tw/2,tipRight=p.x+tw/2;
+  const bend=p.active?.04*u:0;
+  path.bezierCurveTo(left-u*.08,p.baseY-H*.10,tipLeft-u*.06,p.tipY+u*.44+bend,tipLeft,p.tipY+tw*.19);
+  path.quadraticCurveTo(p.x,p.tipY-tw*.45,tipRight,p.tipY+tw*.19);
+  path.bezierCurveTo(tipRight+u*.06,p.tipY+u*.39,right+u*.07,p.baseY-H*.07,right,p.baseY);
+  if(i<ordered.length-1){
+   const next=ordered[i+1],nextBW=u*(next.finger===1?.60:.72);
+   const nextLeft=next.baseX-nextBW/2;
+   const valleyY=keyY+H*.685;
+   path.quadraticCurveTo((right+nextLeft)/2,valleyY+u*.15,nextLeft,next.baseY);
+  }
+ }
+ path.bezierCurveTo(cx+u*2.15,keyY+H*.82,cx+u*1.12,keyY+H*.89,rightWrist,wristY);
+ path.lineTo(rightWrist,innerWristY+H*.11);
+ path.quadraticCurveTo(cx,wristY+u*.15,leftWrist,innerWristY+H*.11);
+ path.closePath();
+ c.save();
+ const fill=c.createLinearGradient(0,keyY+H*.38,0,wristY);
+ if(hand==='RH'){
+  fill.addColorStop(0,ghost?'rgba(122,183,254,.08)':'rgba(109,174,254,.67)');
+  fill.addColorStop(.62,ghost?'rgba(115,164,248,.06)':'rgba(143,187,245,.37)');
+  fill.addColorStop(1,ghost?'rgba(110,158,237,.04)':'rgba(102,159,238,.52)');
+ }else{
+  fill.addColorStop(0,ghost?'rgba(244,175,115,.08)':'rgba(248,174,120,.68)');
+  fill.addColorStop(.62,ghost?'rgba(244,180,133,.06)':'rgba(248,191,153,.38)');
+  fill.addColorStop(1,ghost?'rgba(240,160,120,.04)':'rgba(230,156,108,.53)');
+ }
+ c.shadowColor=ghost?'transparent':'rgba(7,17,32,.18)';c.shadowBlur=ghost?0:10;
+ c.fillStyle=fill;c.fill(path);c.shadowBlur=0;
+ c.strokeStyle=ghost?(hand==='RH'?'rgba(153,196,255,.44)':'rgba(255,199,155,.44)'):(hand==='RH'?'rgba(61,123,210,.92)':'rgba(189,99,49,.92)');
+ c.lineWidth=ghost?1.5:1.65;
+ if(ghost)c.setLineDash([5,5]);c.stroke(path);c.setLineDash([]);
+ if(!ghost){
+  // Subtle knuckle creases: no cartoon bone strokes or hard polygon joints.
+  for(let i=0;i<ordered.length-1;i++){
+   const a=ordered[i],b=ordered[i+1],x=(a.baseX+b.baseX)/2;
+   c.beginPath();c.moveTo(x,keyY+H*.738);
+   c.bezierCurveTo(x-u*.08,keyY+H*.78,x+u*.12,keyY+H*.80,x+u*.10,keyY+H*.83);
+   c.strokeStyle=hand==='RH'?'rgba(39,106,185,.19)':'rgba(157,81,45,.19)';
+   c.lineWidth=1;c.stroke();
+  }
+ }
+ for(const p of ordered){
+  if(!p.active){
    if(!ghost){
-    c.textBaseline='middle';c.textAlign='center';c.fillStyle='#ffffff';
-    c.font='bold 12px system-ui';c.fillText(String(p.finger),p.x,tipY+.5);
+    c.beginPath();c.ellipse(p.x,p.tipY+2,Math.max(2.5,u*.18),Math.max(2,u*.09),0,0,Math.PI*2);
+    c.fillStyle=hand==='RH'?'rgba(211,229,255,.75)':'rgba(255,226,206,.75)';c.fill();
    }
+   continue;
+  }
+  const radius=Math.max(8.5,Math.min(11.5,u*.48));
+  c.beginPath();c.arc(p.x,p.tipY,radius,0,2*Math.PI);
+  if(ghost){
+   c.strokeStyle=hand==='RH'?'rgba(102,172,250,.8)':'rgba(244,165,104,.8)';
+   c.lineWidth=1.5;c.setLineDash([2,3]);c.stroke();c.setLineDash([]);
+  }else{
+   c.shadowColor='rgba(2,9,23,.31)';c.shadowBlur=5;c.shadowOffsetY=1;
+   c.fillStyle=hand==='RH'?'#3677d4':'#cb713e';c.fill();
+   c.shadowBlur=0;c.shadowOffsetY=0;
+   c.strokeStyle='rgba(255,255,255,.94)';c.lineWidth=1.8;c.stroke();
+   c.fillStyle='#fff';c.font='700 11px system-ui';c.textAlign='center';c.textBaseline='middle';
+   c.fillText(String(p.finger),p.x,p.tipY+.35);
   }
  }
  c.restore();return pose;
