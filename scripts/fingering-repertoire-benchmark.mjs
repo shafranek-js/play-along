@@ -47,12 +47,16 @@ export async function loadRepertoireSource(entry,{download=globalThis.fetch}={})
    if(parsed.notes.length!==entry.expectedNotes)
     throw Error('SOURCE_NOTE_COUNT_CHANGED:'+entry.id+
      ':expected='+entry.expectedNotes+':actual='+parsed.notes.length);
+   if(!/^[a-f0-9]{64}$/.test(entry.sha256??''))
+    throw Error('SOURCE_MANIFEST_INVALID_SHA256:'+entry.id);
+   if(digest!==entry.sha256)
+    throw Error('SOURCE_SHA256_MISMATCH:'+entry.id+':expected='+entry.sha256+':actual='+digest);
    return {parsed,sha256:digest,sourceUrl:link,license:corpus.license};
   }catch(e){
    failure=e;
    // Only transport failures are retried. Bad source contents or a changed
    // note count are hard errors: never silently replace gold labels.
-   if(/^(SOURCE_NOTE_COUNT_CHANGED|INVALID_PIG|UNSUPPORTED_PIG|DUPLICATE_PIG|NON_MONOTONIC_PIG|EMPTY_PIG|INVALID_PITCH|PITCH_OUT_OF_RANGE|SOURCE_MANIFEST_INVALID)/.test(String(e.message)))
+   if(/^(SOURCE_NOTE_COUNT_CHANGED|SOURCE_SHA256_MISMATCH|SOURCE_MANIFEST_INVALID_SHA256|INVALID_PIG|UNSUPPORTED_PIG|DUPLICATE_PIG|NON_MONOTONIC_PIG|EMPTY_PIG|INVALID_PITCH|PITCH_OUT_OF_RANGE|SOURCE_MANIFEST_INVALID)/.test(String(e.message)))
     break;
    if(attempt<2)await delay(500*(attempt+1));
   }
@@ -60,7 +64,7 @@ export async function loadRepertoireSource(entry,{download=globalThis.fetch}={})
  throw Error('SOURCE_UNAVAILABLE:'+entry.id+':'+String(failure?.message));
 }
 const forEngine=(runs,hand,pinned,engine)=>{
- let attempted=0,matched=0,exactRuns=0,computedRuns=0,rejectedRuns=0,anchorViolations=0,
+ let attempted=0,matched=0,exactRuns=0,computedRuns=0,rejectedRuns=0,rejectedNotes=0,anchorViolations=0,
  physicalConflicts=0,elapsedMs=0;
  const details=[];
  for(const run of runs){
@@ -73,7 +77,7 @@ const forEngine=(runs,hand,pinned,engine)=>{
   elapsedMs+=performance.now()-start;
   const noteIds=run.map(n=>n.noteId),reference=run.map(n=>n.referenceFinger);
   if(!r.ok){
-   rejectedRuns++;
+   rejectedRuns++;rejectedNotes+=run.length;
    details.push({noteIds,reference,status:'REJECTED',reason:r.reason,
     strategy:'none',actual:null});
    continue;
@@ -92,13 +96,15 @@ const forEngine=(runs,hand,pinned,engine)=>{
    strategy:r.strategy??'original-fg02a',matched:matches,notes:run.length,
    audit:independent.violations});
  }
- return {attempted,matched,exactRuns,computedRuns,rejectedRuns,anchorViolations,
+ return {attempted,matched,exactRuns,computedRuns,rejectedRuns,rejectedNotes,anchorViolations,
   physicalConflicts,elapsedMs:+elapsedMs.toFixed(3),details};
 };
 const combine=sets=>{
- const names=['attempted','matched','exactRuns','computedRuns','rejectedRuns','anchorViolations','physicalConflicts'];
+ const names=['attempted','matched','exactRuns','computedRuns','rejectedRuns','rejectedNotes','anchorViolations','physicalConflicts'];
  const summary=Object.fromEntries(names.map(k=>[k,sets.reduce((s,x)=>s+x[k],0)]));
+ summary.eligible=summary.attempted+summary.rejectedNotes;
  summary.matchPercent=summary.attempted?+(100*summary.matched/summary.attempted).toFixed(2):null;
+ summary.coveragePercent=summary.eligible?+(100*summary.attempted/summary.eligible).toFixed(2):null;
  summary.elapsedMs=+sets.reduce((s,x)=>s+x.elapsedMs,0).toFixed(3);
  return summary;
 };
@@ -126,10 +132,13 @@ export function compareRepertoire(parsed,entry){
  };
 }
 const sumMetrics=(cases,name)=>{
- const keys=['attempted','matched','computedRuns','rejectedRuns','physicalConflicts',
+ const keys=['attempted','matched','computedRuns','rejectedRuns','rejectedNotes','physicalConflicts',
   'anchorViolations','exactRuns'];
  const r=Object.fromEntries(keys.map(k=>[k,cases.reduce((n,c)=>n+c[name][k],0)]));
+ r.eligible=r.attempted+r.rejectedNotes;
  r.matchPct=r.attempted?+(100*r.matched/r.attempted).toFixed(2):null;
+ r.coveragePct=r.eligible?+(100*r.attempted/r.eligible).toFixed(2):null;
+ r.agreementOfAllEligiblePct=r.eligible?+(100*r.matched/r.eligible).toFixed(2):null;
  return r;
 };
 export async function runRepertoireBenchmark({download}={}){
