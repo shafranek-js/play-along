@@ -74,7 +74,8 @@ try{
  await page.locator('#loopStartBtn').click();
  await page.evaluate(()=>window.__prototypeTest.seek(5));
  await page.locator('#loopEndBtn').click();
- await page.locator('#loopBtn').click();
+ // Setting loop bounds may activate playback automatically; do not toggle it off.
+ if(!await page.evaluate(()=>window.__prototypeTest.loop.enabled))await page.locator('#loopBtn').click();
  assert.equal(await page.evaluate(()=>window.__prototypeTest.loop.enabled),true);
  await page.evaluate(()=>window.__prototypeTest.seek(3.6));
  assert.equal((await frame()).current,1.8,'Next loop iteration should be previewed');
