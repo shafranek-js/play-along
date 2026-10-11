@@ -362,6 +362,75 @@ try{
   'An incorrectly stale infeasible plan blocked Play');
  await page.evaluate(()=>window.__prototypeTest.pause());
  console.log('TRANSPOSE: corrected +12 shift is feasible in UI, adapted notes and playback: PASS');
+ // A07: seeking forward excludes notes from the current attempt; it may
+ // never mark them played merely to move the cursor. The saved report must
+ // contain the assessable portion, not the whole original score.
+ await page.evaluate(()=>{
+  window.__prototypeTest.loadSong({
+   id:'seek-honest-progress-ci',title:'Honest seek',author:'CI',type:'demo',tempo:120,
+   tracks:[{name:'Piano',notes:[
+    {pitch:60,start:0,duration:.5,velocity:80,track:0},
+    {pitch:62,start:2,duration:.5,velocity:80,track:0},
+    {pitch:64,start:4,duration:.5,velocity:80,track:0}
+   ]}]
+  });
+  window.__prototypeTest.setMode('tempo');
+  document.querySelector('#loopClearBtn').click();
+  window.__prototypeTest.seek(4);
+ });
+ const beforeSeekPlay=await page.evaluate(()=>({
+  total:window.__prototypeTest.session.total,
+  completed:window.__prototypeTest.session.completed,
+  flags:window.__prototypeTest.session.all.map(n=>({skip:n.skipped,hit:n.hit,miss:n.miss}))
+ }));
+ assert.equal(beforeSeekPlay.total,1,'Seek should assess only the remaining note');
+ assert.equal(beforeSeekPlay.completed,0,'Seeking cannot count any notes as played');
+ assert.deepEqual(beforeSeekPlay.flags.map(n=>n.skip),[true,true,false]);
+ assert.ok(beforeSeekPlay.flags.every(n=>!n.hit&&!n.miss));
+ await page.evaluate(()=>{
+  window.__prototypeTest.play();
+  window.__prototypeTest.receiveNoteOn(64);
+ });
+ const afterSeekPlay=await page.evaluate(()=>({
+  hits:window.__prototypeTest.stats.hits,
+  total:window.__prototypeTest.session.total,
+  completed:window.__prototypeTest.session.completed,
+  summary:window.__prototypeTest.review.total
+ }));
+ assert.deepEqual(afterSeekPlay,{hits:1,total:1,completed:1,summary:1},
+  'Practice progress should count only the genuinely played note');
+ await page.evaluate(()=>{
+  window.__prototypeTest.receiveNoteOff(64);
+  window.__prototypeTest.finishPerformance('manual');
+  window.__prototypeTest.pause();
+ });
+ const record=await page.evaluate(()=>({
+  total:window.__prototypeTest.performances[0].total,
+  notePitches:window.__prototypeTest.performances[0].notes.map(n=>n.pitch),
+  hits:window.__prototypeTest.performances[0].stats.hits
+ }));
+ assert.deepEqual(record,{total:1,notePitches:[64],hits:1},
+  'Saved performance must not describe skipped notes as played');
+ // In Loop practice, notes outside [start,end) are also excluded from
+ // evaluation even if they are visible in the overall composition.
+ await page.evaluate(()=>{
+  window.__prototypeTest.seek(2);
+  document.querySelector('#loopStartBtn').click();
+  window.__prototypeTest.seek(4);
+  document.querySelector('#loopEndBtn').click();
+  document.querySelector('#loopBtn').click();
+  window.__prototypeTest.seek(2);
+ });
+ const loopReview=await page.evaluate(()=>({
+  loop:window.__prototypeTest.loop,
+  total:window.__prototypeTest.session.total,
+  flags:window.__prototypeTest.session.all.map(n=>n.skipped)
+ }));
+ assert.equal(loopReview.loop.enabled,true);
+ assert.equal(loopReview.total,1,'Loop must assess only its single D4 note');
+ assert.deepEqual(loopReview.flags,[true,false,true]);
+ await page.evaluate(()=>document.querySelector('#loopClearBtn').click());
+ console.log('SEEK / LOOP ASSESSMENT: skipped notes excluded from hit flags, progress and history: PASS');
  console.log('MIDI PAUSE REGRESSION: held note closes on pause; late NoteOff cannot corrupt next note: PASS');
  console.log('POLYPHONY REGRESSION: Tempo+Wait unison, key release, repeated pitch and chord: PASS');
  console.log('WAIT REGRESSION: legato, early onset, repeated note, chord: PASS');

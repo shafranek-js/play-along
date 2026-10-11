@@ -211,3 +211,7 @@ The asynchronous multi-part MIDI ZIP selection now has a single idempotent compl
 ## Transpose plan/UI consistency (v0.10.24)
 
 Corrects audit A11: an out-of-range chosen transpose shift is replaced by the best feasible candidate before the arrangement is analyzed again and committed to `adaptPlan`. The UI choice, adapted notes, practice scoring and Play gating now share one calculated result. Real Chromium covers a C2 note placed in preview25 (C3–C5), requiring shift +12 to play C3 and allowing Tempo to start.
+
+## Seek and loop session accounting (v0.10.25)
+
+Audit A07: `PracticeSession.seek()` now assigns an explicit `skipped` state to notes outside the current assessable range; it no longer marks them `hit`. Wait-group progress, Tempo miss handling, completed percentage, UI total, saved performance summary and detailed notes are limited to genuinely assessable material. Notes before a seek or outside an enabled Loop remain visible in the score but do not inflate hits or completion. Toggling/adjusting Loop starts a new assessment interval. Real Chromium tests verify seeking to the third note of a three-note melody and an interior Loop segment, including exported performance record contents.

@@ -116,12 +116,12 @@ function summarizePerformance(session){
  for(const n of session.all){if(!n.hit&&!n.miss)continue;const b=getBucket(n.start);b.events++;if(n.miss){b.errors+=2;b.pitches.push(nameOf(n.pitch))}else if(n.hit){if(n.timingMs!=null&&Math.abs(n.timingMs)>110)b.errors++;if(n.holdRatio!=null&&(n.holdRatio<.7||n.holdRatio>1.4))b.errors++;if(n.chordSpreadMs!=null&&n.chordSpreadMs>140)b.errors++;}}
  for(const e of session.extras){const b=getBucket(e.at);b.errors++;b.pitches.push(nameOf(e.pitch))}
  const sections=[...bucket.values()].filter(b=>b.errors>0).sort((a,b)=>b.errors-a.errors||a.start-b.start).slice(0,6);
- return {score,accuracy,timePct,holdPct,chordPct,avgAbsTime,sections,stats:{...s},total:session.all.length,attempted:session.started};
+ return {score,accuracy,timePct,holdPct,chordPct,avgAbsTime,sections,stats:{...s},total:session.total,attempted:session.started};
 }
 function makePerformanceRecord(session,reason='manual'){
  const info=summarizePerformance(session);
  return {version:1,id:Date.now()+'-'+Math.random().toString(36).slice(2,7),profile:performanceProfile(),song:current?.title||'',track:current?.tracks[state.track]?.name||'',mode:session.mode,adaptMode:state.adaptMode,range:targetKeyboard()?{...targetKeyboard()}:null,date:new Date().toISOString(),reason,speed:state.speed,position:Math.round(pos*100)/100,...info,
-  notes:session.all.filter(n=>session.all.length<=900||n.miss||n.hit&&(n.timingMs!=null&&Math.abs(n.timingMs)>110||n.holdRatio!=null&&(n.holdRatio<.7||n.holdRatio>1.4)||n.chordSpreadMs>140)).slice(0,1700).map(n=>({pitch:n.pitch,start:n.start,duration:n.duration,hit:n.hit,miss:n.miss,timingMs:n.timingMs,holdRatio:n.holdRatio,chordSpreadMs:n.chordSpreadMs})),
+  notes:session.all.filter(n=>!n.skipped&&(session.total<=900||n.miss||n.hit&&(n.timingMs!=null&&Math.abs(n.timingMs)>110||n.holdRatio!=null&&(n.holdRatio<.7||n.holdRatio>1.4)||n.chordSpreadMs>140))).slice(0,1700).map(n=>({pitch:n.pitch,start:n.start,duration:n.duration,hit:n.hit,miss:n.miss,timingMs:n.timingMs,holdRatio:n.holdRatio,chordSpreadMs:n.chordSpreadMs})),
   extras:session.extras.slice(0,400)};
 }
 // IndexedDB holds complete attempts; localStorage is a small migration cache.
@@ -199,9 +199,9 @@ function exportPerformance(){
  const records=perfAttempts.filter(r=>r.profile===performanceProfile());const blob=new Blob([JSON.stringify({application:'Play Along',version:'0.6',exported:new Date().toISOString(),records},null,2)],{type:'application/json'});
  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='play-along-performance-'+(currentSongKey||'session')+'.json';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);
 }
-function resetPractice(){waitReleaseGroup=null;waitReleasePitches.clear();let notes=selectedArrangement();if(smart.active&&smart.segment){notes=notes.filter(n=>n.start>=smart.segment.start-.0001&&n.start<smart.segment.start+4-.0001)}practice=state.mode==='listen'?null:new PracticeSession(notes,state.mode,pos);holdForInput=false;showPractice();renderReview()}
+function resetPractice(){waitReleaseGroup=null;waitReleasePitches.clear();let notes=selectedArrangement();if(smart.active&&smart.segment){notes=notes.filter(n=>n.start>=smart.segment.start-.0001&&n.start<smart.segment.start+4-.0001)}const until=loop.enabled&&loop.start!=null&&loop.end!=null?loop.end:Infinity;practice=state.mode==='listen'?null:new PracticeSession(notes,state.mode,pos,until);if(practice&&isPlaying)practice.started=true;holdForInput=false;showPractice();renderReview()}
 function showPractice(){const result=$('practiceResult'),upcoming=$('upcomingNotes');if(!current||state.mode==='listen'){result.innerHTML='<strong>Прослушивание произведения</strong><p>В режиме Wait или Tempo оценим реальные MIDI-нажатия.</p>';upcoming.textContent='Выбери партию, которую хочешь разучивать.';return}
- const s=practice?.stats||{hits:0,wrong:0,missed:0,early:0,late:0,short:0,okHold:0},total=practice?.all.length||0;const accuracy=(s.hits+s.wrong+s.missed)?Math.round(s.hits/(s.hits+s.wrong+s.missed)*100):0;result.innerHTML='<strong><em>'+s.hits+'</em> / '+total+' нот · '+accuracy+'% точность</strong><p>Ошибки: <span class="modeMiss">'+s.wrong+'</span> · Пропуски: '+s.missed+(state.mode==='tempo'?'<br>Рано: '+s.early+' · Поздно: '+s.late+' · Длительность: '+s.okHold+' OK / '+s.short+' нет':'')+'</p>';
+ const s=practice?.stats||{hits:0,wrong:0,missed:0,early:0,late:0,short:0,okHold:0},total=practice?.total||0;const accuracy=(s.hits+s.wrong+s.missed)?Math.round(s.hits/(s.hits+s.wrong+s.missed)*100):0;result.innerHTML='<strong><em>'+s.hits+'</em> / '+total+' нот · '+accuracy+'% точность</strong><p>Ошибки: <span class="modeMiss">'+s.wrong+'</span> · Пропуски: '+s.missed+(state.mode==='tempo'?'<br>Рано: '+s.early+' · Поздно: '+s.late+' · Длительность: '+s.okHold+' OK / '+s.short+' нет':'')+'</p>';
  let g=state.mode==='wait'?practice?.nextGroup():practice?.groups.find(g=>g.notes.some(n=>!n.hit&&!n.miss));upcoming.textContent=g?'Далее: '+[...new Set(g.notes.filter(n=>!n.hit&&!n.miss).map(n=>nameOf(n.pitch)))].join(' + ')+(state.mode==='wait'?' · жду все клавиши аккорда':''):'Все ноты обработаны. Можно повторить.';
  scheduleReviewRender();
 }

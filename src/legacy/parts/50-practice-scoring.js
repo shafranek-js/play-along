@@ -1,7 +1,7 @@
 // ===== scoring: pitch, chord groups, early/late, held duration =====
 class PracticeSession{
- constructor(notes,mode,at=0){
-  this.mode=mode;this.started=false;this.stored=false;this.revision=0;this.lastStoredRevision=-1;this.groups=[];this.all=[];this.byPitch=new Map();this.noteLookup=new Map();this.played=new Map();
+ constructor(notes,mode,at=0,until=Infinity){
+  this.mode=mode;this.until=until;this.started=false;this.stored=false;this.revision=0;this.lastStoredRevision=-1;this.groups=[];this.all=[];this.byPitch=new Map();this.noteLookup=new Map();this.played=new Map();
   this.stats={hits:0,wrong:0,missed:0,early:0,late:0,short:0,long:0,okHold:0,badChords:0,goodChords:0};
   this.extras=[];this.cursor=0;const ns=notes.slice().sort((a,b)=>a.start-b.start||a.pitch-b.pitch);
   for(const n of ns){
@@ -14,22 +14,22 @@ class PracticeSession{
  seek(at){
   this.cursor=0;this.missCursor=0;this.played.clear();this.extras=[];this.started=false;this.stored=false;this.revision=0;this.lastStoredRevision=-1;
   this.stats={hits:0,wrong:0,missed:0,early:0,late:0,short:0,long:0,okHold:0,badChords:0,goodChords:0};
-  for(const n of this.all){n.hit=n.start<at-.001;n.miss=false;n.off=false;n.pressedAt=null;n.offAt=null;n.wallOn=null;n.timingMs=null;n.holdRatio=null;n.durationErrorMs=null;n.chordSpreadMs=null}
+  for(const n of this.all){n.skipped=n.start<at-.001||n.start>=this.until-.001;n.hit=false;n.miss=false;n.off=false;n.pressedAt=null;n.offAt=null;n.wallOn=null;n.timingMs=null;n.holdRatio=null;n.durationErrorMs=null;n.chordSpreadMs=null}
   for(const g of this.groups){g.graded=false;g.spreadMs=null}
-  while(this.cursor<this.groups.length&&this.groups[this.cursor].start<at-.001)this.cursor++;
+  while(this.cursor<this.groups.length&&this.groups[this.cursor].notes.every(n=>n.skipped))this.cursor++;
  }
- nextGroup(){if(this.mode!=='wait')return null;while(this.cursor<this.groups.length&&this.groups[this.cursor].notes.every(n=>n.hit||n.miss))this.cursor++;return this.groups[this.cursor]||null}
+ nextGroup(){if(this.mode!=='wait')return null;while(this.cursor<this.groups.length&&this.groups[this.cursor].notes.every(n=>n.skipped||n.hit||n.miss))this.cursor++;return this.groups[this.cursor]||null}
  extra(pitch,now){this.revision++;this.stats.wrong++;this.extras.push({pitch,at:now});return false}
  inputOn(pitch,now,wallMs=performance.now()){
   if(this.mode==='wait'){
    const g=this.nextGroup();if(!g)return this.extra(pitch,now);
-   const matches=g.notes.filter(n=>n.pitch===pitch&&!n.hit);if(!matches.length)return this.extra(pitch,now);
+   const matches=g.notes.filter(n=>n.pitch===pitch&&!n.skipped&&!n.hit);if(!matches.length)return this.extra(pitch,now);
    // A single physical key represents any simultaneous unison voices.
    for(const n of matches)this.accept(n,now,wallMs);const done=g.notes.every(z=>z.hit);
    if(done){this.gradeGroup(g);this.cursor++;return 'released'}return true;
   }
   const windowSec=.24*rate();
-  const candidates=(this.byPitch.get(pitch)||[]).filter(n=>!n.hit&&!n.miss&&Math.abs(n.start-now)<=windowSec).sort((a,b)=>Math.abs(a.start-now)-Math.abs(b.start-now));
+  const candidates=(this.byPitch.get(pitch)||[]).filter(n=>!n.skipped&&!n.hit&&!n.miss&&Math.abs(n.start-now)<=windowSec).sort((a,b)=>Math.abs(a.start-now)-Math.abs(b.start-now));
   const n=candidates[0];if(!n)return this.extra(pitch,now);
   // In a polyphonic score one physical piano key may represent multiple
   // notated voices (or both hands) at the SAME onset and pitch. Grade all
@@ -73,10 +73,11 @@ class PracticeSession{
    else this.stats.okHold++;
   }
  }
- advance(now){if(this.mode!=='tempo')return;const deadline=.24*rate();while(this.missCursor<this.all.length){const n=this.all[this.missCursor];if(n.start+deadline>=now)break;this.missCursor++;if(!n.hit&&!n.miss){n.miss=true;this.stats.missed++;this.revision++}}}
+ advance(now){if(this.mode!=='tempo')return;const deadline=.24*rate();while(this.missCursor<this.all.length){const n=this.all[this.missCursor];if(n.start+deadline>=now)break;this.missCursor++;if(!n.skipped&&!n.hit&&!n.miss){n.miss=true;this.stats.missed++;this.revision++}}}
  finalize(end){
   if(this.mode==='tempo'){this.advance(end+.3*rate());for(const n of this.all){if(n.hit&&!n.off&&n.pressedAt!==null){this.inputOff(n.pitch,end)}}}
   for(const g of this.groups)if(g.notes.length>1&&g.notes.every(n=>n.hit))this.gradeGroup(g);
  }
- get completed(){return this.all.length?this.all.filter(n=>n.hit).length/this.all.length:0}
+ get total(){return this.all.filter(n=>!n.skipped).length}
+ get completed(){return this.total?this.all.filter(n=>n.hit&&!n.skipped).length/this.total:0}
 }
