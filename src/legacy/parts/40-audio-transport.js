@@ -6,10 +6,11 @@ function clockPos(){
  const v=startAt+(ctx.currentTime-startAudioTime)*rate();
  if(state.mode==='wait'&&practice){
   // A completed note/chord does not advance the sheet until the keys are released.
-  if(waitReleaseGroup){pos=waitReleaseGroup.start;return pos}
+  if(waitReleaseGroup){pos=practice.playableStart(waitReleaseGroup);return pos}
   const next=practice.nextGroup();
-  if(next&&v>=next.start-1e-5){
-   pos=next.start;
+  const nextStart=next?practice.playableStart(next):null;
+  if(next&&v>=nextStart-1e-5){
+   pos=nextStart;
    if(!holdForInput){holdForInput=true;startAt=pos;startAudioTime=ctx.currentTime}
    return pos;
   }
@@ -63,7 +64,7 @@ function performedScoreNotes(){
 const scheduleAhead=.16;
 function audioSequence(){if(!current)return[];if(state.mode==='listen')return (state.accompany?current.tracks.flatMap((t,i)=>i===state.track?selectedPlaybackNotes():t.notes):selectedPlaybackNotes()).slice().sort((a,b)=>a.start-b.start||a.pitch-b.pitch);
  return state.accompany?current.tracks.flatMap((t,i)=>i===state.track?[]:t.notes).sort((a,b)=>a.start-b.start||a.pitch-b.pitch):[];}
-function scheduleAudio(){if(!isPlaying||!ctx)return;const now=clockPos();const limit=(state.mode==='wait'&&holdForInput)?now-1e-5:(state.mode==='wait'&&practice?.nextGroup())?Math.min(now+scheduleAhead*rate(),practice.nextGroup().start-1e-5):now+scheduleAhead*rate();const seq=window._playNotes||[];const maxLimit=loop.enabled&&loop.start!=null&&loop.end!=null?Math.min(limit,loop.end-1e-5):limit;
+function scheduleAudio(){if(!isPlaying||!ctx)return;const now=clockPos();const limit=(state.mode==='wait'&&holdForInput)?now-1e-5:(state.mode==='wait'&&practice?.nextGroup())?Math.min(now+scheduleAhead*rate(),practice.playableStart(practice.nextGroup())-1e-5):now+scheduleAhead*rate();const seq=window._playNotes||[];const maxLimit=loop.enabled&&loop.start!=null&&loop.end!=null?Math.min(limit,loop.end-1e-5):limit;
  while(playNext<seq.length&&seq[playNext].start<=maxLimit){const n=seq[playNext++];if(n.start<now-.06*rate())continue;if(n.channel===9)continue;const when=ctx.currentTime+Math.max(.005,(n.start-now)/rate());sound(n.pitch,n.velocity,when,Math.max(.005,Math.min(n.duration,(loop.enabled&&loop.end!=null?loop.end-n.start:n.duration)))/rate(),n)}}
 function engineTick(){if(!isPlaying||!ctx)return;pos=clockPos();if(state.mode==='tempo'&&practice){const before=practice.stats.missed;practice.advance(pos);if(practice.stats.missed!==before)showPractice()}
  const finishAt=loop.enabled&&loop.start!=null&&loop.end!=null?loop.end:duration();
