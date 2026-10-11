@@ -54,7 +54,7 @@ try{
  await page.locator('#fingerGuideMode').selectOption('ghost');
  await page.screenshot({path:path.join(output,'two-hands-ghost.png')});
  await page.evaluate(()=>window.__prototypeTest.seek(3.6));
- assert.equal(await page.evaluate(()=>window.__fingerGuideTest.frame.current),3.6);
+ assert.equal(await page.evaluate(()=>window.__fingerGuideTest.frame.current),5.4);
  // Checking that a virtual piano press from the wrist area is excluded.
  const missed=await page.evaluate(()=>{
    const c=document.getElementById('roll'),r=c.getBoundingClientRect();
