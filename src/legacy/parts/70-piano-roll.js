@@ -194,13 +194,26 @@ function drawFingerGuidance(c,geom,keyY,keyboardH,handsAllowed){
  if(mode==='ghost'&&next){
   for(const hand of ['LH','RH']){
    const a=fingerGuidancePose(group.notes,hand,geom),b=fingerGuidancePose(next.notes,hand,geom);
-   if(a&&b&&Math.abs(a.cx-b.cx)>a.unit*.4){
-    c.save();c.strokeStyle=FINGER_GUIDANCE_PALETTE[hand].ink;c.globalAlpha=.46;
-    c.lineWidth=2;c.setLineDash([5,4]);c.beginPath();
-    const y=keyY+keyboardH*.9;
-    c.moveTo(a.cx,y);c.quadraticCurveTo((a.cx+b.cx)/2,y-17,b.cx,y);c.stroke();c.restore();
+   if(!b)continue;
+   const displacement=a?Math.abs(a.cx-b.cx):Infinity;
+   if(displacement>=b.unit*1.15){
+    // A full ghost silhouette is useful for a real wrist movement, not for
+    // every adjacent note where overlapping hands become visual clutter.
+    if(a){
+     c.save();c.strokeStyle=FINGER_GUIDANCE_PALETTE[hand].ink;c.globalAlpha=.36;
+     c.lineWidth=1.5;c.setLineDash([4,5]);c.beginPath();
+     const y=keyY+keyboardH*.91;
+     c.moveTo(a.cx,y);c.quadraticCurveTo((a.cx+b.cx)/2,y-15,b.cx,y);c.stroke();c.restore();
+    }
+    drawFingerGuidanceHand(c,geom,keyY,keyboardH,next.notes,hand,true);
+   }else{
+    // Close next notes get small dotted markers, not another hand on top.
+    for(const note of next.notes.filter(n=>n.hand===hand)){
+     if(group.notes.some(n=>n.hand===hand&&n.pitch===note.pitch))continue;
+     const key=geom.byPitch.get(note.pitch);
+     if(key)drawFingerGuidanceBadge(c,keyY,keyboardH,key,note.finger,hand,{preview:true});
+    }
    }
-   drawFingerGuidanceHand(c,geom,keyY,keyboardH,next.notes,hand,true);
   }
  }
  for(const hand of ['LH','RH'])drawFingerGuidanceHand(c,geom,keyY,keyboardH,group.notes,hand);
@@ -222,7 +235,7 @@ function renderCanvas(){
  if(!current)return;
  const {w,h}=resizeCanvas();lastCanvasSize={w,h};const c=roll.getContext('2d');
  c.clearRect(0,0,w,h);c.fillStyle='#111720';c.fillRect(0,0,w,h);
- const r=noteRange(),notes=notesToShow(),handsAllowed=h>=310&&['hands','ghost'].includes(state.fingerGuidanceMode),keyboardH=handsAllowed?Math.max(145,Math.min(184,h*.34)):Math.min(90,Math.max(64,h*.22)),keyY=h-keyboardH,strikeY=keyY-10,pxPerSec=Math.max(8,(strikeY-14)/6);
+ const r=noteRange(),notes=notesToShow(),handsAllowed=h>=310&&['hands','ghost'].includes(state.fingerGuidanceMode),keyboardH=handsAllowed?Math.max(190,Math.min(244,h*.40)):Math.min(90,Math.max(64,h*.22)),keyY=h-keyboardH,strikeY=keyY-10,pxPerSec=Math.max(8,(strikeY-14)/6);
  keyboardTop=keyY;keyboardBlackH=keyboardH*.61;
  const pad=4,geom=pianoGeom=pianoKeyGeometry(r.min,r.max,w-2*pad);
  // Shift computed geometry into the padded canvas coordinate system.
