@@ -31,3 +31,13 @@ jobs:
         run: npm run test:browser
       - name: Dependency audit
         run: npm audit --audit-level=high
+      - name: Capture FG-00B screenshots from real app
+        if: github.event_name == 'pull_request' && github.head_ref == 'feature/finger-guidance-visual-fg00b'
+        run: node tests/finger-guidance.visual.real.test.mjs
+      - name: Upload FG-00B visual review snapshots
+        if: always() && github.event_name == 'pull_request' && github.head_ref == 'feature/finger-guidance-visual-fg00b'
+        uses: actions/upload-artifact@v4
+        with:
+          name: fg00b-real-app-visuals
+          path: artifacts/fg00b/*.png
+          if-no-files-found: error
