@@ -27,25 +27,34 @@ const FINGER_GUIDANCE_PALETTE={
 };
 function fingerGuidanceSteps(){
  if(!current||state.adaptMode!=='original')return [];
- const id=current.id,valid=new Set(['demo-scale','demo-chords','demo-finger-duet']);
- if(!valid.has(id))return [];
+ const id=current.id,validDemo=new Set(['demo-scale','demo-chords','demo-finger-duet']);
+ const demo=validDemo.has(id);
+ // For non-demo works only explicitly annotated MusicXML is eligible.
+ // An ordinary MIDI pitch is never treated as evidence of a finger.
+ if(!demo&&!current.tracks.some(t=>t.notes.some(n=>n.fingeringSource==='musicxml'&&n.finger>=1&&n.finger<=5)))return [];
  const scale=[1,2,3,1,2,3,4,5,4,3,2,1,3,2,1];
  const groups=new Map();
  current.tracks.forEach((track,trackIndex)=>{
   if(!state.allTracks&&trackIndex!==state.track)return;
   track.notes.forEach((n,index)=>{
-   let hand='RH',finger=null;
-   if(id==='demo-scale'&&trackIndex===0)finger=scale[index];
-   if(id==='demo-chords'&&trackIndex===0)finger=[1,3,5][index%3];
-   if(id==='demo-finger-duet'&&trackIndex<=1){
-    hand=trackIndex===0?'RH':'LH';
-    finger=(hand==='RH'?[1,3,5]:[5,3,1])[index%3];
+   let hand=null,finger=null,source=null;
+   if(demo){
+    if(id==='demo-scale'&&trackIndex===0){hand='RH';finger=scale[index]}
+    if(id==='demo-chords'&&trackIndex===0){hand='RH';finger=[1,3,5][index%3]}
+    if(id==='demo-finger-duet'&&trackIndex<=1){
+     hand=trackIndex===0?'RH':'LH';
+     finger=(hand==='RH'?[1,3,5]:[5,3,1])[index%3];
+    }
+    source='demo';
+   }else if(n.fingeringSource==='musicxml'&&Number.isInteger(n.finger)&&n.finger>=1&&n.finger<=5){
+    finger=n.finger;hand=n.hand==='RH'||n.hand==='LH'?n.hand:null;source='musicxml';
    }
    if(!Number.isInteger(finger)||!Number.isInteger(n.pitch)||!Number.isFinite(n.start))return;
-   // Group by original score onset, not by current time or MIDI NoteOn.
+   // Group by original score onset, not by MIDI NoteOn or the live player clock.
    const key=String(Math.round(n.start*1000));
    if(!groups.has(key))groups.set(key,{start:n.start,notes:[]});
-   groups.get(key).notes.push({pitch:n.pitch,start:n.start,duration:n.duration,hand,finger,track:trackIndex});
+   groups.get(key).notes.push({pitch:n.pitch,start:n.start,duration:n.duration,hand,finger,track:trackIndex,
+    source,...(n.noteId?{noteId:n.noteId}:{})});
   });
  });
  return [...groups.values()].sort((a,b)=>a.start-b.start);
@@ -74,7 +83,7 @@ function fingerGuidancePose(items,hand,geom){
  return {cx,unit,offsets,points};
 }
 function drawFingerGuidanceBadge(c,keyY,keyboardH,k,finger,hand,{preview=false}={}){
- const color=FINGER_GUIDANCE_PALETTE[hand];
+ const color=FINGER_GUIDANCE_PALETTE[hand]||{ink:'#737d90'};
  const y=keyY+keyboardH*(k.black?.38:.61);
  const r=Math.max(8,Math.min(11,k.w*.45));
  c.save();c.lineWidth=2;c.strokeStyle=color.ink;c.globalAlpha=preview?.55:1;
@@ -166,14 +175,19 @@ function drawFingerGuidanceHand(c,geom,keyY,keyboardH,group,hand,ghost=false,tai
 function drawFingerGuidance(c,geom,keyY,keyboardH,handsAllowed,handTail=0){
  const status=$('fingerGuideStatus'),mode=state.fingerGuidanceMode,steps=mode==='off'?[]:fingerGuidanceSteps();
  const hasPreset=current&&['demo-scale','demo-chords','demo-finger-duet'].includes(current.id);
+ const authored=steps.flatMap(g=>g.notes).filter(n=>n.source==='musicxml');
+ const unassigned=authored.some(n=>!n.hand);
+ const total=current?.tracks.reduce((acc,t,i)=>acc+(state.allTracks||i===state.track?t.notes.length:0),0)||0;
  const message=mode==='off'?'':state.adaptMode!=='original'?'Адаптация: подсказки пока недоступны':
-  !hasPreset?'Для этой пьесы пока нет подтверждённой аппликатуры':
-  !steps.length?'Для выбранной партии пока нет подсказок':'Демо-аппликатура · MIDI не определяет реальные пальцы';
+  !steps.length?'Для этой партии пока нет подтверждённой аппликатуры':
+  hasPreset?'Демо-аппликатура · MIDI не определяет реальные пальцы':
+  'MusicXML: авторская аппликатура '+authored.length+'/'+total+
+   (unassigned?' · рука не указана: только номера':'');
  if(status&&status.textContent!==message)status.textContent=message;
  if(!steps.length)return;
  const {current:group,next}=fingerGuidanceFrame(steps,pos);
  if(!group)return;
- if(mode==='numbers'||!handsAllowed){
+ if(mode==='numbers'||!handsAllowed||group.notes.every(n=>!n.hand)){
   for(const n of group.notes){const k=geom.byPitch.get(n.pitch);if(k)drawFingerGuidanceBadge(c,keyY,keyboardH,k,n.finger,n.hand);}
   return;
  }
