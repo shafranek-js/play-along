@@ -418,7 +418,8 @@ try{
   document.querySelector('#loopStartBtn').click();
   window.__prototypeTest.seek(4);
   document.querySelector('#loopEndBtn').click();
-  document.querySelector('#loopBtn').click();
+  // ensureLoop automatically enables a valid segment when the end is set.
+  if(!window.__prototypeTest.loop.enabled)document.querySelector('#loopBtn').click();
   window.__prototypeTest.seek(2);
  });
  const loopReview=await page.evaluate(()=>({
