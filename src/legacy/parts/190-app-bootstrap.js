@@ -86,6 +86,7 @@ window.__prototypeTest={get pianoGeometry(){return pianoGeom},get soundingKeys()
 // FG-00 non-mutating observability for regression tests. Fingering is demo-only.
 window.__fingerGuideTest={
  get mode(){return state.fingerGuidanceMode},
+ get demoDuet(){return demoSongs.find(s=>s.id==='demo-finger-duet')},
  get steps(){return fingerGuidanceSteps().map(g=>({start:g.start,notes:g.notes.map(n=>({...n}))}))},
  get frame(){const f=fingerGuidanceFrame(fingerGuidanceSteps(),pos);return {current:f.current?.start??null,next:f.next?.start??null}},
  get layout(){return {keyboardTop,keyboardBlackH,canvasHeight:lastCanvasSize.h}},
