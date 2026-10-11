@@ -60,7 +60,13 @@ try{
  await page.evaluate(()=>window.__prototypeTest.loadSong(window.__fingerGuideTest.demoDuet));
  await page.locator('#fingerGuideMode').selectOption('hands');
  await page.setViewportSize({width:390,height:844});
+ await page.locator('[data-layout="play"]').click();
+ await page.waitForFunction(()=>document.body.classList.contains('noLeft')&&document.body.classList.contains('noRight'));
  await page.screenshot({path:path.join(output,'mobile.png')});
+ assert.equal(await page.evaluate(()=>{
+  const c=document.getElementById('roll'),r=c.getBoundingClientRect();
+  return window.__prototypeTest.virtualKeyAt({clientX:r.left+120,clientY:r.top+r.height-8});
+ }),null,'wrist margin below keyboard is not an interactive piano key');
  assert.deepEqual(errors,[],'no browser-side errors');
  console.log('FG-PNG: real Play Along loads PNG assets, registers notes, Seek, unknown MIDI fallback and mobile: PASS');
 }finally{
