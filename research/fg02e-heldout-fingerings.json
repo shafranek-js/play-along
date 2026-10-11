@@ -31,7 +31,8 @@
       "source": "https://piano.org/scales/major/f/",
       "span": "one-octave",
       "direction": "ascending",
-      "engine": "mono"
+      "engine": "mono",
+      "referenceAgreement": "both-sources"
     },
     {
       "id": "major-F-RH-1oct-descending",
@@ -60,7 +61,8 @@
       "source": "https://piano.org/scales/major/f/",
       "span": "one-octave",
       "direction": "descending",
-      "engine": "mono"
+      "engine": "mono",
+      "referenceAgreement": "both-sources"
     },
     {
       "id": "major-F-LH-1oct-ascending",
@@ -89,7 +91,8 @@
       "source": "https://piano.org/scales/major/f/",
       "span": "one-octave",
       "direction": "ascending",
-      "engine": "mono"
+      "engine": "mono",
+      "referenceAgreement": "both-sources"
     },
     {
       "id": "major-F-LH-1oct-descending",
@@ -118,7 +121,8 @@
       "source": "https://piano.org/scales/major/f/",
       "span": "one-octave",
       "direction": "descending",
-      "engine": "mono"
+      "engine": "mono",
+      "referenceAgreement": "both-sources"
     },
     {
       "id": "major-F-sharp-RH-1oct-ascending",
@@ -147,7 +151,8 @@
       "source": "https://piano.org/scales/major/f-sharp/",
       "span": "one-octave",
       "direction": "ascending",
-      "engine": "mono"
+      "engine": "mono",
+      "referenceAgreement": "both-sources"
     },
     {
       "id": "major-F-sharp-RH-1oct-descending",
@@ -176,7 +181,8 @@
       "source": "https://piano.org/scales/major/f-sharp/",
       "span": "one-octave",
       "direction": "descending",
-      "engine": "mono"
+      "engine": "mono",
+      "referenceAgreement": "both-sources"
     },
     {
       "id": "major-F-sharp-RH-2oct-ascending",
@@ -219,7 +225,8 @@
       "source": "https://piano.org/scales/major/f-sharp/",
       "span": "two-octave",
       "direction": "ascending",
-      "engine": "mono"
+      "engine": "mono",
+      "referenceAgreement": "both-sources"
     },
     {
       "id": "major-F-sharp-LH-1oct-ascending",
@@ -248,7 +255,8 @@
       "source": "https://piano.org/scales/major/f-sharp/",
       "span": "one-octave",
       "direction": "ascending",
-      "engine": "mono"
+      "engine": "mono",
+      "referenceAgreement": "both-sources"
     },
     {
       "id": "major-F-sharp-LH-1oct-descending",
@@ -277,7 +285,8 @@
       "source": "https://piano.org/scales/major/f-sharp/",
       "span": "one-octave",
       "direction": "descending",
-      "engine": "mono"
+      "engine": "mono",
+      "referenceAgreement": "both-sources"
     },
     {
       "id": "major-F-sharp-LH-2oct-ascending",
@@ -320,7 +329,26 @@
       "source": "https://piano.org/scales/major/f-sharp/",
       "span": "two-octave",
       "direction": "ascending",
-      "engine": "mono"
+      "engine": "mono",
+      "referenceAgreement": "published-variant",
+      "variantReason": "piano.org LH two-octave F-sharp ends on 4, pianoscales.org ends on 3.",
+      "alternativeExpected": [
+        4,
+        3,
+        2,
+        1,
+        3,
+        2,
+        1,
+        4,
+        3,
+        2,
+        1,
+        3,
+        2,
+        1,
+        3
+      ]
     },
     {
       "id": "major-B-flat-RH-1oct-ascending",
@@ -349,7 +377,19 @@
       "source": "https://piano.org/scales/major/b-flat/",
       "span": "one-octave",
       "direction": "ascending",
-      "engine": "mono"
+      "engine": "mono",
+      "referenceAgreement": "published-variant",
+      "variantReason": "piano.org begins RH B-flat on 4, pianoscales.org begins on 2; starting finger depends on technique/context.",
+      "alternativeExpected": [
+        2,
+        1,
+        2,
+        3,
+        1,
+        2,
+        3,
+        4
+      ]
     },
     {
       "id": "major-B-flat-RH-1oct-descending",
@@ -378,7 +418,19 @@
       "source": "https://piano.org/scales/major/b-flat/",
       "span": "one-octave",
       "direction": "descending",
-      "engine": "mono"
+      "engine": "mono",
+      "referenceAgreement": "published-variant",
+      "variantReason": "piano.org begins RH B-flat on 4, pianoscales.org begins on 2; starting finger depends on technique/context.",
+      "alternativeExpected": [
+        4,
+        3,
+        2,
+        1,
+        3,
+        2,
+        1,
+        2
+      ]
     },
     {
       "id": "major-B-flat-RH-2oct-ascending",
@@ -421,7 +473,26 @@
       "source": "https://piano.org/scales/major/b-flat/",
       "span": "two-octave",
       "direction": "ascending",
-      "engine": "mono"
+      "engine": "mono",
+      "referenceAgreement": "published-variant",
+      "variantReason": "piano.org begins RH B-flat on 4, pianoscales.org begins on 2; starting finger depends on technique/context.",
+      "alternativeExpected": [
+        2,
+        1,
+        2,
+        3,
+        1,
+        2,
+        3,
+        4,
+        1,
+        2,
+        3,
+        1,
+        2,
+        3,
+        4
+      ]
     },
     {
       "id": "major-B-flat-LH-1oct-ascending",
@@ -450,7 +521,8 @@
       "source": "https://piano.org/scales/major/b-flat/",
       "span": "one-octave",
       "direction": "ascending",
-      "engine": "mono"
+      "engine": "mono",
+      "referenceAgreement": "both-sources"
     },
     {
       "id": "major-B-flat-LH-1oct-descending",
@@ -479,7 +551,8 @@
       "source": "https://piano.org/scales/major/b-flat/",
       "span": "one-octave",
       "direction": "descending",
-      "engine": "mono"
+      "engine": "mono",
+      "referenceAgreement": "both-sources"
     },
     {
       "id": "major-B-flat-LH-2oct-ascending",
@@ -522,7 +595,8 @@
       "source": "https://piano.org/scales/major/b-flat/",
       "span": "two-octave",
       "direction": "ascending",
-      "engine": "mono"
+      "engine": "mono",
+      "referenceAgreement": "both-sources"
     },
     {
       "id": "major-E-flat-RH-1oct-ascending",
@@ -551,7 +625,8 @@
       "source": "https://piano.org/scales/major/e-flat/",
       "span": "one-octave",
       "direction": "ascending",
-      "engine": "mono"
+      "engine": "mono",
+      "referenceAgreement": "both-sources"
     },
     {
       "id": "major-E-flat-RH-1oct-descending",
@@ -580,7 +655,8 @@
       "source": "https://piano.org/scales/major/e-flat/",
       "span": "one-octave",
       "direction": "descending",
-      "engine": "mono"
+      "engine": "mono",
+      "referenceAgreement": "both-sources"
     },
     {
       "id": "major-E-flat-LH-1oct-ascending",
@@ -609,7 +685,8 @@
       "source": "https://piano.org/scales/major/e-flat/",
       "span": "one-octave",
       "direction": "ascending",
-      "engine": "mono"
+      "engine": "mono",
+      "referenceAgreement": "both-sources"
     },
     {
       "id": "major-E-flat-LH-1oct-descending",
@@ -638,7 +715,8 @@
       "source": "https://piano.org/scales/major/e-flat/",
       "span": "one-octave",
       "direction": "descending",
-      "engine": "mono"
+      "engine": "mono",
+      "referenceAgreement": "both-sources"
     },
     {
       "id": "major-B-RH-1oct-ascending",
@@ -667,7 +745,8 @@
       "source": "https://piano.org/scales/major/b/",
       "span": "one-octave",
       "direction": "ascending",
-      "engine": "mono"
+      "engine": "mono",
+      "referenceAgreement": "both-sources"
     },
     {
       "id": "major-B-RH-1oct-descending",
@@ -696,7 +775,8 @@
       "source": "https://piano.org/scales/major/b/",
       "span": "one-octave",
       "direction": "descending",
-      "engine": "mono"
+      "engine": "mono",
+      "referenceAgreement": "both-sources"
     },
     {
       "id": "major-B-LH-1oct-ascending",
@@ -725,7 +805,8 @@
       "source": "https://piano.org/scales/major/b/",
       "span": "one-octave",
       "direction": "ascending",
-      "engine": "mono"
+      "engine": "mono",
+      "referenceAgreement": "both-sources"
     },
     {
       "id": "major-B-LH-1oct-descending",
@@ -754,7 +835,8 @@
       "source": "https://piano.org/scales/major/b/",
       "span": "one-octave",
       "direction": "descending",
-      "engine": "mono"
+      "engine": "mono",
+      "referenceAgreement": "both-sources"
     },
     {
       "id": "major-E-RH-1oct-ascending",
@@ -783,7 +865,8 @@
       "source": "https://piano.org/scales/major/e/",
       "span": "one-octave",
       "direction": "ascending",
-      "engine": "mono"
+      "engine": "mono",
+      "referenceAgreement": "both-sources"
     },
     {
       "id": "major-E-RH-1oct-descending",
@@ -812,7 +895,8 @@
       "source": "https://piano.org/scales/major/e/",
       "span": "one-octave",
       "direction": "descending",
-      "engine": "mono"
+      "engine": "mono",
+      "referenceAgreement": "both-sources"
     },
     {
       "id": "major-E-LH-1oct-ascending",
@@ -841,7 +925,8 @@
       "source": "https://piano.org/scales/major/e/",
       "span": "one-octave",
       "direction": "ascending",
-      "engine": "mono"
+      "engine": "mono",
+      "referenceAgreement": "both-sources"
     },
     {
       "id": "major-E-LH-1oct-descending",
@@ -870,7 +955,8 @@
       "source": "https://piano.org/scales/major/e/",
       "span": "one-octave",
       "direction": "descending",
-      "engine": "mono"
+      "engine": "mono",
+      "referenceAgreement": "both-sources"
     },
     {
       "id": "major-A-flat-RH-1oct-ascending",
@@ -899,7 +985,8 @@
       "source": "https://piano.org/scales/major/a-flat/",
       "span": "one-octave",
       "direction": "ascending",
-      "engine": "mono"
+      "engine": "mono",
+      "referenceAgreement": "both-sources"
     },
     {
       "id": "major-A-flat-RH-1oct-descending",
@@ -928,7 +1015,8 @@
       "source": "https://piano.org/scales/major/a-flat/",
       "span": "one-octave",
       "direction": "descending",
-      "engine": "mono"
+      "engine": "mono",
+      "referenceAgreement": "both-sources"
     },
     {
       "id": "major-A-flat-RH-2oct-ascending",
@@ -971,7 +1059,8 @@
       "source": "https://piano.org/scales/major/a-flat/",
       "span": "two-octave",
       "direction": "ascending",
-      "engine": "mono"
+      "engine": "mono",
+      "referenceAgreement": "both-sources"
     },
     {
       "id": "major-A-flat-LH-1oct-ascending",
@@ -1000,7 +1089,8 @@
       "source": "https://piano.org/scales/major/a-flat/",
       "span": "one-octave",
       "direction": "ascending",
-      "engine": "mono"
+      "engine": "mono",
+      "referenceAgreement": "both-sources"
     },
     {
       "id": "major-A-flat-LH-1oct-descending",
@@ -1029,7 +1119,8 @@
       "source": "https://piano.org/scales/major/a-flat/",
       "span": "one-octave",
       "direction": "descending",
-      "engine": "mono"
+      "engine": "mono",
+      "referenceAgreement": "both-sources"
     },
     {
       "id": "major-A-flat-LH-2oct-ascending",
@@ -1072,7 +1163,16 @@
       "source": "https://piano.org/scales/major/a-flat/",
       "span": "two-octave",
       "direction": "ascending",
-      "engine": "mono"
+      "engine": "mono",
+      "referenceAgreement": "both-sources"
     }
-  ]
+  ],
+  "secondarySource": "https://pianoscales.org/major.html",
+  "secondarySourceNote": "Distinct provider. Most fingerings agree, but B-flat RH starts on finger 2 rather than 4; F-sharp LH two-octave final finger is 3 instead of 4. Mark these as reference variants, not unambiguous labels.",
+  "summary": {
+    "cases": 34,
+    "notes": 314,
+    "publishedVariants": 4,
+    "agreed": 30
+  }
 }
