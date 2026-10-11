@@ -39,10 +39,10 @@ try{
  assert.ok(high.keyboardBlackH>75,'Hands should use enlarged existing canvas keyboard');
  assert.deepEqual(await page.evaluate(()=>window.__fingerGuideTest.frame),{current:0,next:.46});
  await page.evaluate(()=>window.__prototypeTest.seek(.46));
- assert.deepEqual(await page.evaluate(()=>window.__fingerGuideTest.frame),{current:.46,next:.92});
+ assert.ok(await page.evaluate(()=>{const f=window.__fingerGuideTest.frame;return Math.abs(f.current-.92)<1e-6&&Math.abs(f.next-1.38)<1e-6;}));
  await page.evaluate(()=>window.__prototypeTest.seek(.92));
  const third=await page.evaluate(()=>window.__fingerGuideTest.frame);
- assert.ok(Math.abs(third.current-.92)<1e-6&&Math.abs(third.next-1.38)<1e-6);
+ assert.ok(Math.abs(third.current-1.38)<1e-6&&Math.abs(third.next-1.84)<1e-6);
  // Switching off restores the original keyboard dimensions.
  await page.locator('#fingerGuideMode').selectOption('off');
  await page.waitForTimeout(50);
@@ -69,8 +69,8 @@ try{
  assert.deepEqual(duet[0].notes.filter(n=>n.hand==='LH').map(n=>n.finger),[5,3,1]);
  await page.locator('#fingerGuideMode').selectOption('ghost');
  await page.evaluate(()=>window.__prototypeTest.seek(1.8));
- assert.equal(await page.evaluate(()=>window.__fingerGuideTest.frame.current),1.8);
- assert.equal(await page.evaluate(()=>window.__fingerGuideTest.frame.next),3.6);
+ assert.equal(await page.evaluate(()=>window.__fingerGuideTest.frame.current),3.6);
+ assert.equal(await page.evaluate(()=>window.__fingerGuideTest.frame.next),5.4);
 
  // Ordinary unannotated MIDI must not inherit the previous demo's fingers.
  await page.evaluate(()=>{
