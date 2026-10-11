@@ -18,6 +18,7 @@ class PracticeSession{
   for(const g of this.groups){g.graded=false;g.spreadMs=null}
   while(this.cursor<this.groups.length&&this.groups[this.cursor].notes.every(n=>n.skipped))this.cursor++;
  }
+ playableStart(g){return g.notes.find(n=>!n.skipped)?.start??g.start}
  nextGroup(){if(this.mode!=='wait')return null;while(this.cursor<this.groups.length&&this.groups[this.cursor].notes.every(n=>n.skipped||n.hit||n.miss))this.cursor++;return this.groups[this.cursor]||null}
  extra(pitch,now){this.revision++;this.stats.wrong++;this.extras.push({pitch,at:now});return false}
  inputOn(pitch,now,wallMs=performance.now()){
@@ -25,7 +26,7 @@ class PracticeSession{
    const g=this.nextGroup();if(!g)return this.extra(pitch,now);
    const matches=g.notes.filter(n=>n.pitch===pitch&&!n.skipped&&!n.hit);if(!matches.length)return this.extra(pitch,now);
    // A single physical key represents any simultaneous unison voices.
-   for(const n of matches)this.accept(n,now,wallMs);const done=g.notes.every(z=>z.hit);
+   for(const n of matches)this.accept(n,now,wallMs);const done=g.notes.every(z=>z.skipped||z.hit);
    if(done){this.gradeGroup(g);this.cursor++;return 'released'}return true;
   }
   const windowSec=.24*rate();
@@ -35,14 +36,14 @@ class PracticeSession{
   // notated voices (or both hands) at the SAME onset and pitch. Grade all
   // such voices on one fresh NoteOn; a later repeated note has a different
   // onset/group and still needs a new physical key press.
-  const unisons=n.group.notes.filter(z=>z.pitch===pitch&&!z.hit&&!z.miss);
+  const unisons=n.group.notes.filter(z=>z.pitch===pitch&&!z.skipped&&!z.hit&&!z.miss);
   for(const voice of unisons){
    this.accept(voice,now,wallMs);
    voice.timingMs=(now-voice.start)/rate()*1000;
    if(voice.timingMs < -70)this.stats.early++;
    else if(voice.timingMs>70)this.stats.late++;
   }
-  if(n.group.notes.every(z=>z.hit))this.gradeGroup(n.group);
+  if(n.group.notes.every(z=>z.skipped||z.hit))this.gradeGroup(n.group);
   return true;
  }
  accept(n,now,wallMs){
@@ -54,9 +55,10 @@ class PracticeSession{
 }
  gradeGroup(g){
   // Two voices playing the same pitch are a unison, not a two-key chord.
-  if(g.graded||new Set(g.notes.map(n=>n.pitch)).size<2||g.notes.some(n=>!n.hit))return;
-  g.graded=true;g.spreadMs=Math.max(...g.notes.map(n=>n.wallOn))-Math.min(...g.notes.map(n=>n.wallOn));
-  for(const n of g.notes)n.chordSpreadMs=g.spreadMs;
+  const playable=g.notes.filter(n=>!n.skipped);
+  if(g.graded||new Set(playable.map(n=>n.pitch)).size<2||playable.some(n=>!n.hit))return;
+  g.graded=true;g.spreadMs=Math.max(...playable.map(n=>n.wallOn))-Math.min(...playable.map(n=>n.wallOn));
+  for(const n of playable)n.chordSpreadMs=g.spreadMs;
   if(g.spreadMs>140)this.stats.badChords++;else this.stats.goodChords++;
  }
  inputOff(pitch,now){
@@ -76,7 +78,7 @@ class PracticeSession{
  advance(now){if(this.mode!=='tempo')return;const deadline=.24*rate();while(this.missCursor<this.all.length){const n=this.all[this.missCursor];if(n.start+deadline>=now)break;this.missCursor++;if(!n.skipped&&!n.hit&&!n.miss){n.miss=true;this.stats.missed++;this.revision++}}}
  finalize(end){
   if(this.mode==='tempo'){this.advance(end+.3*rate());for(const n of this.all){if(n.hit&&!n.off&&n.pressedAt!==null){this.inputOff(n.pitch,end)}}}
-  for(const g of this.groups)if(g.notes.length>1&&g.notes.every(n=>n.hit))this.gradeGroup(g);
+  for(const g of this.groups)this.gradeGroup(g);
  }
  get total(){return this.all.filter(n=>!n.skipped).length}
  get completed(){return this.total?this.all.filter(n=>n.hit&&!n.skipped).length/this.total:0}
