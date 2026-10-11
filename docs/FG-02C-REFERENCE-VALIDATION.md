@@ -23,6 +23,30 @@ These are **sourced pedagogical examples, not teacher-adjudicated ground truth**
 
 The comparison reports note-level exact match separately from case-level exact match. A different choice is an **investigation target**, not automatically a physical impossibility.
 
+## First reproducible baseline (GitHub Actions)
+
+From the [FG-02C PR run](https://github.com/shafranek-js/play-along/actions/runs/38167642979) on 2026-10-11:
+
+| Measure | Result |
+|---|---:|
+| Source-backed scenarios | 20 |
+| Exact unannotated matches | 15/20 |
+| Individual finger matches | 119/134 (88.81%) |
+| Different but audit-valid candidate sequences | 5 |
+| Rejected or biomechanically conflicting outputs | 0 |
+| Author-pinned exact matches | 20/20 cases (134/134 fingers) |
+
+The five discrepancies are RH two-octave C-major scale (11/15),
+LH two-octave C-major scale (11/15), RH two-octave C arpeggio (2/7),
+RH C/E inversion (2/3), and LH C/G inversion (2/3).
+
+**These differences are not yet classified as pedagogical errors.** The current
+sources do not supply a pianist review of the model's alternatives; even
+a plausible stretch/transition does not establish lesson suitability.
+The benchmark prints both reference and proposed fingers for independent review.
+
+**Release decision: FG-02C is research-only, not approved for automatic learner guidance.**
+
 ## Independent physical-invariant audit
 
 `src/core/fingering-audit.mjs` checks emitted pitches/onsets/durations, hand assignment, original anchors, duplicate voices on one physical key, physically conflicting same-hand key presses, crossing fingers, and approximate hand span. The auditor does **not** import or call either proposal engine and is suitable for verifying future variants.
