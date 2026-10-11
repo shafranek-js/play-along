@@ -50,5 +50,7 @@ test('migration baseline retained for auditing; CSS preserved',()=>{
  assert.match(baseline.js_sha256,/^[a-f0-9]{64}$/);
  assert.ok(original.includes('zipInflateBounded'));
  assert.ok(original.includes('backupCreate')); 
- assert.equal(hash(css.replace(/\r\n/g,'\n')),baseline.css_sha256);
+ const legacyCss=css.split('/* FG-00 appended styles; original CSS above is unchanged. */')[0];
+ assert.equal(hash(legacyCss.replace(/\r\n/g,'\n')),baseline.css_sha256);
+ assert.match(css,/\.fingerGuideControls\{/);
 });
