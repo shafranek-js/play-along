@@ -129,3 +129,22 @@ test('FG-02E independent audit catches physically impossible held-key reassignme
  assert.equal(audit(a,bad).valid,false);
  assert.ok(audit(a,bad).violations.some(x=>x.code==='FINGER_REUSED_WHILE_HELD'));
 });
+
+test('FG-02E frozen v0.10.35 musical baseline remains explicitly measured, not silently optimized',()=>{
+ const r=runHeldoutBenchmark();
+ for(const version of [r.stats.baseline,r.stats.phrase]){
+  assert.equal(version.exactAnyPublished,8);
+  assert.equal(version.eligibleExactAgreed,8);
+  assert.equal(version.agreedCases,30);
+  assert.equal(version.matchedPrimary,144);
+  assert.equal(version.notes,314);
+  assert.equal(version.physicalConflicts,0);
+  assert.equal(version.rejected,0);
+ }
+ assert.equal(r.stats.phrase.phraseCandidates,0,'Novel keys must not trigger C/D/G templates');
+ assert.equal(r.stats.pinned.exactAnyPublished,34);
+ assert.equal(r.stats.pinned.matchedPrimary,314);
+ assert.equal(r.stats.pinned.rejected,0);
+ assert.equal(r.researchGate.developmentThresholdMet,false);
+ assert.equal(r.researchGate.productionAutoFingeringAllowed,false);
+});
