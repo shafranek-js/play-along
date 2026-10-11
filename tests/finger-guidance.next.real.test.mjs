@@ -55,6 +55,8 @@ try{
  });
  assert.equal(first.at,0,'Partial chord must keep the current target');
  assert.equal(first.played,1);
+ assert.ok(!first.currentNotes.some(n=>n.pitch===60),'A pressed key is removed from guidance');
+ assert.ok(first.currentNotes.some(n=>n.pitch===64)&&first.currentNotes.some(n=>n.pitch===67),'Other chord keys remain');
  await page.evaluate(()=>window.__prototypeTest.receiveNoteOn(64));
  assert.equal((await frame()).current,0,'Second chord note not enough to advance');
  await page.evaluate(()=>window.__prototypeTest.receiveNoteOn(67));
