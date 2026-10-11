@@ -55,10 +55,9 @@ try{
 
  // A real two-track piece: each chord receives distinct LH/RH fingering.
  await page.evaluate(()=>{
-  const row=[...document.querySelectorAll('#songList .songRow')]
-   .find(b=>b.textContent.includes('две руки · C–F–G–C'));
-  if(!row)throw Error('Missing FG-00 duet demo');
-  row.click();
+  const demo=window.__fingerGuideTest.demoDuet;
+  if(!demo)throw Error('Missing FG-00 duet demo');
+  window.__prototypeTest.loadSong(demo);
  });
  await page.waitForFunction(()=>window.__prototypeTest.song?.id==='demo-finger-duet');
  const duet=await page.evaluate(()=>window.__fingerGuideTest.steps);
@@ -82,9 +81,7 @@ try{
 
  // Non-original arrangement must not display a possibly incorrect manual preset.
  await page.evaluate(()=>{
-  const row=[...document.querySelectorAll('#songList .songRow')]
-   .find(b=>b.textContent.includes('две руки · C–F–G–C'));
-  row.click();
+  window.__prototypeTest.loadSong(window.__fingerGuideTest.demoDuet);
   window.__prototypeTest.setAdaptMode('transpose',12);
  });
  assert.equal(await page.evaluate(()=>window.__fingerGuideTest.steps.length),0);
