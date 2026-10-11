@@ -1,6 +1,6 @@
 {
   "name": "play-along",
-  "version": "0.10.36",
+  "version": "0.10.37",
   "private": true,
   "type": "module",
   "description": "Play Along — independent browser piano practice application",
@@ -13,10 +13,11 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "dev": "node scripts/dev-server.mjs",
-    "test": "node --test tests/build.test.mjs tests/music-time.test.mjs tests/music-bars.test.mjs tests/practice-boundaries.test.mjs tests/fingering-dp.test.mjs tests/fingering-polyphonic.test.mjs tests/fingering-audit.test.mjs tests/fingering-phrases.test.mjs tests/fingering-heldout.test.mjs",
+    "test": "node --test tests/build.test.mjs tests/music-time.test.mjs tests/music-bars.test.mjs tests/practice-boundaries.test.mjs tests/fingering-dp.test.mjs tests/fingering-polyphonic.test.mjs tests/fingering-audit.test.mjs tests/fingering-phrases.test.mjs tests/fingering-heldout.test.mjs tests/fingering-generalized.test.mjs tests/fingering-generalized-benchmark.test.mjs",
     "test:browser": "node tests/osmd.real.test.mjs && node tests/persistence.real.test.mjs && node tests/library.migration.real.test.mjs && node tests/music.timing.real.test.mjs && node tests/security.real.test.mjs && node tests/online-dialog.real.test.mjs && node tests/practice-transport.real.test.mjs && node tests/backup-collision.real.test.mjs && node tests/finger-guidance.real.test.mjs && node tests/finger-guidance-png.real.test.mjs && node tests/finger-guidance.musicxml.real.test.mjs && node tests/finger-guidance.next.real.test.mjs",
     "benchmark:fingering": "node scripts/fingering-benchmark.mjs",
     "benchmark:fingering:phrases": "node scripts/fingering-phrase-benchmark.mjs",
-    "benchmark:fingering:heldout": "node scripts/fingering-heldout-benchmark.mjs"
+    "benchmark:fingering:heldout": "node scripts/fingering-heldout-benchmark.mjs",
+    "benchmark:fingering:generalized": "node scripts/fingering-generalized-benchmark.mjs"
   }
 }

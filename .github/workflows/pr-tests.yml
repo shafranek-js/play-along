@@ -35,6 +35,8 @@ jobs:
         run: FG02D_REPORT=artifacts/fg02d-phrase-comparison.json npm run benchmark:fingering:phrases
       - name: FG-02E held-out key benchmark (no algorithm changes)
         run: FG02E_REPORT=artifacts/fg02e-heldout.json npm run benchmark:fingering:heldout
+      - name: FG-02F retrospective generalized fingering diagnostic
+        run: FG02F_REPORT=artifacts/fg02f-generalized-diagnostic.json npm run benchmark:fingering:generalized
       - name: Browser regressions
         run: npm run test:browser
       - name: Upload FG-02C reference comparison
@@ -57,6 +59,13 @@ jobs:
         with:
           name: fg02e-frozen-heldout-34-cases
           path: artifacts/fg02e-heldout.json
+          if-no-files-found: error
+      - name: Upload FG-02F generalized diagnostic
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: fg02f-retrospective-generalized-diagnostic
+          path: artifacts/fg02f-generalized-diagnostic.json
           if-no-files-found: error
       - name: Dependency audit
         run: npm audit --audit-level=high
