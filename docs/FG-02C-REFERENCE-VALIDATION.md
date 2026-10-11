@@ -4,14 +4,15 @@
 
 ## Evidence-based reference dataset
 
-`research/fg02c-reference-cases.json` contains **16 explicitly contextualized educational reference examples**. We manually transcribed their pitches and finger numbers from the following public study references:
+`research/fg02c-reference-cases.json` contains **20 explicitly contextualized educational reference examples**. We manually transcribed their pitches and finger numbers from the following public study references:
 
 - [C major scales](https://piano.org/scales/major/c/) — RH/LH, one octave ascending and descending, two octaves ascending.
 - [G major scales](https://piano.org/scales/major/g/) — RH/LH, one octave ascending and descending; includes F sharp.
 - [C major arpeggios](https://piano.org/arpeggios/major/) — RH/LH **one-octave finishing** and **two-octave continuing** fingerings.
 - [C major triad](https://piano.org/chords/major/c/) — root-position simultaneous C–E–G for RH/LH.
+- [C major inversions](https://www.pianochord.org/c-major.html) — close-position C/E and C/G for both hands, with explicitly published fingering.
 
-These are **sourced pedagogical examples, not teacher-adjudicated ground truth** and **not the only physically sensible fingering**. Arpeggio fingerings depend on whether the passage finishes or continues; different reputable methods may teach different LH fingerings. Inversions without referenced specific finger sequences are handled by physical audits but are **not labeled gold standards**.
+These are **sourced pedagogical examples, not teacher-adjudicated ground truth** and **not the only physically sensible fingering**. Arpeggio fingerings depend on whether the passage finishes or continues; different reputable methods may teach different LH fingerings. Inversions now have four source-backed examples; alternate voicings, other inversions, chromatic repertoire and stylistic contexts are **not labeled gold standards**.
 
 ## How to reproduce
 
