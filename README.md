@@ -193,3 +193,7 @@ New imports use a full SHA-256 content ID, while files already stored under the 
 - The MusicXML note parser and shared bar-grid adapter use this normalized meter. Unrecognized time signatures produce an explicit warning rather than silently inheriting a plausible but incorrect meter in the note parser.
 - OSMD bar navigation now calls the same ordered MusicXML bar adapter used by the importer; a `divisions` attribute inside a measure takes effect at its written location, not retroactively.
 - Browser regressions verify 3+2/8 begins the next bar at 1.25 seconds (120 BPM), and that a mid-bar divisions change with five total quarter beats starts the next bar at 2.5 seconds.
+
+## Pause / MIDI NoteOff lifecycle (v0.10.21)
+
+When transport is paused, all active practice NoteOn duration measurements are closed at the frozen musical position. The subsequent physical NoteOff is safe even while paused; it cannot leave a stale held voice to contaminate the next note of the same pitch. A real Chromium regression verifies key-on → pause → key-off → next note against the production bundle. This fixes audit A08 while retaining Wait legato and unison behavior.

@@ -224,6 +224,39 @@ try{
  await page.evaluate(()=>window.__prototypeTest.receiveNoteOn(60));
  assert.equal(await hits(),2,'Wait must credit both simultaneous C4 voices');
  await page.evaluate(()=>{window.__prototypeTest.receiveNoteOff(60);window.__prototypeTest.pause()});
+ // A08: A held note must be closed when transport pauses. Releasing
+ // the physical key after pause cannot leave stale duration measurements,
+ // even if the following note uses that same pitch.
+ await page.evaluate(()=>{
+  window.__prototypeTest.loadSong({
+   id:'paused-noteoff-fixture',title:'Pause lifecycle',type:'demo',tempo:120,
+   tracks:[{name:'Piano',notes:[
+    {pitch:60,start:0,duration:.5,velocity:80,track:0},
+    {pitch:60,start:2,duration:.5,velocity:80,track:0}
+   ]}]
+  });
+  window.__prototypeTest.setMode('tempo');
+  window.__prototypeTest.play();
+  window.__prototypeTest.receiveNoteOn(60);
+  window.__prototypeTest.pause();
+ });
+ const closedAtPause=await page.evaluate(()=>({
+  active:window.__prototypeTest.session.played.size,
+  first:window.__prototypeTest.session.all[0].off
+ }));
+ assert.deepEqual(closedAtPause,{active:0,first:true},
+  'Pausing must close and clear the first held note');
+ await page.evaluate(()=>window.__prototypeTest.receiveNoteOff(60));
+ assert.equal(await page.evaluate(()=>window.__prototypeTest.session.played.size),0,
+  'Key-up after pause must not leave stale measurements');
+ await page.evaluate(()=>{
+  window.__prototypeTest.play();
+  window.__prototypeTest.receiveNoteOn(60);
+  window.__prototypeTest.receiveNoteOff(60);
+  window.__prototypeTest.pause();
+ });
+ assert.equal(await page.evaluate(()=>window.__prototypeTest.session.played.size),0);
+ console.log('MIDI PAUSE REGRESSION: held note closes on pause; late NoteOff cannot corrupt next note: PASS');
  console.log('POLYPHONY REGRESSION: Tempo+Wait unison, key release, repeated pitch and chord: PASS');
  console.log('WAIT REGRESSION: legato, early onset, repeated note, chord: PASS');
  assert.deepEqual(errors,[],'Browser Javascript errors');

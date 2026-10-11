@@ -71,7 +71,11 @@ function engineTick(){if(!isPlaying||!ctx)return;pos=clockPos();if(state.mode===
  scheduleAudio();}
 function restartAudioQueue(){window._playNotes=audioSequence();playNext=window._playNotes.findIndex(n=>n.start>=pos-.0001);if(playNext<0)playNext=window._playNotes.length}
 function play(){if(!current)return;if(state.mode!=='listen'&&state.adaptMode!=='original'&&adaptPlan?.ready&&!adaptPlan.arrangement.feasible){notify('Диапазон: текущая адаптация невозможна. Открой панель «Диапазон».');state.right=true;applyPanels();switchRightTab('adapt');return;} if(pos>=duration()-.03){pos=0;resetPractice()}ensureAudio();if(state.mode!=='listen'&&!practice)resetPractice();if(practice&&state.mode!=='listen')practice.started=true;holdForInput=false;isPlaying=true;startAt=pos;startAudioTime=ctx.currentTime;restartAudioQueue();if(schedulerTimer!==null)clearInterval(schedulerTimer);schedulerTimer=setInterval(engineTick,25);engineTick();updateUI()}
-function pause(finished=false){if(isPlaying&&ctx)pos=finished?pos:clockPos();isPlaying=false;holdForInput=false;waitReleaseGroup=null;waitReleasePitches.clear();if(schedulerTimer!==null){clearInterval(schedulerTimer);schedulerTimer=null;}silence();updateUI();persist()}
+function pause(finished=false){if(isPlaying&&ctx)pos=finished?pos:clockPos();
+ // Freeze every active duration measurement when practice is paused. MIDI
+ // NoteOff may arrive minutes later; it must not contaminate the next note.
+ if(isPlaying&&practice)for(const pitch of [...practice.played.keys()])practice.inputOff(pitch,pos);
+ isPlaying=false;holdForInput=false;waitReleaseGroup=null;waitReleasePitches.clear();if(schedulerTimer!==null){clearInterval(schedulerTimer);schedulerTimer=null;}silence();updateUI();persist()}
 function stop(){isPlaying=false;holdForInput=false;waitReleaseGroup=null;waitReleasePitches.clear();if(schedulerTimer!==null){clearInterval(schedulerTimer);schedulerTimer=null;}silence()}
 function seek(to){const was=isPlaying;if(was)pause();pos=clamp(to,0,duration());resetPractice();if(was)play();else updateUI();scoreSyncCursor(true);persist()}
 function togglePlay(){isPlaying?pause():play()}

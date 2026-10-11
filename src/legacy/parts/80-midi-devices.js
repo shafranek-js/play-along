@@ -98,7 +98,7 @@ function advanceWaitAfterRelease(){
 function onNoteOff(note,from='midi',timestamp){
  if(calibrationOpen()&&cal.step<2)return;
  midiHeld.delete(note);releaseLive(note);
- if(isPlaying&&practice){practice.inputOff(note,eventPosition(timestamp));showPractice()}
+ if(practice){practice.inputOff(note,isPlaying?eventPosition(timestamp):pos);if(isPlaying)showPractice()}
  if(waitReleaseGroup){waitReleasePitches.delete(note);if(!waitReleasePitches.size)advanceWaitAfterRelease()}
  addMonitor('OFF '+nameOf(note));$('midiLive').textContent=midiHeld.size?'MIDI: удержано '+midiHeld.size:'MIDI: готово';
 }
