@@ -75,6 +75,7 @@ function onNoteOn(note,velocity=85,from='midi',timestamp){
   if(!wait||expected||(holdForInput&&!waitReleaseGroup)){
    const at=eventPosition(timestamp);
    const result=practice.inputOn(note,at,Number.isFinite(timestamp)?timestamp:performance.now());
+   if(wait&&expected&&result!==false&&group)scheduleWaitAcceptedGroup(group.start);
    if(wait&&result==='released'&&group){
     waitReleaseGroup=group;
     waitReleasePitches=new Set(group.notes.filter(n=>midiHeld.has(n.pitch)).map(n=>n.pitch));

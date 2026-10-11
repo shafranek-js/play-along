@@ -69,8 +69,38 @@ function engineTick(){if(!isPlaying||!ctx)return;pos=clockPos();if(state.mode===
  const finishAt=loop.enabled&&loop.start!=null&&loop.end!=null?loop.end:duration();
  if(pos>=finishAt-1e-5){if(loop.enabled&&loop.start!=null&&loop.end!=null){if(state.mode!=='listen')finishPerformance('loop');if(smart.active&&smart.segment){smartRoundComplete();return;}seek(loop.start)}else{if(state.mode!=='listen')finishPerformance('complete');pos=duration();pause(true)}return}
  scheduleAudio();}
+// Trigger accompaniment on the accepted Wait group's onset. The ordinary
+// scheduler excludes this downbeat until the player responds; relying on the
+// next frame loses the note when the player transitions legato.
+function scheduleWaitAcceptedGroup(onset){
+ if(!isPlaying||state.mode!=='wait'||!state.accompany||!ctx)return;
+ const notes=window._playNotes||[],epsilon=1e-4;
+ const last=loop.enabled&&loop.end!=null?loop.end:Infinity;
+ while(playNext<notes.length&&notes[playNext].start<=onset+epsilon){
+  const note=notes[playNext++];
+  if(note.channel===9||note.start<onset-epsilon||note.start>=last-epsilon)continue;
+  const remaining=Math.min(note.duration,last-note.start);
+  if(remaining<=0)continue;
+  sound(note.pitch,note.velocity,ctx.currentTime+.004,remaining/rate(),note);
+ }
+}
+// A seek/resume may land inside a long sustained note. It still needs to
+// sound until its original off-event, and must not trigger the original attack
+// for notes that have already ended.
+function resumeSustainedAudio(){
+ if(!ctx||!isPlaying)return;
+ const notes=window._playNotes||[],last=loop.enabled&&loop.end!=null?loop.end:Infinity;
+ for(const note of notes){
+  if(note.start>=pos-1e-4)break;
+  if(note.channel===9)continue;
+  const end=Math.min(note.start+note.duration,last);
+  if(end<=pos+.002)continue;
+  const remaining=(end-pos)/rate();
+  if(remaining>0)sound(note.pitch,note.velocity,ctx.currentTime+.004,remaining,note);
+ }
+}
 function restartAudioQueue(){window._playNotes=audioSequence();playNext=window._playNotes.findIndex(n=>n.start>=pos-.0001);if(playNext<0)playNext=window._playNotes.length}
-function play(){if(!current)return;if(state.mode!=='listen'&&state.adaptMode!=='original'&&adaptPlan?.ready&&!adaptPlan.arrangement.feasible){notify('Диапазон: текущая адаптация невозможна. Открой панель «Диапазон».');state.right=true;applyPanels();switchRightTab('adapt');return;} if(pos>=duration()-.03){pos=0;resetPractice()}ensureAudio();if(state.mode!=='listen'&&!practice)resetPractice();if(practice&&state.mode!=='listen')practice.started=true;holdForInput=false;isPlaying=true;startAt=pos;startAudioTime=ctx.currentTime;restartAudioQueue();if(schedulerTimer!==null)clearInterval(schedulerTimer);schedulerTimer=setInterval(engineTick,25);engineTick();updateUI()}
+function play(){if(!current)return;if(state.mode!=='listen'&&state.adaptMode!=='original'&&adaptPlan?.ready&&!adaptPlan.arrangement.feasible){notify('Диапазон: текущая адаптация невозможна. Открой панель «Диапазон».');state.right=true;applyPanels();switchRightTab('adapt');return;} if(pos>=duration()-.03){pos=0;resetPractice()}ensureAudio();if(state.mode!=='listen'&&!practice)resetPractice();if(practice&&state.mode!=='listen')practice.started=true;holdForInput=false;isPlaying=true;startAt=pos;startAudioTime=ctx.currentTime;restartAudioQueue();resumeSustainedAudio();if(schedulerTimer!==null)clearInterval(schedulerTimer);schedulerTimer=setInterval(engineTick,25);engineTick();updateUI()}
 function pause(finished=false){if(isPlaying&&ctx)pos=finished?pos:clockPos();
  // Freeze every active duration measurement when practice is paused. MIDI
  // NoteOff may arrive minutes later; it must not contaminate the next note.

@@ -40,7 +40,7 @@ try{
    console.log('PAGE DIAGNOSTIC:',await page.evaluate(()=>({ready:document.readyState,script:!!document.querySelector('script[src*="app.js"]'),state:typeof window.__prototypeTest,library:typeof window.__libraryV08})));
    throw err;
  });
- assert.equal(await page.evaluate(()=>window.__playAlongVersion),'0.10.21');
+ assert.equal(await page.evaluate(()=>window.__playAlongVersion),'0.10.22');
  const zip=makeZip('score.musicxml',SCORE).toString('base64');
  const result=await page.evaluate(async ({xml,zip})=>{
    const arr=Uint8Array.from(atob(zip),c=>c.charCodeAt(0));
@@ -256,6 +256,86 @@ try{
   window.__prototypeTest.pause();
  });
  assert.equal(await page.evaluate(()=>window.__prototypeTest.session.played.size),0);
+ // A09: accompaniment on exactly the same musical downbeat must start
+ // when the player accepts that group, even if the following note is legato.
+ await page.evaluate(()=>{
+  window.__prototypeTest.loadSong({
+   id:'wait-accompaniment-ci',title:'Accompaniment downbeats',author:'CI',type:'demo',tempo:120,
+   tracks:[
+    {name:'Played',notes:[
+     {pitch:60,start:0,duration:.5,velocity:90,track:0},
+     {pitch:62,start:2,duration:.5,velocity:90,track:0}
+    ]},
+    {name:'Accompaniment',notes:[
+     {pitch:48,start:0,duration:1,velocity:90,track:1},
+     {pitch:50,start:2,duration:1,velocity:90,track:1}
+    ]}
+   ]
+  });
+  const box=document.querySelector('#accompany');
+  box.checked=true;box.dispatchEvent(new Event('change',{bubbles:true}));
+  window.__prototypeTest.setMode('wait');
+  window.__prototypeTest.play();
+ });
+ await page.waitForFunction(()=>window.__prototypeTest.hold===true);
+ await page.evaluate(()=>window.__prototypeTest.receiveNoteOn(60));
+ await page.waitForTimeout(70);
+ let voices=await page.evaluate(()=>window.__prototypeTest.scheduledVoices);
+ assert.equal(voices.filter(v=>v.pitch===48&&v.start===0).length,1,
+  'Accompaniment on the accepted Wait downbeat must be scheduled once');
+ // Repeated physical key-on must not replay accompaniment.
+ await page.evaluate(()=>window.__prototypeTest.receiveNoteOn(60));
+ voices=await page.evaluate(()=>window.__prototypeTest.scheduledVoices);
+ assert.equal(voices.filter(v=>v.pitch===48&&v.start===0).length,1,
+  'Held note duplicated the accompaniment');
+ // Legato: C4 is still physically held when the next played D4 arrives.
+ await page.evaluate(()=>window.__prototypeTest.receiveNoteOn(62));
+ await page.waitForTimeout(70);
+ voices=await page.evaluate(()=>window.__prototypeTest.scheduledVoices);
+ assert.equal(voices.filter(v=>v.pitch===50&&v.start===2).length,1,
+  'Next accompaniment downbeat was skipped on legato transition');
+ await page.evaluate(()=>{for(const pitch of [60,62])window.__prototypeTest.receiveNoteOff(pitch);window.__prototypeTest.pause()});
+ console.log('WAIT ACCOMPANIMENT: accepted downbeats and legato schedule exactly once: PASS');
+
+ // A10: a long accompaniment or melody note still has audible time left
+ // when playback resumes from a position inside the note.
+ await page.evaluate(()=>{
+  window.__prototypeTest.loadSong({
+   id:'resume-sustain-ci',title:'Sustain resume',author:'CI',type:'demo',tempo:120,
+   tracks:[{name:'Long note',notes:[
+    {pitch:65,start:0,duration:10,velocity:90,track:0},
+    {pitch:67,start:10,duration:.5,velocity:90,track:0}
+   ]}]
+  });
+  window.__prototypeTest.setMode('listen');
+  window.__prototypeTest.seek(5);
+  window.__prototypeTest.play();
+ });
+ await page.waitForTimeout(70);
+ let sustain=await page.evaluate(()=>({
+  keys:window.__prototypeTest.soundingKeys,
+  voices:window.__prototypeTest.scheduledVoices
+ }));
+ assert.ok(sustain.keys.includes(65),'Seeking into a held melody note left silence');
+ let recovered=sustain.voices.find(v=>v.pitch===65&&v.start===0);
+ assert.ok(recovered,'Long melody was not restored');
+ assert.ok(recovered.endTime-recovered.startTime>4.7&&recovered.endTime-recovered.startTime<5.1,
+  'Resumed note must play only its remaining ~5 seconds');
+ await page.evaluate(()=>window.__prototypeTest.pause());
+ assert.ok(!(await page.evaluate(()=>window.__prototypeTest.soundingKeys)).includes(65),
+  'Pausing must stop recovered voices');
+ await page.evaluate(()=>window.__prototypeTest.play());
+ await page.waitForTimeout(70);
+ assert.ok((await page.evaluate(()=>window.__prototypeTest.soundingKeys)).includes(65),
+  'Resume after pause must still sound the sustained note');
+ await page.evaluate(()=>window.__prototypeTest.pause());
+ // A note whose off-event already passed must not be restarted.
+ await page.evaluate(()=>{window.__prototypeTest.seek(10.2);window.__prototypeTest.play()});
+ await page.waitForTimeout(70);
+ assert.equal((await page.evaluate(()=>window.__prototypeTest.scheduledVoices)).filter(v=>v.pitch===65).length,0,
+  'Fully finished note was incorrectly retriggered');
+ await page.evaluate(()=>window.__prototypeTest.pause());
+ console.log('SEEK / RESUME: sustained notes recover remaining duration without restarting ended notes: PASS');
  console.log('MIDI PAUSE REGRESSION: held note closes on pause; late NoteOff cannot corrupt next note: PASS');
  console.log('POLYPHONY REGRESSION: Tempo+Wait unison, key release, repeated pitch and chord: PASS');
  console.log('WAIT REGRESSION: legato, early onset, repeated note, chord: PASS');
