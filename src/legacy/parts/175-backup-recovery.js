@@ -1,6 +1,10 @@
 // Portable backup of the user's own repertoire and preferences; never uploaded to a server.
 const BACKUP_FORMAT='play-along-backup',BACKUP_VERSION=1;
 const BACKUP_MAX_BYTES=96*1024*1024;
+function backupErrorMessage(err){
+ if(err instanceof Error)return err.message||'Неизвестная ошибка';
+ return typeof err==='string'&&err.trim()?err:'Неизвестная ошибка';
+}
 function backupBytesToBase64(buffer){
  const bytes=buffer instanceof ArrayBuffer?new Uint8Array(buffer):new Uint8Array(buffer.buffer,buffer.byteOffset,buffer.byteLength);
  const chunks=[];for(let i=0;i<bytes.length;i+=8192)chunks.push(String.fromCharCode(...bytes.subarray(i,i+8192)));
@@ -41,7 +45,7 @@ async function backupDownload(){
   a.href=url;a.download='play-along-backup-'+new Date().toISOString().slice(0,10)+'.json';document.body.append(a);a.click();a.remove();
   setTimeout(()=>URL.revokeObjectURL(url),30000);
   setLibraryStatus('Резервная копия скачана. Сохрани файл в надёжном месте.');
- }catch(err){setLibraryStatus('Ошибка резервного копирования: '+err.message);throw err}
+ }catch(err){setLibraryStatus('Ошибка резервного копирования: '+backupErrorMessage(err));throw err}
  finally{button.disabled=false}
 }
 async function backupCheckJson(payload){
@@ -100,10 +104,12 @@ async function backupRestore(file){
    await new Promise((resolve,reject)=>{
     const tx=db.transaction(['works','workIndex','prefs','performances'],'readwrite');
     const works=tx.objectStore('works'),index=tx.objectStore('workIndex');
+    let abortReason=null;
     for(const item of validated.works){
      const request=works.get(item.id);
      request.onsuccess=()=>{
       if(request.result&&!libraryBuffersEqual(request.result.data,item.data)){
+       abortReason=new Error('Конфликт ID музыкального файла '+item.id+': существующий файл отличается. Восстановление отменено без изменения данных.');
        console.error('Restore aborted: same musical ID with different bytes',item.id);
        tx.abort();return;
       }
@@ -114,8 +120,8 @@ async function backupRestore(file){
     const attempts=tx.objectStore('performances');
     attempts.clear();for(const record of validated.performances)attempts.put(record);
     tx.oncomplete=()=>resolve(true);
-    tx.onerror=()=>reject(tx.error);
-    tx.onabort=()=>reject(tx.error);
+    tx.onerror=()=>reject(abortReason??tx.error??new Error('Ошибка транзакции восстановления'));
+    tx.onabort=()=>reject(abortReason??tx.error??new Error('Транзакция восстановления отменена'));
    });
   }finally{db.close()}
  }catch(err){
@@ -134,6 +140,6 @@ function backupSetup(){
  $('backupImport').onclick=()=>$('backupFile').click();
  $('backupFile').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
   try{setLibraryStatus('Проверяю резервную копию…');await backupRestore(f)}
-  catch(err){setLibraryStatus('Восстановление не выполнено: '+(err.message||err));console.error('Restore failed',err)}
+  catch(err){setLibraryStatus('Восстановление не выполнено: '+backupErrorMessage(err));console.error('Restore failed',err)}
  };
 }
