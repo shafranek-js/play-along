@@ -52,6 +52,48 @@ There is no cherry-picking after reading the optimizer output. This pull request
 
 Outputs distinguish `EXACT_PUBLISHED`, `DIFFERENT`, `REJECTED`, `PHYSICAL_CONFLICT` and label each as concordant or publisher-disputed. A result matching **either published version** is accepted within a disputed case. That does **not** imply a fingering is comfortable or optimal.
 
+## First measured holdout result — 11 October 2026
+
+Frozen input: 34 unseen key / hand / direction cases (314 notes). Data and
+optimizer code were not adjusted after looking at the outputs.
+
+GitHub Actions baseline: [PR #12 CI run 38170530595](https://github.com/shafranek-js/play-along/actions/runs/38170530595).
+The complete original proposed sequences and pinned-author runs are in the
+`fg02e-frozen-heldout-34-cases` JSON artifact.
+
+| Measure | FG-02A baseline | FG-02D phrase-aware |
+|---|---:|---:|
+| Exact-match cases among all 34 (any published variant) | 8/34 | 8/34 |
+| Exact matches among 30 source-agreed cases | 8/30 = **26.67%** | 8/30 = **26.67%** |
+| Correct note-level finger labels (primary source) | 144/314 = **45.86%** | 144/314 = **45.86%** |
+| Proposed labels matching primary across source-agreed cases | 130/268 = **48.51%** | 130/268 = **48.51%** |
+| Cases rejected / physical conflicts flagged | 0 / 0 | 0 / 0 |
+| Previously hardcoded phrase candidates activated | — | **0** |
+| With all author fingers fixed | 34/34, 314/314 preserved | 34/34, 314/314 preserved |
+
+**Interpretation:** FG-02D's excellent 20/20 *development-reference* score
+does not generalize to these held-out keys. Outside its hardcoded C/D/G phrase
+templates it selects the old FG-02A answer, so its result on this test is
+identical to FG-02A. The original FG-02A covers all examples mechanically but
+only matches 8 of the 34 published variants exactly.
+
+These results **do not imply every nonmatching proposal is physically
+unplayable**; the audit found no modeled conflicts. They demonstrate poor
+agreement with standard published methods. One must not market the hand-size
+or local penalty model as an empirically validated fingering teacher.
+
+The previous 90%-case-consensus engineering target **fails**: 26.67% is
+below 90%, and expert-repertoire validation is missing. The release decision
+is **NO-GO for learner-facing automatic fingering**. The original authoritative
+MusicXML fingering and current 14 hand PNG assets are not affected.
+
+Next work should revise the *general musical model* using different
+design/evaluation datasets (contextual phrase planning, key-dependent
+black-key constraints, multi-octave crossing, alternative fingerings and
+hand size). **Do not fit FG-02E fixtures and then call the same fixtures a
+new independent test.** Retain these data as a locked regression set and
+acquire a separate future holdout.
+
 ## Go / no-go criteria
 
 All conditions would be needed before *considering* separate learner-facing opt-in implementation:
