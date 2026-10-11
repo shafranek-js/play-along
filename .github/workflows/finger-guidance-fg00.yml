@@ -1,0 +1,25 @@
+name: Finger Guidance FG-00 Prototype
+
+on:
+  push:
+    branches:
+      - prototype/finger-guidance-fg00
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prototype-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install project dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: FG-00 interactive smoke
+        run: node prototypes/finger-guidance-fg00/smoke.mjs
