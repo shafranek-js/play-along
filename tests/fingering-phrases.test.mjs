@@ -130,7 +130,7 @@ test('FG-02D no hand inference; invalid author anchors still fail closed',()=>{
 test('FG-02D rejects conflicting explicit hand annotations via template fallthrough',()=>{
  const notes=seq(scaleC);notes[0].hand='LH';
  const r=phrase(notes,{hand:'RH'});
- assert.equal(r.strategy,'baseline');
+ assert.equal(r.reason,'HAND_CONFLICT');
 });
 test('FG-02D input order, event identity, note IDs and duration do not change',()=>{
  const original=seq(scaleC).reverse();const saved=structuredClone(original);
