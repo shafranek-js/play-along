@@ -51,7 +51,7 @@ try{
   const at=window.__fingerGuideTest.frame.current;
   const steps=window.__fingerGuideTest.steps;
   return {at,played:window.__prototypeTest.stats?.hits,group:steps[0].notes.length,
-    currentNotes:window.__fingerGuideTest.preview?.notes};
+    currentNotes:window.__fingerGuideTest.preview};
  });
  assert.equal(first.at,0,'Partial chord must keep the current target');
  assert.equal(first.played,1);
