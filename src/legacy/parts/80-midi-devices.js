@@ -63,11 +63,12 @@ function onNoteOn(note,velocity=85,from='midi',timestamp){
   // Duplicate NoteOn for a held pitch was suppressed above, so repeated
   // same-pitch notes still require physical rearticulation.
   const group=wait?practice.nextGroup():null;
-  const expected=!!(group&&group.notes.some(n=>n.pitch===note&&!n.hit));
+  const expected=!!(group&&group.notes.some(n=>n.pitch===note&&!n.skipped&&!n.hit&&!n.miss));
   if(wait&&expected){
+   const groupStart=practice.playableStart(group);
    if(waitReleaseGroup){waitReleaseGroup=null;waitReleasePitches.clear()}
-   if(!holdForInput||pos<group.start-0.0001){
-    pos=group.start;
+   if(!holdForInput||pos<groupStart-0.0001){
+    pos=groupStart;
     if(ctx){startAt=pos;startAudioTime=ctx.currentTime}
    }
    holdForInput=true;
@@ -75,11 +76,11 @@ function onNoteOn(note,velocity=85,from='midi',timestamp){
   if(!wait||expected||(holdForInput&&!waitReleaseGroup)){
    const at=eventPosition(timestamp);
    const result=practice.inputOn(note,at,Number.isFinite(timestamp)?timestamp:performance.now());
-   if(wait&&expected&&result!==false&&group)scheduleWaitAcceptedGroup(group.start);
+   if(wait&&expected&&result!==false&&group)scheduleWaitAcceptedGroup(practice.playableStart(group));
    if(wait&&result==='released'&&group){
     waitReleaseGroup=group;
-    waitReleasePitches=new Set(group.notes.filter(n=>midiHeld.has(n.pitch)).map(n=>n.pitch));
-    pos=group.start;holdForInput=true;
+    waitReleasePitches=new Set(group.notes.filter(n=>!n.skipped&&n.hit&&midiHeld.has(n.pitch)).map(n=>n.pitch));
+    pos=practice.playableStart(group);holdForInput=true;
     // Keep cursor and accompaniment frozen until the last chord key is released.
     if(!waitReleasePitches.size)advanceWaitAfterRelease();
    }
@@ -91,7 +92,7 @@ function onNoteOn(note,velocity=85,from='midi',timestamp){
 function advanceWaitAfterRelease(){
  if(!waitReleaseGroup)return;
  const completed=waitReleaseGroup;
- pos=completed.start;
+ pos=practice.playableStart(completed);
  if(ctx){startAt=pos;startAudioTime=ctx.currentTime}
  waitReleaseGroup=null;waitReleasePitches.clear();holdForInput=false;
  if(isPlaying)engineTick();
