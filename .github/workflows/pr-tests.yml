@@ -31,6 +31,8 @@ jobs:
         run: |
           mkdir -p artifacts
           FG02C_REPORT=artifacts/fg02c-reference-benchmark.json npm run benchmark:fingering
+      - name: FG-02D phrase benchmark (research only)
+        run: FG02D_REPORT=artifacts/fg02d-phrase-comparison.json npm run benchmark:fingering:phrases
       - name: Browser regressions
         run: npm run test:browser
       - name: Upload FG-02C reference comparison
@@ -39,6 +41,13 @@ jobs:
         with:
           name: fg02c-educational-reference-comparison
           path: artifacts/fg02c-reference-benchmark.json
+          if-no-files-found: warn
+      - name: Upload FG-02D phrase comparison
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: fg02d-phrase-dev-comparison
+          path: artifacts/fg02d-phrase-comparison.json
           if-no-files-found: warn
       - name: Dependency audit
         run: npm audit --audit-level=high
