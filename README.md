@@ -1,11 +1,11 @@
-# Play Along — Piano Practice App (v0.10.47)
+# Play Along — Piano Practice App (v0.10.48)
 
 Play Along is an independently hosted browser piano practice application with Web MIDI, Piano Roll, OpenSheetMusicDisplay (OSMD), MusicXML/MXL and MIDI import, optional online music catalogs, and Wait/Tempo/Listen practice modes.
 
 **Live site:** https://shafranek-js.github.io/play-along/
 
 
-## Current status — v0.10.47
+## Current status — v0.10.48
 
 **Finger Guidance in the published player:** Optional Off / Numbers / 2D Hands / Ghost modes use the **14 original transparent PNG images supplied by the project owner** (seven poses for each hand). Guidance targets the **next note to be played**, not a key that is already sounding. In **Wait**, it stays on an unfinished group and removes already accepted chord keys; after a complete chord it advances to the next target.
 
@@ -33,6 +33,8 @@ FG-02H flags **11 quick same-finger changes** requiring musician review. Preserv
 **v0.10.45 live-version fix:** The visible “Standalone · v0.10.41” banner, browser tab title and startup score placeholder had remained hardcoded in `src/index.html` even after successful deployments of application versions v0.10.42–v0.10.44. Starting with this release, all three labels and the JS/CSS cache-busting URLs are stamped at build time from the single `package.json` version. The deterministic build and real Chromium tests now require the HTML branding, JavaScript release stamp and package version to agree; obsolete hardcoded version text must never be deployed. The original fourteen hand PNG assets and MIDI musical/scoring logic are unchanged; subsequent crossing safety has been hardened before deployment.
 
 **FG-03B2B-1 v0.10.46:** Virtual 25/49/61/88-key piano ranges now work without a physical MIDI profile, and changing the visible range forces a fresh keyboard geometry redraw. Complete hand PNG poses are suppressed when **any authored chord note of that hand is outside the selected range**; visible source-approved numeric finger targets remain. New eight-case desktop/mobile Chromium screenshot QA and JSON evidence are captured in PR artifacts. This is technical viewport acceptance, **not** physical hand-movement approval by a pianist. See [FG-03B2B keyboard-range QA](docs/FG-03B2B-RANGE-QA.md).
+
+**FG-03C2A v0.10.48:** Select a source-backed MusicXML note on Piano Roll to choose an explicit finger (1–5) and RH/LH or unknown hand. Manual corrections are layered over — never written into — original author notation, can be undone once or reset to author, and are persisted for reimports of identical MusicXML content. User-derived guidance is identified separately from authored fingering. Existing backup export includes corrections; strict backup restore rejects malicious or invalid overrides before touching stored data. See [FG-03C2A implementation](docs/FG-03C2A-MANUAL-CORRECTIONS.md). This is not automatically predicted fingering.
 
 ### Release documentation rule
 
