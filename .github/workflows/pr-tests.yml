@@ -54,6 +54,8 @@ jobs:
         run: FG02I_REPORT=artifacts/fg02i-score-router.json npm run benchmark:fingering:score-router
       - name: FG-02J independently sourced polyphonic fingering eligibility discovery
         run: FG02J_DISCOVERY_REPORT=artifacts/fg02j-polyphony-source.json npm run research:fingering:polyphony-source
+      - name: FG-02J pinned 11-recording GT to MIDI/TSV correspondence
+        run: FG02J_ALIGNMENT_REPORT=artifacts/fg02j-gt-alignment.json npm run research:fingering:polyphony-align
       - name: Browser regressions
         run: npm run test:browser
       - name: Upload FG-02C reference comparison
@@ -111,6 +113,13 @@ jobs:
         with:
           name: fg02j-independent-polyphony-source-qualification
           path: artifacts/fg02j-polyphony-source.json
+          if-no-files-found: error
+      - name: Upload FG-02J independent GT alignment coverage and blockers
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: fg02j-pinned-11-recording-alignment
+          path: artifacts/fg02j-gt-alignment.json
           if-no-files-found: error
       - name: Dependency audit
         run: npm audit --audit-level=high
