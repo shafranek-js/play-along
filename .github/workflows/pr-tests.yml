@@ -140,3 +140,11 @@ jobs:
           name: finger-guidance-png-real-app
           path: artifacts/finger-png/*.png
           if-no-files-found: warn
+
+      - name: Upload FG-03B2B 25/49/61/88-key screenshot QA matrix
+        if: always() && github.event_name == 'pull_request' && github.head_ref == 'feature/fg03b2b-range-safety-v0.10.46'
+        uses: actions/upload-artifact@v4
+        with:
+          name: fg03b2b-piano-range-visual-review
+          path: artifacts/finger-range-review/
+          if-no-files-found: error

@@ -1,11 +1,11 @@
-# Play Along — Piano Practice App (v0.10.45)
+# Play Along — Piano Practice App (v0.10.46)
 
 Play Along is an independently hosted browser piano practice application with Web MIDI, Piano Roll, OpenSheetMusicDisplay (OSMD), MusicXML/MXL and MIDI import, optional online music catalogs, and Wait/Tempo/Listen practice modes.
 
 **Live site:** https://shafranek-js.github.io/play-along/
 
 
-## Current status — v0.10.45
+## Current status — v0.10.46
 
 **Finger Guidance in the published player:** Optional Off / Numbers / 2D Hands / Ghost modes use the **14 original transparent PNG images supplied by the project owner** (seven poses for each hand). Guidance targets the **next note to be played**, not a key that is already sounding. In **Wait**, it stays on an unfinished group and removes already accepted chord keys; after a complete chord it advances to the next target.
 
@@ -31,6 +31,8 @@ FG-02H flags **11 quick same-finger changes** requiring musician review. Preserv
 **FG-03B2A update:** Ghost Hands now offers a stateless smooth translation of a **secondary verified future-hand PNG** toward its next source-authorized position. Actual next-key circles always stay fixed to piano geometry. A two-hand crossing, largely clipped sprite or ambiguous movement falls back to exact source finger-number markers, not a fabricated physical gesture. This does **not** animate finger joints or generate new fingering. See [technical details](docs/FG-03B2A-SAFE-MOTION.md).
 
 **v0.10.45 live-version fix:** The visible “Standalone · v0.10.41” banner, browser tab title and startup score placeholder had remained hardcoded in `src/index.html` even after successful deployments of application versions v0.10.42–v0.10.44. Starting with this release, all three labels and the JS/CSS cache-busting URLs are stamped at build time from the single `package.json` version. The deterministic build and real Chromium tests now require the HTML branding, JavaScript release stamp and package version to agree; obsolete hardcoded version text must never be deployed. The original fourteen hand PNG assets and MIDI musical/scoring logic are unchanged; subsequent crossing safety has been hardened before deployment.
+
+**FG-03B2B-1 v0.10.46:** Virtual 25/49/61/88-key piano ranges now work without a physical MIDI profile, and changing the visible range forces a fresh keyboard geometry redraw. Complete hand PNG poses are suppressed when **any authored chord note of that hand is outside the selected range**; visible source-approved numeric finger targets remain. New eight-case desktop/mobile Chromium screenshot QA and JSON evidence are captured in PR artifacts. This is technical viewport acceptance, **not** physical hand-movement approval by a pianist. See [FG-03B2B keyboard-range QA](docs/FG-03B2B-RANGE-QA.md).
 
 ### Release documentation rule
 
@@ -368,3 +370,11 @@ A detected **LH/RH crossing** or near-collision never interpolates two entire ha
 **FG-03B2A diagnostic follow-up:** Browser acceptance also detected that the read-only `ghostMotion.targets` diagnostic mistakenly derived source-confirmed target keys from optional PNG placements. An off-canvas pose can be rejected even when the score still contains a trustworthy note and finger. The diagnostic now derives target keys **directly from `frame.next.notes`**; it retains valid RH/LH pitch-and-finger labels even when the visual image is suppressed. The actual keyboard marker rendering already follows that independent score-first rule.
 
 **Verification:** Run `npm run build && npm test && npm run test:browser`; a green pull request plus a successful `main` deployment are required to consider the issue closed. A user already viewing an old browser page may need to reload the page once to fetch the new `index.html`; the new versioned asset URLs then ensure the matching JS and CSS are used. No source finger guidance, research benchmark data or original hand PNG assets were altered.
+
+## FG-03B2B-1 — piano-range and hand-pose visibility acceptance (v0.10.46)
+
+**User-facing corrections.** Selecting an explicitly virtual **25-, 49-, 61- or 88-key** target range and then showing the device/keyboard range no longer forces a real MIDI calibration. This remains a visual preview, **not** a statement that an actual connected keyboard was detected. The piano immediately redraws on selection so the keyboard and key-aligned falling notes share the same new geometry. When a source-verified chord includes notes outside the visible range, we continue displaying valid on-screen numeric finger badges but now refuse to display a misleading **partial** full-hand PNG pose.
+
+**Automated evidence.** A new real Chromium test `tests/finger-guidance-ranges.real.test.mjs` covers all four virtual keyboard sizes on **desktop (1440×900) and mobile (390×844)**. It checks the exact 25/49/61/88 MIDI-key counts and boundaries; readable minimum natural-key widths and horizontal scrolling; pitch-accurate C-sharp black-key hit testing; preservation of original MusicXML-labelled future notes and hand/finger numbers; and suppressing off-screen chord hand poses. Eight screenshots and `geometry-matrix.json` are archived for review as `fg03b2b-piano-range-visual-review` in the PR GitHub Actions artifacts. This test is now mandatory in `npm run test:browser`.
+
+**Verification:** `npm run build`, `npm test`, `npm run test:browser`, and standard CI benchmarks/audit. Do not call this musician-reviewed or anatomically correct: the independent pianist acceptance of thumb-under, cross-hand movements, inversions, black keys and real repertoire remains **FG-03B2B-2**, pending. No automatic generated fingering was enabled. None of the 14 supplied alpha PNGs was modified. See the [technical protocol](docs/FG-03B2B-RANGE-QA.md) and the [living roadmap](docs/ROADMAP-FINGER-GUIDANCE.md).

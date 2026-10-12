@@ -17,14 +17,14 @@ const musicPrelude=['music-time.mjs','music-bars.mjs','finger-guidance-timeline.
 
 test('all feature parts form exactly one valid JavaScript bundle',()=>{
  assert.equal(manifest.features.length,21);
- const expected="\n(()=>{'use strict';\n"+musicPrelude+'\n'+featureSource.replace("window.__playAlongVersion='0.9.1'","window.__playAlongVersion='0.10.45'")+"})();\n";
+ const expected="\n(()=>{'use strict';\n"+musicPrelude+'\n'+featureSource.replace("window.__playAlongVersion='0.9.1'","window.__playAlongVersion='"+JSON.parse(read('package.json')).version+"'")+"})();\n";
  assert.equal(js,expected);
  execFileSync(process.execPath,['--check',path.join(root,'dist/assets/app.js')]);
 });
 test('CSS and HTML are separate, all expected DOM anchors exist',()=>{
  assert.equal(css,read('src/styles/app.css'));
- assert.match(html,/href="\.\/assets\/app\.css\?v=0\.10\.45"/);
- assert.match(html,/defer src="\.\/assets\/app\.js\?v=0\.10\.45"/);
+ assert.ok(html.includes(`href="./assets/app.css?v=${JSON.parse(read('package.json')).version}"`));
+ assert.ok(html.includes(`defer src="./assets/app.js?v=${JSON.parse(read('package.json')).version}"`));
  assert.doesNotMatch(html,/<style>|<script>/);
  for(const id of ['playBtn','viewRoll','viewSheet','sheetCanvas','rollWrap','librarySourceSelect','asapSync','museTrainerSync','mutopiaSync','connectMidi','songList','fingerGuideLookahead']){
   assert.ok(html.includes(`id="${id}"`),`Missing UI ID ${id}`);
@@ -45,7 +45,7 @@ test('HTML visible branding, browser tab and asset revisions are derived only fr
 });
 test('preserved features: MIDI auto connection, Wait, OSMD, imports, catalogs',()=>{
  for(const term of ['requestMIDIAccess','onstatechange','waitReleasePitches','holdForInput','scoreEnsureRendered','opensheetmusicdisplay.min.js','mutopiaLoadIndex','museTrainerLoadIndex','asapLoadIndex','zipUnpackMXL','readMusicXML','parseMidi','indexedDB']) assert.ok(js.includes(term),`Missing ${term}`);
- assert.ok(js.includes("window.__playAlongVersion='0.10.45'"));
+ assert.ok(js.includes("window.__playAlongVersion='"+JSON.parse(read('package.json')).version+"'"));
  assert.ok(js.includes('function musicCreateTempoTimeline('));
  assert.ok(js.includes('function musicSecondsToBeat('));
  assert.ok(js.includes('function musicBarGrid('));
