@@ -33,7 +33,7 @@ function fingerGuidanceSteps(){
  // An ordinary MIDI pitch is never treated as evidence of a finger.
  if(!demo&&!current.tracks.some(t=>t.notes.some(n=>n.fingeringSource==='musicxml'&&n.finger>=1&&n.finger<=5)))return [];
  const scale=[1,2,3,1,2,3,4,5,4,3,2,1,3,2,1];
- const groups=new Map();
+ const events=[];
  current.tracks.forEach((track,trackIndex)=>{
   if(!state.allTracks&&trackIndex!==state.track)return;
   track.notes.forEach((n,index)=>{
@@ -49,15 +49,14 @@ function fingerGuidanceSteps(){
    }else if(n.fingeringSource==='musicxml'&&Number.isInteger(n.finger)&&n.finger>=1&&n.finger<=5){
     finger=n.finger;hand=n.hand==='RH'||n.hand==='LH'?n.hand:null;source='musicxml';
    }
-   if(!Number.isInteger(finger)||!Number.isInteger(n.pitch)||!Number.isFinite(n.start))return;
-   // Group by original score onset, not by MIDI NoteOn or the live player clock.
-   const key=String(Math.round(n.start*1000));
-   if(!groups.has(key))groups.set(key,{start:n.start,notes:[]});
-   groups.get(key).notes.push({pitch:n.pitch,start:n.start,duration:n.duration,hand,finger,track:trackIndex,
+   // Preserve ALL source-note onsets, including notes with no trusted finger.
+   // Otherwise a later annotated group could be shown prematurely while an
+   // earlier, unannotated score event still needs to be played.
+   events.push({pitch:n.pitch,start:n.start,duration:n.duration,hand,finger,track:trackIndex,
     source,...(n.noteId?{noteId:n.noteId}:{})});
   });
  });
- return [...groups.values()].sort((a,b)=>a.start-b.start);
+ return fingerGuidanceTimeline(events);
 }
 function fingerGuidanceFrame(steps,now){
  const available=loop.enabled&&loop.start!==null&&loop.end!==null
@@ -220,13 +219,15 @@ function drawFingerGuidance(c,geom,keyY,keyboardH,handsAllowed,handTail=0){
  if(!steps.length)return;
  const {current:group,next}=fingerGuidanceFrame(steps,pos);
  if(!group)return;
- if(mode==='numbers'||!handsAllowed||group.notes.every(n=>!n.hand)){
+ // A partially authored chord is NOT evidence of a complete hand pose.
+ // Numeric marks may still be shown for its individually authored notes.
+ if(mode==='numbers'||!group.complete||!handsAllowed||group.notes.every(n=>!n.hand)){
   for(const n of group.notes){const k=geom.byPitch.get(n.pitch);if(k)drawFingerGuidanceBadge(c,keyY,keyboardH,k,n.finger,n.hand);}
   return;
  }
  // Static PNG is a teaching pose, not a frame-by-frame model of finger joints.
  // Draw future sprites only when a meaningful hand relocation is required.
- if(mode==='ghost'&&next){
+ if(mode==='ghost'&&next?.complete){
   for(const hand of ['LH','RH']){
    const a=fingerGuidanceSpritePlacement(group.notes,hand,geom,keyboardH,handTail);
    const b=fingerGuidanceSpritePlacement(next.notes,hand,geom,keyboardH,handTail);
