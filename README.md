@@ -1,11 +1,11 @@
-# Play Along — Piano Practice App (v0.10.47)
+# Play Along — Piano Practice App (v0.10.48)
 
 Play Along is an independently hosted browser piano practice application with Web MIDI, Piano Roll, OpenSheetMusicDisplay (OSMD), MusicXML/MXL and MIDI import, optional online music catalogs, and Wait/Tempo/Listen practice modes.
 
 **Live site:** https://shafranek-js.github.io/play-along/
 
 
-## Current status — v0.10.47
+## Current status — v0.10.48
 
 **Finger Guidance in the published player:** Optional Off / Numbers / 2D Hands / Ghost modes use the **14 original transparent PNG images supplied by the project owner** (seven poses for each hand). Guidance targets the **next note to be played**, not a key that is already sounding. In **Wait**, it stays on an unfinished group and removes already accepted chord keys; after a complete chord it advances to the next target.
 
@@ -33,6 +33,8 @@ FG-02H flags **11 quick same-finger changes** requiring musician review. Preserv
 **v0.10.45 live-version fix:** The visible “Standalone · v0.10.41” banner, browser tab title and startup score placeholder had remained hardcoded in `src/index.html` even after successful deployments of application versions v0.10.42–v0.10.44. Starting with this release, all three labels and the JS/CSS cache-busting URLs are stamped at build time from the single `package.json` version. The deterministic build and real Chromium tests now require the HTML branding, JavaScript release stamp and package version to agree; obsolete hardcoded version text must never be deployed. The original fourteen hand PNG assets and MIDI musical/scoring logic are unchanged; subsequent crossing safety has been hardened before deployment.
 
 **FG-03B2B-1 v0.10.46:** Virtual 25/49/61/88-key piano ranges now work without a physical MIDI profile, and changing the visible range forces a fresh keyboard geometry redraw. Complete hand PNG poses are suppressed when **any authored chord note of that hand is outside the selected range**; visible source-approved numeric finger targets remain. New eight-case desktop/mobile Chromium screenshot QA and JSON evidence are captured in PR artifacts. This is technical viewport acceptance, **not** physical hand-movement approval by a pianist. See [FG-03B2B keyboard-range QA](docs/FG-03B2B-RANGE-QA.md).
+
+**FG-03C2A v0.10.48:** Select a source-backed MusicXML note on Piano Roll to choose an explicit finger (1–5) and RH/LH or unknown hand. Manual corrections are layered over — never written into — original author notation, can be undone once or reset to author, and are persisted for reimports of identical MusicXML content. User-derived guidance is identified separately from authored fingering. Existing backup export includes corrections; strict backup restore rejects malicious or invalid overrides before touching stored data. See [FG-03C2A implementation](docs/FG-03C2A-MANUAL-CORRECTIONS.md). This is not automatically predicted fingering.
 
 ### Release documentation rule
 
@@ -388,3 +390,11 @@ A detected **LH/RH crossing** or near-collision never interpolates two entire ha
 **Verification:** Five new deterministic Node unit cases and extended real Chromium MusicXML acceptance cover duplicate XML part declarations, multi-voice unisons, same-score reimport, two-bar repeats, tied source lineage and preserved fingering. Run `npm run build`, `npm test`, `npm run test:browser`. Release gated on green PR checks and an actual successful Pages deployment. No original hand PNGs have changed and FG-02 automatic fingering stays disabled for learners.
 
 **Milestone clarification:** The project owner confirmed on 2026-10-12 that the pianist **accepted FG-03B2B-2**. This acceptance is recorded as complete in the roadmap, separate from the FG-03C1 engineering tests; case-level expert evaluation files were not attached. [FG-03C1 technical contract](docs/FG-03C1-SOURCE-IDENTITY.md) · [Roadmap](docs/ROADMAP-FINGER-GUIDANCE.md).
+
+## FG-03C2A — safe user fingering edits (v0.10.48)
+
+A source-identified MusicXML note selected in **Piano Roll** now exposes **Аппликатура этой ноты** in the Practice panel, including the **original author's finger/hand**, even if no original finger exists. Select a finger **1–5** and **LH/RH/unknown**, then **Сохранить правку**. Guidance uses the resulting *user* annotation without mutating the original MusicXML playback object, embedded sheet, imported file or original PNG hand assets. **Отменить правку** performs one-step per-note undo; **Вернуть автора** discards that note's override.
+
+User overrides are validated and saved separately in local preferences, keyed by a stable fingerprint of the exact imported MusicXML and the original canonical note ID. The same source score can be reimported after browser reload with the corrections intact. The existing JSON backup includes the validated override map; strict import rejects invalid finger numbers, hands, malformed IDs, prototype keys or excessive records before writes. Local persistence attempts a validated storage write before updating visual state so a quota error cannot display an unsaved correction. Other MIDI tracks, original source score data and experimental automated fingering remain unchanged.
+
+**CI:** new Node model tests and real Chromium acceptance for change/undo/reset, original immutability, newly labelled previously blank note, reload and reimport, backup export and invalid backup rejection. This is the bounded **FG-03C2A** increment, not full FG-03C2: multi-step history, exact cross-edition merging and annotated MusicXML export remain future work. [Detailed acceptance protocol](docs/FG-03C2A-MANUAL-CORRECTIONS.md) · [Living roadmap](docs/ROADMAP-FINGER-GUIDANCE.md).
