@@ -93,6 +93,25 @@ try{
  assert.deepEqual(await order(),['backup','catalog','collection','folder','quick','online']);
  assert.equal(await page.locator('#calibrateLeft').count(),1);
  assert.equal(await page.locator('#resetUI').count(),1);
+ // Existing users already customized FIVE accordion sections in v0.10.49.
+ // A real browser startup must append Quick Actions while preserving order
+ // and per-section collapsed state. No reset or loss of layout preferences.
+ const migrated=await browser.newPage({viewport:{width:1200,height:860}});
+ await migrated.addInitScript(()=>{
+  localStorage.setItem('playalong:smart-practice:v07',JSON.stringify({
+   librarySections:{order:['online','backup','catalog','folder','collection'],
+    collapsed:{online:true,folder:true}},
+  }));
+ });
+ await migrated.goto('http://127.0.0.1:'+server.address().port);
+ await migrated.waitForFunction(()=>document.querySelectorAll('#librarySections > [data-library-section]').length===6);
+ assert.deepEqual(await migrated.locator('#librarySections > [data-library-section]')
+  .evaluateAll(nodes=>nodes.map(n=>n.dataset.librarySection)),
+  ['online','backup','catalog','folder','collection','quick']);
+ assert.equal(await migrated.locator('#librarySectionToggle-online').getAttribute('aria-expanded'),'false');
+ assert.equal(await migrated.locator('#librarySectionToggle-folder').getAttribute('aria-expanded'),'false');
+ assert.equal(await migrated.locator('#librarySectionToggle-quick').getAttribute('aria-expanded'),'true');
+ await migrated.close();
  assert.deepEqual(errors,[],'No runtime exceptions after drag, restore, accordion and mobile');
  console.log('LIBRARY ACCORDION: 6 collapse/reorder, native drag, keyboard/mobile buttons, persisted order + controls: PASS');
 }finally{
