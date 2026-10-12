@@ -1,11 +1,11 @@
-# Play Along — Piano Practice App (v0.10.46)
+# Play Along — Piano Practice App (v0.10.47)
 
 Play Along is an independently hosted browser piano practice application with Web MIDI, Piano Roll, OpenSheetMusicDisplay (OSMD), MusicXML/MXL and MIDI import, optional online music catalogs, and Wait/Tempo/Listen practice modes.
 
 **Live site:** https://shafranek-js.github.io/play-along/
 
 
-## Current status — v0.10.46
+## Current status — v0.10.47
 
 **Finger Guidance in the published player:** Optional Off / Numbers / 2D Hands / Ghost modes use the **14 original transparent PNG images supplied by the project owner** (seven poses for each hand). Guidance targets the **next note to be played**, not a key that is already sounding. In **Wait**, it stays on an unfinished group and removes already accepted chord keys; after a complete chord it advances to the next target.
 
@@ -357,7 +357,7 @@ A detected **LH/RH crossing** or near-collision never interpolates two entire ha
 
 **Verification:** New Node tests cover starting, midway and final easing, input immutability, clipping, crossings, pause/seek, and conservative marker fallbacks. The Chromium suite now exercises a wide authored right-hand jump in playback versus pause, mobile viewport, both hands crossing, Wait and screenshot capture in the existing PNG test. PR CI also re-runs music timing, OSMD, backup/security and all published fingering research audits. The original 14 owner PNGs are unchanged.
 
-**Limitations / next FG-03B2B:** static-finger PNG translation is not physically faithful full-hand animation, and no independent pianist review has yet approved crossings or thumb-under biomechanics. Screenshot artifacts are available for visual UAT, but musician sign-off on 25/49/61/88-key layouts and representative real music remains pending. Research-only auto fingering remains **NO-GO** for teaching. [Detailed methods, checks and exceptions](docs/FG-03B2A-SAFE-MOTION.md) · [Roadmap](docs/ROADMAP-FINGER-GUIDANCE.md).
+**FG-03B2B pianist status (updated 2026-10-12):** The project owner confirmed that the pianist **accepted FG-03B2B-2**. The underlying per-piece review worksheets were not provided; this status must not be read as validation of unimplemented anatomical joint animation or experimental automatically inferred fingers. Research-only auto fingering remains **NO-GO** for teaching. [Detailed methods, checks and exceptions](docs/FG-03B2A-SAFE-MOTION.md) · [Roadmap](docs/ROADMAP-FINGER-GUIDANCE.md).
 
 ## FG-03B2A hotfix: deployed version labels synchronized (v0.10.45)
 
@@ -377,4 +377,14 @@ A detected **LH/RH crossing** or near-collision never interpolates two entire ha
 
 **Automated evidence.** A new real Chromium test `tests/finger-guidance-ranges.real.test.mjs` covers all four virtual keyboard sizes on **desktop (1440×900) and mobile (390×844)**. It checks the exact 25/49/61/88 MIDI-key counts and boundaries; readable minimum natural-key widths and horizontal scrolling; pitch-accurate C-sharp black-key hit testing; preservation of original MusicXML-labelled future notes and hand/finger numbers; and suppressing off-screen chord hand poses. Eight screenshots and `geometry-matrix.json` are archived for review as `fg03b2b-piano-range-visual-review` in the PR GitHub Actions artifacts. This test is now mandatory in `npm run test:browser`.
 
-**Verification:** `npm run build`, `npm test`, `npm run test:browser`, and standard CI benchmarks/audit. Do not call this musician-reviewed or anatomically correct: the independent pianist acceptance of thumb-under, cross-hand movements, inversions, black keys and real repertoire remains **FG-03B2B-2**, pending. No automatic generated fingering was enabled. None of the 14 supplied alpha PNGs was modified. See the [technical protocol](docs/FG-03B2B-RANGE-QA.md) and the [living roadmap](docs/ROADMAP-FINGER-GUIDANCE.md).
+**Verification (FG-03B2B-1 at release time):** `npm run build`, `npm test`, `npm run test:browser`, and standard CI benchmarks/audit. The project owner subsequently confirmed pianist acceptance of **FG-03B2B-2** on 2026-10-12; the eight-case automated viewport check by itself remains a geometry test, not the human acceptance record. No automatic generated fingering was enabled. None of the 14 supplied alpha PNGs was modified. See the [technical protocol](docs/FG-03B2B-RANGE-QA.md) and the [living roadmap](docs/ROADMAP-FINGER-GUIDANCE.md).
+
+## FG-03C1 — canonical MusicXML note identity and source provenance (v0.10.47)
+
+**Improvement:** Each newly imported playable MusicXML event now receives a deterministic ID based on its XML part identifier (separator-safe), unique part position in the source, expanded playback measure and individual source-note ordinal. Duplicate part IDs, simultaneous unisons in different voices and repeated playback passages cannot silently collide. Reimporting an unchanged score recreates the same note IDs. This gives the planned FG-03C2 manual finger overrides a reliable target, without changing original author-supplied finger numbers, hands or playing semantics.
+
+**Ties:** a continued MusicXML tie still plays as one held sound, retains its original author finger and existing warnings for contradictory fingering, but now exposes all written source segments as `sourceNoteIds` alongside its originating `noteId`. An untied note has a one-element source list. Normal transposition and arrangement use copies and do not modify these source identities. Existing imported books continue to load; this release does **not** silently migrate legacy IDs or pretend to have enabled persistent per-note corrections.
+
+**Verification:** Five new deterministic Node unit cases and extended real Chromium MusicXML acceptance cover duplicate XML part declarations, multi-voice unisons, same-score reimport, two-bar repeats, tied source lineage and preserved fingering. Run `npm run build`, `npm test`, `npm run test:browser`. Release gated on green PR checks and an actual successful Pages deployment. No original hand PNGs have changed and FG-02 automatic fingering stays disabled for learners.
+
+**Milestone clarification:** The project owner confirmed on 2026-10-12 that the pianist **accepted FG-03B2B-2**. This acceptance is recorded as complete in the roadmap, separate from the FG-03C1 engineering tests; case-level expert evaluation files were not attached. [FG-03C1 technical contract](docs/FG-03C1-SOURCE-IDENTITY.md) · [Roadmap](docs/ROADMAP-FINGER-GUIDANCE.md).
