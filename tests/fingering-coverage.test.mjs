@@ -47,5 +47,6 @@ test('Coverage: invalid proposals and untrusted MIDI finger fields cannot raise 
  const result=fingeringCoverageFromSong(input);
  assert.equal(result.marked,1);
  assert.equal(fingeringCoverageStatus(result),'partial');
- assert.equal(fingeringCoverageStatus(fingeringCoverageFromSong({id:'demo-scale',tracks:[{notes:[note(60,null),note(62,null)]}]})),'full');
+ assert.equal(fingeringCoverageStatus(fingeringCoverageFromSong({id:'demo-scale',tracks:[{notes:[note(60,null),note(62,null)]}]})),'none');
+ assert.equal(fingeringCoverageStatus(fingeringCoverageFromSong({id:'demo-finger-duet',tracks:[{notes:[note(60,null),note(62,null)]}]})),'full');
 });
