@@ -79,6 +79,73 @@ try{
   const c=document.getElementById('roll'),r=c.getBoundingClientRect();
   return window.__prototypeTest.virtualKeyAt({clientX:r.left+120,clientY:r.top+r.height-8});
  }),null,'wrist margin below keyboard is not an interactive piano key');
+ // FG-03B2: same source-anchored phrase in desktop, seek and narrow view.
+ // These are explicit test fingers, not automated inference.
+ const guidanceNote=(pitch,start,finger,hand)=>({pitch,start,duration:.3,velocity:80,track:hand==='RH'?0:1,
+  finger,hand,fingeringSource:'musicxml'});
+ await page.setViewportSize({width:1440,height:900});
+ await page.evaluate(()=>window.__prototypeTest.loadSong({
+  id:'fg03b2-shift',title:'FG-03B2 authored shift',author:'Test',type:'import',
+  tracks:[{name:'Right hand',notes:[
+   {pitch:60,start:0,duration:.3,velocity:80,track:0,finger:1,hand:'RH',fingeringSource:'musicxml'},
+   {pitch:79,start:.5,duration:.3,velocity:80,track:0,finger:1,hand:'RH',fingeringSource:'musicxml'}
+  ]}]
+ }));
+ await page.locator('#fingerGuideMode').selectOption('ghost');
+ await page.locator('#fingerGuideLookahead').selectOption('750');
+ await page.evaluate(()=>window.__prototypeTest.seek(0));
+ const paused=await page.evaluate(()=>window.__fingerGuideTest.ghostMotion);
+ assert.equal(paused.visible,true);
+ assert.equal(paused.plans.RH.kind,'static','Paused preview pins the silhouette to its next key');
+ assert.deepEqual(paused.targets.RH,[{pitch:79,finger:1}]);
+ await page.screenshot({path:path.join(output,'fg03b2-shift-paused.png')});
+ const moving=await page.evaluate(()=>{
+  window.__prototypeTest.play();
+  return window.__fingerGuideTest.ghostMotion;
+ });
+ assert.equal(moving.visible,true);
+ assert.equal(moving.plans.RH.kind,'moving',
+  'Playing should interpolate a safe wide jump rather than keeping a static ghost');
+ assert.ok(moving.plans.RH.progress<1);
+ await page.screenshot({path:path.join(output,'fg03b2-shift-moving.png')});
+ await page.evaluate(()=>{window.__prototypeTest.pause();window.__prototypeTest.seek(.1)});
+ assert.equal(await page.evaluate(()=>window.__fingerGuideTest.ghostMotion.visible),false,
+  'Seek past one onset recalculates preview with no stale in-transit sprite');
+ await page.setViewportSize({width:390,height:844});
+ await page.evaluate(()=>window.__prototypeTest.seek(0));
+ const narrow=await page.evaluate(()=>window.__fingerGuideTest.ghostMotion);
+ assert.equal(narrow.visible,true);
+ assert.ok(['markers','static'].includes(narrow.plans.RH.kind),
+  'A paused mobile preview is either correctly anchored or conservatively markers-only');
+ assert.deepEqual(narrow.targets.RH,[{pitch:79,finger:1}]);
+ await page.screenshot({path:path.join(output,'fg03b2-shift-mobile.png')});
+
+ // Fully labelled two-hand crossing: never animate two images through one
+ // another. Future source-marked keys remain visible via fixed badges.
+ await page.setViewportSize({width:1440,height:900});
+ await page.evaluate(()=>window.__prototypeTest.loadSong({
+  id:'fg03b2-cross',title:'FG-03B2 crossing',author:'Test',type:'import',
+  tracks:[
+   {name:'Right hand',notes:[
+    {pitch:72,start:0,duration:.3,velocity:80,track:0,finger:1,hand:'RH',fingeringSource:'musicxml'},
+    {pitch:60,start:.5,duration:.3,velocity:80,track:0,finger:1,hand:'RH',fingeringSource:'musicxml'}]},
+   {name:'Left hand',notes:[
+    {pitch:48,start:0,duration:.3,velocity:80,track:1,finger:5,hand:'LH',fingeringSource:'musicxml'},
+    {pitch:84,start:.5,duration:.3,velocity:80,track:1,finger:5,hand:'LH',fingeringSource:'musicxml'}]}
+  ]
+ }));
+ await page.evaluate(()=>window.__prototypeTest.seek(0));
+ const crossing=await page.evaluate(()=>window.__fingerGuideTest.ghostMotion);
+ assert.equal(crossing.visible,true);
+ assert.equal(crossing.crossing,true);
+ assert.equal(crossing.plans.RH.kind,'markers');
+ assert.equal(crossing.plans.LH.kind,'markers');
+ assert.deepEqual(crossing.targets.RH,[{pitch:60,finger:1}]);
+ assert.deepEqual(crossing.targets.LH,[{pitch:84,finger:5}]);
+ await page.screenshot({path:path.join(output,'fg03b2-crossing-markers.png')});
+ await page.evaluate(()=>window.__prototypeTest.setMode('wait'));
+ assert.equal(await page.evaluate(()=>window.__fingerGuideTest.ghostMotion.visible),false,
+  'Wait must suppress speculative next-hand animation');
  assert.deepEqual(errors,[],'no browser-side errors');
  console.log('FG-PNG: real Play Along loads PNG assets, registers notes, Seek, unknown MIDI fallback and mobile: PASS');
 }finally{
