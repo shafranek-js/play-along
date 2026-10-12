@@ -1,8 +1,32 @@
-# Play Along — Piano Practice App (v0.10.16)
+# Play Along — Piano Practice App (v0.10.39)
 
 Play Along is an independently hosted browser piano practice application with Web MIDI, Piano Roll, OpenSheetMusicDisplay (OSMD), MusicXML/MXL and MIDI import, optional online music catalogs, and Wait/Tempo/Listen practice modes.
 
 **Live site:** https://shafranek-js.github.io/play-along/
+
+
+## Current status — v0.10.39
+
+**Finger Guidance in the published player:** Optional Off / Numbers / 2D Hands / Ghost modes use the **14 original transparent PNG images supplied by the project owner** (seven poses for each hand). Guidance targets the **next note to be played**, not a key that is already sounding. In **Wait**, it stays on an unfinished group and removes already accepted chord keys; after a complete chord it advances to the next target.
+
+In normal repertoire, finger numbers and hand attribution come from explicit **MusicXML author notation**; a source without trustworthy fingering does **not** receive fabricated instructional fingers. Built-in exercises can use clearly identified demonstration fingering. Web MIDI supplies key events, not anatomical finger identification.
+
+**Experimental automatic fingering is NOT enabled in learner guidance.** Research modules under src/core and their benchmark scripts do not replace author MusicXML labels or control the original 14 PNG poses.
+
+Most recent research measurement (FG-02H) on five CC BY-SA hand-annotated excerpts, **148 notes in seven one-hand runs**:
+
+| Metric | Previous FG-02G | Experimental FG-02H |
+| --- | ---: | ---: |
+| Finger agreement without source anchors | 81/148 (54.73%) | 87/148 (58.78%) |
+| Notes accepted with every author finger fixed | 58/148 (39.19%) | 148/148 (100%) |
+| Entirely matching unannotated runs | 0/7 | 1/7 |
+| Modeled physical conflicts | 0 | 0 |
+
+FG-02H flags **11 quick same-finger changes** requiring musician review. Preserving all original anchors is a data-integrity result, **not** evidence that every transition is a good teaching recommendation. The five excerpts were already known during development: this is *retrospective* evaluation, not a new blind trial. See [FG-02H research](docs/FG-02H-MIXED-PHRASING-RESEARCH.md) and [PR #15](https://github.com/shafranek-js/play-along/pull/15).
+
+### Release documentation rule
+
+**Every Play Along feature, fix and version update must update README.md in the same pull request**, with user-visible behavior, technical limitations, reproducible checks and links to supporting documentation. The unit test suite verifies that the README heading and a version-specific release-history section match package.json. This automated check is a minimum safeguard, not a replacement for meaningful release notes. Never mark a version as complete while its README is stale.
 
 ## Quick start — Windows, macOS or Linux
 
@@ -25,6 +49,10 @@ Open **http://localhost:4173/**. For browser MIDI permission on an external host
 | `npm run dev` | Serve the built `dist/` folder over HTTP |
 | `npm test` | Check deterministic output, syntax, DOM anchors and baseline integrity |
 | `npm run test:browser` | Run real Chromium scenarios (requires `npx playwright install chromium`) |
+| npm run benchmark:fingering:repertoire | Reproduce FG-02G on five pinned, checksum-verified licensed musical excerpts (requires network) |
+| npm run benchmark:fingering:contextual | Compare FG-02H with FG-02G, including author-anchor acceptance and movement warnings |
+| npm run benchmark:fingering:heldout | Reproduce FG-02E locked, 34-case educational scale evaluation |
+
 
 ## Deployment and third-party components
 
@@ -215,3 +243,50 @@ Corrects audit A11: an out-of-range chosen transpose shift is replaced by the be
 ## Seek and loop session accounting (v0.10.25)
 
 Audit A07: `PracticeSession.seek()` now assigns an explicit `skipped` state to notes outside the current assessable range; it no longer marks them `hit`. Wait-group progress, Tempo miss handling, completed percentage, UI total, saved performance summary and detailed notes are limited to genuinely assessable material. Notes before a seek or outside an enabled Loop remain visible in the score but do not inflate hits or completion. Toggling/adjusting Loop starts a new assessment interval. Real Chromium tests verify seeking to the third note of a three-note melody and an interior Loop segment, including exported performance record contents.
+
+
+## Finger Guidance: original owner-provided PNG hands (v0.10.29)
+
+Fourteen original transparent PNG hand poses (seven for LH, seven for RH: thumb, index, middle, ring, pinky, rest, spread) are packaged unchanged. They are the authoritative 2D hand assets; neither the build nor automatic-fingering experiments regenerate or recolor them. Node build tests verify intact RGBA asset bytes.
+
+## Authored MusicXML fingering import (v0.10.30)
+
+MusicXML fingering values 1–5 are preserved through import alongside note identity, staff and voice. When hand ownership is known from the score, the 2D hand can show that author-assigned finger. Unknown-hand annotations use a neutral numeric marker rather than an invented hand. MIDI pitch alone is insufficient evidence of an anatomical finger. Browser regression: tests/finger-guidance.musicxml.real.test.mjs.
+
+## Anticipatory next-note guidance (v0.10.31)
+
+The teaching hand points to the **next note**, not the one currently sounding. Wait follows the incomplete PracticeSession group, removing accepted keys from a partially performed chord without skipping the remaining ones. Seek and Loop preview behavior is tested in Chromium by tests/finger-guidance.next.real.test.mjs.
+
+## FG-02A: monophonic dynamic-programming prototype (v0.10.32)
+
+The isolated, deterministic research solver accepts explicitly attributed LH/RH lines, respects fixed author fingers, and rejects unsupported overlapping parts. It is not a validated PianoPlayer port or a production teaching engine. [Details](docs/FG-02A-RESEARCH-PROTOTYPE.md).
+
+## FG-02B: experimental chords and held voices (v0.10.33)
+
+A separate research-only beam search proposes distinct fingers for simultaneously held keys, tests close-position chord inversions and separately attributed two-hand parts, and refuses physical finger conflicts. Uncalibrated ergonomic penalties must not be treated as verified teaching advice. [Details](docs/FG-02B-POLYPHONIC-RESEARCH.md).
+
+## FG-02C: reference evaluation and independent physical audit (v0.10.34)
+
+Twenty specific educational fingering patterns cover C/G major scales, C arpeggios, root-position chords and inversions. FG-02A/B initially matched **15/20** whole patterns (**119/134** note fingers), while fully pinned author fingers were preserved. Different published fingerings may both be legitimate depending on context. [Details](docs/FG-02C-REFERENCE-VALIDATION.md).
+
+## FG-02D: phrase-based hypotheses (v0.10.35)
+
+Narrow, guarded two-octave scale/arpeggio and chord-inversion templates improved exact agreement to **20/20 of their own development cases**, with explicit fallback and anchor safeguards. Because the templates were designed against those same examples, this is *in-sample*, not independent accuracy evidence. [Details](docs/FG-02D-PHRASE-RESEARCH.md).
+
+## FG-02E: previously unused educational scale cases (v0.10.36)
+
+A frozen test set of **34 cases / 314 notes** across seven other keys exposed limited generalization of FG-02D: **8/34** exact whole-pattern matches, **144/314** individual finger matches. Published method variations were marked separately; fully pinned author fingers remained intact. **Automatic tutoring: NO-GO.** [Details](docs/FG-02E-HELDOUT-MUSICAL-AUDIT.md).
+
+## FG-02F: key-agnostic research solver (v0.10.37)
+
+An independent research algorithm evaluates melodic direction, approximate key geometry, black-key ergonomics and thumb turns without a fixed tonic list. Against the already-examined FG-02E cases, it reached **13/34** exact examples and **221/314** individual finger matches. This is a *post-exposure diagnostic*, not a newly blinded evaluation. [Details](docs/FG-02F-GENERALIZED-RESEARCH.md).
+
+## FG-02G: licensed real-piece benchmarking (v0.10.38)
+
+Five short, source-pinned, checksum-verified CC BY-SA Piano Protege Curriculum files were evaluated without vendoring their scores. Signed source fingers distinguish LH/RH independently of MIDI channel. FG-02A and FG-02F each agreed with the published author choices on **81/148** notes, while strict FG-02A author-pin constraints accepted only **58/148** notes. These results measure agreement with reference choices, not complete expert-calibrated playing quality. [Methods, attribution and limitations](docs/FG-02G-REAL-REPERTOIRE-AUDIT.md).
+
+## FG-02H: mixed-direction and author-annotation compatibility (v0.10.39)
+
+The research-only contextual monophonic module handles turns, note repetition, rests and softer repositioning after key release. Source finger anchors, hand, pitch, timing and note IDs remain immutable; true overlapping distinct keys still require the separate polyphonic model.
+
+In retrospective comparison with the **same five FG-02G excerpts**, unannotated source-finger agreement increased to **87/148 (58.78%)** from 81/148; accepted full-author-anchor coverage rose to **148/148** from 58/148. **Eleven** rapid same-finger changes were flagged for musician review. There is no independent pianist acceptance or learner-facing automatic fingering. [Methods](docs/FG-02H-MIXED-PHRASING-RESEARCH.md) · [PR #15](https://github.com/shafranek-js/play-along/pull/15).
