@@ -1,11 +1,11 @@
-# Play Along — Piano Practice App (v0.10.53)
+# Play Along — Piano Practice App (v0.10.54)
 
 Play Along is an independently hosted browser piano practice application with Web MIDI, Piano Roll, OpenSheetMusicDisplay (OSMD), MusicXML/MXL and MIDI import, optional online music catalogs, and Wait/Tempo/Listen practice modes.
 
 **Live site:** https://shafranek-js.github.io/play-along/
 
 
-## Current status — v0.10.53
+## Current status — v0.10.54
 
 **Finger Guidance in the published player:** Optional Off / Numbers / 2D Hands / Ghost modes use the **14 original transparent PNG images supplied by the project owner** (seven poses for each hand). Guidance targets the **next note to be played**, not a key that is already sounding. In **Wait**, it stays on an unfinished group and removes already accepted chord keys; after a complete chord it advances to the next target.
 
@@ -45,6 +45,8 @@ FG-02H flags **11 quick same-finger changes** requiring musician review. Preserv
 **FG-03C2B2 v0.10.52:** The Piano Roll fingering editor now supports **Ctrl+A** (all source notes, including outside the viewport), **Shift+click** (contiguous score-order range), **Ctrl/Cmd+click** (arbitrary toggle selection) and **drag-marquee** of visible notes. Selected notes can receive **one bulk hand assignment without changing or inventing their individual fingers**, an optional explicit common finger, or a group reset to author. Each group operation is atomic and a single Undo/Redo step. The virtual keyboard remains playable independently. See [Multi-note selection and bulk editing](docs/FG-03C2B2-MULTI-SELECT.md).
 
 **FG-03C2B3 v0.10.53:** A separate **✍ Аппликатура** practice view now provides a horizontally scrollable full-song timeline with note-level verified fingers/hand markers, zoom, Ctrl/Cmd+A, Ctrl/Cmd/Shift+click, drag-marquee, always-visible independent group finger/hand controls, and group Undo/Redo. Long works render only the viewport; all imported MusicXML notes remain scroll-reachable. In **Sheet Music**, verified user finger corrections are shown by composing a temporary MusicXML display clone with amber source-labelled annotations and a provenance legend. Unmatched note identities fail closed. The original MusicXML, playable notes and hand PNG assets remain unchanged; no annotated-file export is implied. [Detailed contract](docs/FG-03C2B3-FINGERING-EDITOR.md).
+
+**FG-04A v0.10.54 — External candidate research gate:** The dedicated fingering editor now has a collapsed **🔬 Сравнение внешней аппликатуры** panel for inspecting locally selected MusicXML/MXL outputs from MasterPiano, PianoPlayer, PineappleMusicLab and others. An exact source/voice/timing/part/notation comparison accepts differences **only in finger annotations**; original author markers, generated additions, conflicts, removals, unknown hands and gaps are reported. Download a per-note JSON evidence report. **Nothing is applied to learner hints, source notes, user overrides, playback or storage.** Updated roadmap separates FG-04A integrity gate, FG-04B frozen 10–20 score corpus, and conditional FG-04C/D expert-validated auto suggestions (currently NO-GO). [Detailed contract](docs/FG-04A-EXTERNAL-CANDIDATE-EVALUATION.md).
 
 ### Release documentation rule
 
@@ -441,3 +443,8 @@ Play Along now has a **third independent score view — ✍ Аппликатур
 Sheet Music also shows verified numeric user fingering changes by using a **temporary, strictly source-matched MusicXML clone** solely for OSMD rendering. The note-by-note source ID, part, voice, staff, pitch and tie links must all match; otherwise no annotation is applied, and the original sheet appears with a warning. User annotations are amber and a legend explicitly distinguishes them from author markings; hand-only corrections never create fictitious finger digits. The original source, backup's source files, practice timing and MIDI remain untouched.
 
 This release does **not export modified MusicXML**, migrate corrections between revised editions or claim direct editing of OSMD sheet notes. Those are separate roadmap gates requiring expert-verified mapping and export fixtures. [Architecture and UAT](docs/FG-03C2B3-FINGERING-EDITOR.md) · [Roadmap](docs/ROADMAP-FINGER-GUIDANCE.md).
+## External-fingering comparison without automatic acceptance (v0.10.54)
+
+The dedicated ✍ Аппликатура editor adds a **collapsed research comparison panel**. Open a source MusicXML score, generate a proposed fingering externally (MasterPiano or PianoPlayer), then load the proposed **XML/MusicXML/MXL file locally** into the comparison. Play Along checks the entire score's structural equivalence apart from fingering tags and confirms note IDs, ties, pitches, onsets, durations, parts, staff and voices. It rejects ambiguous or unexpected candidates, identifies all preserved vs overwritten author fingers and newly generated suggestions, and offers a **downloadable JSON note-by-note report**.
+
+No external provider is connected via an undocumented API. Nothing is uploaded by the Play Along comparison, and none of these machine-suggested fingers are automatically imported into learning modes or labeled author/user-approved. **100% algorithmic coverage is not proof of musical accuracy.** The FG-04B frozen/licensed repertoire comparison and independent pianist gate must be completed before an automatic-assignment preview can be considered. Previous music, hand PNGs, backups and author notation are unchanged. [Research protocol](docs/FG-04A-EXTERNAL-CANDIDATE-EVALUATION.md) · [Updated roadmap](docs/ROADMAP-FINGER-GUIDANCE.md).
