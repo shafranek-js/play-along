@@ -22,7 +22,7 @@ export function fingerGuidanceTimeline(events){
   const group=groups.get(tick);
   group.totalNotes++;
   if(!Number.isInteger(note.finger)||note.finger<1||note.finger>5||
-     (note.source!=='musicxml'&&note.source!=='demo')||
+     (note.source!=='musicxml'&&note.source!=='demo'&&note.source!=='user')||
      (note.hand!=null&&note.hand!=='RH'&&note.hand!=='LH'))continue;
   group.notes.push({pitch:note.pitch,start:note.start,duration:note.duration,
    hand:note.hand??null,finger:note.finger,track:note.track,
