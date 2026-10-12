@@ -89,7 +89,7 @@ test('reject corruption of compressed payload via CRC/inflate',()=>{
  const fixture=data(),bytes=zip(fixture.records.slice(0,1276));
  const archive=openMidiZip(bytes);
  // Flip one note byte in the first local record without updating CRC.
- bytes[55]^=1;
+ bytes[30+Buffer.byteLength('maestro-v3.0.0/2008/fake-0.midi')+15]^=1;
  assert.throws(()=>archive.extract('maestro-v3.0.0/2008/fake-0.midi'),/ZIP_ENTRY_CRC_OR_LENGTH_MISMATCH/);
 });
 test('reject duplicate, missing, traversal ZIP and unexpected file names',()=>{
