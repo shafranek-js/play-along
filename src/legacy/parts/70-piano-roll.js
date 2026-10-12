@@ -37,42 +37,74 @@ function fingerOverrideForNote(note){
  const key=fingerGuideWorkKey();
  return key&&note?.noteId?fingerOverrideEffective(note,state.fingerOverrides?.[key]?.[note.noteId]):null;
 }
-function fingerOverrideCommit(note,choice,{action='edit'}={}){
- if(!current||current.format!=='MusicXML'||state.adaptMode!=='original')return false;
- const key=fingerGuideWorkKey();
- if(!key)return false;
- const history=fingerOverrideHistoryCurrent();
+// The selection is transient and scoped to an original source work.
+let fingerSelectedIds=new Set(),fingerSelectionAnchor=null,fingerSelectionPointer=null;
+function fingerSelectionAvailable(){
+ return !!current&&current.format==='MusicXML'&&state.adaptMode==='original'&&!!fingerGuideWorkKey();
+}
+function fingerSelectionOrdered(){return fingerSelectableNotes(current)}
+function fingerSelectionSet(ids,anchor=null){
+ if(!fingerSelectionAvailable())return;
+ const ordered=fingerSelectionOrdered(),valid=new Set(ordered.map(e=>e.id));
+ fingerSelectedIds=new Set(ids.filter(id=>valid.has(id)));
+ fingerSelectionAnchor=valid.has(anchor)?anchor:
+  (fingerSelectedIds.size?[...fingerSelectedIds][fingerSelectedIds.size-1]:null);
+ const primary=ordered.find(e=>e.id===fingerSelectionAnchor&&fingerSelectedIds.has(e.id))?.note||
+  ordered.find(e=>fingerSelectedIds.has(e.id))?.note||null;
+ selectNote(primary,{keepGroup:true});
+ renderCanvas();
+}
+function fingerSelectionShortcut(e){
+ if(!(e.ctrlKey||e.metaKey)||e.altKey||e.shiftKey||e.key.toLowerCase()!=='a'||
+  !fingerSelectionAvailable()||state.page!=='practice'||state.scoreView!=='roll')return false;
+ const focused=document.activeElement;
+ if(focused?.closest('input,textarea,select,[contenteditable="true"]'))return false;
+ if(focused!==roll&&!$('selection').contains(focused)&&
+  !(focused===document.body&&fingerSelectedIds.size))return false;
+ e.preventDefault();
+ const ordered=fingerSelectionOrdered();
+ fingerSelectionSet(ordered.map(e=>e.id),ordered[0]?.id||null);
+ return true;
+}
+function fingerOverrideCommit(note,choice,{action='edit',batch=null}={}){
+ if(!fingerSelectionAvailable())return false;
+ const key=fingerGuideWorkKey(),history=fingerOverrideHistoryCurrent();
  let transition;
  if(action==='edit'){
   if(!note?.noteId)return false;
-  const old=state.fingerOverrides?.[key]?.[note.noteId]??null;
-  transition=fingerHistoryTransition(history,'edit',{id:note.noteId,
-   before:old,after:choice===null?null:{finger:choice?.finger,hand:choice?.hand}});
+  const previous=state.fingerOverrides?.[key]?.[note.noteId]??null;
+  transition=fingerHistoryTransition(history,'edit',{id:note.noteId,before:previous,
+   after:choice===null?null:{finger:choice?.finger,hand:choice?.hand}});
+ }else if(action==='batch'){
+  transition=fingerHistoryTransition(history,'batch',{entries:batch});
  }else transition=fingerHistoryTransition(history,action);
  if(!transition)return false;
- const {step,expected,value}=transition;
- const source=current.tracks.flatMap(t=>t.notes).find(n=>n.noteId===step.id);
- if(!source||(action==='edit'&&source.pitch!==note.pitch))return false;
- const present=state.fingerOverrides?.[key]?.[step.id]??null;
- if(!fingerHistorySame(present,expected)){
-  // e.g. backup restore or another tab changed the override map; never
-  // replay a stale history event over unknown user data.
-  fingerOverrideHistories.delete(key);
-  notify('История правок изменилась. Перезапусти действие после проверки ноты.');
-  if(selectedNote?.noteId)selectNote(selectedNote);
-  return false;
+ const changes=transition.changes||[];
+ const sources=new Map(fingerSelectionOrdered().map(e=>[e.id,e.note]));
+ for(const change of changes){
+  const source=sources.get(change.id);
+  if(!source||(action==='edit'&&source.pitch!==note.pitch))return false;
+  const present=state.fingerOverrides?.[key]?.[change.id]??null;
+  if(!fingerHistorySame(present,change.expected)){
+   // A restored backup or external user action invalidates stale history.
+   fingerOverrideHistories.delete(key);
+   notify('История правок изменилась — проверь ноты и повтори действие.');
+   if(selectedNote?.noteId)selectNote(selectedNote,{keepGroup:true});
+   return false;
+  }
  }
  const work={...(state.fingerOverrides?.[key]||{})};
- if(value===null)delete work[step.id];
- else work[step.id]={finger:value.finger,hand:value.hand};
+ for(const change of changes){
+  if(change.value===null)delete work[change.id];
+  else work[change.id]={finger:change.value.finger,hand:change.value.hand};
+ }
  const next={...state.fingerOverrides};
- if(Object.keys(work).length)next[key]=work;
- else delete next[key];
+ if(Object.keys(work).length)next[key]=work;else delete next[key];
  let validated;
  try{
   validated=fingerOverrideValidate(next,{strict:true});
-  // Atomic order: write the validated candidate before changing the
-  // in-memory override map or undo/redo stacks. Storage failures preserve all.
+  // All-or-nothing even for large selections: no state/undo mutation until
+  // the complete prospective snapshot is validated and actually persisted.
   localStorage.setItem(STORE,JSON.stringify({...state,fingerOverrides:validated}));
  }catch(err){notify('Не удалось сохранить аппликатуру: '+err.message);return false}
  state.fingerOverrides=validated;
@@ -80,10 +112,27 @@ function fingerOverrideCommit(note,choice,{action='edit'}={}){
  fingerOverrideHistories.set(key,transition.history);
  while(fingerOverrideHistories.size>12)
   fingerOverrideHistories.delete(fingerOverrideHistories.keys().next().value);
- renderCanvas();if(selectedNote?.noteId)selectNote(selectedNote);
+ renderCanvas();if(selectedNote?.noteId)selectNote(selectedNote,{keepGroup:true});
  if(current?.id)void libraryCoverageStore(current,current.id)
   .catch(e=>console.warn('Coverage after correction failed',e));
  return true;
+}
+function fingerOverrideCommitGroup(ids,{finger,hand,reset=false}={}){
+ if(!fingerSelectionAvailable())return false;
+ if(!reset&&finger===undefined&&hand===undefined)return false;
+ const sources=new Map(fingerSelectionOrdered().map(e=>[e.id,e.note]));
+ const key=fingerGuideWorkKey(),work=state.fingerOverrides?.[key]||{},entries=[];
+ for(const id of ids){
+  const source=sources.get(id);if(!source)return false;
+  const before=work[id]??null;
+  const after=reset?null:fingerBulkChoice(source,before,{finger,hand});
+  if(after===undefined)return false;
+  if(!fingerHistorySame(before,after))entries.push({id,before,after});
+ }
+ if(!entries.length){notify('Для выбранных нот ничего не изменилось');return false}
+ const success=fingerOverrideCommit(null,null,{action:'batch',batch:entries});
+ if(success)notify('Аппликатура обновлена: '+entries.length+' нот · одно действие отмены');
+ return success;
 }
 // ===== FG-00: opt-in visual guidance over the EXISTING Piano Roll keyboard =====
 // These are hand-entered teaching fixtures. No arbitrary MIDI is fingered here.
