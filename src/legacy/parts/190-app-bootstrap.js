@@ -261,6 +261,7 @@ window.__fingerGuideTest={
  get selectedCorrection(){return selectedNote?fingerOverrideForNote(selectedNote):null},
  get selectedNoteIds(){return [...fingerSelectedIds]},
  get sourceOrder(){return fingerSelectionOrdered().map(n=>n.id)},
+ get noteRects(){return hitboxes.filter(b=>b.n.noteId).map(b=>({id:b.n.noteId,x:b.x,y:b.y,w:b.w,h:b.h}))},
  get selectionAnchor(){return fingerSelectionAnchor},
  get groupEditorOpen(){return !!document.querySelector('.fingerCorrectionGroup')},
  get history(){const h=fingerOverrideHistoryCurrent();return {past:h.past.length,future:h.future.length,limit:FINGER_HISTORY_LIMIT}},
