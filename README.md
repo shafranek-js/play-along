@@ -1,11 +1,11 @@
-# Play Along — Piano Practice App (v0.10.50)
+# Play Along — Piano Practice App (v0.10.51)
 
 Play Along is an independently hosted browser piano practice application with Web MIDI, Piano Roll, OpenSheetMusicDisplay (OSMD), MusicXML/MXL and MIDI import, optional online music catalogs, and Wait/Tempo/Listen practice modes.
 
 **Live site:** https://shafranek-js.github.io/play-along/
 
 
-## Current status — v0.10.50
+## Current status — v0.10.51
 
 **Finger Guidance in the published player:** Optional Off / Numbers / 2D Hands / Ghost modes use the **14 original transparent PNG images supplied by the project owner** (seven poses for each hand). Guidance targets the **next note to be played**, not a key that is already sounding. In **Wait**, it stays on an unfinished group and removes already accepted chord keys; after a complete chord it advances to the next target.
 
@@ -39,6 +39,8 @@ FG-02H flags **11 quick same-finger changes** requiring musician review. Preserv
 **Library v0.10.49:** Every catalog row now shows **Аппликатура: Есть / Частично / Нет / Не проверено**, including a percentage and note count for verified files; a new selector filters by status alongside search/source/favorites. Offline saved XML scores are progressively indexed without re-downloading; manual user edits refresh coverage. The left library now has **five independent, collapsible and reorderable sections** (Каталог, Моя коллекция, Резервная копия, Подключённая папка, Онлайн-библиотеки), movable by drag handle, ↑/↓ controls or Alt + arrows. Order/open state is preserved and validated during backup recovery. [Technical details](docs/LIBRARY-COVERAGE-AND-LAYOUT.md).
 
 **Library v0.10.50:** **Быстрые действия** is now the **sixth independent collapsible/reorderable library section**, with exactly the same ⠿ drag, ↑/↓ buttons, Alt+arrows and persistent collapsed state as the original five. Its calibration and layout-reset actions are unchanged. Previously saved five-section layouts and JSON backups migrate without resetting custom order; Quick Actions is appended open by default. See [library layout contract](docs/LIBRARY-COVERAGE-AND-LAYOUT.md).
+
+**FG-03C2B1 v0.10.51:** A score-wide, 40-operation **Undo/Redo** history for manual fingering edits now replaces the one-note undo. Edit several notes, undo in chronological order, redo removed edits, or undo a return-to-author reset. New edits after Undo clear redo. The separate, source-preserving corrections remain persistent; the stack is session-only and is excluded from backups to avoid stale playback of operations. See [FG-03C2B1](docs/FG-03C2B1-UNDO-REDO.md).
 
 ### Release documentation rule
 
@@ -416,3 +418,8 @@ The library left panel now treats **Быстрые действия** exactly li
 **Migration:** An existing custom five-section order is preserved, with Quick Actions appended **open** by default. Both localStorage and old five-section JSON backup settings are accepted and converted to the new six-section schema. Once saved, all six positions and collapsed states persist in settings and backups. The old five panels' collapse flags are untouched.
 
 **CI:** model tests verify full and legacy layouts, safe strict backup restoration and corrupted input refusal; Chromium checks collapse independence, preservation of the calibration/reset controls, moving Quick Actions on narrow screens, full reload persistence and actual old-setting startup migration. [Detailed library documentation](docs/LIBRARY-COVERAGE-AND-LAYOUT.md).
+## Multi-step manual fingering Undo/Redo (v0.10.51)
+
+The note inspector now has **Отменить правку** and **Повторить правку** buttons that operate on a full MusicXML score history, not only on the selected note. The most recent **40** successful changes can be undone; Undo can be repeated across multiple notes. Redo replays undone edits in chronological order. A new edit clears the redo branch. **Вернуть автора** remains source-safe and now participates in Undo/Redo. The inspector shows available undo/redo counts and disables unavailable controls.
+
+Successful corrections are still stored separately from original author MusicXML; their history is **per-score and session-only**, never part of backup data. On reload/reimport the corrections remain, but history starts empty. Storage validation and write happen before history state changes; a failed write cannot produce a misleading visual correction. Full source-vs-user fingering annotations in the rendered sheet and optional corrected MusicXML export remain subsequent **FG-03C2B2** work. No experimental automatic fingering is enabled for learners. [Implementation and verification](docs/FG-03C2B1-UNDO-REDO.md) · [Roadmap](docs/ROADMAP-FINGER-GUIDANCE.md).
