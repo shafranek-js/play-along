@@ -1,11 +1,11 @@
-# Play Along — Piano Practice App (v0.10.48)
+# Play Along — Piano Practice App (v0.10.49)
 
 Play Along is an independently hosted browser piano practice application with Web MIDI, Piano Roll, OpenSheetMusicDisplay (OSMD), MusicXML/MXL and MIDI import, optional online music catalogs, and Wait/Tempo/Listen practice modes.
 
 **Live site:** https://shafranek-js.github.io/play-along/
 
 
-## Current status — v0.10.48
+## Current status — v0.10.49
 
 **Finger Guidance in the published player:** Optional Off / Numbers / 2D Hands / Ghost modes use the **14 original transparent PNG images supplied by the project owner** (seven poses for each hand). Guidance targets the **next note to be played**, not a key that is already sounding. In **Wait**, it stays on an unfinished group and removes already accepted chord keys; after a complete chord it advances to the next target.
 
@@ -35,6 +35,8 @@ FG-02H flags **11 quick same-finger changes** requiring musician review. Preserv
 **FG-03B2B-1 v0.10.46:** Virtual 25/49/61/88-key piano ranges now work without a physical MIDI profile, and changing the visible range forces a fresh keyboard geometry redraw. Complete hand PNG poses are suppressed when **any authored chord note of that hand is outside the selected range**; visible source-approved numeric finger targets remain. New eight-case desktop/mobile Chromium screenshot QA and JSON evidence are captured in PR artifacts. This is technical viewport acceptance, **not** physical hand-movement approval by a pianist. See [FG-03B2B keyboard-range QA](docs/FG-03B2B-RANGE-QA.md).
 
 **FG-03C2A v0.10.48:** Select a source-backed MusicXML note on Piano Roll to choose an explicit finger (1–5) and RH/LH or unknown hand. Manual corrections are layered over — never written into — original author notation, can be undone once or reset to author, and are persisted for reimports of identical MusicXML content. User-derived guidance is identified separately from authored fingering. Existing backup export includes corrections; strict backup restore rejects malicious or invalid overrides before touching stored data. See [FG-03C2A implementation](docs/FG-03C2A-MANUAL-CORRECTIONS.md). This is not automatically predicted fingering.
+
+**Library v0.10.49:** Every catalog row now shows **Аппликатура: Есть / Частично / Нет / Не проверено**, including a percentage and note count for verified files; a new selector filters by status alongside search/source/favorites. Offline saved XML scores are progressively indexed without re-downloading; manual user edits refresh coverage. The left library now has **five independent, collapsible and reorderable sections** (Каталог, Моя коллекция, Резервная копия, Подключённая папка, Онлайн-библиотеки), movable by drag handle, ↑/↓ controls or Alt + arrows. Order/open state is preserved and validated during backup recovery. [Technical details](docs/LIBRARY-COVERAGE-AND-LAYOUT.md).
 
 ### Release documentation rule
 
@@ -398,3 +400,10 @@ A source-identified MusicXML note selected in **Piano Roll** now exposes **Ап�
 User overrides are validated and saved separately in local preferences, keyed by a stable fingerprint of the exact imported MusicXML and the original canonical note ID. The same source score can be reimported after browser reload with the corrections intact. The existing JSON backup includes the validated override map; strict import rejects invalid finger numbers, hands, malformed IDs, prototype keys or excessive records before writes. Local persistence attempts a validated storage write before updating visual state so a quota error cannot display an unsaved correction. Other MIDI tracks, original source score data and experimental automated fingering remain unchanged.
 
 **CI:** new Node model tests and real Chromium acceptance for change/undo/reset, original immutability, newly labelled previously blank note, reload and reimport, backup export and invalid backup rejection. This is the bounded **FG-03C2A** increment, not full FG-03C2: multi-step history, exact cross-edition merging and annotated MusicXML export remain future work. [Detailed acceptance protocol](docs/FG-03C2A-MANUAL-CORRECTIONS.md) · [Living roadmap](docs/ROADMAP-FINGER-GUIDANCE.md).
+## v0.10.49 — library coverage filters and flexible accordion workspace
+
+Each library result now includes an explicit fingering coverage status: **Есть (100%)**, **Частично (1–99%)**, **Нет (0%)**, or **Не проверено** (the file was not yet examined). In saved MusicXML, status is computed from trustworthy source finger numbers and manually confirmed user overrides on **actual playable notes** and cached as lightweight IndexedDB metadata. The cover percentage does not assume that the right/left hand is known; hand availability is tracked separately. Remote catalogs remain **Не проверено** until source files have been opened, rather than falsely claiming no fingering. Saved MIDI can be classified **Нет · MIDI** because MIDI events do not natively encode finger technique. Filter for **«Есть · все ноты»** to keep only complete scores.
+
+The left sidebar library now supports five fully **independent collapsible and reorderable sections**, including the previously nested **Резервная копия**. Click any section heading to open/close it; drag its **⠿** handle above or below another, use **↑ / ↓** for touch, or **Alt+ArrowUp/ArrowDown** from the focused handle. The entire order and collapsed state persist across browser reloads and are part of strict-validated JSON settings backups. Search and filtering remain visible; the dedicated library workspace now uses a predictable one-column sortable stack with a scrollable bounded catalog, not a fixed two-column results panel. Native backup/restore, file import, attached folder and online tools retain their existing DOM nodes and functionality.
+
+**Quality gate:** pure Node and real Chromium tests for coverage categorization, saved-file backfill, user-edit promotion, filters, five-section accordion, pointer drag, keyboard/touch reordering, persistence, backup controls and narrower viewport. Previous music, OSMD, security, and all research benchmark suites continue to run. No automatic fingering was enabled. [Implementation and test details](docs/LIBRARY-COVERAGE-AND-LAYOUT.md) · [Roadmap](docs/ROADMAP-FINGER-GUIDANCE.md).
