@@ -42,6 +42,8 @@ FG04B1B_REPORT=artifacts/fg04b1b-asap-scores.json npm run research:fingering:cor
 
 Offline Node tests are included in `npm test`. PR CI runs both the actual pinned online audit and existing Node/Chromium regression suite and uploads a JSON evidence artifact.
 
+**FG-04B3a update:** A pure normalized-score-events ↔ reference-MIDI one-to-one matcher is available in [FG-04B3a](FG-04B3A-EVENT-ALIGNMENT.md), with exact temporal checks and conservative refusals. It has **not yet** been connected to an independently audited MusicXML parser for the 16 ASAP files; do not call the frozen source pairs semantically aligned until FG-04B3b.
+
 ## Precise limits / next gate
 
 - **Paired source availability** does not establish exact MusicXML-to-MIDI note identity, ties, repeat unfolding or onset/release equality. These must be compared in a later independently validated, source-aware adapter before running FG-04B2 note alignment.
