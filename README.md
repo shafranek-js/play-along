@@ -1,17 +1,17 @@
-# Play Along — Piano Practice App (v0.10.39)
+# Play Along — Piano Practice App (v0.10.40)
 
 Play Along is an independently hosted browser piano practice application with Web MIDI, Piano Roll, OpenSheetMusicDisplay (OSMD), MusicXML/MXL and MIDI import, optional online music catalogs, and Wait/Tempo/Listen practice modes.
 
 **Live site:** https://shafranek-js.github.io/play-along/
 
 
-## Current status — v0.10.39
+## Current status — v0.10.40
 
 **Finger Guidance in the published player:** Optional Off / Numbers / 2D Hands / Ghost modes use the **14 original transparent PNG images supplied by the project owner** (seven poses for each hand). Guidance targets the **next note to be played**, not a key that is already sounding. In **Wait**, it stays on an unfinished group and removes already accepted chord keys; after a complete chord it advances to the next target.
 
 In normal repertoire, finger numbers and hand attribution come from explicit **MusicXML author notation**; a source without trustworthy fingering does **not** receive fabricated instructional fingers. Built-in exercises can use clearly identified demonstration fingering. Web MIDI supplies key events, not anatomical finger identification.
 
-**Experimental automatic fingering is NOT enabled in learner guidance.** Research modules under src/core and their benchmark scripts do not replace author MusicXML labels or control the original 14 PNG poses.
+**Experimental automatic fingering is NOT enabled in learner guidance.** FG-02I introduces a research-only two-hand score router: monophonic mixed-direction passages use FG-02H, overlapping chord islands use FG-02B, and fully authored notes are preserved after an independent simultaneous-key audit. Segments are not guaranteed to have smooth wrist continuity; explicit warnings identify such transitions. Research modules under src/core and their benchmark scripts do not replace author MusicXML labels or control the original 14 PNG poses.
 
 Most recent research measurement (FG-02H) on five CC BY-SA hand-annotated excerpts, **148 notes in seven one-hand runs**:
 
@@ -290,3 +290,15 @@ Five short, source-pinned, checksum-verified CC BY-SA Piano Protege Curriculum f
 The research-only contextual monophonic module handles turns, note repetition, rests and softer repositioning after key release. Source finger anchors, hand, pitch, timing and note IDs remain immutable; true overlapping distinct keys still require the separate polyphonic model.
 
 In retrospective comparison with the **same five FG-02G excerpts**, unannotated source-finger agreement increased to **87/148 (58.78%)** from 81/148; accepted full-author-anchor coverage rose to **148/148** from 58/148. **Eleven** rapid same-finger changes were flagged for musician review. There is no independent pianist acceptance or learner-facing automatic fingering. [Methods](docs/FG-02H-MIXED-PHRASING-RESEARCH.md) · [PR #15](https://github.com/shafranek-js/play-along/pull/15).
+
+
+## FG-02I: two-hand score and polyphonic routing research (v0.10.40)
+
+- New **research-only** module `src/core/fingering-score-router.mjs` evaluates RH and LH **only when explicitly attributed by the input score**. It sends monophonic mixed-direction passages to FG-02H, overlapping/held-note islands to FG-02B, and fully author-annotated passages to an independent physical invariant audit that does **not rewrite source fingers**.
+- Original `noteId`, pitch, timing, hand and fixed author-finger provenance are preserved. Simultaneous-key conflicts, missing hand information, impossible finger reuse and unsupported re-articulations produce **explicit rejections**, never invented assignments.
+- Splitting a musical work into locally solved segments is **not a globally optimized wrist motion model**. `SEGMENT_BOUNDARY_HAND_CONTINUITY_UNVERIFIED` warns about each unvalidated transition. Author fast same-finger changes receive a separate review warning.
+- Run `npm test` for score routing, simultaneous notes, chords, two hands, author constraints and deterministic data integrity. Run `npm run benchmark:fingering:score-router` for a **retrospective** five-piece comparison against the SHA-verified CC BY-SA Piano Protege corpus. The latter does **not** supply independent, professionally annotated polyphonic chord accuracy.
+- **Measured first CI:** 203/203 unit tests; the five-source retrospective comparison retains **87/148** reference-finger matches and **148/148** authored-finger acceptance with **11 rapid author-slide warnings**, without modeled physical conflicts. These short source works have no same-hand chord islands; score-polyphony correctness remains checked using synthetic invariants, not independent expert adjudication.
+- **No change in the player interface:** all 14 original owner-supplied PNG hand poses and anticipatory next-note hints still use the existing MusicXML/demo assignments. Experimental generated fingering remains **OFF**.
+
+[Technical scope, test evidence and limitations](docs/FG-02I-POLYPHONIC-SCORE-ROUTING.md). A separate expert-adjudicated, genuinely unseen polyphonic score study and a review of inter-segment motion are required before an opt-in learner feature.

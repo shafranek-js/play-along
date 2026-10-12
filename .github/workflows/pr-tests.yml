@@ -50,6 +50,8 @@ jobs:
         run: FG02G_REPORT=artifacts/fg02g-real-repertoire.json npm run benchmark:fingering:repertoire
       - name: FG-02H mixed phrasing and author anchor acceptance
         run: FG02H_REPORT=artifacts/fg02h-contextual-repertoire.json npm run benchmark:fingering:contextual
+      - name: FG-02I two-hand score router retrospective research
+        run: FG02I_REPORT=artifacts/fg02i-score-router.json npm run benchmark:fingering:score-router
       - name: Browser regressions
         run: npm run test:browser
       - name: Upload FG-02C reference comparison
@@ -93,6 +95,13 @@ jobs:
         with:
           name: fg02h-contextual-repertoire-report
           path: artifacts/fg02h-contextual-repertoire.json
+          if-no-files-found: error
+      - name: Upload FG-02I two-hand score router report
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: fg02i-score-router-research-report
+          path: artifacts/fg02i-score-router.json
           if-no-files-found: error
       - name: Dependency audit
         run: npm audit --audit-level=high
