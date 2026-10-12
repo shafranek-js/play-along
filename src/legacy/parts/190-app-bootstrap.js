@@ -50,7 +50,7 @@ function setupLibrarySectionOrganizer(){
   while(section.firstChild)body.append(section.firstChild);
   const header=document.createElement('div');header.className='librarySectionHeader';
   const drag=document.createElement('button');drag.type='button';
-  drag.className='libraryDragHandle';drag.textContent='⠿';drag.draggable=true;
+  drag.className='libraryDragHandle';drag.textContent='⠿';drag.draggable=false;
   drag.setAttribute('aria-label','Перетащить раздел '+heading);
   drag.title='Перетащите для изменения порядка; Alt + ↑/↓ — с клавиатуры';
   drag.addEventListener('keydown',e=>{
@@ -88,38 +88,43 @@ function setupLibrarySectionOrganizer(){
   section.classList.add('librarySortableSection');
   section.setAttribute('aria-labelledby',toggle.id);
   container.append(section);toggleNodes.set(id,toggle);
-  drag.addEventListener('dragstart',e=>{
-   libraryDragId=id;container.classList.add('dragInProgress');
-   section.classList.add('isDragging');
-   e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',id);
+  // Pointer capture (instead of native HTML DragEvent) supports both mouse
+  // and touch, without Chromium button-draggable inconsistencies.
+  drag.addEventListener('pointerdown',e=>{
+   if(e.button!==0||pointerDrag)return;
+   pointerDrag={section,id,pointerId:e.pointerId,startY:e.clientY,started:false};
+   drag.setPointerCapture(e.pointerId);e.preventDefault();
   });
-  drag.addEventListener('dragend',()=>resetDrag());
+  drag.addEventListener('pointermove',e=>{
+   if(!pointerDrag||pointerDrag.id!==id||pointerDrag.pointerId!==e.pointerId)return;
+   if(!pointerDrag.started&&Math.abs(e.clientY-pointerDrag.startY)<7)return;
+   pointerDrag.started=true;container.classList.add('dragInProgress');section.classList.add('isDragging');
+   for(const node of container.children)node.classList.remove('dropBefore','dropAfter');
+   const target=document.elementFromPoint(e.clientX,e.clientY)?.closest('[data-library-section]');
+   if(target&&target.parentNode===container&&target!==section){
+    const after=e.clientY>target.getBoundingClientRect().top+target.offsetHeight/2;
+    target.classList.add(after?'dropAfter':'dropBefore');
+   }
+  });
+  drag.addEventListener('pointerup',e=>{
+   if(!pointerDrag||pointerDrag.id!==id||pointerDrag.pointerId!==e.pointerId)return;
+   if(pointerDrag.started){
+    const target=document.elementFromPoint(e.clientX,e.clientY)?.closest('[data-library-section]');
+    if(target&&target.parentNode===container&&target!==section){
+     const after=e.clientY>target.getBoundingClientRect().top+target.offsetHeight/2;
+     container.insertBefore(section,after?target.nextSibling:target);
+     storeLayout();
+    }
+   }
+   resetPointerDrag();
+  });
+  drag.addEventListener('pointercancel',()=>{if(pointerDrag?.id===id)resetPointerDrag()});
  }
- let libraryDragId=null;
- function resetDrag(){
-  libraryDragId=null;container.classList.remove('dragInProgress');
+ let pointerDrag=null;
+ function resetPointerDrag(){
+  pointerDrag=null;container.classList.remove('dragInProgress');
   for(const node of container.children)node.classList.remove('isDragging','dropBefore','dropAfter');
  }
- container.addEventListener('dragover',e=>{
-  if(!libraryDragId)return;
-  e.preventDefault();e.dataTransfer.dropEffect='move';
-  for(const node of container.children)node.classList.remove('dropBefore','dropAfter');
-  const target=e.target.closest('[data-library-section]');
-  if(target&&target.parentNode===container&&target.dataset.librarySection!==libraryDragId){
-   target.classList.add(e.clientY>target.getBoundingClientRect().top+target.offsetHeight/2?'dropAfter':'dropBefore');
-  }
- });
- container.addEventListener('drop',e=>{
-  if(!libraryDragId)return;
-  e.preventDefault();
-  const dragged=nodes.get(libraryDragId);
-  const target=e.target.closest('[data-library-section]');
-  if(target&&target.parentNode===container&&target!==dragged){
-   const after=e.clientY>target.getBoundingClientRect().top+target.offsetHeight/2;
-   container.insertBefore(dragged,after?target.nextSibling:target);
-  }else if(!target)container.append(dragged);
-  resetDrag();storeLayout();
- });
  // Preserve untouched Quick Actions and any future legacy nodes outside
  // the movable five, then discard the no-longer-used two-pane wrappers.
  for(const wrapper of [legacyControls,legacyResults]){
