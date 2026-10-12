@@ -7,6 +7,7 @@ on:
       - 'scripts/maestro-diversity.mjs'
       - 'tests/maestro-midi-audit.test.mjs'
       - 'tests/maestro-diversity.test.mjs'
+      - 'research/maestro-v3-measured-qa-pins.json'
       - 'package.json'
       - '.github/workflows/maestro-real-audit.yml'
   workflow_dispatch:
@@ -49,6 +50,24 @@ jobs:
             --csv "$RUNNER_TEMP/maestro/maestro-v3.0.0.csv" \
             --zip "$RUNNER_TEMP/maestro/maestro-v3.0.0-midi.zip" \
             --out artifacts/maestro-v3-measured-diversity.json
+      - name: Enforce immutable real-MIDI QA pins against rebuilt report
+        run: |
+          node --input-type=module -e '
+          import fs from "node:fs";
+          import assert from "node:assert/strict";
+          const report=JSON.parse(fs.readFileSync("artifacts/maestro-v3-measured-diversity.json","utf8"));
+          const locked=JSON.parse(fs.readFileSync("research/maestro-v3-measured-qa-pins.json","utf8"));
+          assert.equal(report.dataset.verified_archive_sha256,locked.provenance.official_midi_zip_sha256);
+          assert.equal(report.summary.all_midi_verified,locked.verified_corpus.official_midi_files);
+          assert.equal(report.summary.all_note_attacks,locked.verified_corpus.all_noteon_events);
+          assert.equal(report.summary.selected_notes,locked.verified_corpus.selected_noteon_events);
+          assert.deepEqual(report.works.map(({split,midi_filename,midi_sha256})=>({split,midi_filename,midi_sha256})),locked.works);
+          for(const split of ["train","validation","test"]){
+            assert.equal(report.split_comparisons[split].chosen.weighted_feature_coverage,
+              locked.verified_corpus.weighted_feature_coverage[split].final);
+          }
+          console.log("MAESTRO_LOCK_VERIFIED: 24 source SHA256 identities and score invariants matched official archive");
+          '
       - name: Log 24 derived path/SHA256 pins for immutable QA corpus
         run: |
           node --input-type=module -e '
