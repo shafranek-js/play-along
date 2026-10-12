@@ -66,10 +66,18 @@ function scoreXMLFromSong(song){
  return '<?xml version="1.0" encoding="utf-8"?><score-partwise version="4.0"><work><work-title>'+scoreEscape(song.title)+'</work-title></work><movement-title>'+scoreEscape(song.title)+'</movement-title><identification><creator type="composer">'+scoreEscape(song.author||'')+'</creator></identification><defaults><scaling><millimeters>7</millimeters><tenths>40</tenths></scaling></defaults><part-list>'+list+'</part-list>'+chunks.join('')+'</score-partwise>';
 }
 function scoreSetView(view){
- if(!['roll','sheet'].includes(view))return;
- state.scoreView=view;const sheet=view==='sheet';$('rollWrap').classList.toggle('hidden',sheet);$('sheetWrap').classList.toggle('hidden',!sheet);
- for(const [id,on] of [['viewRoll',!sheet],['viewSheet',sheet]]){$(id).classList.toggle('active',on);$(id).setAttribute('aria-pressed',String(on))}
- persist();if(sheet)scoreEnsureRendered().catch(scoreError);else{resizeCanvas();scoreLastFrame=0;}
+ if(!['roll','sheet','editor'].includes(view))return;
+ state.scoreView=view;
+ $('rollWrap').classList.toggle('hidden',view!=='roll');
+ $('sheetWrap').classList.toggle('hidden',view!=='sheet');
+ $('fingerEditorWrap').classList.toggle('hidden',view!=='editor');
+ for(const [id,on] of [['viewRoll',view==='roll'],['viewSheet',view==='sheet'],['viewFingerEditor',view==='editor']]){
+  $(id).classList.toggle('active',on);$(id).setAttribute('aria-pressed',String(on));
+ }
+ persist();
+ if(view==='sheet')scoreEnsureRendered().catch(scoreError);
+ else if(view==='roll'){resizeCanvas();scoreLastFrame=0}
+ else fingerEditorRender();
 }
 async function scoreEnsureRendered(){
  if(state.scoreView!=='sheet'||!current)return;
