@@ -1,8 +1,32 @@
-# Play Along — Piano Practice App (v0.10.16)
+# Play Along — Piano Practice App (v0.10.39)
 
 Play Along is an independently hosted browser piano practice application with Web MIDI, Piano Roll, OpenSheetMusicDisplay (OSMD), MusicXML/MXL and MIDI import, optional online music catalogs, and Wait/Tempo/Listen practice modes.
 
 **Live site:** https://shafranek-js.github.io/play-along/
+
+
+## Current status — v0.10.39
+
+**Finger Guidance in the published player:** Optional Off / Numbers / 2D Hands / Ghost modes use the **14 original transparent PNG images supplied by the project owner** (seven poses for each hand). Guidance targets the **next note to be played**, not a key that is already sounding. In **Wait**, it stays on an unfinished group and removes already accepted chord keys; after a complete chord it advances to the next target.
+
+In normal repertoire, finger numbers and hand attribution come from explicit **MusicXML author notation**; a source without trustworthy fingering does **not** receive fabricated instructional fingers. Built-in exercises can use clearly identified demonstration fingering. Web MIDI supplies key events, not anatomical finger identification.
+
+**Experimental automatic fingering is NOT enabled in learner guidance.** Research modules under src/core and their benchmark scripts do not replace author MusicXML labels or control the original 14 PNG poses.
+
+Most recent research measurement (FG-02H) on five CC BY-SA hand-annotated excerpts, **148 notes in seven one-hand runs**:
+
+| Metric | Previous FG-02G | Experimental FG-02H |
+| --- | ---: | ---: |
+| Finger agreement without source anchors | 81/148 (54.73%) | 87/148 (58.78%) |
+| Notes accepted with every author finger fixed | 58/148 (39.19%) | 148/148 (100%) |
+| Entirely matching unannotated runs | 0/7 | 1/7 |
+| Modeled physical conflicts | 0 | 0 |
+
+FG-02H flags **11 quick same-finger changes** requiring musician review. Preserving all original anchors is a data-integrity result, **not** evidence that every transition is a good teaching recommendation. The five excerpts were already known during development: this is *retrospective* evaluation, not a new blind trial. See [FG-02H research](docs/FG-02H-MIXED-PHRASING-RESEARCH.md) and [PR #15](https://github.com/shafranek-js/play-along/pull/15).
+
+### Release documentation rule
+
+**Every Play Along feature, fix and version update must update README.md in the same pull request**, with user-visible behavior, technical limitations, reproducible checks and links to supporting documentation. The unit test suite verifies that the README heading and a version-specific release-history section match package.json. This automated check is a minimum safeguard, not a replacement for meaningful release notes. Never mark a version as complete while its README is stale.
 
 ## Quick start — Windows, macOS or Linux
 
@@ -25,6 +49,10 @@ Open **http://localhost:4173/**. For browser MIDI permission on an external host
 | `npm run dev` | Serve the built `dist/` folder over HTTP |
 | `npm test` | Check deterministic output, syntax, DOM anchors and baseline integrity |
 | `npm run test:browser` | Run real Chromium scenarios (requires `npx playwright install chromium`) |
+| npm run benchmark:fingering:repertoire | Reproduce FG-02G on five pinned, checksum-verified licensed musical excerpts (requires network) |
+| npm run benchmark:fingering:contextual | Compare FG-02H with FG-02G, including author-anchor acceptance and movement warnings |
+| npm run benchmark:fingering:heldout | Reproduce FG-02E locked, 34-case educational scale evaluation |
+
 
 ## Deployment and third-party components
 
