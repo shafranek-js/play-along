@@ -34,6 +34,17 @@ const tie='<score-partwise version="4.0"><part-list><score-part id="P1"><part-na
  '<measure number="2"><note><pitch><step>F</step><octave>4</octave></pitch><duration>480</duration><tie type="stop"/>'+
  '<notations><technical><fingering>5</fingering></technical></notations></note></measure></part></score-partwise>';
 
+// Duplicate part IDs and simultaneous unisons intentionally stress identity.
+const duplicatePart='<score-partwise version="4.0"><part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list>'+
+ '<part id="P1"><measure number="1"><attributes><divisions>480</divisions></attributes>'+
+ note('C',4,1,1,1)+'<backup><duration>480</duration></backup>'+note('C',4,1,2,2)+
+ '</measure></part><part id="P1"><measure number="1"><attributes><divisions>480</divisions></attributes>'+
+ note('C',4,1,1,3)+'</measure></part></score-partwise>';
+const repeated=begin+'<measure number="1"><attributes><divisions>480</divisions></attributes>'+
+ '<barline location="left"><repeat direction="forward"/></barline>'+note('C',4,1,1,1)+'</measure>'+
+ '<measure number="2">'+note('D',4,1,1,2)+
+ '<barline location="right"><repeat direction="backward"/></barline></measure></part></score-partwise>';
+
 await new Promise(ok=>server.listen(0,'127.0.0.1',ok));
 let browser;
 try{
@@ -48,12 +59,16 @@ try{
   window.__prototypeTest.loadSong(score);
   return {
    tracks:score.tracks.map(t=>t.notes.map(n=>({pitch:n.pitch,finger:n.finger??null,hand:n.hand??null,
-    src:n.fingeringSource??null,staff:n.staff,voice:n.voice,id:n.noteId}))),
+    src:n.fingeringSource??null,staff:n.staff,voice:n.voice,id:n.noteId,sourceIds:n.sourceNoteIds}))),
    steps:window.__fingerGuideTest.steps,
    solo:(()=>{const s=read(data.solo);return {notes:s.tracks.flatMap(t=>t.notes),warnings:s.warnings}})(),
-   tie:(()=>{const s=read(data.tie);return {notes:s.tracks.flatMap(t=>t.notes),warnings:s.warnings}})()
+   tie:(()=>{const s=read(data.tie);return {notes:s.tracks.flatMap(t=>t.notes),warnings:s.warnings}})(),
+   duplicate:(()=>{const a=read(data.duplicatePart),b=read(data.duplicatePart);
+    return {notes:a.tracks.flatMap(t=>t.notes),sameOnReimport:b.tracks.flatMap(t=>t.notes).map(n=>n.noteId)}})(),
+   repeated:(()=>{const a=read(data.repeated),b=read(data.repeated);
+    return {notes:a.tracks.flatMap(t=>t.notes),sameOnReimport:b.tracks.flatMap(t=>t.notes).map(n=>n.noteId)}})()
   };
- },{grand,solo,tie});
+ },{grand,solo,tie,duplicatePart,repeated});
  assert.equal(result.tracks.length,2);
  const notes=result.tracks.flat(),top=notes.filter(n=>n.staff==='1'),bottom=notes.filter(n=>n.staff==='2');
  assert.deepEqual(top.map(n=>n.finger),[1,2,null,3]);
@@ -61,6 +76,17 @@ try{
  assert.deepEqual(top.map(n=>n.hand),['RH','RH',null,'RH']);
  assert.deepEqual(bottom.map(n=>n.hand),['LH','LH','LH',null]);
  assert.equal(new Set(notes.map(n=>n.id)).size,8);
+ assert.ok(notes.every(n=>n.sourceIds.length===1&&n.sourceIds[0]===n.id));
+ assert.equal(result.duplicate.notes.length,3,'Two XML parts and two source voices retained');
+ const duplicateIds=result.duplicate.notes.map(n=>n.noteId);
+ assert.equal(new Set(duplicateIds).size,3,'Unison voices and repeated part IDs cannot collide');
+ assert.deepEqual(duplicateIds,result.duplicate.sameOnReimport,'Reimport retains exact source IDs');
+ assert.deepEqual(result.duplicate.notes.map(n=>n.pitch),[60,60,60]);
+ assert.deepEqual(result.duplicate.notes.map(n=>n.finger),[1,2,3]);
+ assert.equal(result.repeated.notes.length,4,'Two-bar repeat expands to 4 notes');
+ const repeatIds=result.repeated.notes.map(n=>n.noteId);
+ assert.equal(new Set(repeatIds).size,4,'Each repeat pass has its own source identity');
+ assert.deepEqual(repeatIds,result.repeated.sameOnReimport);
  assert.ok(notes.every(n=>n.id.startsWith('xml:P1:')));
  assert.deepEqual(result.steps.map(g=>g.notes.length),[2,2,1,1]);
  assert.deepEqual(result.solo.notes.map(n=>n.finger??null),[1,null,null,null]);
@@ -71,6 +97,9 @@ try{
  assert.equal(result.tie.notes[0].finger,4);
  assert.equal(result.tie.notes[0].hand,'RH');
  assert.equal(result.tie.notes[0].duration,1);
+ assert.equal(result.tie.notes[0].sourceNoteIds.length,2,'Tie preserves both written segments');
+ assert.equal(new Set(result.tie.notes[0].sourceNoteIds).size,2);
+ assert.equal(result.tie.notes[0].noteId,result.tie.notes[0].sourceNoteIds[0]);
  assert.ok(result.tie.warnings.some(w=>w.includes('лигой')));
  await page.locator('#fingerGuideMode').selectOption('hands');
  await page.waitForFunction(()=>document.querySelector('#fingerGuideStatus').textContent.includes('MusicXML: авторская аппликатура'));
