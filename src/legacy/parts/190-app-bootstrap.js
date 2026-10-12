@@ -219,6 +219,13 @@ startupLibraryPromise.then(async()=>{
 window.addEventListener('pagehide',()=>{if(isPlaying&&ctx)pos=clockPos();persist()});
 window.__scoreTest={scoreXMLFromSong,scoreSecondToBeat,scoreBeatToSecond,scoreBarBeats,scoreSetView,scoreSyncCursor,
  get overlay(){const x=scoreFingeringOverlayState;return {status:x.status,count:x.count,handOnly:x.handOnly,reason:x.reason}},
+ previewFingerOverlay(changes){
+  const x=sheetFingeringOverlay(current,changes,{
+   parse:source=>new DOMParser().parseFromString(source,'application/xml'),
+   serialize:doc=>new XMLSerializer().serializeToString(doc)});
+  return {status:x.status,count:x.count,handOnly:x.handOnly,reason:x.reason,
+   colored:x.status==='applied'?x.xml.includes('color="#C77D28"'):false};
+ },
  get renderer(){return scoreRenderer},get view(){return state.scoreView},get cursorTimes(){return scoreCursorTimes},get scoreLoaded(){return scoreSong===current&&!!scoreRenderer},
  get editor(){return {visible:state.scoreView==='editor',notes:fingerEditorNotes().length,selected:fingerSelectedIds.size,
   firstBox:fingerEditorBoxes[0]?{id:fingerEditorBoxes[0].n.noteId,x:fingerEditorBoxes[0].x,y:fingerEditorBoxes[0].y,w:fingerEditorBoxes[0].w,h:fingerEditorBoxes[0].h}:null,
