@@ -17,8 +17,10 @@ test('FG editor: scrollable entire score extent without full width canvas',()=>{
 });
 test('FG editor: pitch spacing is stable across time scrolling/zoom',()=>{
  const a=fingerEditorGeometry(notes,opts),b=fingerEditorGeometry(notes,{...opts,scrollLeft:280});
- assert.equal(a.boxes[1].y,b.boxes[1].y);
- assert.ok(a.boxes[1].x>b.boxes[1].x);
+ const id=notes[1].noteId,first=a.boxes.find(x=>x.n.noteId===id),second=b.boxes.find(x=>x.n.noteId===id);
+ assert.ok(first&&second);
+ assert.equal(first.y,second.y);
+ assert.ok(first.x>second.x);
 });
 test('FG editor: dense short notes retain clickable block size',()=>{
  const a=fingerEditorGeometry([{pitch:60,start:1,duration:.005,noteId:'xml:A:0:0:6'}],opts);
