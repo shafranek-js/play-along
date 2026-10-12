@@ -56,11 +56,11 @@ test('FG-04B1a rejects malformed manifest, categories, IDs and foreign paths',()
  assert.throws(()=>validateTechnicalManifest(missing),/MISSING_TECHNICAL_CATEGORY:pickup/);
 });
 test('FG-04B1a rejects non-score, XML entities and failed download',async()=>{
- const invalid=Buffer.from('<score-timewise><part/></score-timewise>');
+ const invalid=Buffer.from('<score-timewise><part/></score-timewise>'+' '.repeat(140));
  const m=fakeManifest(invalid);
  await assert.rejects(fetchTechnicalFixture(m,m.cases[0],{fetcher:fakeFetch(invalid)}),
   /FIXTURE_UNSAFE_OR_NOT_PARTWISE/);
- const hostile=Buffer.from('<!ENTITY x "oops"><score-partwise><part/></score-partwise>');
+ const hostile=Buffer.from('<!ENTITY x "oops"><score-partwise><part/></score-partwise>'+' '.repeat(140));
  const q=fakeManifest(hostile);
  await assert.rejects(fetchTechnicalFixture(q,q.cases[0],{fetcher:fakeFetch(hostile)}),
   /FIXTURE_UNSAFE_OR_NOT_PARTWISE/);
