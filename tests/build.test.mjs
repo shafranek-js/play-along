@@ -17,7 +17,7 @@ const musicPrelude=['music-time.mjs','music-bars.mjs','finger-guidance-timeline.
 
 test('all feature parts form exactly one valid JavaScript bundle',()=>{
  assert.equal(manifest.features.length,21);
- const expected="\n(()=>{'use strict';\n"+musicPrelude+'\n'+featureSource.replace("window.__playAlongVersion='0.9.1'","window.__playAlongVersion='0.10.45'")+"})();\n";
+ const expected="\n(()=>{'use strict';\n"+musicPrelude+'\n'+featureSource.replace("window.__playAlongVersion='0.9.1'","window.__playAlongVersion='0.10.46'")+"})();\n";
  assert.equal(js,expected);
  execFileSync(process.execPath,['--check',path.join(root,'dist/assets/app.js')]);
 });
@@ -45,7 +45,7 @@ test('HTML visible branding, browser tab and asset revisions are derived only fr
 });
 test('preserved features: MIDI auto connection, Wait, OSMD, imports, catalogs',()=>{
  for(const term of ['requestMIDIAccess','onstatechange','waitReleasePitches','holdForInput','scoreEnsureRendered','opensheetmusicdisplay.min.js','mutopiaLoadIndex','museTrainerLoadIndex','asapLoadIndex','zipUnpackMXL','readMusicXML','parseMidi','indexedDB']) assert.ok(js.includes(term),`Missing ${term}`);
- assert.ok(js.includes("window.__playAlongVersion='0.10.45'"));
+ assert.ok(js.includes("window.__playAlongVersion='0.10.46'"));
  assert.ok(js.includes('function musicCreateTempoTimeline('));
  assert.ok(js.includes('function musicSecondsToBeat('));
  assert.ok(js.includes('function musicBarGrid('));
