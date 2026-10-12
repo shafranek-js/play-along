@@ -1,11 +1,11 @@
-# Play Along — Piano Practice App (v0.10.52)
+# Play Along — Piano Practice App (v0.10.53)
 
 Play Along is an independently hosted browser piano practice application with Web MIDI, Piano Roll, OpenSheetMusicDisplay (OSMD), MusicXML/MXL and MIDI import, optional online music catalogs, and Wait/Tempo/Listen practice modes.
 
 **Live site:** https://shafranek-js.github.io/play-along/
 
 
-## Current status — v0.10.52
+## Current status — v0.10.53
 
 **Finger Guidance in the published player:** Optional Off / Numbers / 2D Hands / Ghost modes use the **14 original transparent PNG images supplied by the project owner** (seven poses for each hand). Guidance targets the **next note to be played**, not a key that is already sounding. In **Wait**, it stays on an unfinished group and removes already accepted chord keys; after a complete chord it advances to the next target.
 
@@ -43,6 +43,8 @@ FG-02H flags **11 quick same-finger changes** requiring musician review. Preserv
 **FG-03C2B1 v0.10.51:** A score-wide, 40-operation **Undo/Redo** history for manual fingering edits now replaces the one-note undo. Edit several notes, undo in chronological order, redo removed edits, or undo a return-to-author reset. New edits after Undo clear redo. The separate, source-preserving corrections remain persistent; the stack is session-only and is excluded from backups to avoid stale playback of operations. See [FG-03C2B1](docs/FG-03C2B1-UNDO-REDO.md).
 
 **FG-03C2B2 v0.10.52:** The Piano Roll fingering editor now supports **Ctrl+A** (all source notes, including outside the viewport), **Shift+click** (contiguous score-order range), **Ctrl/Cmd+click** (arbitrary toggle selection) and **drag-marquee** of visible notes. Selected notes can receive **one bulk hand assignment without changing or inventing their individual fingers**, an optional explicit common finger, or a group reset to author. Each group operation is atomic and a single Undo/Redo step. The virtual keyboard remains playable independently. See [Multi-note selection and bulk editing](docs/FG-03C2B2-MULTI-SELECT.md).
+
+**FG-03C2B3 v0.10.53:** A separate **✍ Аппликатура** practice view now provides a horizontally scrollable full-song timeline with note-level verified fingers/hand markers, zoom, Ctrl/Cmd+A, Ctrl/Cmd/Shift+click, drag-marquee, always-visible independent group finger/hand controls, and group Undo/Redo. Long works render only the viewport; all imported MusicXML notes remain scroll-reachable. In **Sheet Music**, verified user finger corrections are shown by composing a temporary MusicXML display clone with amber source-labelled annotations and a provenance legend. Unmatched note identities fail closed. The original MusicXML, playable notes and hand PNG assets remain unchanged; no annotated-file export is implied. [Detailed contract](docs/FG-03C2B3-FINGERING-EDITOR.md).
 
 ### Release documentation rule
 
@@ -432,3 +434,10 @@ Multiple imported MusicXML notes can now be selected with **Ctrl+A (all)**, **Sh
 The group editor defaults to **Палец: не менять** and **Рука: не менять**. Change either independently: bulk RH/LH preserves per-note original/user numbers 1–5; previously unlabelled notes retain unknown finger rather than inventing one. A finger may also be explicitly assigned to all selected notes. **Применить ко всем** is one atomic group operation and one Undo/Redo step. **Вернуть автора для выбранных** resets the group and is also undoable. Source MusicXML remains untouched; the local user edits and normal backup validation retain their provenance. Keyboard shortcuts do not hijack text inputs or unrelated library pages.
 
 The selection belongs to the **Piano Roll editor** (not the rendered Sheet Music tab yet) and is ephemeral across score changes. Full notes beyond the viewport are selected by Ctrl+A or Shift ranges, whereas drag area uses actual visible rectangles. Existing notes, musical timing, research-only auto-fingering and all original hand PNGs are unchanged. [Engineering and acceptance protocol](docs/FG-03C2B2-MULTI-SELECT.md) · [Roadmap](docs/ROADMAP-FINGER-GUIDANCE.md).
+## Full-score fingering editor and user-labelled Sheet Music (v0.10.53)
+
+Play Along now has a **third independent score view — ✍ Аппликатура**. Unlike the falling-notes Piano Roll, this is a real horizontally scrollable **whole-song fingering editor**: notes are arranged by pitch and onset, with duration, effective finger number (or unknown `?`), LH/RH, and clear visual distinction between original author and user corrections. Its pinned toolbar offers Select All, Clear, zoom, optional group finger/hand assignment, apply, return-to-author, Undo and Redo. Ctrl+A selects the full work; Ctrl/Cmd-click, Shift-click and click-drag marquee work within the editor, including across different screen positions. The timeline draws only its visible viewport instead of generating a huge image of the entire piece.
+
+Sheet Music also shows verified numeric user fingering changes by using a **temporary, strictly source-matched MusicXML clone** solely for OSMD rendering. The note-by-note source ID, part, voice, staff, pitch and tie links must all match; otherwise no annotation is applied, and the original sheet appears with a warning. User annotations are amber and a legend explicitly distinguishes them from author markings; hand-only corrections never create fictitious finger digits. The original source, backup's source files, practice timing and MIDI remain untouched.
+
+This release does **not export modified MusicXML**, migrate corrections between revised editions or claim direct editing of OSMD sheet notes. Those are separate roadmap gates requiring expert-verified mapping and export fixtures. [Architecture and UAT](docs/FG-03C2B3-FINGERING-EDITOR.md) · [Roadmap](docs/ROADMAP-FINGER-GUIDANCE.md).

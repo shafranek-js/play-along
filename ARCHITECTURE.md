@@ -1,6 +1,6 @@
 # Play Along — architecture and development plan
 
-**Current version:** v0.10.52 (FG-03C2B2 multi-select review branch; only merged changes deploy to production). The production GitHub Pages site is rebuilt and tested automatically from `main`.
+**Current version:** v0.10.53 (FG-03C2B3 fingering editor review branch; only merged changes deploy to production). The production GitHub Pages site is rebuilt and tested automatically from `main`.
 
 ## Current implementation
 
@@ -76,3 +76,8 @@ The previous five-panel `librarySections` order is accepted as a valid legacy pa
 The source-only piano-roll selection in `src/core/finger-note-selection.mjs` orders canonical MusicXML notes by onset, track, then source ordinal. It permits Ctrl/A whole-score, Shift score-order ranges, Ctrl/Cmd arbitrary sets, and marquee intersection of **actual currently drawn rectangles**. The virtual keyboard's pointer handler is isolated below `keyboardTop`. Selection state is transient and cleared on score switches. For a group, the inspector produces an optional finger patch and optional hand patch independently, retaining existing finger numbers when changing RH/LH only; unknown fingers remain `null` and cannot inflate fingering-coverage counts.
 
 `fingerHistoryTransition(...,'batch')` accepts multiple validated source-note changes as **one** undo/redo step. The full candidate override map is checked against original source IDs and persisted in one guarded localStorage call, then and only then committed to runtime state/history. Strict backup validation allows typed `finger:null` only with an explicit hand and applies the same bounded size cap. Source XML, timing and original art are unaffected. [Acceptance notes](docs/FG-03C2B2-MULTI-SELECT.md).
+## FG-03C2B3 — full-score editor + source-verified notation (v0.10.53)
+
+The third persisted `scoreView='editor'` has its own visible timeline, fixed group controls, and scrollable `fingerEditorSurface` with a sticky, **viewport-width** canvas. `fingerEditorGeometry` yields only time-visible note rectangles; the app does not allocate a full composition-wide bitmap. Existing source-identified `fingerSelectedIds` and atomic `fingerOverrideCommitGroup` are reused, retaining stable Ctrl/Shift/drag and full-work Ctrl+A semantics. Source selection clears on work changes; the editor gracefully handles MIDI with no canonical fingering.
+
+The `sheetFingeringOverlay` function verifies the full imported MusicXML note identity map (including ties, voice, staff and pitch) against a detached DOM clone; on mismatch it fails closed and never mutates original `notationXML`, playback events or original author annotation. A user finger appears as distinct amber marked notation only in the OSMD renderer, with a separate provenance legend; hand-only updates retain unknown finger and don't create musical digits. Source corrections cause OSMD to rebuild the display clone on the next view. This is not a modified MusicXML export. [Contract](docs/FG-03C2B3-FINGERING-EDITOR.md).

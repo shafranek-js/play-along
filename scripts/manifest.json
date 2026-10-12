@@ -4,6 +4,7 @@
     "10-keyboard-adaptation.js",
     "20-workspace-ui.js",
     "30-sheet-music-osmd.js",
+    "35-fingering-editor.js",
     "40-audio-transport.js",
     "50-practice-scoring.js",
     "60-performance-review.js",

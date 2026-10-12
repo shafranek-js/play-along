@@ -2,6 +2,7 @@
 // The optional renderer is loaded on demand: the HTML remains a standalone file; online notation needs network.
 let scoreRenderer=null,scoreSong=null,scoreBusy=null,scoreCursorIndex=0,scoreCursorTimes=[],scoreLastSecond=-1,scoreLastFrame=0;
 let scoreLibPromise=null,scoreLoadSerial=0,scoreZoomTimer=null;
+let scoreFingeringOverlayState={status:'none',count:0,handOnly:0,reason:null};
 const SCORE_CDNS=[
  './assets/vendor/opensheetmusicdisplay.min.js',
  'https://cdn.jsdelivr.net/npm/opensheetmusicdisplay@2.2.0/build/opensheetmusicdisplay.min.js',
@@ -10,7 +11,9 @@ const SCORE_CDNS=[
 function scoreSetStatus(msg){$('sheetStatus').textContent=msg}
 function scoreNotice(msg,isError=false){const el=$('sheetNotice');el.textContent=msg;el.classList.toggle('hidden',!msg);el.classList.toggle('error',!!isError)}
 function scoreError(err){const message=(err?.message||String(err));scoreSetStatus('Ошибка визуализации');scoreNotice(message+' · Piano Roll по-прежнему доступен.',true)}
-function scoreOnSongChanged(){scoreLoadSerial++;scoreRenderer=null;scoreSong=null;scoreBusy=null;scoreCursorTimes=[];scoreCursorIndex=0;scoreLastSecond=-1;const target=$('sheetCanvas');if(target)target.replaceChildren();scoreSetStatus('Партитура не загружена');scoreNotice('')}
+function scoreOnSongChanged(){scoreLoadSerial++;scoreRenderer=null;scoreSong=null;scoreBusy=null;scoreCursorTimes=[];scoreCursorIndex=0;scoreLastSecond=-1;const target=$('sheetCanvas');if(target)target.replaceChildren();scoreFingeringOverlayState={status:'none',count:0,handOnly:0,reason:null};
+ const badge=$('sheetFingerStatus');if(badge){badge.classList.add('hidden');badge.textContent=''}
+ scoreSetStatus('Партитура не загружена');scoreNotice('')}
 function scoreLoadScript(url){return new Promise((resolve,reject)=>{const tag=document.createElement('script');tag.src=url;tag.async=true;tag.crossOrigin='anonymous';let timer=setTimeout(()=>{tag.remove();reject(Error('Истекло время загрузки OSMD'))},16000);tag.onload=()=>{clearTimeout(timer);resolve()};tag.onerror=()=>{clearTimeout(timer);tag.remove();reject(Error('Не удалось загрузить '+url.split('/')[2]))};document.head.append(tag);})}
 async function scoreLibrary(){
  if(window.opensheetmusicdisplay?.OpenSheetMusicDisplay)return window.opensheetmusicdisplay;
@@ -63,10 +66,18 @@ function scoreXMLFromSong(song){
  return '<?xml version="1.0" encoding="utf-8"?><score-partwise version="4.0"><work><work-title>'+scoreEscape(song.title)+'</work-title></work><movement-title>'+scoreEscape(song.title)+'</movement-title><identification><creator type="composer">'+scoreEscape(song.author||'')+'</creator></identification><defaults><scaling><millimeters>7</millimeters><tenths>40</tenths></scaling></defaults><part-list>'+list+'</part-list>'+chunks.join('')+'</score-partwise>';
 }
 function scoreSetView(view){
- if(!['roll','sheet'].includes(view))return;
- state.scoreView=view;const sheet=view==='sheet';$('rollWrap').classList.toggle('hidden',sheet);$('sheetWrap').classList.toggle('hidden',!sheet);
- for(const [id,on] of [['viewRoll',!sheet],['viewSheet',sheet]]){$(id).classList.toggle('active',on);$(id).setAttribute('aria-pressed',String(on))}
- persist();if(sheet)scoreEnsureRendered().catch(scoreError);else{resizeCanvas();scoreLastFrame=0;}
+ if(!['roll','sheet','editor'].includes(view))return;
+ state.scoreView=view;
+ $('rollWrap').classList.toggle('hidden',view!=='roll');
+ $('sheetWrap').classList.toggle('hidden',view!=='sheet');
+ $('fingerEditorWrap').classList.toggle('hidden',view!=='editor');
+ for(const [id,on] of [['viewRoll',view==='roll'],['viewSheet',view==='sheet'],['viewFingerEditor',view==='editor']]){
+  $(id).classList.toggle('active',on);$(id).setAttribute('aria-pressed',String(on));
+ }
+ persist();
+ if(view==='sheet')scoreEnsureRendered().catch(scoreError);
+ else if(view==='roll'){resizeCanvas();scoreLastFrame=0}
+ else fingerEditorRender();
 }
 async function scoreEnsureRendered(){
  if(state.scoreView!=='sheet'||!current)return;
@@ -79,7 +90,30 @@ async function scoreEnsureRendered(){
   // For MIDI we expose quantisation and playback limitations to avoid pretending it is authoritative sheet music.
   const hasOriginal=!!song.notationXML;
   if(song.originalNotationXML)scoreNotice('Повторяющиеся такты развёрнуты для точной синхронизации с воспроизведением. Исходная запись с репризами сохранена в файле.');
-  const xml=hasOriginal?song.notationXML:scoreXMLFromSong(song);
+  let xml=hasOriginal?song.notationXML:scoreXMLFromSong(song);
+  scoreFingeringOverlayState={status:'none',count:0,handOnly:0,reason:null};
+  const summary=$('sheetFingerStatus');
+  summary.classList.add('hidden');summary.textContent='';
+  if(hasOriginal){
+   const key=fingerOverrideWorkKey(song),corrections=key?state.fingerOverrides?.[key]:null;
+   if(corrections&&Object.keys(corrections).length){
+    scoreFingeringOverlayState=sheetFingeringOverlay(song,corrections,{
+     parse:source=>new DOMParser().parseFromString(source,'application/xml'),
+     serialize:doc=>new XMLSerializer().serializeToString(doc)});
+    if(scoreFingeringOverlayState.status==='applied'){
+     xml=scoreFingeringOverlayState.xml;
+     summary.classList.remove('hidden');
+     summary.textContent='Авторские пальцы: обычные цифры · Пользовательские: янтарные ноты и цифры ('+
+      scoreFingeringOverlayState.count+')'+
+      (scoreFingeringOverlayState.handOnly?' · Только рука (без придуманного пальца): '+
+       scoreFingeringOverlayState.handOnly:'');
+    }else if(scoreFingeringOverlayState.status==='skipped'){
+     summary.classList.remove('hidden');summary.classList.add('isWarning');
+     summary.textContent='Исправления не нанесены: не удалось однозначно сопоставить ноты. Показан оригинал.';
+    }
+   }
+  }
+  if(scoreFingeringOverlayState.status!=='skipped')summary.classList.remove('isWarning');
   if(!hasOriginal)scoreNotice('MIDI не содержит нотной партитуры. Показана автоматически квантованная запись 4/4: длительности, группировка голосов, знаки, паузы и такты могут отличаться от оригинала. Для точных нот загрузи MusicXML/MXL.');
   scoreSetStatus('Загружаем OpenSheetMusicDisplay…');const library=await scoreLibrary();if(token!==scoreLoadSerial||song!==current)return;
   const el=$('sheetCanvas');el.replaceChildren();const renderer=new library.OpenSheetMusicDisplay(el,{autoResize:false,backend:'svg',drawTitle:true,drawingParameters:'compact'});
@@ -91,6 +125,13 @@ async function scoreEnsureRendered(){
   scoreSetStatus((hasOriginal?'Исходный MusicXML':'MIDI → приближённая запись')+' · '+scoreCursorTimes.length+' позиций');scoreSyncCursor(true);
  })();
  try{await scoreBusy}finally{scoreBusy=null}
+}
+function scoreFingerCorrectionsChanged(){
+ // An imported XML is immutable; the displayed engraving must be rebuilt
+ // from source + latest validated overrides after each saved correction.
+ if(scoreSong!==current||!scoreRenderer)return;
+ scoreLoadSerial++;scoreRenderer=null;scoreSong=null;scoreBusy=null;
+ if(state.scoreView==='sheet')void scoreEnsureRendered().catch(scoreError);
 }
 function scoreSyncCursor(force=false){
  if(state.scoreView!=='sheet'||!scoreRenderer||scoreSong!==current||!scoreCursorTimes.length)return;

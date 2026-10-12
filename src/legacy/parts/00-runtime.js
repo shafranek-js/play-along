@@ -9,7 +9,7 @@ const SETTING_ENUMS={
  layout:['learn','play','analyze'],page:['practice','library','progress'],
  rightTab:['practice','adapt','midi','review','smart','analysis'],mode:['listen','wait','tempo'],
  displayRange:['song','device'],targetRange:['device','preview25','preview37','preview49','preview61','preview76','preview88'],
- adaptMode:['original','transpose','adaptive'],adaptProfile:['center','low','high'],scoreView:['roll','sheet'],
+ adaptMode:['original','transpose','adaptive'],adaptProfile:['center','low','high'],scoreView:['roll','sheet','editor'],
  fingerGuidanceMode:['off','numbers','hands','ghost']
 };
 const SETTING_NUMBERS={
@@ -111,7 +111,7 @@ function sanitizePlayAlongSettings(value,{strict=false}={}){
  return safe;
 }
 let stored={};try{stored=JSON.parse(localStorage.getItem(STORE)||localStorage.getItem(V06_STORE)||localStorage.getItem(PREV_STORE)||localStorage.getItem(PREV2_OLD_STORE)||localStorage.getItem(PREV2_STORE)||localStorage.getItem(OLD_STORE)||localStorage.getItem(OLDER_STORE)||'{}')||{}}catch{}
-const state=sanitizePlayAlongSettings(stored);if(!['roll','sheet'].includes(state.scoreView))state.scoreView='roll';state.sheetZoom=Math.max(65,Math.min(150,Number(state.sheetZoom)||100));state.deviceProfiles=typeof state.deviceProfiles==='object'&&state.deviceProfiles!==null?state.deviceProfiles:{};
+const state=sanitizePlayAlongSettings(stored);if(!['roll','sheet','editor'].includes(state.scoreView))state.scoreView='roll';state.sheetZoom=Math.max(65,Math.min(150,Number(state.sheetZoom)||100));state.deviceProfiles=typeof state.deviceProfiles==='object'&&state.deviceProfiles!==null?state.deviceProfiles:{};
 // Device configuration and panels are global; practice preferences are independent per piece.
 const newSongDefaults=Object.fromEntries(SONG_PREF_FIELDS.map(k=>[k,defaults[k]]));
 state.songSettings=(state.songSettings&&typeof state.songSettings==='object'&&!Array.isArray(state.songSettings))?state.songSettings:{};
@@ -136,7 +136,7 @@ function applySongSettings(id){
  for(const key of SONG_PREF_FIELDS)state[key]=prefs&&Object.hasOwn(prefs,key)?prefs[key]:newSongDefaults[key];
  if(!['listen','wait','tempo'].includes(state.mode))state.mode='listen';
  state.speed=Math.max(25,Math.min(150,Number(state.speed)||100));
- if(!['roll','sheet'].includes(state.scoreView))state.scoreView='roll';
+ if(!['roll','sheet','editor'].includes(state.scoreView))state.scoreView='roll';
  state.sheetZoom=Math.max(65,Math.min(150,Number(state.sheetZoom)||100));
  const last=Number(prefs?.position);pos=Number.isFinite(last)?Math.max(0,Math.min(last,duration())):0;
  const savedLoop=prefs?.loop;

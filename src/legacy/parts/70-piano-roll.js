@@ -52,14 +52,14 @@ function fingerSelectionSet(ids,anchor=null){
  const primary=ordered.find(e=>e.id===fingerSelectionAnchor&&fingerSelectedIds.has(e.id))?.note||
   ordered.find(e=>fingerSelectedIds.has(e.id))?.note||null;
  selectNote(primary,{keepGroup:true});
- renderCanvas();
+ renderCanvas();if(state.scoreView==='editor')fingerEditorRender();
 }
 function fingerSelectionShortcut(e){
  if(!(e.ctrlKey||e.metaKey)||e.altKey||e.shiftKey||e.key.toLowerCase()!=='a'||
-  !fingerSelectionAvailable()||state.page!=='practice'||state.scoreView!=='roll')return false;
+  !fingerSelectionAvailable()||state.page!=='practice'||!['roll','editor'].includes(state.scoreView))return false;
  const focused=document.activeElement;
  if(focused?.closest('input,textarea,select,[contenteditable="true"]'))return false;
- if(focused!==roll&&!$('selection').contains(focused)&&
+ if(focused!==roll&&focused!==fingerEditorCanvas&&!fingerEditorScroller.contains(focused)&&!$('selection').contains(focused)&&
   !(focused===document.body&&fingerSelectedIds.size))return false;
  e.preventDefault();
  const ordered=fingerSelectionOrdered();
@@ -108,11 +108,13 @@ function fingerOverrideCommit(note,choice,{action='edit',batch=null}={}){
   localStorage.setItem(STORE,JSON.stringify({...state,fingerOverrides:validated}));
  }catch(err){notify('Не удалось сохранить аппликатуру: '+err.message);return false}
  state.fingerOverrides=validated;
+ scoreFingerCorrectionsChanged();
  fingerOverrideHistories.delete(key);
  fingerOverrideHistories.set(key,transition.history);
  while(fingerOverrideHistories.size>12)
   fingerOverrideHistories.delete(fingerOverrideHistories.keys().next().value);
  renderCanvas();if(selectedNote?.noteId)selectNote(selectedNote,{keepGroup:true});
+ if(state.scoreView==='editor')fingerEditorRender();
  if(current?.id)void libraryCoverageStore(current,current.id)
   .catch(e=>console.warn('Coverage after correction failed',e));
  return true;
