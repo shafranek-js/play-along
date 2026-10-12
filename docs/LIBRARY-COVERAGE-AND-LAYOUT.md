@@ -1,4 +1,4 @@
-# Library: fingering coverage and customizable sections (v0.10.49)
+# Library: fingering coverage and customizable sections (v0.10.50)
 
 ## Fingering coverage — what the badge means
 
@@ -10,13 +10,14 @@ The new **Аппликатура** filter (Любая / Есть · все но�
 
 ## Rearrange the left library sidebar
 
-The five independent sortable accordion sections are:
+The six independent sortable accordion sections are:
 
 - Каталог произведений
 - Моя коллекция
 - Резервная копия
 - Подключённая папка
 - Онлайн-библиотеки
+- Быстрые действия (калибровка MIDI и сброс расположения панелей)
 
 Click the section heading to collapse or expand. **Drag by ⠿**, or use **↑ / ↓** on each header (also works on touch), or focus the handle and press **Alt + ArrowUp / ArrowDown**. Search, source, favorite and coverage filters remain outside the movable stack so they are always reachable. Backup was intentionally promoted from a nested section inside My Collection into a *peer* section. The original file inputs, backup handlers, folder controls and external catalog controls remain the same DOM nodes; reordering never recreates them.
 
@@ -29,7 +30,10 @@ In the dedicated **Библиотека** workspace, the previous fixed two-pane
 - Pure Node coverage cases: full, partial, none, unknown, known finger but unknown hand, saved user corrections, no untrusted automatic predictions.
 - Pure Node section layout: stable defaults, full permutation, collapse map, rejection of duplicates and unknown keys.
 - Real Chromium coverage: three saved XML files, exact percentage labels and filters, correction promotes partial to full, saved index migration after reload, online unknown.
-- Real Chromium layout: five independent sections, backup no longer nested, collapse/reopen, native mouse drag, keyboard/arrow reorder, persistence after reload, mobile width and preserved file/backup/catalog controls.
+- Real Chromium layout: six independent sections, backup no longer nested, Quick Actions controls and independent collapse, native mouse drag, keyboard/arrow reorder, persistence after reload, five-to-six settings migration, mobile width and preserved file/backup/catalog controls.
 - Existing OSMD, MIDI, Wait, backups, security, music research benchmark, deterministic asset version and Pages deployment must all pass before release.
 
 **Non-goals:** Searching an un-downloaded remote archive is not silently upgraded into guaranteed fingering coverage. No auto-fingering is enabled for learners. Reordering the sidebar does not move notes, delete user files, or rewrite cached music. No new library DB schema version is required.
+## v0.10.50 follow-up: Quick Actions
+
+The original **Быстрые действия** section, containing **⌨ Калибровать клавиатуру** and **↺ Сбросить расположение панелей**, is now a sixth peer in the sortable accordion. Its existing buttons and event handlers are preserved, and hiding the body never disables the others. Legacy five-section saved orders, including strict backup payloads, are upgraded by appending `quick` (open) without disrupting any prior customized section order or collapsed states. New six-section orders can move `quick` anywhere, and its collapsed flag persists normally.
