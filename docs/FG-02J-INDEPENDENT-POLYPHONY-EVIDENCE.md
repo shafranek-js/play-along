@@ -94,6 +94,9 @@ Run `npm run benchmark:fingering:independent-polyphony` for the source-complete 
 | Fully source-pinned notes accepted | 543 / 1,467 = **37.01%** |
 | Islands rejected with every GT finger fixed | 104 / 242 |
 | Silent source finger overrides | **0** |
+| Unannotated island refusal reason | `NO_VALID_PATH`: **22** islands |
+| Fully source-pinned refusal reason | `AUTHOR_PHYSICAL_CONFLICT`: **104** islands |
+| Independent physical audit violations (not unique islands) | **148** modeled stretch, **16** held-finger ordering, **11** concurrent finger reuses |
 | Independently modeled output conflicts in accepted results | 0 |
 
 The model was **not tuned on this external source prior to this evaluation**. Unlike FG-02G/H/I this is a new research corpus, but it is still not independent professional-piano-teacher *adjudication*. In particular, the 242 complete islands represent just the overlap-connected segments that have a finger annotation for **every concurrent original MIDI event**. They do not represent the full length of the 11 recorded pieces.
