@@ -26,6 +26,8 @@
   <div class="sidebody">
     <div class="panelSection"><input class="search" id="librarySearch" placeholder="Поиск: название, композитор, жанр…" aria-label="Поиск в библиотеке">
     <div class="libv8-filters"><select id="librarySourceSelect" aria-label="Источник"><option value="all">Все источники</option><option value="saved">Моя коллекция</option><option value="folder">Подключённая папка</option><option value="demo">Демо</option><option value="repertoire">Public Domain MIDI</option><option value="mutopia">Mutopia</option><option value="musetrainer">MuseTrainer · MusicXML</option><option value="asap">ASAP · Piano</option><option value="openscore">OpenScore GitHub</option></select><select id="librarySort" aria-label="Сортировка"><option value="source">По источнику</option><option value="title">По названию</option><option value="author">По композитору</option><option value="difficulty">По сложности</option></select></div>
+    <div class="libv8-fingering"><label for="libraryFingeringSelect">Аппликатура</label><select id="libraryFingeringSelect" aria-label="Фильтр по аппликатуре"><option value="all">Любая</option><option value="full">Есть · все ноты</option><option value="partial">Частично</option><option value="none">Нет</option><option value="unknown">Не проверено</option></select></div>
+    <p id="libraryFingeringProgress" class="small" aria-live="polite"></p>
     <label class="libv8-switch"><input type="checkbox" id="libraryFavoritesOnly"> ★ Только избранное</label><p id="libV8Counts" class="small" style="margin:7px 0"></p>
     </div>
     <div class="panelSection"><div class="sectionLabel">Каталог произведений</div><div class="list" id="songList"></div></div>
