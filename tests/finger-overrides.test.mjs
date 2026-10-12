@@ -33,7 +33,7 @@ test('FG-03C2A hostile backup corrections are rejected before any commit',()=>{
   {[key]:{[id]:{finger:9,hand:'LH'}}},
   {[key]:{[id]:{finger:1,hand:'other'}}},
   {[key]:{[id]:{finger:1,hand:null,html:'<img onerror=alert(1)>'}}},
-  {[key]:{'__proto__':{finger:2,hand:'RH'}}},
+  JSON.parse('{"'+key+'":{"__proto__":{"finger":2,"hand":"RH"}}}'),
   {[key]:{[id]:{finger:'1',hand:'RH'}}},
   {'evil-script':{[id]:{finger:2,hand:'RH'}}}
  ]){
