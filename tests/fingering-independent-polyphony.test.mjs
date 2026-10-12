@@ -84,3 +84,13 @@ test('FG-02J subset scope remains measurable independently of release gate',()=>
  assert.equal(r.summary.polyphonicNotes,2);
  assert.equal(r.summary.uncoveredSourceNotes,1);
 });
+
+test('FG-02J fully anchored chord model rejection has an auditable conflict code',()=>{
+ const midi=[row(60,0,.5),row(64,0,.5)];
+ const gt=[row(60,0,.5,'R',1),row(64,0,.5,'R',1)];
+ const r=evaluatePolyphonicGroundTruth(midi,gt);
+ assert.equal(r.metrics.pinnedRejectedIslands,1);
+ assert.equal(r.metrics.pinnedRejectionReasons.AUTHOR_PHYSICAL_CONFLICT,1);
+ assert.ok(r.metrics.pinnedModeledConflictTypes.FINGER_REUSED_WHILE_HELD>=1);
+ assert.equal(r.metrics.sourceAnchorOverrides,0);
+});
