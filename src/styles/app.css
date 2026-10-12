@@ -8,13 +8,6 @@
 .smartMaster{color:#73c6ae;font-weight:700}.smartRow{border:1px solid #374255;border-radius:10px;background:#202631;padding:10px;margin-top:7px}.smartRow strong{display:block;font-size:12px}.smartRow p{margin:4px 0;color:#acb7c8;font-size:11px}.librarySource{border:1px solid #364052;border-radius:10px;padding:10px;margin:9px 0;background:#1d2430}.librarySource p{margin:5px 0;font-size:11px;color:var(--sub)}.librarySource button{margin-top:5px;width:100%}
 
 /* v0.8 Library Manager */
-.libv8-fingering{display:flex;gap:8px;align-items:center;margin:8px 0;color:#c9d7e6;font-size:12px}
-.libv8-fingering label{min-width:90px}
-.libv8-fingering select{flex:1;min-width:0;max-width:260px;border:1px solid #435063;border-radius:7px;background:#111821;color:#dbe4ef;padding:7px;font-size:12px}
-.libFingerStatus{font-size:11px;font-weight:600;border:1px solid #4b5870;border-radius:6px;padding:2px 6px;white-space:nowrap;display:inline-flex;width:max-content;max-width:100%}
-.libFingerStatus[data-state="full"]{border-color:#427f6d;color:#a2ddc6}
-.libFingerStatus[data-state="partial"]{border-color:#8f7852;color:#f2cf94}
-.libFingerStatus[data-state="none"],.libFingerStatus[data-state="unknown"]{color:#aab9c8}
 .libv8-filters{display:flex;gap:6px;margin:9px 0}.libv8-filters select{background:#111821;border:1px solid #435063;border-radius:7px;color:#dbe4ef;padding:7px 5px;width:50%;font-size:11px;min-width:0}
 .libv8-switch{display:flex;gap:7px;align-items:center;color:#d3dbea;font-size:12px}.libv8-switch input{accent-color:#eea07e}
 #songList{max-height:410px;overflow-y:auto;scrollbar-width:thin;gap:5px}.onlyLibrary #songList{max-height:none;overflow:visible;display:grid;grid-template-columns:repeat(auto-fill,minmax(285px,1fr));gap:8px}
@@ -127,3 +120,10 @@ body.onlyLibrary #leftPanel .sidebody>.panelSection:first-child{
  body.onlyLibrary #leftPanel .sidebody{height:calc(100dvh - 103px)!important;padding:10px!important}
  body.onlyLibrary #leftPanel #songList{max-height:47vh!important}
 }
+.libv8-fingering{display:flex;gap:8px;align-items:center;margin:8px 0;color:#c9d7e6;font-size:12px}
+.libv8-fingering label{min-width:90px}
+.libv8-fingering select{flex:1;min-width:0;max-width:260px;border:1px solid #435063;border-radius:7px;background:#111821;color:#dbe4ef;padding:7px;font-size:12px}
+.libFingerStatus{font-size:11px;font-weight:600;border:1px solid #4b5870;border-radius:6px;padding:2px 6px;white-space:nowrap;display:inline-flex;width:max-content;max-width:100%}
+.libFingerStatus[data-state="full"]{border-color:#427f6d;color:#a2ddc6}
+.libFingerStatus[data-state="partial"]{border-color:#8f7852;color:#f2cf94}
+.libFingerStatus[data-state="none"],.libFingerStatus[data-state="unknown"]{color:#aab9c8}
