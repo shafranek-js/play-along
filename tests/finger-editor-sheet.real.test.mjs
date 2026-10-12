@@ -108,6 +108,7 @@ try{
   };
  });
  assert.equal(preview.valid.status,'applied');
+ assert.equal(preview.valid.osmdXmlHeader,true,'OSMD string loading requires leading XML declaration');
  assert.equal(preview.missing.status,'skipped');
  assert.deepEqual(errors,[]);
  console.log('FINGER EDITOR & OSMD SHEET: viewport, full score Ctrl+A, grouped hand/finger, undo/redo, horizontal scroll, original-preserving SVG annotation and fail-closed validation PASS');
