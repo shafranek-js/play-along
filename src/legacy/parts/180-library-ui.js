@@ -14,20 +14,21 @@ function libraryCoverageFor(e,category){
  if(category==='demo')return fingeringCoverageFromSong(e);
  if(category==='saved'){
   if(fingeringCoverageValid(e.fingeringCoverage))return e.fingeringCoverage;
-  if(['mid','midi'].includes(String(e.format||'').toLowerCase()))
-   return {total:1,marked:0,hands:0,author:0,user:0};
+  // MIDI has no native author finger numbers; do not invent a 0/1 total.
+  if(['mid','midi'].includes(String(e.format||'').toLowerCase()))return null;
  }
  return null;
 }
 function libraryCoverageStatusFor(e,category){
+ if(category==='saved'&&['mid','midi'].includes(String(e.format||'').toLowerCase()))return 'none';
  return fingeringCoverageStatus(libraryCoverageFor(e,category));
 }
 function libRow(e,category){
  const wrap=document.createElement('div');wrap.className='libv8-row'+(state.selected===e.id?' current':'');
  const main=document.createElement('button');main.className='libv8-main';const title=document.createElement('strong');title.textContent=e.title;const sub=document.createElement('span');sub.textContent=[e.author,e.source||category,e.instrument||'',e.license].filter(Boolean).join(' · ');main.append(title,sub);
- const coverage=libraryCoverageFor(e,category),coverageState=fingeringCoverageStatus(coverage);
+ const coverage=libraryCoverageFor(e,category),coverageState=libraryCoverageStatusFor(e,category);
  const finger=document.createElement('span');finger.className='libFingerStatus';finger.dataset.state=coverageState;
- finger.textContent='Аппликатура: '+fingeringCoverageLabel(coverage);
+ finger.textContent='Аппликатура: '+(coverageState==='none'&&!coverage?'Нет · MIDI':fingeringCoverageLabel(coverage));
  if(category==='demo')finger.title='Учебная демо-аппликатура, не авторская MusicXML';
  else if(coverageState==='unknown')finger.title='Файл ещё не проверен на наличие номеров пальцев; онлайн-каталоги не скачиваются автоматически';
  else finger.title='Покрытие номерами пальцев 1–5; наличие правой/левой руки учитывается отдельно';
