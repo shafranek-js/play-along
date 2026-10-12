@@ -457,7 +457,7 @@ function readMusicXML(xmlString,filename){
  const sharedStarts=scoreParts.length>1&&counts.every(n=>n===counts[0])
   ?musicSharedBarStarts(xmlList(scoreParts[0],'measure'),ppq):null;
  if(scoreParts.length>1&&!sharedStarts)warnings.add('Число тактов различается между партиями: общая тактовая сетка не используется.');
- for(const part of scoreParts){
+ for(const [partIndex,part] of scoreParts.entries()){
   let absolute=0,divisions=1,transposition=0;let beats=4,beatType=4;
   const partId=part.getAttribute('id')||'part',partName=namesById[partId]||'Партия';
   const staffNumbers=new Set(xmlList(part,'measure').flatMap(m=>[...m.getElementsByTagName('staff')].map(x=>x.textContent.trim())));
@@ -513,11 +513,14 @@ function readMusicXML(xmlString,filename){
     let list=voices.get(key);if(!list){list=[];voices.set(key,list)}
     const tied=xmlList(el,'tie').map(t=>t.getAttribute('type'));
     const note={pitch:pitchNumber,tick:absolute+onset,len:Math.max(1,noteDur),velocity:85,channel:0,
-     noteId:'xml:'+partId+':'+measureIndex+':'+(++sourceOrdinal),partId,staff,voice};
+     noteId:musicXmlSourceNoteId(partId,partIndex,measureIndex,++sourceOrdinal),partId,staff,voice};
+    note.sourceNoteIds=[note.noteId];
     if(finger!==null){note.finger=finger;note.fingeringSource='musicxml';if(hand)note.hand=hand;}
     const tieKey=fullKey+'|'+pitchNumber;const last=ties.get(tieKey);
     if(tied.includes('stop')&&last&&Math.abs(last.tick+last.len-note.tick)<=2){
      last.len+=note.len;
+     // The unified held note keeps each written tie segment's identity.
+     last.sourceNoteIds.push(note.noteId);
      if(finger!==null){
       if(last.finger==null){last.finger=finger;last.fingeringSource='musicxml';if(hand)last.hand=hand;}
       else if(last.finger!==finger)warnings.add('Связанные лигой ноты содержат разные номера пальцев: первое обозначение сохранено, возможная замена пальца не воспроизводится.');
@@ -545,7 +548,7 @@ function readMusicXML(xmlString,filename){
  const toSeconds=tick=>musicTickToSeconds(tempoMap,ppq,tick);
  const tracks=segments.map((s,i)=>({name:s.name,notes:s.notes.map(n=>({
   pitch:n.pitch,start:toSeconds(n.tick),duration:Math.max(.025,toSeconds(n.tick+n.len)-toSeconds(n.tick)),velocity:n.velocity,track:i,channel:0,
-  noteId:n.noteId,partId:n.partId,staff:n.staff,voice:n.voice,
+  noteId:n.noteId,sourceNoteIds:n.sourceNoteIds.slice(),partId:n.partId,staff:n.staff,voice:n.voice,
   ...(n.finger!=null?{finger:n.finger,fingeringSource:n.fingeringSource,...(n.hand?{hand:n.hand}:{})}:{})
  }))}));
  return{id:'xml-'+Date.now(),title:title.slice(0,100),author:author.slice(0,110),type:'import',format:'MusicXML',tracks,warnings:[...warnings],notationXML:playbackXml,originalNotationXML:repeatExpansion.expanded?safeXml:undefined,scoreTempoMap:tempoMap.map(t=>({beat:t.tick/ppq,sec:t.sec,tempo:t.tempo}))};
