@@ -224,7 +224,8 @@ window.__scoreTest={scoreXMLFromSong,scoreSecondToBeat,scoreBeatToSecond,scoreBa
    parse:source=>new DOMParser().parseFromString(source,'application/xml'),
    serialize:doc=>new XMLSerializer().serializeToString(doc)});
   return {status:x.status,count:x.count,handOnly:x.handOnly,reason:x.reason,
-   colored:x.status==='applied'?x.xml.includes('color="#C77D28"'):false};
+   colored:x.status==='applied'?x.xml.includes('color="#C77D28"'):false,
+   osmdXmlHeader:x.status==='applied'&&/^\s*<\?xml\b/.test(x.xml)};
  },
  get renderer(){return scoreRenderer},get view(){return state.scoreView},get cursorTimes(){return scoreCursorTimes},get scoreLoaded(){return scoreSong===current&&!!scoreRenderer},
  get editor(){return {visible:state.scoreView==='editor',notes:fingerEditorNotes().length,selected:fingerSelectedIds.size,
