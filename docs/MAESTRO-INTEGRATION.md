@@ -1,6 +1,6 @@
 # MAESTRO v3.0.0 integration — MAE-01/MAE-02
 
-**Status (2026-10-12):** MAE-01/02A metadata selection implemented; MAE-02B archive-membership and MIDI event profiler added in v0.10.59. The official dataset must pass its independently downloaded, checksum-verified CI run before any claim of real-data coverage. **Still not** a user-facing catalog, not score/fingering ground truth, and not a teaching-difficulty ranking.
+**Status (2026-10-12):** MAE-01/02A and MAE-02B completed (real-data verification succeeded in GitHub Actions). MAE-02C adds whole-dataset feature profiling and measured diversity comparison, conditional on a fresh official archive CI pass. **Still not** a user-facing catalog, not score/fingering ground truth, and not a teaching-difficulty ranking.
 
 ## Source and permitted use
 
@@ -45,6 +45,27 @@ This is a **performance-complexity profile**, not a calibrated teaching level. I
 
 **Evidence:** `tests/maestro-midi-audit.test.mjs` uses synthetic stored and DEFLATE archives with 1,276 path entries plus deliberately corrupt data; the GitHub Action is the authoritative real-file validation. Do not claim real recordings were verified until the Action has completed successfully.
 
+## MAE-02C — measured complexity coverage, without teaching-level claims (v0.10.62)
+
+**Verified official-source run (2026-10-12):** [GitHub Actions run 38291524798](https://github.com/shafranek-js/play-along/actions/runs/38291524798) completed successfully. SHA256 was checked, **all 1,276 MIDI files** were parsed and checked, yielding **7,040,164 NoteOn key attacks**. The new 24-performance candidate set contains **143,923 attacks**. Weighted feature coverage changed from **67 → 71 train**, **52 → 68 validation**, and **45 → 67 test**; the measured-diversity strategy won the comparison in all three splits. These are algorithm-defined bucket-coverage scores, not percentages or artistic quality grades. The detailed 24-record manifest with source SHA256 and splits is attached to that Actions run as `maestro-v3-measured-diversity` (14-day retention). Avoid conflating these counts with sounding note overlap or MusicXML source identity.
+
+
+
+Run from a trusted copy of the official CSV + MIDI-only ZIP (nothing is uploaded from your computer):
+
+```bash
+npm run research:maestro:diversity -- --csv "/path/maestro-v3.0.0.csv" --zip "/path/maestro-v3.0.0-midi.zip" --out "/path/maestro-v3-measured-diversity.json"
+npm run test:maestro
+```
+
+The CI research workflow re-downloads the pinned official archive, verifies SHA256 **before** analyzing it, checks every one of 1,276 ZIP entry memberships and CRC32 and profiles the **entire 1,276-performance MIDI corpus**, not only the old sample. It keeps per-file SHA256 and computed complexity features in transient memory and outputs only a 24-file derived manifest, split-level quartile cutoffs, coverage comparison and aggregate statistics. The original MIDI file bytes, event lists and audio never enter the GitHub repository or published artifacts.
+
+Quantitative features computed independently **within each official split**: performance duration (weight 1), key-on density (3), maximum concurrent held keys (3), 250-ms repeated-key ratio (3), velocity P90–P10 spread (2), pitch span (2), tempo-event count (1), and presence/absence of MIDI CC64 sustain (1), CC66 sostenuto (3), and CC67 una corda (3). For each numeric feature, compare deterministic 25/50/75 percentile cutoffs. Tied values do **not** fabricate distinct bins. A greedy algorithm aims to cover new weighted feature bins, preferring different composers as a tie-breaker. It retains **16 train, 4 validation, 4 test**; no split's selections depend on another split's feature thresholds or choices. The new sample is used for a split only when its weighted bucket coverage strictly beats the frozen MAE-02A metadata-only baseline, otherwise the baseline remains. Each report includes both baseline and new scores; improvement is measured by a **predeclared engineering objective**, not proof of unbiased representativity or musical pedagogy.
+
+This is a targeted edge-case and regression diversity sample. A deliberately coverage-optimized selection is **not** a statistically representative or random sample, nor a blind holdout for tuning future algorithms repeatedly. Split labels are respected but intentionally inspecting test performances for QA means this is **not** an untouched ML model-test set. Avoid interpreting the new score as a learning-difficulty estimate. Same key simultaneously sounding under sustain is different from held-key polyphony; real hand/finger/phrase identity cannot be obtained from MIDI events alone.
+
+**Acceptance gate:** actual CI report must show `profiled_files=1276`, official checksum success and a 24-file selection. All synthetic/negative tests and the existing full browser/FG regression suite must pass. Record outcomes in release documentation only after logs confirm them. Any official MIDI parsing outlier must be documented and rejected or handled transparently; no silent sample exclusions. The next stage **MAE-03** is to build immutable regression event fixtures and compare engine time/release/pedal handling (not auto-generated fingering).
+
 ## Selection contract
 
 The selected 24 records use **16 train / 4 validation / 4 test**, rotating duration quartiles (shorter/longer/lower-middle/upper-middle) and preferring composer and title diversity. Selection is deterministic for the same metadata regardless of row ordering. Metadata only is written to the JSON manifest, with per-record relative MIDI path, duration, year, split, selection bucket and dataset attribution.
@@ -55,10 +76,11 @@ This is a reproducible **metadata-diverse candidate corpus**, not yet a verified
 
 1. **MAE-01 — implemented:** Strict official CSV validation and optional streamed archive SHA256 verification; no original MIDI files committed. Synthetic negative/positive test fixtures.
 2. **MAE-02A — implemented:** Deterministic metadata-diverse 24-record candidate manifest; split-specific quotas and provenance.
-3. **MAE-02B — v0.10.59 implementation and CI validation:** Offline archive membership/CRC checks and 24 real MIDI performance profiles. Results valid only after successful official-dataset CI run. MAE-02C may revise the candidate selection to improve measured complexity coverage.
-4. **MAE-03 — pending:** Golden-event/regression corpus for tempo, pedal, concurrent notes, MIDI format/timebase and memory/performance safety, with explicit acceptance against Play Along's Wait/Tempo/Listen invariants.
-5. **MAE-04/05 — conditional:** A curated catalog or practice excerpts only after rights review, provenance labels, and a supported lazy-loading/storage path.
-6. **MAE-06/07 — research:** Expressive performance comparison and source-independent RH/LH inference. MIDI does **not** indicate anatomical fingers. Do not promote inferred fingering to FG-04 learner guidance without pianist-validated author/hand annotations.
+3. **MAE-02B — v0.10.60 completed with successful real-data CI:** Offline archive membership/CRC checks and 24 real MIDI performance profiles. Results valid only after successful official-dataset CI run. MAE-02C may revise the candidate selection to improve measured complexity coverage.
+4. **MAE-02C — v0.10.62 implementation:** Profile all real MIDI files and compare split-specific measured feature-bin coverage against the existing metadata-only selection. Exact dataset verification requires the dedicated workflow; no difficulty/hand labels are derived.
+5. **MAE-03 — pending:** Golden-event/regression corpus for tempo, pedal, concurrent notes, MIDI format/timebase and memory/performance safety, with explicit acceptance against Play Along's Wait/Tempo/Listen invariants.
+6. **MAE-04/05 — conditional:** A curated catalog or practice excerpts only after rights review, provenance labels, and a supported lazy-loading/storage path.
+7. **MAE-06/07 — research:** Expressive performance comparison and source-independent RH/LH inference. MIDI does **not** indicate anatomical fingers. Do not promote inferred fingering to FG-04 learner guidance without pianist-validated author/hand annotations.
 
 The existing `FG-04B` source-authorized fingering corpus remains separate. Source MusicXML annotations retain authority; external MIDI performances are **never** used to fabricate next-finger hints, rewrite user corrections, change the 14 approved PNG poses, or perturb Wait/Tempo clocks.
 
