@@ -1,6 +1,6 @@
 # FG-03B2B-1 — Automated piano-range and hand-pose safety matrix (v0.10.46)
 
-**Status:** Engineering acceptance, not musical/anatomical acceptance. This stage prepares reproducible evidence for the **still pending** independent pianist review of crossings, thumb-under, black keys and full-range technique.
+**Status:** FG-03B2B-1 engineering acceptance was automated in v0.10.46. **Subsequent milestone FG-03B2B-2 was confirmed accepted by a pianist by the project owner on 2026-10-12.** The underlying individual musician review cases were not supplied with that confirmation; the automated eight-view matrix is still not, by itself, anatomical evidence. No claims are made regarding automatic fingering, which remains disabled for learner guidance.
 
 ## Root causes fixed
 
