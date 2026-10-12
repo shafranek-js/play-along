@@ -3,3 +3,10 @@ dist/
 playwright-report/
 test-results/
 *.log
+
+# Third-party MAESTRO source dataset and generated local research output
+maestro-v3.0.0-midi.zip
+maestro-v3.0.0.csv
+maestro-v3.0.0.json
+data/maestro/
+research-output/maestro/
