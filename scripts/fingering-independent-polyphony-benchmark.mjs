@@ -91,7 +91,8 @@ export function evaluatePolyphonicGroundTruth(sourceRows,gtRows){
   proposedMatched:0,proposedAccepted:0,proposedRejectedIslands:0,
   pinnedAccepted:0,pinnedRejectedIslands:0,sourceAnchorOverrides:0,
   proposedExactIslands:0,pinnedExactIslands:0,modeledConflicts:0,
-  unsafeUnverifiedTransitions:0};
+  unsafeUnverifiedTransitions:0,
+  proposedRejectionReasons:{},pinnedRejectionReasons:{}};
  const details=[];
  for(const [islandIndex,island] of eligible.entries()){
   if(island.length>2500)throw Error('POLYPHONY_COMPONENT_TOO_LARGE');
@@ -120,7 +121,10 @@ export function evaluatePolyphonicGroundTruth(sourceRows,gtRows){
     const checked=auditFingeringAssignments(partitions[h],prediction.hands[h]);
     if(!checked.valid)metrics.modeledConflicts++;
    }
-  }else metrics.proposedRejectedIslands++;
+  }else{
+   metrics.proposedRejectedIslands++;
+   metrics.proposedRejectionReasons[prediction.reason]=(metrics.proposedRejectionReasons[prediction.reason]??0)+1;
+  }
   let pinnedMatches=0;
   if(authored.ok){
    const byId=new Map([...authored.hands.RH,...authored.hands.LH]
@@ -129,7 +133,10 @@ export function evaluatePolyphonicGroundTruth(sourceRows,gtRows){
    metrics.pinnedAccepted+=island.length;
    metrics.sourceAnchorOverrides+=island.length-pinnedMatches;
    if(pinnedMatches===island.length)metrics.pinnedExactIslands++;
-  }else metrics.pinnedRejectedIslands++;
+  }else{
+   metrics.pinnedRejectedIslands++;
+   metrics.pinnedRejectionReasons[authored.reason]=(metrics.pinnedRejectionReasons[authored.reason]??0)+1;
+  }
   // Strict aggregate evidence only. Do not publish raw performer notes,
   // individual source GT finger assignments, or timestamps.
   details.push({islandIndex,notes:island.length,
@@ -153,7 +160,7 @@ export async function runIndependentPolyphonyBenchmark({fetcher=globalThis.fetch
   proposedMatched:0,proposedAccepted:0,pinnedAccepted:0,
   proposedRejectedIslands:0,pinnedRejectedIslands:0,
   sourceAnchorOverrides:0,modeledConflicts:0,
-  annotatedNotesInIncompleteContext:0
+  annotatedNotesInIncompleteContext:0,proposedRejectionReasons:{},pinnedRejectionReasons:{}
  };
  for(const name of EXPECTED_NAMES){
   const [ground,raw]=await Promise.all([
@@ -168,6 +175,9 @@ export async function runIndependentPolyphonyBenchmark({fetcher=globalThis.fetch
    'pinnedRejectedIslands','sourceAnchorOverrides','modeledConflicts'])
    totals[k]+=r.metrics[k];
   totals.annotatedNotesInIncompleteContext+=r.sourceCoverage.skippedPartialGTNotes;
+  for(const type of ['proposedRejectionReasons','pinnedRejectionReasons'])
+   for(const [reason,count] of Object.entries(r.metrics[type]))
+    totals[type][reason]=(totals[type][reason]??0)+count;
   perRecording.push({id:name,sourceSha256:raw.sha256,gtSha256:ground.sha256,
    sourceCoverage:r.sourceCoverage,metrics:r.metrics});
  }
@@ -175,6 +185,10 @@ export async function runIndependentPolyphonyBenchmark({fetcher=globalThis.fetch
  totals.closedPolyphonicNotePctOfGT=+(100*totals.eligibleNotes/totals.gtEvents).toFixed(2);
  totals.proposedAgreementPct=totals.eligibleNotes?
   +(100*totals.proposedMatched/totals.eligibleNotes).toFixed(2):null;
+ totals.agreementWithinAcceptedPct=totals.proposedAccepted?
+  +(100*totals.proposedMatched/totals.proposedAccepted).toFixed(2):null;
+ totals.pinnedCoveragePct=totals.eligibleNotes?
+  +(100*totals.pinnedAccepted/totals.eligibleNotes).toFixed(2):null;
  totals.proposedCoveragePct=totals.eligibleNotes?
   +(100*totals.proposedAccepted/totals.eligibleNotes).toFixed(2):null;
  const verifiedPolyphonicSource=totals.eligibleIslands>0&&totals.eligibleNotes>0;
