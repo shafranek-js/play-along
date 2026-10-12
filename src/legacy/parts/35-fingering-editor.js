@@ -17,6 +17,7 @@ function fingerEditorPaintSoon(){
 function fingerEditorNotes(){return fingerEditorAvailable()?fingerSelectionOrdered().map(x=>x.note):[]}
 function fingerEditorRender(){
  if(state.scoreView!=='editor'||state.page!=='practice')return;
+ fingerResearchSync();
  const width=Math.max(0,Math.floor(fingerEditorScroller.clientWidth));
  if(width<100)return;
  const notes=fingerEditorNotes();
