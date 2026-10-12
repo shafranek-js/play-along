@@ -47,6 +47,10 @@ This is a **performance-complexity profile**, not a calibrated teaching level. I
 
 ## MAE-02C — measured complexity coverage, without teaching-level claims (v0.10.61)
 
+**Verified official-source run (2026-10-12):** [GitHub Actions run 38291524798](https://github.com/shafranek-js/play-along/actions/runs/38291524798) completed successfully. SHA256 was checked, **all 1,276 MIDI files** were parsed and checked, yielding **7,040,164 NoteOn key attacks**. The new 24-performance candidate set contains **143,923 attacks**. Weighted feature coverage changed from **67 → 71 train**, **52 → 68 validation**, and **45 → 67 test**; the measured-diversity strategy won the comparison in all three splits. These are algorithm-defined bucket-coverage scores, not percentages or artistic quality grades. The detailed 24-record manifest with source SHA256 and splits is attached to that Actions run as `maestro-v3-measured-diversity` (14-day retention). Avoid conflating these counts with sounding note overlap or MusicXML source identity.
+
+
+
 Run from a trusted copy of the official CSV + MIDI-only ZIP (nothing is uploaded from your computer):
 
 ```bash
