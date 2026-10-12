@@ -51,6 +51,24 @@ export function externalFingeringCompare(source,candidate,{parse,engine='externa
  }catch(err){return fail(err?.message||'XML comparison failed')}
  if(sourceKey!==candidateKey)
   return fail('Score XML differs outside fingering annotations (notes, timing, voices or metadata)');
+ // A candidate may not smuggle ambiguous/alternate finger assignments, or
+ // fingering tags outside actual note/notations/technical ancestry.
+ // The regular importer intentionally ignores unsupported labels; a research
+ // comparator must instead report them explicitly as an invalid candidate.
+ try{
+  const dom=parse(candidate.notationXML);
+  const fingers=[...dom.getElementsByTagName('*')].filter(x=>x.localName==='fingering');
+  const perNote=new Map();
+  for(const finger of fingers){
+   const parent=finger.parentElement,notations=parent?.parentElement,note=notations?.parentElement;
+   if(parent?.localName!=='technical'||notations?.localName!=='notations'||
+    note?.localName!=='note'||!/^[1-5]$/.test(finger.textContent.trim())||
+    finger.getAttribute('alternate')==='yes'||finger.getAttribute('substitution')==='yes')
+    return fail('Ambiguous, unsupported or misplaced fingering in candidate');
+   perNote.set(note,(perNote.get(note)||0)+1);
+   if(perNote.get(note)>1)return fail('Multiple proposed fingers for one note');
+  }
+ }catch(e){return fail('Candidate finger annotation parsing failed')}
  const original=flatten(source),proposed=flatten(candidate);
  if(!original.length||original.length!==proposed.length||original.length>25000)
   return fail('Source/candidate playable note count differs');
