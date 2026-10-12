@@ -66,7 +66,7 @@ function histogram(rows,key){
  for(const r of rows){const val=r[key];h[val]=(h[val]??0)+1}
  return Object.fromEntries(Object.entries(h).sort(([a],[b])=>a.localeCompare(b)));
 }
-async function fetchBoundedTSV(pinned,folder,name,fetcher){
+export async function fetchBoundedTSV(pinned,folder,name,fetcher){
  const file=folder+'/'+name+'.tsv',
   url=SOURCE_URL+pinned+'/'+file;
  const response=await fetcher(url,{signal:AbortSignal.timeout(25_000),
@@ -120,12 +120,17 @@ export async function auditPianoVAMAlignment({fetcher=globalThis.fetch,
   summary.missingAnnotations+=m.missingSourceAnnotations;
   summary.extraGTEvents+=m.extraGTEvents;
  }
- const align=rows.every(x=>x.bijective);
- return {status:align?'EVENTS_MATCHED_HAND_CONVENTION_NOT_YET_VALIDATED':
-   'BLOCKED',reason:align?'NEEDS_HAND_FINGER_CODING_AND_CHORD_COVERAGE':
-   'GROUND_TRUTH_NOT_BIJECTIVE_WITH_TSV',
+ const aligned=rows.every(x=>x.extraGTEvents===0&&x.matched===x.groundTruth);
+ const coding=rows.every(x=>Object.keys(x.handValues).every(k=>['L','R'].includes(k))&&
+  Object.keys(x.fingerValues).every(k=>['1','2','3','4','5'].includes(k)));
+ return {status:aligned&&coding?'ANNOTATED_SUBSET_ALIGNED':'BLOCKED',
+  reason:!aligned?'GT_EVENTS_NOT_MATCHED_TO_MIDI':
+    !coding?'UNSUPPORTED_GT_HAND_OR_FINGER_CODES':
+    'NEEDS_COMPLETE_POLYPHONIC_ISLAND_COVERAGE',
   pinnedRevision:PINNED_REVISION,license:policy.license,
-  summary,recordings:rows,perNoteHandFingerReady:false,
+  summary,recordings:rows,
+  partialAnnotationCoveragePct:+(100*summary.matchedEvents/summary.sourceEvents).toFixed(2),
+  perNoteHandFingerReady:aligned&&coding,
   polyphonicCoverageVerified:false,
   productionAutoFingeringAllowed:false};
 }
