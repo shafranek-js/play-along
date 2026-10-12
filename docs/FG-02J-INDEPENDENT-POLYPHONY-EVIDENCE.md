@@ -45,7 +45,7 @@ First run: [PR #18 CI 38210752540](https://github.com/shafranek-js/play-along/ac
 
 Follow-up `scripts/fingering-polyphony-alignment-probe.mjs` now downloads only these 11 bounded small text GT files and their corresponding MIDI-derived TSV tables at the **same exact commit**. It verifies all five event fields with six-decimal exact matching in a multiset, detects missing or duplicate events, stores **SHA-256 digests** and produces aggregate hand/finger value distributions. No raw notes or personal performance data are written into the report.
 
-Until the value coding, hand-specific simultaneous note coverage, source-event bijection and independent human annotation validity are checked, `perNoteHandFingerReady` and `polyphonicCoverageVerified` remain false. This separation ensures a valid file *format* cannot be mistaken for validated per-note fingering data.
+Now that GT value coding and the exact 1,800-event subset alignment have been checked, research scoring further enforces fully annotated overlap components. Until professional hand/finger pedagogy is independently reviewed, `perNoteHandFingerReady` and `polyphonicCoverageVerified` remain false. This separation ensures a valid file *format* cannot be mistaken for validated per-note fingering data.
 
 ## Verified partial annotation and independent closed-island benchmark
 
@@ -76,13 +76,39 @@ This is independent of prior Piano Protege *source authors and recordings*, but 
 
 Run `npm run benchmark:fingering:independent-polyphony` for the source-complete count and aggregate comparisons, or `npm test` for offline tests of incomplete chords, held-key occupancy, cross-hand accompaniment and source-finger integrity.
 
+## First real independent-polyphony benchmark outcome (12 October 2026)
+
+[PR #18 real-source CI](https://github.com/shafranek-js/play-along/actions/runs/38211496299) processed all **11** source recordings at fixed commit `1f039ab9d6128626bff708faad6472d220b50eaa` without copying their original notes or finger choices to the repository.
+
+| Metric | First measured value |
+|---|---:|
+| Independent source recordings | 11 |
+| Original MIDI events / GT-marked notes | 32,525 / 1,800 |
+| Finger GT events exactly aligned to source | 1,800/1,800 |
+| Complete same-hand polyphonic islands | **242** |
+| Notes in those islands (strict eligible denominator) | **1,467** |
+| FG-02I proposals accepted | 1,210 / 1,467 = **82.48%** |
+| FG-02I fingers exactly matching source | 644 / 1,467 = **43.90%** |
+| Exact match among accepted proposals only | 644 / 1,210 = **53.22%** |
+| Islands with no unannotated solution | 22 / 242 |
+| Fully source-pinned notes accepted | 543 / 1,467 = **37.01%** |
+| Islands rejected with every GT finger fixed | 104 / 242 |
+| Silent source finger overrides | **0** |
+| Independently modeled output conflicts in accepted results | 0 |
+
+The model was **not tuned on this external source prior to this evaluation**. Unlike FG-02G/H/I this is a new research corpus, but it is still not independent professional-piano-teacher *adjudication*. In particular, the 242 complete islands represent just the overlap-connected segments that have a finger annotation for **every concurrent original MIDI event**. They do not represent the full length of the 11 recorded pieces.
+
+**Interpretation:** the new external evaluation confirms meaningful missing support for real chord fingering and low compatibility with the source's original fingers. The 53.22% accepted-only match number must **never** be quoted without its 82.48% proposal coverage and the 5.53% overall source annotation coverage.
+
+The GT source is under **CC BY-NC-SA 4.0**. All original materials remain with their publisher; the CI result is aggregate noncommercial research evidence only. The release gate remains **NO-GO** for automatic learner-facing fingers.
+
 ## Publication / quality decisions
 
 - A published file tree is **not** evidence of successfully aligned ground-truth fingers.
 - Source metadata alone does **not** prove that held notes and chords are correctly attributed to RH/LH or that the piano fingerings are pedagogically ideal.
 - Do not compute chord accuracy using GT labels whose MIDI event identity is ambiguous.
 - All previous FG-02E locked scale data and FG-02G/H source evidence remain frozen.
-- The current source evaluation is a discovery stage, **not** an independently validated polyphonic model benchmark.
+- Source discovery is complete and is now supplemented by a **real, source-complete, independently sourced polyphonic benchmark**. It is still NOT independently adjudicated by a piano-teacher panel.
 - Source discovery status and missing properties must remain documented in README and CI.
 
 **Release gate: NO-GO on production auto-fingering and training use until data eligibility, expert adjudication, full coverage, player UAT, and author-vs-suggested provenance have all passed.**
