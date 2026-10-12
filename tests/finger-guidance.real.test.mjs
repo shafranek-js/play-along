@@ -23,6 +23,11 @@ try{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('http://127.0.0.1:'+server.address().port,{waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>window.__prototypeTest&&window.__fingerGuideTest);
+ assert.match(await page.title(),/v0\.10\.45/, 'Browser tab should show the deployed release');
+ assert.equal(await page.locator('#topbar .brand span').innerText(),'Standalone · v0.10.45',
+  'User-visible release header must not remain stuck on v0.10.41');
+ assert.equal(await page.evaluate(()=>window.__playAlongVersion),'0.10.45',
+  'Runtime bundle, published HTML and package version must match');
  const demoRows=await page.evaluate(()=>[...document.querySelectorAll('#songList .libv8-main')].map(r=>r.textContent));
  assert.ok(demoRows.some(t=>t.includes('две руки · C–F–G–C')),
   'Two-hand demo must be accessible from the song list: '+JSON.stringify(demoRows));
