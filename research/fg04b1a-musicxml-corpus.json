@@ -1,0 +1,141 @@
+{
+  "schema": "fg04b1a-musicxml-technical-corpus-v1",
+  "source": {
+    "repository": "w3c-cg/musicxmlTestSuite",
+    "revision": "77c19f7e819154c70ca1a1992e80dcda8ff82fea",
+    "license": "MIT",
+    "attribution": "Reinhold Kainhofer / GNU LilyPond and Michael Scott Asato Cuthbert; see upstream LICENSE and README",
+    "licenseUrl": "https://github.com/w3c-cg/musicxmlTestSuite/blob/77c19f7e819154c70ca1a1992e80dcda8ff82fea/LICENSE"
+  },
+  "scope": "technical MusicXML edge cases only; not 16 independent real piano performances or fingered scores",
+  "cases": [
+    {
+      "id": "schubert-chord",
+      "category": "chords",
+      "path": "xmlFiles/21d-Chords-SchubertStabatMater.musicxml",
+      "blobSha": "637da5663dd0ee985e8cfa352a588714523f81d5",
+      "bytes": 3891,
+      "kind": "synthetic-notation-test"
+    },
+    {
+      "id": "pickup-chord",
+      "category": "pickup",
+      "path": "xmlFiles/21e-Chords-PickupMeasures.musicxml",
+      "blobSha": "3d9dd4f51c6369792c2bd30394c700e6f8fb802e",
+      "bytes": 2247,
+      "kind": "synthetic-notation-test"
+    },
+    {
+      "id": "interleaved-voices",
+      "category": "polyphony",
+      "path": "xmlFiles/21i-Chord-DifferentVoices.musicxml",
+      "blobSha": "ff1d07ea71568c31bf372bf33254066d6821d068",
+      "bytes": 1893,
+      "kind": "synthetic-notation-test"
+    },
+    {
+      "id": "single-arpeggio",
+      "category": "arpeggios",
+      "path": "xmlFiles/32d-Arpeggio.musicxml",
+      "blobSha": "0d0d0024d44098999fdc6d03bc5f16782037ca88",
+      "bytes": 7051,
+      "kind": "synthetic-notation-test"
+    },
+    {
+      "id": "crossed-arpeggios",
+      "category": "arpeggios",
+      "path": "xmlFiles/32e-Arpeggios-Cross.musicxml",
+      "blobSha": "21fbec5fd82517eecd72066c0fa52519e69c374c",
+      "bytes": 11891,
+      "kind": "synthetic-notation-test"
+    },
+    {
+      "id": "tie-notation",
+      "category": "ties",
+      "path": "xmlFiles/33b-Spanners-Tie.musicxml",
+      "blobSha": "eb792f2c81c9b94edc87b1dfd723f92485c8a254",
+      "bytes": 1386,
+      "kind": "synthetic-notation-test"
+    },
+    {
+      "id": "glissando",
+      "category": "glissando",
+      "path": "xmlFiles/33h-Spanners-Glissando.musicxml",
+      "blobSha": "6f06912994c7cd0f5c3c27385a0c90f63b366231",
+      "bytes": 8518,
+      "kind": "synthetic-notation-test"
+    },
+    {
+      "id": "multi-voice",
+      "category": "polyphony",
+      "path": "xmlFiles/42a-MultiVoice-TwoVoicesOnStaff-Lyrics.musicxml",
+      "blobSha": "2fe52bcb7e048728d17b4ecd93ca5b492ebe8857",
+      "bytes": 7305,
+      "kind": "synthetic-notation-test"
+    },
+    {
+      "id": "voice-clef-shift",
+      "category": "polyphony",
+      "path": "xmlFiles/42b-MultiVoice-MidMeasureClefChange.musicxml",
+      "blobSha": "f24eb2c144f86147553c2ff64447a7579f62c607",
+      "bytes": 11128,
+      "kind": "synthetic-notation-test"
+    },
+    {
+      "id": "grand-staff",
+      "category": "multi-staff",
+      "path": "xmlFiles/43a-PianoStaff.musicxml",
+      "blobSha": "e9455ac7fb096c5fb13ddd03aeff3166ff61e327",
+      "bytes": 1596,
+      "kind": "synthetic-notation-test"
+    },
+    {
+      "id": "staff-transfer",
+      "category": "cross-staff",
+      "path": "xmlFiles/43d-MultiStaff-StaffChange.musicxml",
+      "blobSha": "63d4835a8cd26ee1b2679a288df277f2adf6e4b0",
+      "bytes": 8420,
+      "kind": "synthetic-notation-test"
+    },
+    {
+      "id": "multi-staff-chords",
+      "category": "multi-staff",
+      "path": "xmlFiles/43h-MultiStaff-Chords.musicxml",
+      "blobSha": "4be8defbbb8d7c2260b517da22e92db89983c418",
+      "bytes": 19743,
+      "kind": "synthetic-notation-test"
+    },
+    {
+      "id": "repeat",
+      "category": "repeats",
+      "path": "xmlFiles/45a-SimpleRepeat.musicxml",
+      "blobSha": "464477f007376585eb3d112f2c088c5950ddc850",
+      "bytes": 1711,
+      "kind": "synthetic-notation-test"
+    },
+    {
+      "id": "volta-alternative",
+      "category": "repeats",
+      "path": "xmlFiles/45b-RepeatWithAlternatives.musicxml",
+      "blobSha": "fcae0ff50d9a2feebb2a5c8437c12fddd8e63af9",
+      "bytes": 2784,
+      "kind": "synthetic-notation-test"
+    },
+    {
+      "id": "nested-tuplets",
+      "category": "tuplets",
+      "path": "xmlFiles/23d-Tuplets-Nested.musicxml",
+      "blobSha": "8889f3c3653f8f58f09e5c788e226b5550f0f7b4",
+      "bytes": 14936,
+      "kind": "synthetic-notation-test"
+    },
+    {
+      "id": "grace-notes",
+      "category": "grace",
+      "path": "xmlFiles/24a-GraceNotes.musicxml",
+      "blobSha": "36437732f41aeaf88b7854cf3fad61ad9c0efeec",
+      "bytes": 8143,
+      "kind": "synthetic-notation-test"
+    }
+  ]
+}
