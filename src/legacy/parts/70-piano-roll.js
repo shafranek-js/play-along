@@ -629,6 +629,43 @@ function fingerOverrideRenderEditor(n){
   !fingerGuideWorkKey())return;
  const original=current.tracks.flatMap(t=>t.notes).find(x=>x.noteId===n.noteId);
  if(!original||original.pitch!==n.pitch)return;
+ // Group inspector supports independent hand-only or finger-only edits.
+ // Never assign finger 1 by default to an unannotated score note.
+ if(fingerSelectedIds.size>1){
+  const ids=[...fingerSelectedIds];
+  const editor=document.createElement('section');editor.className='fingerCorrection fingerCorrectionGroup';
+  const title=document.createElement('strong');title.textContent='Аппликатура: выбрано '+ids.length+' нот';
+  const help=document.createElement('p');help.className='small';
+  help.textContent='Ctrl+A — все · Ctrl+клик — добавить/убрать · Shift+клик — диапазон · протянуть рамку — выбрать область. Массовое изменение руки сохраняет каждый существующий палец.';
+  const controls=document.createElement('div');controls.className='fingerCorrectionControls';
+  const finger=document.createElement('select');finger.setAttribute('aria-label','Массовое назначение пальца');
+  const defaultFinger=document.createElement('option');defaultFinger.value='keep';defaultFinger.textContent='Палец: не менять';finger.append(defaultFinger);
+  for(let i=1;i<=5;i++){const option=document.createElement('option');option.value=String(i);option.textContent='Палец '+i+' всем';finger.append(option)}
+  const hand=document.createElement('select');hand.setAttribute('aria-label','Массовое назначение руки');
+  for(const [value,label] of [['keep','Рука: не менять'],['RH','Правая рука всем'],['LH','Левая рука всем'],['null','Рука неизвестна']]){
+   const option=document.createElement('option');option.value=value;option.textContent=label;hand.append(option);
+  }
+  const save=document.createElement('button');save.className='btn tiny';save.textContent='Применить ко всем';
+  save.onclick=()=>{
+   if(finger.value==='keep'&&hand.value==='keep'){notify('Выбери палец или руку для изменения');return}
+   fingerOverrideCommitGroup(ids,{finger:finger.value==='keep'?undefined:Number(finger.value),
+    hand:hand.value==='keep'?undefined:hand.value==='null'?null:hand.value});
+  };
+  const reset=document.createElement('button');reset.className='btn tiny ghost';
+  reset.textContent='Вернуть автора для выбранных';
+  reset.disabled=!ids.some(id=>state.fingerOverrides?.[fingerGuideWorkKey()]?.[id]);
+  reset.onclick=()=>fingerOverrideCommitGroup(ids,{reset:true});
+  const history=fingerOverrideHistoryCurrent();
+  const undo=document.createElement('button');undo.className='btn tiny ghost';undo.textContent='Отменить правку';
+  undo.disabled=!history.past.length;undo.onclick=()=>fingerOverrideCommit(null,null,{action:'undo'});
+  const redo=document.createElement('button');redo.className='btn tiny ghost';redo.textContent='Повторить правку';
+  redo.disabled=!history.future.length;redo.onclick=()=>fingerOverrideCommit(null,null,{action:'redo'});
+  const status=document.createElement('p');status.className='small fingerCorrectionHistory';
+  status.textContent='История: '+history.past.length+' ↶ · '+history.future.length+' ↷ · массовая операция = 1 шаг';
+  controls.append(finger,hand,save,reset,undo,redo);
+  editor.append(title,help,controls,status);$('selection').append(editor);
+  return;
+ }
  const saved=state.fingerOverrides?.[fingerGuideWorkKey()]?.[n.noteId]||null;
  const editor=document.createElement('section');editor.className='fingerCorrection';
  const title=document.createElement('strong');title.textContent='Аппликатура этой ноты';
