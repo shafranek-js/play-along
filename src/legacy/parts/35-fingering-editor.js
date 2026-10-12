@@ -187,3 +187,95 @@ $('fingerEditorReset').onclick=()=>{
 $('fingerEditorUndo').onclick=()=>{fingerOverrideCommit(null,null,{action:'undo'});fingerEditorRender()};
 $('fingerEditorRedo').onclick=()=>{fingerOverrideCommit(null,null,{action:'redo'});fingerEditorRender()};
 window.addEventListener('resize',fingerEditorPaintSoon);
+
+/** FG-04A: local, read-only comparison against an external generator's XML.
+ * Never turn these suggestions into teacher hints or saved user overrides.
+ */
+let fingerResearchReport=null,fingerResearchWork=null,fingerResearchFileName='';
+function fingerResearchReset(){
+ fingerResearchReport=null;fingerResearchWork=null;fingerResearchFileName='';
+ $('fingerResearchFile').value='';
+ $('fingerResearchSummary').textContent='Нет загруженного предложения.';
+ $('fingerResearchDetails').replaceChildren();
+ $('fingerResearchExport').disabled=true;
+}
+function fingerResearchSync(){
+ if(fingerResearchWork!==null&&fingerResearchWork!==current)fingerResearchReset();
+ const sourceOK=!!current&&current.format==='MusicXML'&&state.adaptMode==='original';
+ $('fingerResearchCompare').disabled=!sourceOK;
+ $('fingerResearchFile').disabled=!sourceOK;
+}
+$('fingerResearchCompare').onclick=async()=>{
+ fingerResearchSync();
+ const input=$('fingerResearchFile'),file=input.files?.[0],engine=$('fingerResearchEngine').value;
+ if(!current||current.format!=='MusicXML'||state.adaptMode!=='original'){
+  $('fingerResearchSummary').textContent='Откройте исходный MusicXML в режиме «Оригинал».';
+  return;
+ }
+ if(!file||!/.(?:musicxml|xml|mxl)$/i.test(file.name)){
+  $('fingerResearchSummary').textContent='Выберите размеченный XML, MusicXML или MXL.';
+  return;
+ }
+ if(file.size>16*1024*1024){
+  $('fingerResearchSummary').textContent='Файл кандидата превышает 16 МБ.';
+  return;
+ }
+ const source=current,sourceKey=fingerOverrideWorkKey(source),button=$('fingerResearchCompare');
+ button.disabled=true;$('fingerResearchSummary').textContent='Проверка партитуры и аппликатуры…';
+ try{
+  const candidate=await songFromBuffer(file.name,await file.arrayBuffer());
+  if(source!==current||sourceKey!==fingerOverrideWorkKey(current)){
+   fingerResearchReset();
+   $('fingerResearchSummary').textContent='Произведение изменилось; повторите проверку.';
+   return;
+  }
+  const result=externalFingeringCompare(source,candidate,{
+   engine,parse:xml=>new DOMParser().parseFromString(xml,'application/xml')});
+  fingerResearchWork=source;fingerResearchFileName=file.name;
+  fingerResearchReport={
+   schema:'play-along-fingering-evaluation-v1',
+   inspectedAt:new Date().toISOString(),sourceTitle:source.title,
+   sourceFingerprint:sourceKey,candidateFilename:file.name,
+   scope:'research-only / unapproved external proposal / no import or playback change',
+   ...result
+  };
+  $('fingerResearchExport').disabled=false;
+  const sum=result.summary;
+  $('fingerResearchSummary').textContent=result.status==='rejected'?
+   'ОТКЛОНЕНО: '+result.reason:
+   result.status==='conflicts'?'НЕ ПРИНЯТО: генератор изменил авторские пальцы.':
+   'Сопоставление партитуры пройдено. Предложения НЕ применены.';
+  const details=$('fingerResearchDetails');details.replaceChildren();
+  if(sum){
+   const rows=[
+    ['Всего нот',sum.total],['Авторских пальцев',sum.author],
+    ['Авторские пальцы сохранены',sum.preserved],
+    ['Новых предложений',sum.generated],
+    ['Изменено авторских',sum.conflicts],
+    ['Удалено авторских',sum.removedAuthor],
+    ['Без цифр после расчёта',sum.missing],
+    ['Предложений без определённой руки',sum.handUnknown]
+   ];
+   for(const [label,value]of rows){
+    const span=document.createElement('span');
+    span.className='fingerResearchMetric';span.textContent=label+': '+value;
+    details.append(span);
+   }
+  }
+ }catch(err){
+  fingerResearchReport=null;fingerResearchWork=null;
+  $('fingerResearchExport').disabled=true;
+  $('fingerResearchDetails').replaceChildren();
+  $('fingerResearchSummary').textContent='Не удалось проверить кандидат: '+(err?.message||err);
+ }finally{fingerResearchSync()}
+};
+$('fingerResearchExport').onclick=()=>{
+ fingerResearchSync();
+ if(!fingerResearchReport||fingerResearchWork!==current)return;
+ const content=JSON.stringify(fingerResearchReport,null,2);
+ const blob=new Blob([content],{type:'application/json;charset=utf-8'});
+ const url=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=url;a.download='play-along-fingering-evaluation.json';
+ document.body.append(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),1000);
+};
