@@ -47,6 +47,35 @@ Follow-up `scripts/fingering-polyphony-alignment-probe.mjs` now downloads only t
 
 Until the value coding, hand-specific simultaneous note coverage, source-event bijection and independent human annotation validity are checked, `perNoteHandFingerReady` and `polyphonicCoverageVerified` remain false. This separation ensures a valid file *format* cannot be mistaken for validated per-note fingering data.
 
+## Verified partial annotation and independent closed-island benchmark
+
+The [first full alignment probe (CI 38211055099)](https://github.com/shafranek-js/play-along/actions/runs/38211055099) confirmed:
+
+| Evidence | Count |
+|---|---:|
+| Recordings with external finger GT | **11** |
+| Original MIDI-derived TSV note events | **32,525** |
+| Source GT finger-annotated events | **1,800** |
+| GT events exactly matching MIDI source | **1,800 / 1,800** |
+| GT event records not in MIDI source | **0** |
+| Original performance events without finger GT | **30,725** |
+| Original source note coverage | **5.53%** |
+
+Fingering GT codes are `L/R` and `1..5`. The annotation stream is a true **partially annotated subset** of MIDI, not a one-to-one annotation of the entire recording. Requiring a full 32,525-note GT would be incorrect; treating all unlabelled notes as absent from the score would be worse.
+
+`scripts/fingering-independent-polyphony-benchmark.mjs` implements a strict, source-complete population:
+
+1. Bind every annotated note to a **unique** original MIDI-derived TSV event using the five event columns and six-decimal equality.
+2. Partition **all original source notes** into connected overlapping key-hold components using `onset` and `key_offset`, never `frame_offset` (pedal sustain is not an occupied finger).
+3. If even one note in a component lacks a ground-truth hand/finger, exclude **the whole component** and count its annotated and nonannotated notes separately.
+4. Select only complete components containing **two distinct simultaneously held keys in the same explicitly labelled hand**. An ordinary LH/RH duet does not by itself qualify as same-hand polyphony.
+5. Run the unchanged FG-02I score router with **no source fingers injected** and separately with all author fingers fixed. Report exact source-note agreement, coverage, rejection, source conflicts, and full-island exact matching. No score or original source finger lists are written to the GitHub artifact.
+6. Even if FG-02I matches the source, keep `automaticLearnerFingering:false` and `commercialDataUseApproved:false`.
+
+This is independent of prior Piano Protege *source authors and recordings*, but the available GT may not represent a consensus of professional pianists and only a small fraction of each full performance is annotated. Accordingly, a high percentage on the narrow eligible population must never be presented as overall musical accuracy.
+
+Run `npm run benchmark:fingering:independent-polyphony` for the source-complete count and aggregate comparisons, or `npm test` for offline tests of incomplete chords, held-key occupancy, cross-hand accompaniment and source-finger integrity.
+
 ## Publication / quality decisions
 
 - A published file tree is **not** evidence of successfully aligned ground-truth fingers.
