@@ -19,7 +19,9 @@ function pianoKeyGeometry(min,max,w){
 let pianoGeom=null,lastCanvasSize={w:0,h:0},keyboardTop=0,keyboardBottom=0,keyboardBlackH=0;
 
 // FG-03C2A: one score key per unmodified imported XML payload.
-let fingerOverrideMemoSong=null,fingerOverrideMemoKey=null,fingerOverrideUndo=null;
+let fingerOverrideMemoSong=null,fingerOverrideMemoKey=null;
+// History is ephemeral, strictly per SOURCE SCORE, never included in backup.
+const fingerOverrideHistories=new Map();
 function fingerGuideWorkKey(){
  if(!current)return null;
  if(current!==fingerOverrideMemoSong){
@@ -28,34 +30,59 @@ function fingerGuideWorkKey(){
  }
  return fingerOverrideMemoKey;
 }
+function fingerOverrideHistoryCurrent(){
+ return fingerOverrideHistories.get(fingerGuideWorkKey())||fingerHistoryEmpty();
+}
 function fingerOverrideForNote(note){
  const key=fingerGuideWorkKey();
  return key&&note?.noteId?fingerOverrideEffective(note,state.fingerOverrides?.[key]?.[note.noteId]):null;
 }
-function fingerOverrideCommit(note,choice,{undo=false}={}){
- if(!current||current.format!=='MusicXML'||state.adaptMode!=='original'||!note?.noteId)
+function fingerOverrideCommit(note,choice,{action='edit'}={}){
+ if(!current||current.format!=='MusicXML'||state.adaptMode!=='original')return false;
+ const key=fingerGuideWorkKey();
+ if(!key)return false;
+ const history=fingerOverrideHistoryCurrent();
+ let transition;
+ if(action==='edit'){
+  if(!note?.noteId)return false;
+  const old=state.fingerOverrides?.[key]?.[note.noteId]??null;
+  transition=fingerHistoryTransition(history,'edit',{id:note.noteId,
+   before:old,after:choice===null?null:{finger:choice?.finger,hand:choice?.hand}});
+ }else transition=fingerHistoryTransition(history,action);
+ if(!transition)return false;
+ const {step,expected,value}=transition;
+ const source=current.tracks.flatMap(t=>t.notes).find(n=>n.noteId===step.id);
+ if(!source||(action==='edit'&&source.pitch!==note.pitch))return false;
+ const present=state.fingerOverrides?.[key]?.[step.id]??null;
+ if(!fingerHistorySame(present,expected)){
+  // e.g. backup restore or another tab changed the override map; never
+  // replay a stale history event over unknown user data.
+  fingerOverrideHistories.delete(key);
+  notify('История правок изменилась. Перезапусти действие после проверки ноты.');
+  if(selectedNote?.noteId)selectNote(selectedNote);
   return false;
- const key=fingerGuideWorkKey(),source=current.tracks.flatMap(t=>t.notes)
-  .find(n=>n.noteId===note.noteId);
- if(!key||!source||source.pitch!==note.pitch)return false;
- const previous=state.fingerOverrides?.[key]?.[note.noteId]??null;
+ }
  const work={...(state.fingerOverrides?.[key]||{})};
- if(choice===null)delete work[note.noteId];
- else work[note.noteId]={finger:choice.finger,hand:choice.hand};
- const map={...state.fingerOverrides};
- if(Object.keys(work).length)map[key]=work;else delete map[key];
+ if(value===null)delete work[step.id];
+ else work[step.id]={finger:value.finger,hand:value.hand};
+ const next={...state.fingerOverrides};
+ if(Object.keys(work).length)next[key]=work;
+ else delete next[key];
  let validated;
  try{
-  validated=fingerOverrideValidate(map,{strict:true});
-  // Persist the prospective snapshot before changing in-memory state. A
-  // storage/quota failure must not create unsaved, misleading hints.
+  validated=fingerOverrideValidate(next,{strict:true});
+  // Atomic order: write the validated candidate before changing the
+  // in-memory override map or undo/redo stacks. Storage failures preserve all.
   localStorage.setItem(STORE,JSON.stringify({...state,fingerOverrides:validated}));
  }catch(err){notify('Не удалось сохранить аппликатуру: '+err.message);return false}
  state.fingerOverrides=validated;
- if(!undo)fingerOverrideUndo={key,id:note.noteId,before:previous?{...previous}:null};
- else fingerOverrideUndo=null;
- renderCanvas();if(selectedNote?.noteId===note.noteId)selectNote(selectedNote);
- if(current?.id)void libraryCoverageStore(current,current.id).catch(e=>console.warn('Coverage after correction failed',e));
+ fingerOverrideHistories.delete(key);
+ fingerOverrideHistories.set(key,transition.history);
+ while(fingerOverrideHistories.size>12)
+  fingerOverrideHistories.delete(fingerOverrideHistories.keys().next().value);
+ renderCanvas();if(selectedNote?.noteId)selectNote(selectedNote);
+ if(current?.id)void libraryCoverageStore(current,current.id)
+  .catch(e=>console.warn('Coverage after correction failed',e));
  return true;
 }
 // ===== FG-00: opt-in visual guidance over the EXISTING Piano Roll keyboard =====
@@ -519,11 +546,20 @@ function fingerOverrideRenderEditor(n){
  save.onclick=()=>fingerOverrideCommit(original,{finger:Number(finger.value),hand:hand.value||null});
  const reset=document.createElement('button');reset.className='btn tiny ghost';reset.textContent='Вернуть автора';
  reset.disabled=!saved;reset.onclick=()=>fingerOverrideCommit(original,null);
- const undo=document.createElement('button');undo.className='btn tiny ghost';undo.textContent='Отменить правку';
- const history=fingerOverrideUndo;
- undo.disabled=!history||history.key!==fingerGuideWorkKey()||history.id!==n.noteId;
- undo.onclick=()=>{if(history)fingerOverrideCommit(original,history.before,{undo:true})};
- controls.append(finger,hand,save,reset,undo);editor.append(title,source,controls);
+ const history=fingerOverrideHistoryCurrent();
+ const undo=document.createElement('button');undo.className='btn tiny ghost';
+ undo.textContent='Отменить правку';undo.disabled=!history.past.length;
+ undo.title='Отменить последнее исправление в этом произведении (до '+FINGER_HISTORY_LIMIT+' шагов)';
+ undo.onclick=()=>fingerOverrideCommit(null,null,{action:'undo'});
+ const redo=document.createElement('button');redo.className='btn tiny ghost';
+ redo.textContent='Повторить правку';redo.disabled=!history.future.length;
+ redo.title='Повторить последнее отменённое исправление в этом произведении';
+ redo.onclick=()=>fingerOverrideCommit(null,null,{action:'redo'});
+ const status=document.createElement('p');status.className='small fingerCorrectionHistory';
+ status.setAttribute('aria-live','polite');
+ status.textContent='История этого произведения: '+history.past.length+' ↶ · '+history.future.length+' ↷';
+ controls.append(finger,hand,save,reset,undo,redo);
+ editor.append(title,source,controls,status);
  $('selection').append(editor);
 }
 function contextMenu(e){e.preventDefault();let n=noteHit(e);const opts=n?[['Свойства и оценка ноты',()=>selectNote(n)],['Открыть разбор исполнения',()=>openReview()],['Начать отсюда',()=>seek(n.start)],['Начало повтора здесь',()=>{loop.start=n.start;ensureLoop();}],['Конец повтора здесь',()=>{loop.end=n.start+n.duration;ensureLoop();}],['Добавить закладку',()=>bookmark(n.start)]]:[['Начать отсюда',()=>seek(pos)],['Начало Loop',()=>{loop.start=pos;ensureLoop()}],['Конец Loop',()=>{loop.end=pos;ensureLoop()}],['Сбросить Loop',()=>{loop={start:null,end:null,enabled:false};updateUI()}]];showMenu(e.clientX,e.clientY,opts)}

@@ -259,6 +259,7 @@ window.__fingerGuideTest={
  selectAuthoredNote(id){const note=current?.tracks.flatMap(t=>t.notes).find(n=>n.noteId===id);
   if(note)selectNote(note);return !!note},
  get selectedCorrection(){return selectedNote?fingerOverrideForNote(selectedNote):null},
+ get history(){const h=fingerOverrideHistoryCurrent();return {past:h.past.length,future:h.future.length,limit:FINGER_HISTORY_LIMIT}},
  get authoredSelection(){return selectedNote?{noteId:selectedNote.noteId,pitch:selectedNote.pitch,
   finger:selectedNote.finger??null,hand:selectedNote.hand??null}:null},
  get steps(){return fingerGuidanceSteps().map(g=>({start:g.start,totalNotes:g.totalNotes,complete:g.complete,notes:g.notes.map(n=>({...n}))}))},

@@ -1,6 +1,6 @@
 # Play Along — architecture and development plan
 
-**Current version:** v0.10.50 (Quick Actions library accordion review branch; only merged changes deploy to production). The production GitHub Pages site is rebuilt and tested automatically from `main`.
+**Current version:** v0.10.51 (FG-03C2B1 review branch; only merged changes deploy to production). The production GitHub Pages site is rebuilt and tested automatically from `main`.
 
 ## Current implementation
 
@@ -68,3 +68,6 @@ The five library panels are moved as live DOM nodes (not recreated) under the si
 ## Library v0.10.50 — sixth panel without settings regression
 
 The previous five-panel `librarySections` order is accepted as a valid legacy payload even in strict backup restore, and upgraded by appending `quick`, preserving existing user order and collapsed flags. New records require exactly six distinct panel IDs. Quick Actions shares existing live-DOM organizer and does not recreate its calibration/reset handlers. [Library details](docs/LIBRARY-COVERAGE-AND-LAYOUT.md).
+## FG-03C2B1 multi-step source-correction history (v0.10.51)
+
+`src/core/finger-override-history.mjs` implements pure 40-deep Undo/Redo state transitions. In the runtime, stacks are partitioned by canonical MusicXML source fingerprint and capped at 12 active workbooks. The only persistent data is the validated `fingerOverrides` map. An edit/undo/redo first validates against the current score ID and the expected stored per-note value, then writes prospective preferences to localStorage before committing the in-memory history and refreshing guidance, allowing storage/quota errors to leave state unchanged. After reload/reimport, user corrections persist but the ephemeral undo/redo sequence is empty. No authored XML or source notes are changed. [Engineering contract](docs/FG-03C2B1-UNDO-REDO.md).
