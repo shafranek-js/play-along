@@ -26,7 +26,7 @@ test('CSS and HTML are separate, all expected DOM anchors exist',()=>{
  assert.match(html,/href="\.\/assets\/app\.css"/);
  assert.match(html,/defer src="\.\/assets\/app\.js"/);
  assert.doesNotMatch(html,/<style>|<script>/);
- for(const id of ['playBtn','viewRoll','viewSheet','sheetCanvas','rollWrap','librarySourceSelect','asapSync','museTrainerSync','mutopiaSync','connectMidi','songList']){
+ for(const id of ['playBtn','viewRoll','viewSheet','sheetCanvas','rollWrap','librarySourceSelect','asapSync','museTrainerSync','mutopiaSync','connectMidi','songList','fingerGuideLookahead']){
   assert.ok(html.includes(`id="${id}"`),`Missing UI ID ${id}`);
  }
 });
