@@ -1,0 +1,303 @@
+{
+  "schema": "fg04b1b-asap-real-score-pairs-v1",
+  "source": {
+    "repository": "fosfrancesco/asap-dataset",
+    "revision": "afc815c75c42e83a79c03feb6da8a35e77d4c6b8",
+    "license": "CC-BY-NC-SA-4.0",
+    "usage": "noncommercial-research-only",
+    "attribution": "Foscarin, McLeod, Rigaux, Jacquemard & Sakai (ASAP Dataset; ISMIR 2020)",
+    "paper": "https://github.com/fosfrancesco/asap-dataset",
+    "licenseUrl": "https://github.com/fosfrancesco/asap-dataset/blob/afc815c75c42e83a79c03feb6da8a35e77d4c6b8/LICENSE.md"
+  },
+  "scope": "16 distinct real piano score excerpts/works; MusicXML plus quantized MIDI score pairs; no independent source finger ground truth asserted",
+  "cases": [
+    {
+      "id": "bach-prelude-846",
+      "composer": "Bach",
+      "title": "WTC I: Prelude in C major BWV 846",
+      "focus": "arpeggiated-patterns",
+      "kind": "real-piano-score",
+      "musicxml": {
+        "path": "Bach/Prelude/bwv_846/xml_score.musicxml",
+        "blobSha": "dcd52112aa795c8be5dbd0c6fbedcd2135c79ed6",
+        "bytes": 267546
+      },
+      "midiScore": {
+        "path": "Bach/Prelude/bwv_846/midi_score.mid",
+        "blobSha": "142549168ef17c6721aa274b988c3086c8c2e2bb",
+        "bytes": 3525
+      },
+      "fingeringGroundTruth": "unknown"
+    },
+    {
+      "id": "bach-fugue-846",
+      "composer": "Bach",
+      "title": "WTC I: Fugue in C major BWV 846",
+      "focus": "polyphony",
+      "kind": "real-piano-score",
+      "musicxml": {
+        "path": "Bach/Fugue/bwv_846/xml_score.musicxml",
+        "blobSha": "753274d9462213fdb0dabe2dddff2a26462314cd",
+        "bytes": 317164
+      },
+      "midiScore": {
+        "path": "Bach/Fugue/bwv_846/midi_score.mid",
+        "blobSha": "ba1cca8b07ab5cb54ed4e85c8fc50e58e0759e3e",
+        "bytes": 4869
+      },
+      "fingeringGroundTruth": "unknown"
+    },
+    {
+      "id": "beethoven-sonata-17-1",
+      "composer": "Beethoven",
+      "title": "Piano Sonata No. 17, movement I",
+      "focus": "repeats-and-polyphony",
+      "kind": "real-piano-score",
+      "musicxml": {
+        "path": "Beethoven/Piano_Sonatas/17-1/xml_score.musicxml",
+        "blobSha": "d5312306ceb69ca164ade1684a24f33d58a04577",
+        "bytes": 1426432
+      },
+      "midiScore": {
+        "path": "Beethoven/Piano_Sonatas/17-1/midi_score.mid",
+        "blobSha": "7f2138232447c24b9675242a8f22b8b282aabc21",
+        "bytes": 27854
+      },
+      "fingeringGroundTruth": "unknown"
+    },
+    {
+      "id": "beethoven-sonata-11-2",
+      "composer": "Beethoven",
+      "title": "Piano Sonata No. 11, movement II",
+      "focus": "sonata-phrasing",
+      "kind": "real-piano-score",
+      "musicxml": {
+        "path": "Beethoven/Piano_Sonatas/11-2/xml_score.musicxml",
+        "blobSha": "c2237c318ea9b31f8e691e57bfb6987d70936103",
+        "bytes": 1012013
+      },
+      "midiScore": {
+        "path": "Beethoven/Piano_Sonatas/11-2/midi_score.mid",
+        "blobSha": "53caa7a89e7b66c895fadf48a71c72fef42a4a46",
+        "bytes": 14351
+      },
+      "fingeringGroundTruth": "unknown"
+    },
+    {
+      "id": "chopin-etude-10-1",
+      "composer": "Chopin",
+      "title": "Etude Op. 10 No. 1",
+      "focus": "wide-arpeggios",
+      "kind": "real-piano-score",
+      "musicxml": {
+        "path": "Chopin/Etudes_op_10/1/xml_score.musicxml",
+        "blobSha": "0e25eb52a59b9a8127f25eabe98e44217e6568ce",
+        "bytes": 578705
+      },
+      "midiScore": {
+        "path": "Chopin/Etudes_op_10/1/midi_score.mid",
+        "blobSha": "6e3189febceb8c52cfcf918faaad533450524d65",
+        "bytes": 8203
+      },
+      "fingeringGroundTruth": "unknown"
+    },
+    {
+      "id": "chopin-etude-10-3",
+      "composer": "Chopin",
+      "title": "Etude Op. 10 No. 3",
+      "focus": "melody-and-inner-voices",
+      "kind": "real-piano-score",
+      "musicxml": {
+        "path": "Chopin/Etudes_op_10/3/xml_score.musicxml",
+        "blobSha": "507fba9a1d13ce75e1e6951f4b5409dea17bfa46",
+        "bytes": 834343
+      },
+      "midiScore": {
+        "path": "Chopin/Etudes_op_10/3/midi_score.mid",
+        "blobSha": "81f8a3233ae9023a5da1bcda4f904764ade27a1e",
+        "bytes": 11920
+      },
+      "fingeringGroundTruth": "unknown"
+    },
+    {
+      "id": "chopin-etude-25-1",
+      "composer": "Chopin",
+      "title": "Etude Op. 25 No. 1",
+      "focus": "rolled-figuration",
+      "kind": "real-piano-score",
+      "musicxml": {
+        "path": "Chopin/Etudes_op_25/1/xml_score.musicxml",
+        "blobSha": "adc1813b3de48490757bedda38633e9fb08fd6d7",
+        "bytes": 1356791
+      },
+      "midiScore": {
+        "path": "Chopin/Etudes_op_25/1/midi_score.mid",
+        "blobSha": "fa42872c675c4d38850b6861a6e4ea1f4b4bc8f0",
+        "bytes": 13593
+      },
+      "fingeringGroundTruth": "unknown"
+    },
+    {
+      "id": "mozart-sonata-12-2",
+      "composer": "Mozart",
+      "title": "Piano Sonata No. 12, movement II",
+      "focus": "classical-phrasing",
+      "kind": "real-piano-score",
+      "musicxml": {
+        "path": "Mozart/Piano_Sonatas/12-2/xml_score.musicxml",
+        "blobSha": "3245f926b6a8b8699b4f715b19280f34665aad38",
+        "bytes": 594561
+      },
+      "midiScore": {
+        "path": "Mozart/Piano_Sonatas/12-2/midi_score.mid",
+        "blobSha": "5b4a98748425e174068430a99536fa761e2a6192",
+        "bytes": 7909
+      },
+      "fingeringGroundTruth": "unknown"
+    },
+    {
+      "id": "haydn-sonata-39-1",
+      "composer": "Haydn",
+      "title": "Keyboard Sonata No. 39, movement I",
+      "focus": "articulation",
+      "kind": "real-piano-score",
+      "musicxml": {
+        "path": "Haydn/Keyboard_Sonatas/39-1/xml_score.musicxml",
+        "blobSha": "8613036984e46f7d6bc7d001ed9678531ccf31dc",
+        "bytes": 566353
+      },
+      "midiScore": {
+        "path": "Haydn/Keyboard_Sonatas/39-1/midi_score.mid",
+        "blobSha": "89794f2928e1d22f22b03f4a25a2bf19f7f7ce06",
+        "bytes": 12942
+      },
+      "fingeringGroundTruth": "unknown"
+    },
+    {
+      "id": "schumann-arabeske",
+      "composer": "Schumann",
+      "title": "Arabeske",
+      "focus": "cross-voice-figuration",
+      "kind": "real-piano-score",
+      "musicxml": {
+        "path": "Schumann/Arabeske/xml_score.musicxml",
+        "blobSha": "7f999a22267518c7f91b0340e333422183dc2cfa",
+        "bytes": 1277929
+      },
+      "midiScore": {
+        "path": "Schumann/Arabeske/midi_score.mid",
+        "blobSha": "32f43a2fca63cae7a2643e54d66c9af34355cb1d",
+        "bytes": 18878
+      },
+      "fingeringGroundTruth": "unknown"
+    },
+    {
+      "id": "schubert-impromptu-90-3",
+      "composer": "Schubert",
+      "title": "Impromptu Op. 90 No. 3",
+      "focus": "melody-with-accompaniment",
+      "kind": "real-piano-score",
+      "musicxml": {
+        "path": "Schubert/Impromptu_op.90_D.899/3/xml_score.musicxml",
+        "blobSha": "c2df081c24351dc027c0bd873002465f2b033de0",
+        "bytes": 1511629
+      },
+      "midiScore": {
+        "path": "Schubert/Impromptu_op.90_D.899/3/midi_score.mid",
+        "blobSha": "56990eb91074f2187d260196bf853ec3b8aef36b",
+        "bytes": 20161
+      },
+      "fingeringGroundTruth": "unknown"
+    },
+    {
+      "id": "liszt-concert-etude-145-1",
+      "composer": "Liszt",
+      "title": "Concert Etude S.145 No. 1",
+      "focus": "large-leaps",
+      "kind": "real-piano-score",
+      "musicxml": {
+        "path": "Liszt/Concert_Etude_S145/1/xml_score.musicxml",
+        "blobSha": "bdb368c436b2fdca317bb5fb97dddd16dc3a8e1e",
+        "bytes": 1836066
+      },
+      "midiScore": {
+        "path": "Liszt/Concert_Etude_S145/1/midi_score.mid",
+        "blobSha": "2bcff9447ba5b819a27560d4850327fda8ee67b5",
+        "bytes": 22651
+      },
+      "fingeringGroundTruth": "unknown"
+    },
+    {
+      "id": "debussy-pour-piano-1",
+      "composer": "Debussy",
+      "title": "Pour le piano, movement I",
+      "focus": "impressionist-figuration",
+      "kind": "real-piano-score",
+      "musicxml": {
+        "path": "Debussy/Pour_le_Piano/1/xml_score.musicxml",
+        "blobSha": "4e9e29bfbd4d27ce26f8d52533f95032d3d44eb8",
+        "bytes": 1504239
+      },
+      "midiScore": {
+        "path": "Debussy/Pour_le_Piano/1/midi_score.mid",
+        "blobSha": "bd1a9160cc18fa9e243255165997a6d93caaf188",
+        "bytes": 20885
+      },
+      "fingeringGroundTruth": "unknown"
+    },
+    {
+      "id": "chopin-polonaise-53",
+      "composer": "Chopin",
+      "title": "Polonaise Op. 53",
+      "focus": "octaves-and-chords",
+      "kind": "real-piano-score",
+      "musicxml": {
+        "path": "Chopin/Polonaises/53/xml_score.musicxml",
+        "blobSha": "7b7959637445eec711ceb1eccb65eb87e135b574",
+        "bytes": 2702362
+      },
+      "midiScore": {
+        "path": "Chopin/Polonaises/53/midi_score.mid",
+        "blobSha": "b1b63633a6c591b303ab1b6e49fd12b4c7d75207",
+        "bytes": 40298
+      },
+      "fingeringGroundTruth": "unknown"
+    },
+    {
+      "id": "schumann-kreisleriana-1",
+      "composer": "Schumann",
+      "title": "Kreisleriana, movement I",
+      "focus": "fast-repeated-figures",
+      "kind": "real-piano-score",
+      "musicxml": {
+        "path": "Schumann/Kreisleriana/1/xml_score.musicxml",
+        "blobSha": "4dbdcd23508f71aa711eeac2df1e2b6c4671c3ae",
+        "bytes": 810998
+      },
+      "midiScore": {
+        "path": "Schumann/Kreisleriana/1/midi_score.mid",
+        "blobSha": "c49753174b10d9c390ffed96bb1b2dfd302d154a",
+        "bytes": 11604
+      },
+      "fingeringGroundTruth": "unknown"
+    },
+    {
+      "id": "schubert-moment-musical-3",
+      "composer": "Schubert",
+      "title": "Moment musical No. 3",
+      "focus": "chord-inversions",
+      "kind": "real-piano-score",
+      "musicxml": {
+        "path": "Schubert/Moment_musical_no_3/xml_score.musicxml",
+        "blobSha": "83566feb80786cfd2e1e9901d60c63abc84a0c89",
+        "bytes": 434339
+      },
+      "midiScore": {
+        "path": "Schubert/Moment_musical_no_3/midi_score.mid",
+        "blobSha": "770dfaf9915fd78dd3c598c1e2b72a077a6676aa",
+        "bytes": 6530
+      },
+      "fingeringGroundTruth": "unknown"
+    }
+  ]
+}
