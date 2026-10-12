@@ -1,11 +1,11 @@
-# Play Along — Piano Practice App (v0.10.49)
+# Play Along — Piano Practice App (v0.10.50)
 
 Play Along is an independently hosted browser piano practice application with Web MIDI, Piano Roll, OpenSheetMusicDisplay (OSMD), MusicXML/MXL and MIDI import, optional online music catalogs, and Wait/Tempo/Listen practice modes.
 
 **Live site:** https://shafranek-js.github.io/play-along/
 
 
-## Current status — v0.10.49
+## Current status — v0.10.50
 
 **Finger Guidance in the published player:** Optional Off / Numbers / 2D Hands / Ghost modes use the **14 original transparent PNG images supplied by the project owner** (seven poses for each hand). Guidance targets the **next note to be played**, not a key that is already sounding. In **Wait**, it stays on an unfinished group and removes already accepted chord keys; after a complete chord it advances to the next target.
 
@@ -37,6 +37,8 @@ FG-02H flags **11 quick same-finger changes** requiring musician review. Preserv
 **FG-03C2A v0.10.48:** Select a source-backed MusicXML note on Piano Roll to choose an explicit finger (1–5) and RH/LH or unknown hand. Manual corrections are layered over — never written into — original author notation, can be undone once or reset to author, and are persisted for reimports of identical MusicXML content. User-derived guidance is identified separately from authored fingering. Existing backup export includes corrections; strict backup restore rejects malicious or invalid overrides before touching stored data. See [FG-03C2A implementation](docs/FG-03C2A-MANUAL-CORRECTIONS.md). This is not automatically predicted fingering.
 
 **Library v0.10.49:** Every catalog row now shows **Аппликатура: Есть / Частично / Нет / Не проверено**, including a percentage and note count for verified files; a new selector filters by status alongside search/source/favorites. Offline saved XML scores are progressively indexed without re-downloading; manual user edits refresh coverage. The left library now has **five independent, collapsible and reorderable sections** (Каталог, Моя коллекция, Резервная копия, Подключённая папка, Онлайн-библиотеки), movable by drag handle, ↑/↓ controls or Alt + arrows. Order/open state is preserved and validated during backup recovery. [Technical details](docs/LIBRARY-COVERAGE-AND-LAYOUT.md).
+
+**Library v0.10.50:** **Быстрые действия** is now the **sixth independent collapsible/reorderable library section**, with exactly the same ⠿ drag, ↑/↓ buttons, Alt+arrows and persistent collapsed state as the original five. Its calibration and layout-reset actions are unchanged. Previously saved five-section layouts and JSON backups migrate without resetting custom order; Quick Actions is appended open by default. See [library layout contract](docs/LIBRARY-COVERAGE-AND-LAYOUT.md).
 
 ### Release documentation rule
 
@@ -407,3 +409,10 @@ Each library result now includes an explicit fingering coverage status: **Ест
 The left sidebar library now supports five fully **independent collapsible and reorderable sections**, including the previously nested **Резервная копия**. Click any section heading to open/close it; drag its **⠿** handle above or below another, use **↑ / ↓** for touch, or **Alt+ArrowUp/ArrowDown** from the focused handle. The entire order and collapsed state persist across browser reloads and are part of strict-validated JSON settings backups. Search and filtering remain visible; the dedicated library workspace now uses a predictable one-column sortable stack with a scrollable bounded catalog, not a fixed two-column results panel. Native backup/restore, file import, attached folder and online tools retain their existing DOM nodes and functionality.
 
 **Quality gate:** pure Node and real Chromium tests for coverage categorization, saved-file backfill, user-edit promotion, filters, five-section accordion, pointer drag, keyboard/touch reordering, persistence, backup controls and narrower viewport. Previous music, OSMD, security, and all research benchmark suites continue to run. No automatic fingering was enabled. [Implementation and test details](docs/LIBRARY-COVERAGE-AND-LAYOUT.md) · [Roadmap](docs/ROADMAP-FINGER-GUIDANCE.md).
+## Quick Actions becomes sixth accordion section (v0.10.50)
+
+The library left panel now treats **Быстрые действия** exactly like Каталог произведений, Моя коллекция, Резервная копия, Подключённая папка and Онлайн-библиотеки. Click its heading to collapse the calibration and layout-reset buttons; drag by ⠿, click ↑/↓, or use Alt + ArrowUp/ArrowDown to reorder. The two original actions remain attached to their original DOM buttons and still function when the section is reopened or repositioned.
+
+**Migration:** An existing custom five-section order is preserved, with Quick Actions appended **open** by default. Both localStorage and old five-section JSON backup settings are accepted and converted to the new six-section schema. Once saved, all six positions and collapsed states persist in settings and backups. The old five panels' collapse flags are untouched.
+
+**CI:** model tests verify full and legacy layouts, safe strict backup restoration and corrupted input refusal; Chromium checks collapse independence, preservation of the calibration/reset controls, moving Quick Actions on narrow screens, full reload persistence and actual old-setting startup migration. [Detailed library documentation](docs/LIBRARY-COVERAGE-AND-LAYOUT.md).
