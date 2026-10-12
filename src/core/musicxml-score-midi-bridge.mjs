@@ -121,8 +121,11 @@ export function normalizeMusicXmlBeats(xml){
      if(start===null)die('MUSICXML_CHORD_WITHOUT_ANCHOR');
      if(!chord){lastOnset=cursor;cursor+=d;}
      maxCursor=Math.max(maxCursor,start+d,cursor);
-     if(rest){if(chord)die('MUSICXML_CHORDED_REST');continue;}
+     // Ordinal counts every MusicXML <note>, including rests, to preserve
+     // the application's structural ID convention rather than renumbering
+     // only playable notes.
      ordinal++;
+     if(rest){if(chord)die('MUSICXML_CHORDED_REST');continue;}
      const sourceId=musicXmlSourceNoteId(id,partIndex,measureIndex,ordinal);
      const pitch=notePitch(s);
      const voice=value(s,'voice')??'1',staff=Number(value(s,'staff')??1);
