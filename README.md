@@ -1,11 +1,11 @@
-# Play Along — Piano Practice App (v0.10.57)
+# Play Along — Piano Practice App (v0.10.58)
 
 Play Along is an independently hosted browser piano practice application with Web MIDI, Piano Roll, OpenSheetMusicDisplay (OSMD), MusicXML/MXL and MIDI import, optional online music catalogs, and Wait/Tempo/Listen practice modes.
 
 **Live site:** https://shafranek-js.github.io/play-along/
 
 
-## Current status — v0.10.57
+## Current status — v0.10.58
 
 **Finger Guidance in the published player:** Optional Off / Numbers / 2D Hands / Ghost modes use the **14 original transparent PNG images supplied by the project owner** (seven poses for each hand). Guidance targets the **next note to be played**, not a key that is already sounding. In **Wait**, it stays on an unfinished group and removes already accepted chord keys; after a complete chord it advances to the next target.
 
@@ -56,6 +56,8 @@ FG-02H flags **11 quick same-finger changes** requiring musician review. Preserv
 **FG-04B1a v0.10.56 (technical corpus preparation):** Freeze **16 MIT-licensed MusicXML test-suite sources** across chord, voice, arpeggio, tie, cross-staff, repeat, tuplet, grace and related notation cases, each with pinned upstream commit, source byte length and Git blob SHA-1. A read-only Node research command validates actual online files; **8 offline unit tests** catch mutable or malformed manifests, mismatched content, wrong sources and missing provenance. **These 16 tests are not 16 real piano compositions or validated fingerings**: the planned 10–20-score *real repertoire* corpus and external candidate pairs remain outstanding. No new player behavior or automatic hand/finger hints. See [FG-04B1a corpus](docs/FG-04B1A-TECHNICAL-CORPUS.md) and [roadmap](docs/ROADMAP-FINGER-GUIDANCE.md).
 
 **MAE-01/02A research-only v0.10.57:** Added an offline MAESTRO v3.0.0 metadata validator and deterministic 24-performance QA candidate selector (16 train / 4 validation / 4 test). Optional official MIDI ZIP SHA256 check; CSV row/split/path integrity validation; generated JSON manifest explicitly marks MIDI byte checks and complexity profiling unverified. **No dataset MIDI, learner catalog, auto-fingering, playback change, or external network fetching is included.** Real archive access, note/polyphony/pedal profiling and representative corpus freeze remain pending. See [MAESTRO integration and reproducibility](docs/MAESTRO-INTEGRATION.md).
+
+**FG-04B1b v0.10.58 — real repertoire source corpus:** Freeze 16 actual classical piano score entries (9 composers), each paired with source MusicXML and quantized score MIDI from ASAP Dataset, pinned to an immutable commit and individual Git SHA-1/byte-length. A research-only acquisition script checks both files, reports music envelope and strict MIDI parser readiness without publishing source bytes; PR CI runs the network audit and saves an evidence report. **CC BY-NC-SA 4.0 research only** — these sources are NOT shipped to the public player. Note-level XML↔MIDI matching, independent authored finger references, Hand-thesia candidate outputs and pianist validation are still **unverified**, so automatic teaching is disabled. [Detailed corpus and limits](docs/FG-04B1B-REAL-SCORE-CORPUS.md).
 
 ### Release documentation rule
 
@@ -135,6 +137,13 @@ Real physical MIDI device behavior, sustain pedal/CC64, live service availabilit
 
 ---
 ### Release history
+
+## Real scored repertoire research corpus (v0.10.58)
+
+- Acquire 16 immutable, real-piano MusicXML / MIDI-score pairs from the ASAP CC BY-NC-SA 4.0 dataset, with enforced research-only licensing, verified byte counts and Git blob hashes; do not bundle the scores or distribute raw note data.
+- New offline integrity and refusal tests plus a GitHub Actions research report. A readable score MIDI is **not** a verified MusicXML-MIDI note mapping and never proves finger assignment accuracy.
+- Original MusicXML data, 14 owner PNG hands, playback/Wait/Tempo and manual corrections remain unchanged. The next gate is FG-04B3 exact source event alignment, then external fingering candidate adjudication. [FG-04B1b](docs/FG-04B1B-REAL-SCORE-CORPUS.md).
+
 
 ## MAESTRO research metadata/corpus planner (v0.10.57)
 
