@@ -210,8 +210,16 @@ function fingerGuidanceMotionState(group,next,geom,keyboardH,handTail,ghostTime,
   from:fingerGuidanceSpritePlacement(group?.notes,hand,geom,keyboardH,handTail),
   to:fingerGuidanceSpritePlacement(next?.notes,hand,geom,keyboardH,handTail)
  }]));
- const crossing=fingerGuidanceHandsCross(pairs.LH.from,pairs.RH.from,
-  pairs.LH.to,pairs.RH.to);
+ // A partially clipped / unplaceable sprite means the geometry cannot
+ // disprove a crossing. If BOTH score events involve LH and RH, never let
+ // the other hand animate while one hand has an unknown footprint.
+ // Numeric target keys remain fixed to the authoritative score.
+ const twoHandsAt=g=>['LH','RH'].every(h=>g?.notes?.some(n=>n.hand===h));
+ const incompleteTwoHandGeometry=twoHandsAt(group)&&twoHandsAt(next)&&
+  ['LH','RH'].some(h=>!pairs[h].from||!pairs[h].to);
+ const crossing=incompleteTwoHandGeometry||
+  fingerGuidanceHandsCross(pairs.LH.from,pairs.RH.from,
+   pairs.LH.to,pairs.RH.to);
  const plans=Object.fromEntries(['LH','RH'].map(hand=>[hand,
   fingerGuidanceMotionPlan({from:pairs[hand].from,to:pairs[hand].to,
    remainingMs:ghostTime.remainingMs,leadMs:state.fingerLookaheadMs,
