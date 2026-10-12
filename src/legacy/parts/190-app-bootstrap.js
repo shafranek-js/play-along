@@ -10,7 +10,7 @@ chooseFolder=async function(){folderRevealOnScan=true;try{await baseChooseFolder
 const baseRefreshFolder=refreshFolder;
 refreshFolder=async function(){folderRevealOnScan=true;try{await baseRefreshFolder()}finally{folderRevealOnScan=false}};
 // Inputs are bound once after the base event wiring has set its own listeners.
-$('librarySourceSelect').onchange=libraryFolderFiltersChanged;$('librarySort').onchange=libraryFolderFiltersChanged;$('libraryFavoritesOnly').onchange=libraryFolderFiltersChanged;$('browseFolder').onclick=browseConnectedFolder;
+$('librarySourceSelect').onchange=libraryFolderFiltersChanged;$('libraryFingeringSelect').onchange=libraryFolderFiltersChanged;$('librarySort').onchange=libraryFolderFiltersChanged;$('libraryFavoritesOnly').onchange=libraryFolderFiltersChanged;$('browseFolder').onclick=browseConnectedFolder;
 $('importMusicInput').onchange=async e=>{await importMusicFiles(e.target.files);e.target.value=''};
 backupSetup();
 $('openMutopia').onclick=()=>window.open('https://www.mutopiaproject.org/advsearch.html','_blank','noopener,noreferrer');
