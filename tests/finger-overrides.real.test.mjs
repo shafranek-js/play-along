@@ -48,7 +48,7 @@ try{
  const correction=()=>page.evaluate(()=>window.__fingerGuideTest.selectedCorrection);
  const steps=()=>page.evaluate(()=>window.__fingerGuideTest.steps);
  await select(first.id);
- assert.match(await page.locator('.fingerCorrection p').innerText(),/Автор: палец 1/);
+ assert.match(await page.locator('.fingerCorrection > p.small:not(.fingerCorrectionHistory)').innerText(),/Автор: палец 1/);
  await set(5,'LH');
  assert.deepEqual(await correction(),{finger:5,hand:'LH',source:'user'});
  assert.equal((await steps())[0].notes[0].finger,5);
@@ -62,7 +62,7 @@ try{
  await page.getByRole('button',{name:'Вернуть автора'}).click();
  assert.equal(await correction(),null);
  await select(second.id);
- assert.match(await page.locator('.fingerCorrection p').innerText(),/палец не указан/);
+ assert.match(await page.locator('.fingerCorrection > p.small:not(.fingerCorrectionHistory)').innerText(),/палец не указан/);
  await set(2,'RH');
  assert.deepEqual((await steps())[1].notes.map(n=>n.finger),[2],
   'Explicitly corrected unannotated MusicXML note now has a trusted hint');
