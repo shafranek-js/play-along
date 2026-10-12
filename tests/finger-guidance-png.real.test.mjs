@@ -141,8 +141,8 @@ try{
  // safety invariant is stronger: neither hand may animate an unsafe path.
  assert.equal(crossing.plans.RH.kind,'markers');
  assert.equal(crossing.plans.LH.kind,'markers');
- assert.ok(crossing.crossing||!crossing.plans.RH.x&&!crossing.plans.LH.x,
-  'A missing/clipped source pose must still fall back to fixed note targets');
+ assert.equal(crossing.crossing,true,
+  'Two-hand motion with clipped/unknown pose must be treated as an unsafe crossing');
  assert.deepEqual(crossing.targets.RH,[{pitch:60,finger:1}]);
  assert.deepEqual(crossing.targets.LH,[{pitch:84,finger:5}]);
  await page.screenshot({path:path.join(output,'fg03b2-crossing-markers.png')});
