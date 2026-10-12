@@ -7,6 +7,7 @@ import {chromium} from 'playwright';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const dist=path.join(root,'dist');
+const releaseVersion=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8')).version;
 const server=http.createServer((req,res)=>{
  const u=new URL(req.url,'http://localhost');
  const file=path.resolve(dist,'.'+(u.pathname==='/'?'/index.html':u.pathname));
@@ -23,10 +24,11 @@ try{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('http://127.0.0.1:'+server.address().port,{waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>window.__prototypeTest&&window.__fingerGuideTest);
- assert.match(await page.title(),/v0\.10\.45/, 'Browser tab should show the deployed release');
- assert.equal(await page.locator('#topbar .brand span').textContent(),'Standalone · v0.10.45',
-  'User-visible release header must not remain stuck on v0.10.41');
- assert.equal(await page.evaluate(()=>window.__playAlongVersion),'0.10.45',
+ assert.ok((await page.title()).includes('v'+releaseVersion),
+  'Browser tab should show the release declared in package.json');
+ assert.equal(await page.locator('#topbar .brand span').textContent(),'Standalone · v'+releaseVersion,
+  'User-visible release header must match package.json');
+ assert.equal(await page.evaluate(()=>window.__playAlongVersion),releaseVersion,
   'Runtime bundle, published HTML and package version must match');
  const demoRows=await page.evaluate(()=>[...document.querySelectorAll('#songList .libv8-main')].map(r=>r.textContent));
  assert.ok(demoRows.some(t=>t.includes('две руки · C–F–G–C')),
