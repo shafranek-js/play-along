@@ -1,6 +1,6 @@
 # Play Along — architecture and development plan
 
-**Current version:** v0.10.16. The production GitHub Pages site is rebuilt and tested automatically from `main`.
+**Current version:** v0.10.42 (FG-03A review branch; only merged changes deploy to production). The production GitHub Pages site is rebuilt and tested automatically from `main`.
 
 ## Current implementation
 
@@ -35,7 +35,15 @@ The 21 JavaScript fragments are concatenated in `scripts/manifest.json` order to
 4. Playback notes, time maps, notation cursor and rehearsal position must agree after repeats, meter changes and tempo offsets.
 5. Unsupported navigation must report limitations instead of claiming correct playback.
 
-## Next milestones
+## Finger Guidance roadmap — October 2026
+
+The evidence-gated feature roadmap is maintained in [docs/ROADMAP-FINGER-GUIDANCE.md](docs/ROADMAP-FINGER-GUIDANCE.md). The player already has the fourteen original PNG poses, MusicXML author fingering and next-task guidance. FG-03A adds the pure deterministic `src/core/finger-guidance-timeline.mjs` to preserve **all valid score onsets**, including unannotated notes, as forecast boundaries. Incomplete chords show only verified numeric labels, not a falsely complete hand pose. The same core module runs in Node tests and is included in the transitional browser bundle.
+
+Research-only FG-02 automatic fingering stays **NO-GO for learner instruction**: independent PianoVAM results show 644 source-matching labels of 1,467 eligible notes (43.90%), with 82.48% proposal coverage and only 5.53% annotation coverage of original notes. This measures source agreement, not independently certified ergonomic technique. The source data is CC BY-NC-SA 4.0 and is not bundled into Play Along.
+
+FG-03B next focuses on configurable, transport-synchronized lookahead and repositioning, with Wait/Seek/Loop/browser acceptance. FG-03C addresses note identity, provenance and user edits; future experimental Worker predictions require independent pianist validation before learner-facing use.
+
+## Existing reliability and architecture milestones
 
 1. Build normalized musical event and bar-timeline data models with isolated unit tests and reference MusicXML fixtures.
 2. Replace conservative repeat/volta guards with verified restoration of divisions, time signatures, key and tempo state at each jump. Add D.C./D.S./coda in separately tested increments.
