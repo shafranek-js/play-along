@@ -52,6 +52,8 @@ jobs:
         run: FG02H_REPORT=artifacts/fg02h-contextual-repertoire.json npm run benchmark:fingering:contextual
       - name: FG-02I two-hand score router retrospective research
         run: FG02I_REPORT=artifacts/fg02i-score-router.json npm run benchmark:fingering:score-router
+      - name: FG-02J independently sourced polyphonic fingering eligibility discovery
+        run: FG02J_DISCOVERY_REPORT=artifacts/fg02j-polyphony-source.json npm run research:fingering:polyphony-source
       - name: Browser regressions
         run: npm run test:browser
       - name: Upload FG-02C reference comparison
@@ -102,6 +104,13 @@ jobs:
         with:
           name: fg02i-score-router-research-report
           path: artifacts/fg02i-score-router.json
+          if-no-files-found: error
+      - name: Upload FG-02J source qualification and NO-GO evidence
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: fg02j-independent-polyphony-source-qualification
+          path: artifacts/fg02j-polyphony-source.json
           if-no-files-found: error
       - name: Dependency audit
         run: npm audit --audit-level=high
