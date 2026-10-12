@@ -1,11 +1,11 @@
-# Play Along — Piano Practice App (v0.10.44)
+# Play Along — Piano Practice App (v0.10.45)
 
 Play Along is an independently hosted browser piano practice application with Web MIDI, Piano Roll, OpenSheetMusicDisplay (OSMD), MusicXML/MXL and MIDI import, optional online music catalogs, and Wait/Tempo/Listen practice modes.
 
 **Live site:** https://shafranek-js.github.io/play-along/
 
 
-## Current status — v0.10.44
+## Current status — v0.10.45
 
 **Finger Guidance in the published player:** Optional Off / Numbers / 2D Hands / Ghost modes use the **14 original transparent PNG images supplied by the project owner** (seven poses for each hand). Guidance targets the **next note to be played**, not a key that is already sounding. In **Wait**, it stays on an unfinished group and removes already accepted chord keys; after a complete chord it advances to the next target.
 
@@ -29,6 +29,8 @@ FG-02H flags **11 quick same-finger changes** requiring musician review. Preserv
 **FG-03B1 update:** The **secondary** translucent Ghost hand now appears only within a configurable **500–1000 ms** wall-clock preparation window (default **750 ms**), adjusted for playback speed. Wait never presents a premature second-hand position; a wrapped Loop counts the next cycle forward. The actionable first/next pending hand hint remains available as before. No automatically generated fingers are presented to learners. See [the implementation note](docs/FG-03B1-LOOKAHEAD.md) and [roadmap](docs/ROADMAP-FINGER-GUIDANCE.md).
 
 **FG-03B2A update:** Ghost Hands now offers a stateless smooth translation of a **secondary verified future-hand PNG** toward its next source-authorized position. Actual next-key circles always stay fixed to piano geometry. A two-hand crossing, largely clipped sprite or ambiguous movement falls back to exact source finger-number markers, not a fabricated physical gesture. This does **not** animate finger joints or generate new fingering. See [technical details](docs/FG-03B2A-SAFE-MOTION.md).
+
+**v0.10.45 live-version fix:** The visible “Standalone · v0.10.41” banner, browser tab title and startup score placeholder had remained hardcoded in `src/index.html` even after successful deployments of application versions v0.10.42–v0.10.44. Starting with this release, all three labels and the JS/CSS cache-busting URLs are stamped at build time from the single `package.json` version. The deterministic build and real Chromium tests now require the HTML branding, JavaScript release stamp and package version to agree; obsolete hardcoded version text must never be deployed. Functional FG-03B2A guidance and the original fourteen hand PNG assets are unchanged.
 
 ### Release documentation rule
 
@@ -354,3 +356,11 @@ A detected **LH/RH crossing** or near-collision never interpolates two entire ha
 **Verification:** New Node tests cover starting, midway and final easing, input immutability, clipping, crossings, pause/seek, and conservative marker fallbacks. The Chromium suite now exercises a wide authored right-hand jump in playback versus pause, mobile viewport, both hands crossing, Wait and screenshot capture in the existing PNG test. PR CI also re-runs music timing, OSMD, backup/security and all published fingering research audits. The original 14 owner PNGs are unchanged.
 
 **Limitations / next FG-03B2B:** static-finger PNG translation is not physically faithful full-hand animation, and no independent pianist review has yet approved crossings or thumb-under biomechanics. Screenshot artifacts are available for visual UAT, but musician sign-off on 25/49/61/88-key layouts and representative real music remains pending. Research-only auto fingering remains **NO-GO** for teaching. [Detailed methods, checks and exceptions](docs/FG-03B2A-SAFE-MOTION.md) · [Roadmap](docs/ROADMAP-FINGER-GUIDANCE.md).
+
+## FG-03B2A hotfix: deployed version labels synchronized (v0.10.45)
+
+**Issue reproduced:** The release displayed to users was stuck at `Standalone · v0.10.41` even though the `main` branch and GitHub Pages deployment held v0.10.44. The three outdated strings were in the **static HTML template**, not evidence that the current app executable had rolled back.
+
+**Fix:** `src/index.html` now uses a mandatory `__PLAY_ALONG_VERSION__` placeholder for title, banner, startup score label and cache-busting query arguments on `app.js` and `app.css`. The build resolves all five occurrences from `package.json`, rejects missing/extra tokens and stale old release text, and writes the stamped `dist/index.html`. `tests/build.test.mjs` verifies the complete stamped HTML and `tests/finger-guidance.real.test.mjs` checks the actual rendered `Standalone` banner, browser tab title and `window.__playAlongVersion` in Chromium.
+
+**Verification:** Run `npm run build && npm test && npm run test:browser`; a green pull request plus a successful `main` deployment are required to consider the issue closed. A user already viewing an old browser page may need to reload the page once to fetch the new `index.html`; the new versioned asset URLs then ensure the matching JS and CSS are used. No source finger guidance, research benchmark data or original hand PNG assets were altered.
