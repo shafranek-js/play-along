@@ -98,7 +98,7 @@ window.__fingerGuideTest={
   return Object.fromEntries(['LH','RH'].map(h=>[h,fingerGuidanceSpritePlacement(notes,h,pianoGeom,keyboardBottom-keyboardTop,lastCanvasSize.h-keyboardBottom)]))},
 
  get demoDuet(){return demoSongs.find(s=>s.id==='demo-finger-duet')},
- get steps(){return fingerGuidanceSteps().map(g=>({start:g.start,notes:g.notes.map(n=>({...n}))}))},
+ get steps(){return fingerGuidanceSteps().map(g=>({start:g.start,totalNotes:g.totalNotes,complete:g.complete,notes:g.notes.map(n=>({...n}))}))},
  get frame(){const f=fingerGuidanceFrame(fingerGuidanceSteps(),pos);return {current:f.current?.start??null,next:f.next?.start??null}},
  get preview(){return fingerGuidanceFrame(fingerGuidanceSteps(),pos).current?.notes.map(n=>({pitch:n.pitch,hand:n.hand,finger:n.finger}))||[]},
  get layout(){return {keyboardTop,keyboardBlackH,canvasHeight:lastCanvasSize.h}},

@@ -93,6 +93,13 @@ try{
  await page.waitForFunction(()=>document.querySelector('#fingerGuideStatus').textContent.includes('рука не указана'));
  const single=await page.evaluate(()=>window.__fingerGuideTest.steps);
  assert.equal(single[0].notes[0].hand,null);
+ assert.deepEqual(single.map(g=>g.notes.length),[1,0,0,0],
+  'Unannotated notes must fence the preview rather than jumping to another labelled note');
+ assert.deepEqual(single.map(g=>g.complete),[true,false,false,false],
+  'Only fully labelled groups may be rendered as a complete hand shape');
+ await page.evaluate(()=>window.__prototypeTest.seek(.1));
+ assert.deepEqual(await page.evaluate(()=>window.__fingerGuideTest.preview),[],
+  'The next unannotated score event must block a later visual finger prediction');
  assert.deepEqual(errors,[],'No unhandled JavaScript errors');
  console.log('FG-01 MusicXML: grand staff, source fingers, ambiguity, tie, original hand PNGs, Seek: PASS');
 }finally{
