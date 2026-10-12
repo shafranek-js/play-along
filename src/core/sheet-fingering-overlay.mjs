@@ -100,5 +100,12 @@ export function sheetFingeringOverlay(song,changes,{parse,serialize}={}){
   head.setAttribute('color','#C77D28');
   count++;
  }
- return {xml:serialize(doc),status:'applied',count,handOnly,reason:null};
+ // OSMD 2.2.0's load(string) requires a leading XML declaration.
+ // XMLSerializer(Document) normally omits the original XML declaration even
+ // when the imported source contains one, so restore it for the DISPLAY
+ // CLONE ONLY. Never modify song.notationXML or downloaded content.
+ const serialized=serialize(doc);
+ const rendered=/^\\s*<\\?xml\\b/i.test(serialized)?serialized:
+  '<?xml version="1.0" encoding="utf-8"?>\\n'+serialized;
+ return {xml:rendered,status:'applied',count,handOnly,reason:null};
 }
