@@ -1,11 +1,11 @@
-# Play Along — Piano Practice App (v0.10.59)
+# Play Along — Piano Practice App (v0.10.60)
 
 Play Along is an independently hosted browser piano practice application with Web MIDI, Piano Roll, OpenSheetMusicDisplay (OSMD), MusicXML/MXL and MIDI import, optional online music catalogs, and Wait/Tempo/Listen practice modes.
 
 **Live site:** https://shafranek-js.github.io/play-along/
 
 
-## Current status — v0.10.59
+## Current status — v0.10.60
 
 **Finger Guidance in the published player:** Optional Off / Numbers / 2D Hands / Ghost modes use the **14 original transparent PNG images supplied by the project owner** (seven poses for each hand). Guidance targets the **next note to be played**, not a key that is already sounding. In **Wait**, it stays on an unfinished group and removes already accepted chord keys; after a complete chord it advances to the next target.
 
@@ -60,6 +60,8 @@ FG-02H flags **11 quick same-finger changes** requiring musician review. Preserv
 **FG-04B1b v0.10.58 — real repertoire source corpus:** Freeze 16 actual classical piano score entries (9 composers), each paired with source MusicXML and quantized score MIDI from ASAP Dataset, pinned to an immutable commit and individual Git SHA-1/byte-length. A research-only acquisition script checks both files, reports music envelope and strict MIDI parser readiness without publishing source bytes; PR CI runs the network audit and saves an evidence report. **CC BY-NC-SA 4.0 research only** — these sources are NOT shipped to the public player. Note-level XML↔MIDI matching, independent authored finger references, Hand-thesia candidate outputs and pianist validation are still **unverified**, so automatic teaching is disabled. [Detailed corpus and limits](docs/FG-04B1B-REAL-SCORE-CORPUS.md).
 
 **FG-04B3a v0.10.59 (research only):** Add deterministic matching of **independently normalized MusicXML playback note events** to original MIDI-score note-on/release events, requiring unique source IDs, pitch, start/end times and a bounded 2-ms absolute tolerance. It refuses ambiguous unisons, changed rhythm, missing events, invalid tie-source identities, shared MIDI events and corrupt source data. A pure research report retains voice, staff, part and MIDI provenance but **never invents finger numbers**. New **15 synthetic regression tests** cover tempo changes and fail-closed edge cases. **This is not yet raw MusicXML interpretation or validation of 16 real ASAP pairs.** Original 14 owner PNG hands, lesson transport, user overrides and stored sources are unchanged. [FG-04B3a contract](docs/FG-04B3A-EVENT-ALIGNMENT.md).
+
+**FG-04B3b v0.10.60 (research only):** Added independently parsed **raw MusicXML 3.x score-partwise → normalized musical note events → MIDI-score pitch/onset/release alignment**. Handles divisions, rests, chords, multiple voices via backup/forward, staff/part/voice identities and explicit connected ties. Unsupported repeats, grace-note realizations, ambiguous unisons, unrelated XML/MIDI note times and unsupported scores refuse rather than fabricate note identities. Research CI checks all **16 immutable CC BY-NC-SA ASAP real-score pairs** and reports exact aligned/refused counts and reasons, with **no original XML/MIDI bytes, notes or fingerings in the report**. Uses the original score MIDI tempo clock; independent MusicXML tempo, repeat/ornament semantics and pianist fingering remain unverified. No changes to player, 14 owner PNG hands, Wait/Tempo, original XML or manual corrections. [FG-04B3b contract](docs/FG-04B3B-ASAP-XML-MIDI-AUDIT.md).
 
 ### Release documentation rule
 
@@ -139,6 +141,13 @@ Real physical MIDI device behavior, sustain pedal/CC64, live service availabilit
 
 ---
 ### Release history
+
+## Research: actual MusicXML score-to-MIDI semantic gate (v0.10.60)
+
+- FG-04B3b implements a bounded research MusicXML partwise event extractor with notes/rests, voices, chord grouping, explicit tie merging and stable note IDs. Projects score-derived quarter positions through the unmodified original MIDI tempo map before running strict FG-04B3a alignment; both onset and release must match.
+- Add 15 unit score-parsing scenarios, 5 immutable-source/report-safety tests and an **actual 16-piece ASAP corpus CI audit**, with explicit counted refusals for unsupported engraving/repeat/grace cases or mismatches. Do not present a refusal as accuracy, or imply that approved finger numbers have been measured.
+- No user-facing fingering or playback changes; no copy of third-party scores or Hand-thesia code; existing MIDI/PNG/source data untouched. [FG-04B3b methods](docs/FG-04B3B-ASAP-XML-MIDI-AUDIT.md).
+
 
 ## Strict source note ↔ MIDI event identity research (v0.10.59)
 
