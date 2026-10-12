@@ -155,3 +155,14 @@ body.onlyLibrary #leftPanel .sidebody>.panelSection:first-child{
 .fingerEditorCanvas:focus-visible,#fingerEditorCanvas:focus-visible{outline:2px solid #ffe48c;outline-offset:-3px}
 .fingerEditorFooter{padding:5px 12px;font-size:11px;color:#bec9db;border-top:1px solid #384459;background:#202838;flex:0 0 auto}
 @media(max-width:820px){.fingerEditorTop{padding:7px;gap:5px}.fingerEditorTopLine{gap:4px}.fingerEditorTopLine .btn{padding:5px 6px}}
+.fingerResearchPanel{margin:3px 0;padding:5px 9px;border:1px solid #53647c;border-radius:8px;background:#182335;max-width:100%}
+.fingerResearchPanel summary{cursor:pointer;font-size:12px;font-weight:650;color:#c7dffa}
+.fingerResearchPanel[open]{max-height:min(36vh,275px);overflow-y:auto}
+.fingerResearchPanel p{line-height:1.45;margin:6px 0;color:#d5deeb}
+.fingerResearchControls{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:6px 0}
+.fingerResearchControls label{font-size:11px;color:#c0ccde}
+.fingerResearchControls input[type=file]{font-size:11px;max-width:240px;min-width:115px}
+.fingerResearchControls select{background:#111b28;color:#e4edff;border:1px solid #50607b;border-radius:6px;padding:5px}
+.fingerResearchControls button:disabled{opacity:.45}
+#fingerResearchDetails{display:flex;gap:6px;flex-wrap:wrap}
+.fingerResearchMetric{display:inline-flex;padding:3px 7px;border:1px solid #54637b;border-radius:5px;color:#d0dcea;font-size:11px}
