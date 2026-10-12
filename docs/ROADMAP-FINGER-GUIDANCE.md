@@ -43,6 +43,19 @@
 | **FG-05: adaptive teaching and export** | P2 conditional | Export user-approved annotated MusicXML; practice fewer hints over time; supervised alternatives for different hand sizes; optional preview style controls. | Source author fingers preserved; no fabricated source metadata; actual end-user UAT of skill retention. |
 | **FG-06: optional camera verification** | P3 exploratory | MediaPipe Hands feasibility on low-power clients; only explicit permission; privacy-by-default and fallbacks. | Independent latency, consent, calibration and occlusion acceptance before product consideration. |
 
+## MAESTRO v3.0.0 — separate music-engine QA research workstream (approved 2026-10-12)
+
+MAESTRO is **performance MIDI**, not musician-annotated MusicXML/fingering ground truth. It is separate from FG-04B expert-annotated source scores; keep all author/user/generator provenance gates unchanged. **CC BY-NC-SA 4.0 / Google LLC**, noncommercial research first. [MAESTRO integration contract](MAESTRO-INTEGRATION.md).
+
+| Stage | Priority | Status / acceptance |
+| --- | --- | --- |
+| **MAE-01: official metadata and archive integrity** | P1 | **v0.10.56 implemented**: offline CSV validation, exact v3 total/split counts, safe paths and optional streaming official ZIP SHA256; nine synthetic tests shared with MAE-02A |
+| **MAE-02A: deterministic 24-record QA candidate manifest** | P1 | **v0.10.56 implemented**: 16/4/4 train/validation/test; duration quartiles and composer diversity; license/provenance and unverified-data flags |
+| **MAE-02B: byte-verified representative corpus** | P1 next | **Pending** actual v3 MIDI acquisition, archive-to-CSV membership validation, per-file hashes, note/velocity/polyphony/repeated-note/CC64/66/67 profiles and frozen musical coverage report |
+| **MAE-03: musical engine stress tests** | P1 next after 02B | Golden-event tests for expressive timing, legato/unison, pedal, repeated pitch, Wait/Tempo scoring and regression performance with no score-time fabrication |
+| **MAE-04/05: curated catalog and practice excerpts** | P2 conditional | Rights review, source attribution, opt-in lazy files, and teacher-reviewed actual difficulty; no bundling full dataset into GitHub Pages |
+| **MAE-06/07: performance comparison and research hand-split** | P2 research | Tempo warping and external RH/LH comparison with explicit unknown hand/finger; never infer anatomical finger ground truth from performance notes |
+
 ## Dependencies and constraints
 
 - `ARCHITECTURE.md` documents the transitional **21 ordered legacy fragments** and the shared-lexical-scope bundle; modifying one fragment or the build prelude requires deterministic build checks.
