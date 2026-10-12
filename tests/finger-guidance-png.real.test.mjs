@@ -86,7 +86,7 @@ try{
   id:'fg03b2-shift',title:'FG-03B2 authored shift',author:'Test',type:'import',
   tracks:[{name:'Right hand',notes:[
    {pitch:60,start:0,duration:.3,velocity:80,track:0,finger:1,hand:'RH',fingeringSource:'musicxml'},
-   {pitch:79,start:.5,duration:.3,velocity:80,track:0,finger:1,hand:'RH',fingeringSource:'musicxml'}
+   {pitch:79,start:.5,duration:.3,velocity:80,track:0,finger:5,hand:'RH',fingeringSource:'musicxml'}
   ]}]
  }));
  await page.locator('#fingerGuideMode').selectOption('ghost');
@@ -95,7 +95,7 @@ try{
  const paused=await page.evaluate(()=>window.__fingerGuideTest.ghostMotion);
  assert.equal(paused.visible,true);
  assert.equal(paused.plans.RH.kind,'static','Paused preview pins the silhouette to its next key');
- assert.deepEqual(paused.targets.RH,[{pitch:79,finger:1}]);
+ assert.deepEqual(paused.targets.RH,[{pitch:79,finger:5}]);
  await page.screenshot({path:path.join(output,'fg03b2-shift-paused.png')});
  const moving=await page.evaluate(()=>{
   window.__prototypeTest.play();
@@ -115,7 +115,7 @@ try{
  assert.equal(narrow.visible,true);
  assert.ok(['markers','static'].includes(narrow.plans.RH.kind),
   'A paused mobile preview is either correctly anchored or conservatively markers-only');
- assert.deepEqual(narrow.targets.RH,[{pitch:79,finger:1}]);
+ assert.deepEqual(narrow.targets.RH,[{pitch:79,finger:5}]);
  await page.screenshot({path:path.join(output,'fg03b2-shift-mobile.png')});
 
  // Fully labelled two-hand crossing: never animate two images through one
