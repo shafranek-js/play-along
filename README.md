@@ -1,11 +1,11 @@
-# Play Along — Piano Practice App (v0.10.51)
+# Play Along — Piano Practice App (v0.10.52)
 
 Play Along is an independently hosted browser piano practice application with Web MIDI, Piano Roll, OpenSheetMusicDisplay (OSMD), MusicXML/MXL and MIDI import, optional online music catalogs, and Wait/Tempo/Listen practice modes.
 
 **Live site:** https://shafranek-js.github.io/play-along/
 
 
-## Current status — v0.10.51
+## Current status — v0.10.52
 
 **Finger Guidance in the published player:** Optional Off / Numbers / 2D Hands / Ghost modes use the **14 original transparent PNG images supplied by the project owner** (seven poses for each hand). Guidance targets the **next note to be played**, not a key that is already sounding. In **Wait**, it stays on an unfinished group and removes already accepted chord keys; after a complete chord it advances to the next target.
 
@@ -41,6 +41,8 @@ FG-02H flags **11 quick same-finger changes** requiring musician review. Preserv
 **Library v0.10.50:** **Быстрые действия** is now the **sixth independent collapsible/reorderable library section**, with exactly the same ⠿ drag, ↑/↓ buttons, Alt+arrows and persistent collapsed state as the original five. Its calibration and layout-reset actions are unchanged. Previously saved five-section layouts and JSON backups migrate without resetting custom order; Quick Actions is appended open by default. See [library layout contract](docs/LIBRARY-COVERAGE-AND-LAYOUT.md).
 
 **FG-03C2B1 v0.10.51:** A score-wide, 40-operation **Undo/Redo** history for manual fingering edits now replaces the one-note undo. Edit several notes, undo in chronological order, redo removed edits, or undo a return-to-author reset. New edits after Undo clear redo. The separate, source-preserving corrections remain persistent; the stack is session-only and is excluded from backups to avoid stale playback of operations. See [FG-03C2B1](docs/FG-03C2B1-UNDO-REDO.md).
+
+**FG-03C2B2 v0.10.52:** The Piano Roll fingering editor now supports **Ctrl+A** (all source notes, including outside the viewport), **Shift+click** (contiguous score-order range), **Ctrl/Cmd+click** (arbitrary toggle selection) and **drag-marquee** of visible notes. Selected notes can receive **one bulk hand assignment without changing or inventing their individual fingers**, an optional explicit common finger, or a group reset to author. Each group operation is atomic and a single Undo/Redo step. The virtual keyboard remains playable independently. See [Multi-note selection and bulk editing](docs/FG-03C2B2-MULTI-SELECT.md).
 
 ### Release documentation rule
 
@@ -423,3 +425,10 @@ The library left panel now treats **Быстрые действия** exactly li
 The note inspector now has **Отменить правку** and **Повторить правку** buttons that operate on a full MusicXML score history, not only on the selected note. The most recent **40** successful changes can be undone; Undo can be repeated across multiple notes. Redo replays undone edits in chronological order. A new edit clears the redo branch. **Вернуть автора** remains source-safe and now participates in Undo/Redo. The inspector shows available undo/redo counts and disables unavailable controls.
 
 Successful corrections are still stored separately from original author MusicXML; their history is **per-score and session-only**, never part of backup data. On reload/reimport the corrections remain, but history starts empty. Storage validation and write happen before history state changes; a failed write cannot produce a misleading visual correction. Full source-vs-user fingering annotations in the rendered sheet and optional corrected MusicXML export remain subsequent **FG-03C2B2** work. No experimental automatic fingering is enabled for learners. [Implementation and verification](docs/FG-03C2B1-UNDO-REDO.md) · [Roadmap](docs/ROADMAP-FINGER-GUIDANCE.md).
+## Group fingering correction on Piano Roll (v0.10.52)
+
+Multiple imported MusicXML notes can now be selected with **Ctrl+A (all)**, **Shift+click (range)**, **Ctrl/Cmd+click (arbitrary)**, or a **drag rectangle** in Piano Roll. Only actual note lanes start marquee selection: clicking the virtual keyboard still plays its sound. Selected notes have yellow outlines, and the right Practice inspector shows the size of the group.
+
+The group editor defaults to **Палец: не менять** and **Рука: не менять**. Change either independently: bulk RH/LH preserves per-note original/user numbers 1–5; previously unlabelled notes retain unknown finger rather than inventing one. A finger may also be explicitly assigned to all selected notes. **Применить ко всем** is one atomic group operation and one Undo/Redo step. **Вернуть автора для выбранных** resets the group and is also undoable. Source MusicXML remains untouched; the local user edits and normal backup validation retain their provenance. Keyboard shortcuts do not hijack text inputs or unrelated library pages.
+
+The selection belongs to the **Piano Roll editor** (not the rendered Sheet Music tab yet) and is ephemeral across score changes. Full notes beyond the viewport are selected by Ctrl+A or Shift ranges, whereas drag area uses actual visible rectangles. Existing notes, musical timing, research-only auto-fingering and all original hand PNGs are unchanged. [Engineering and acceptance protocol](docs/FG-03C2B2-MULTI-SELECT.md) · [Roadmap](docs/ROADMAP-FINGER-GUIDANCE.md).

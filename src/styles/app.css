@@ -128,3 +128,8 @@ body.onlyLibrary #leftPanel .sidebody>.panelSection:first-child{
 .libFingerStatus[data-state="full"]{border-color:#427f6d;color:#a2ddc6}
 .libFingerStatus[data-state="partial"]{border-color:#8f7852;color:#f2cf94}
 .libFingerStatus[data-state="none"],.libFingerStatus[data-state="unknown"]{color:#aab9c8}
+.fingerCorrectionGroup{border-color:#8a783a}
+.fingerCorrectionGroup>strong{color:#f1de9c}
+.fingerCorrectionGroup .fingerCorrectionControls{margin-top:8px}
+.fingerCorrectionGroup .fingerCorrectionControls select{min-width:150px}
+#roll:focus-visible{outline:2px solid #f5dc82;outline-offset:-2px}

@@ -37,42 +37,74 @@ function fingerOverrideForNote(note){
  const key=fingerGuideWorkKey();
  return key&&note?.noteId?fingerOverrideEffective(note,state.fingerOverrides?.[key]?.[note.noteId]):null;
 }
-function fingerOverrideCommit(note,choice,{action='edit'}={}){
- if(!current||current.format!=='MusicXML'||state.adaptMode!=='original')return false;
- const key=fingerGuideWorkKey();
- if(!key)return false;
- const history=fingerOverrideHistoryCurrent();
+// The selection is transient and scoped to an original source work.
+let fingerSelectedIds=new Set(),fingerSelectionAnchor=null,fingerSelectionPointer=null;
+function fingerSelectionAvailable(){
+ return !!current&&current.format==='MusicXML'&&state.adaptMode==='original'&&!!fingerGuideWorkKey();
+}
+function fingerSelectionOrdered(){return fingerSelectableNotes(current)}
+function fingerSelectionSet(ids,anchor=null){
+ if(!fingerSelectionAvailable())return;
+ const ordered=fingerSelectionOrdered(),valid=new Set(ordered.map(e=>e.id));
+ fingerSelectedIds=new Set(ids.filter(id=>valid.has(id)));
+ fingerSelectionAnchor=valid.has(anchor)?anchor:
+  (fingerSelectedIds.size?[...fingerSelectedIds][fingerSelectedIds.size-1]:null);
+ const primary=ordered.find(e=>e.id===fingerSelectionAnchor&&fingerSelectedIds.has(e.id))?.note||
+  ordered.find(e=>fingerSelectedIds.has(e.id))?.note||null;
+ selectNote(primary,{keepGroup:true});
+ renderCanvas();
+}
+function fingerSelectionShortcut(e){
+ if(!(e.ctrlKey||e.metaKey)||e.altKey||e.shiftKey||e.key.toLowerCase()!=='a'||
+  !fingerSelectionAvailable()||state.page!=='practice'||state.scoreView!=='roll')return false;
+ const focused=document.activeElement;
+ if(focused?.closest('input,textarea,select,[contenteditable="true"]'))return false;
+ if(focused!==roll&&!$('selection').contains(focused)&&
+  !(focused===document.body&&fingerSelectedIds.size))return false;
+ e.preventDefault();
+ const ordered=fingerSelectionOrdered();
+ fingerSelectionSet(ordered.map(e=>e.id),ordered[0]?.id||null);
+ return true;
+}
+function fingerOverrideCommit(note,choice,{action='edit',batch=null}={}){
+ if(!fingerSelectionAvailable())return false;
+ const key=fingerGuideWorkKey(),history=fingerOverrideHistoryCurrent();
  let transition;
  if(action==='edit'){
   if(!note?.noteId)return false;
-  const old=state.fingerOverrides?.[key]?.[note.noteId]??null;
-  transition=fingerHistoryTransition(history,'edit',{id:note.noteId,
-   before:old,after:choice===null?null:{finger:choice?.finger,hand:choice?.hand}});
+  const previous=state.fingerOverrides?.[key]?.[note.noteId]??null;
+  transition=fingerHistoryTransition(history,'edit',{id:note.noteId,before:previous,
+   after:choice===null?null:{finger:choice?.finger,hand:choice?.hand}});
+ }else if(action==='batch'){
+  transition=fingerHistoryTransition(history,'batch',{entries:batch});
  }else transition=fingerHistoryTransition(history,action);
  if(!transition)return false;
- const {step,expected,value}=transition;
- const source=current.tracks.flatMap(t=>t.notes).find(n=>n.noteId===step.id);
- if(!source||(action==='edit'&&source.pitch!==note.pitch))return false;
- const present=state.fingerOverrides?.[key]?.[step.id]??null;
- if(!fingerHistorySame(present,expected)){
-  // e.g. backup restore or another tab changed the override map; never
-  // replay a stale history event over unknown user data.
-  fingerOverrideHistories.delete(key);
-  notify('История правок изменилась. Перезапусти действие после проверки ноты.');
-  if(selectedNote?.noteId)selectNote(selectedNote);
-  return false;
+ const changes=transition.changes||[];
+ const sources=new Map(fingerSelectionOrdered().map(e=>[e.id,e.note]));
+ for(const change of changes){
+  const source=sources.get(change.id);
+  if(!source||(action==='edit'&&source.pitch!==note.pitch))return false;
+  const present=state.fingerOverrides?.[key]?.[change.id]??null;
+  if(!fingerHistorySame(present,change.expected)){
+   // A restored backup or external user action invalidates stale history.
+   fingerOverrideHistories.delete(key);
+   notify('История правок изменилась — проверь ноты и повтори действие.');
+   if(selectedNote?.noteId)selectNote(selectedNote,{keepGroup:true});
+   return false;
+  }
  }
  const work={...(state.fingerOverrides?.[key]||{})};
- if(value===null)delete work[step.id];
- else work[step.id]={finger:value.finger,hand:value.hand};
+ for(const change of changes){
+  if(change.value===null)delete work[change.id];
+  else work[change.id]={finger:change.value.finger,hand:change.value.hand};
+ }
  const next={...state.fingerOverrides};
- if(Object.keys(work).length)next[key]=work;
- else delete next[key];
+ if(Object.keys(work).length)next[key]=work;else delete next[key];
  let validated;
  try{
   validated=fingerOverrideValidate(next,{strict:true});
-  // Atomic order: write the validated candidate before changing the
-  // in-memory override map or undo/redo stacks. Storage failures preserve all.
+  // All-or-nothing even for large selections: no state/undo mutation until
+  // the complete prospective snapshot is validated and actually persisted.
   localStorage.setItem(STORE,JSON.stringify({...state,fingerOverrides:validated}));
  }catch(err){notify('Не удалось сохранить аппликатуру: '+err.message);return false}
  state.fingerOverrides=validated;
@@ -80,10 +112,27 @@ function fingerOverrideCommit(note,choice,{action='edit'}={}){
  fingerOverrideHistories.set(key,transition.history);
  while(fingerOverrideHistories.size>12)
   fingerOverrideHistories.delete(fingerOverrideHistories.keys().next().value);
- renderCanvas();if(selectedNote?.noteId)selectNote(selectedNote);
+ renderCanvas();if(selectedNote?.noteId)selectNote(selectedNote,{keepGroup:true});
  if(current?.id)void libraryCoverageStore(current,current.id)
   .catch(e=>console.warn('Coverage after correction failed',e));
  return true;
+}
+function fingerOverrideCommitGroup(ids,{finger,hand,reset=false}={}){
+ if(!fingerSelectionAvailable())return false;
+ if(!reset&&finger===undefined&&hand===undefined)return false;
+ const sources=new Map(fingerSelectionOrdered().map(e=>[e.id,e.note]));
+ const key=fingerGuideWorkKey(),work=state.fingerOverrides?.[key]||{},entries=[];
+ for(const id of ids){
+  const source=sources.get(id);if(!source)return false;
+  const before=work[id]??null;
+  const after=reset?null:fingerBulkChoice(source,before,{finger,hand});
+  if(after===undefined)return false;
+  if(!fingerHistorySame(before,after))entries.push({id,before,after});
+ }
+ if(!entries.length){notify('Для выбранных нот ничего не изменилось');return false}
+ const success=fingerOverrideCommit(null,null,{action:'batch',batch:entries});
+ if(success)notify('Аппликатура обновлена: '+entries.length+' нот · одно действие отмены');
+ return success;
 }
 // ===== FG-00: opt-in visual guidance over the EXISTING Piano Roll keyboard =====
 // These are hand-entered teaching fixtures. No arbitrary MIDI is fingered here.
@@ -448,7 +497,8 @@ function renderCanvas(){
    if(nw>=13&&nh>15){c.fillStyle='#ffb18b';c.fillRect(x+2,y+nh-6,Math.max(0,nw-4),3);}
   }
   if(Number.isInteger(n.sourcePitch)&&n.sourcePitch!==n.pitch){c.strokeStyle='#ffffffb8';c.lineWidth=1.1;c.stroke();}
-  if(selectedNote===n){c.strokeStyle='#fff';c.lineWidth=1.5;c.setLineDash([3,3]);c.stroke();c.setLineDash([]);}
+  if(fingerSelectedIds.has(n.noteId)){c.strokeStyle='#f8e183';c.lineWidth=2.8;c.stroke();}
+   else if(selectedNote===n){c.strokeStyle='#fff';c.lineWidth=1.5;c.setLineDash([3,3]);c.stroke();c.setLineDash([]);}
   c.restore();
   if(state.labels&&nw>=24&&nh>18){c.fillStyle=audible?'#062439':'#171d25';c.font='bold 10px system-ui';c.textAlign='center';c.fillText(nameOf(n.pitch),k.center,y+13);c.textAlign='left';}
   hitboxes.push({x,y,w:nw,h:nh,n});
@@ -491,6 +541,13 @@ function renderCanvas(){
  }
  c.strokeStyle='#e5997f';c.lineWidth=2;c.beginPath();c.moveTo(0,strikeY);c.lineTo(w,strikeY);c.stroke();
  drawFingerGuidance(c,geom,keyY,keyboardH,handsAllowed,handTail);
+ if(fingerSelectionPointer?.dragging){
+  const p=fingerSelectionPointer;
+  const x=Math.min(p.x,p.endX),y=Math.min(p.y,p.endY);
+  c.fillStyle='rgba(245,221,115,.14)';c.fillRect(x,y,Math.abs(p.endX-p.x),Math.abs(p.endY-p.y));
+  c.strokeStyle='#f8e183';c.lineWidth=1.5;c.setLineDash([5,4]);
+  c.strokeRect(x,y,Math.abs(p.endX-p.x),Math.abs(p.endY-p.y));c.setLineDash([]);
+ }
 }
 function noteHit(e){const box=roll.getBoundingClientRect(),x=e.clientX-box.left,y=e.clientY-box.top;return hitboxes.slice().reverse().find(b=>x>=b.x&&x<=b.x+b.w&&y>=b.y&&y<=b.y+b.h)?.n||null;}
 function virtualKeyAt(e){
@@ -502,6 +559,47 @@ function virtualKeyAt(e){
  const natural=pianoGeom.whites.find(k=>x>=k.x&&x<k.x+k.w);
  return natural?.pitch??null;
 }
+// Selection gestures only in the NOTE AREA; the keyboard below remains a
+// sounding virtual MIDI instrument. Capture on canvas avoids losing drag.
+function rollSelectPoint(e){
+ const box=roll.getBoundingClientRect();
+ return {x:e.clientX-box.left,y:e.clientY-box.top};
+}
+roll.addEventListener('pointerdown',e=>{
+ if(e.button!==0||!fingerSelectionAvailable()||state.scoreView!=='roll'||fingerSelectionPointer)return;
+ const p=rollSelectPoint(e);if(p.y>=keyboardTop)return;
+ e.preventDefault();roll.focus({preventScroll:true});roll.setPointerCapture(e.pointerId);
+ fingerSelectionPointer={id:e.pointerId,x:p.x,y:p.y,endX:p.x,endY:p.y,
+  toggle:e.ctrlKey||e.metaKey,shift:e.shiftKey,dragging:false};
+});
+roll.addEventListener('pointermove',e=>{
+ const d=fingerSelectionPointer;if(!d||d.id!==e.pointerId)return;
+ const p=rollSelectPoint(e);d.endX=p.x;d.endY=Math.max(0,Math.min(keyboardTop,p.y));
+ if(!d.dragging&&Math.hypot(d.endX-d.x,d.endY-d.y)>=5)d.dragging=true;
+ if(d.dragging)renderCanvas();
+});
+function finishFingerSelection(e){
+ const d=fingerSelectionPointer;if(!d||d.id!==e.pointerId)return;
+ fingerSelectionPointer=null;
+ if(e.type!=='pointerup'){renderCanvas();return}
+ const order=fingerSelectionOrdered(),validIds=new Set(order.map(n=>n.id));
+ if(d.dragging){
+  const picked=fingerSelectRectangle(hitboxes,{x1:d.x,y1:d.y,x2:d.endX,y2:d.endY},{ids:validIds});
+  const next=d.toggle||d.shift?[...fingerSelectedIds,...picked]:picked;
+  fingerSelectionSet([...new Set(next)],picked[picked.length-1]||fingerSelectionAnchor);
+ }else{
+  const hit=hitboxes.slice().reverse().find(b=>d.endX>=b.x&&d.endX<=b.x+b.w&&
+   d.endY>=b.y&&d.endY<=b.y+b.h)?.n;
+  if(hit&&validIds.has(hit.noteId)){
+   const next=fingerSelectUpdate(order,fingerSelectedIds,hit.noteId,fingerSelectionAnchor,
+    {shift:d.shift,toggle:d.toggle});
+   fingerSelectionSet(next.selected,next.anchor);
+  }else if(!d.toggle&&!d.shift)fingerSelectionSet([]);
+ }
+}
+roll.addEventListener('pointerup',finishFingerSelection);
+roll.addEventListener('pointercancel',finishFingerSelection);
+roll.addEventListener('lostpointercapture',finishFingerSelection);
 let virtualPointer=null;
 roll.addEventListener('pointerdown',e=>{
  if(e.button!==0||virtualPointer!==null)return;
@@ -520,12 +618,54 @@ function endVirtualPointer(e){if(!virtualPointer||e.pointerId!==virtualPointer.i
 roll.addEventListener('pointerup',endVirtualPointer);
 roll.addEventListener('pointercancel',endVirtualPointer);
 roll.addEventListener('lostpointercapture',endVirtualPointer);
-function selectNote(n){selectedNote=n;if(!n){$('selection').innerHTML='<strong>Ничего не выбрано</strong><p>Щёлкни цветную ноту на Piano Roll.</p>';return}$('selection').replaceChildren();const head=document.createElement('strong'),desc=document.createElement('p');head.textContent=nameOf(n.pitch)+' · MIDI '+n.pitch+(Number.isInteger(n.sourcePitch)&&n.sourcePitch!==n.pitch?' · из '+nameOf(n.sourcePitch):'');desc.textContent='Дорожка: '+(current.tracks[n.track]?.name||n.track)+' | Позиция: '+n.start.toFixed(2)+' с | Длительность: '+n.duration.toFixed(2)+' с | Velocity: '+n.velocity;$('selection').append(head,desc);const review=reviewForNote(n);if(review){const p=document.createElement('p');p.className='small';p.textContent=review.miss?'Разбор: пропущена':review.hit?'Разбор: сыграна'+(review.timingMs!=null?' · отклонение '+Math.round(review.timingMs)+' мс':'')+(review.holdRatio!=null?' · удержание '+Math.round(review.holdRatio*100)+'%':'')+(review.chordSpreadMs!=null?' · разброс аккорда '+Math.round(review.chordSpreadMs)+' мс':''):'Разбор: нет данных о нажатии';$('selection').append(p)}if(!state.right){state.right=true;applyPanels()}switchRightTab('practice');fingerOverrideRenderEditor(n);}
+function selectNote(n,{keepGroup=false}={}){
+ if(!keepGroup){
+  fingerSelectedIds=new Set(fingerSelectionAvailable()&&n?.noteId?[n.noteId]:[]);
+  fingerSelectionAnchor=n?.noteId||null;
+ }
+ selectedNote=n;if(!n){$('selection').innerHTML='<strong>Ничего не выбрано</strong><p>Щёлкни цветную ноту на Piano Roll.</p>';return}$('selection').replaceChildren();const head=document.createElement('strong'),desc=document.createElement('p');head.textContent=nameOf(n.pitch)+' · MIDI '+n.pitch+(Number.isInteger(n.sourcePitch)&&n.sourcePitch!==n.pitch?' · из '+nameOf(n.sourcePitch):'');desc.textContent='Дорожка: '+(current.tracks[n.track]?.name||n.track)+' | Позиция: '+n.start.toFixed(2)+' с | Длительность: '+n.duration.toFixed(2)+' с | Velocity: '+n.velocity;$('selection').append(head,desc);const review=reviewForNote(n);if(review){const p=document.createElement('p');p.className='small';p.textContent=review.miss?'Разбор: пропущена':review.hit?'Разбор: сыграна'+(review.timingMs!=null?' · отклонение '+Math.round(review.timingMs)+' мс':'')+(review.holdRatio!=null?' · удержание '+Math.round(review.holdRatio*100)+'%':'')+(review.chordSpreadMs!=null?' · разброс аккорда '+Math.round(review.chordSpreadMs)+' мс':''):'Разбор: нет данных о нажатии';$('selection').append(p)}if(!state.right){state.right=true;applyPanels()}switchRightTab('practice');fingerOverrideRenderEditor(n);renderCanvas();}
 function fingerOverrideRenderEditor(n){
  if(!n||!current||current.format!=='MusicXML'||state.adaptMode!=='original'||!n.noteId||
   !fingerGuideWorkKey())return;
  const original=current.tracks.flatMap(t=>t.notes).find(x=>x.noteId===n.noteId);
  if(!original||original.pitch!==n.pitch)return;
+ // Group inspector supports independent hand-only or finger-only edits.
+ // Never assign finger 1 by default to an unannotated score note.
+ if(fingerSelectedIds.size>1){
+  const ids=[...fingerSelectedIds];
+  const editor=document.createElement('section');editor.className='fingerCorrection fingerCorrectionGroup';
+  const title=document.createElement('strong');title.textContent='Аппликатура: выбрано '+ids.length+' нот';
+  const help=document.createElement('p');help.className='small';
+  help.textContent='Ctrl+A — все · Ctrl+клик — добавить/убрать · Shift+клик — диапазон · протянуть рамку — выбрать область. Массовое изменение руки сохраняет каждый существующий палец.';
+  const controls=document.createElement('div');controls.className='fingerCorrectionControls';
+  const finger=document.createElement('select');finger.setAttribute('aria-label','Массовое назначение пальца');
+  const defaultFinger=document.createElement('option');defaultFinger.value='keep';defaultFinger.textContent='Палец: не менять';finger.append(defaultFinger);
+  for(let i=1;i<=5;i++){const option=document.createElement('option');option.value=String(i);option.textContent='Палец '+i+' всем';finger.append(option)}
+  const hand=document.createElement('select');hand.setAttribute('aria-label','Массовое назначение руки');
+  for(const [value,label] of [['keep','Рука: не менять'],['RH','Правая рука всем'],['LH','Левая рука всем'],['null','Рука неизвестна']]){
+   const option=document.createElement('option');option.value=value;option.textContent=label;hand.append(option);
+  }
+  const save=document.createElement('button');save.className='btn tiny';save.textContent='Применить ко всем';
+  save.onclick=()=>{
+   if(finger.value==='keep'&&hand.value==='keep'){notify('Выбери палец или руку для изменения');return}
+   fingerOverrideCommitGroup(ids,{finger:finger.value==='keep'?undefined:Number(finger.value),
+    hand:hand.value==='keep'?undefined:hand.value==='null'?null:hand.value});
+  };
+  const reset=document.createElement('button');reset.className='btn tiny ghost';
+  reset.textContent='Вернуть автора для выбранных';
+  reset.disabled=!ids.some(id=>state.fingerOverrides?.[fingerGuideWorkKey()]?.[id]);
+  reset.onclick=()=>fingerOverrideCommitGroup(ids,{reset:true});
+  const history=fingerOverrideHistoryCurrent();
+  const undo=document.createElement('button');undo.className='btn tiny ghost';undo.textContent='Отменить правку';
+  undo.disabled=!history.past.length;undo.onclick=()=>fingerOverrideCommit(null,null,{action:'undo'});
+  const redo=document.createElement('button');redo.className='btn tiny ghost';redo.textContent='Повторить правку';
+  redo.disabled=!history.future.length;redo.onclick=()=>fingerOverrideCommit(null,null,{action:'redo'});
+  const status=document.createElement('p');status.className='small fingerCorrectionHistory';
+  status.textContent='История: '+history.past.length+' ↶ · '+history.future.length+' ↷ · массовая операция = 1 шаг';
+  controls.append(finger,hand,save,reset,undo,redo);
+  editor.append(title,help,controls,status);$('selection').append(editor);
+  return;
+ }
  const saved=state.fingerOverrides?.[fingerGuideWorkKey()]?.[n.noteId]||null;
  const editor=document.createElement('section');editor.className='fingerCorrection';
  const title=document.createElement('strong');title.textContent='Аппликатура этой ноты';

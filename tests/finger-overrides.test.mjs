@@ -45,7 +45,7 @@ test('FG-03C2A hostile backup corrections are rejected before any commit',()=>{
 });
 test('FG-03C2A excess entries fail closed and legacy corrupt cache drops bad entries',()=>{
  const key=fingerOverrideWorkKey(song);
- const work=Object.fromEntries(Array.from({length:501},(_,i)=>['xml:P1:0:0:'+(i+1),{finger:1,hand:'RH'}]));
+ const work=Object.fromEntries(Array.from({length:30001},(_,i)=>['xml:P1:0:0:'+(i+1),{finger:1,hand:'RH'}]));
  assert.throws(()=>fingerOverrideValidate({[key]:work},{strict:true}),/Некоррект/);
  assert.equal(Object.keys(fingerOverrideValidate({[key]:work})).length,0);
  assert.equal(Object.keys(fingerOverrideValidate(null)).length,0);
