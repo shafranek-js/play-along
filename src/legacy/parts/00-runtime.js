@@ -26,7 +26,7 @@ function settingValidated(key,value){
   const [min,max]=SETTING_NUMBERS[key];
   return typeof value==='number'&&Number.isFinite(value)&&value>=min&&value<=max
    &&(!['track','fingerLookaheadMs'].includes(key)||Number.isInteger(value))&&
-   (key!=='fingerLookaheadMs'||value%50===0)?value:undefined;
+   (key!=='fingerLookaheadMs'||[500,600,750,900,1000].includes(value))?value:undefined;
  }
  if(SETTING_BOOLS.has(key))return typeof value==='boolean'?value:undefined;
  if(Object.hasOwn(SETTING_STRINGS,key))
