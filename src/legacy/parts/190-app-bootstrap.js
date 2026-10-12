@@ -73,7 +73,8 @@ function setupLibrarySectionOrganizer(){
   down.textContent='↓';down.title='Переместить «'+heading+'» ниже';
   down.setAttribute('aria-label',down.title);down.onclick=()=>move(section,1);
   header.append(drag,toggle,up,down);
-  section.insertBefore(header,body);section.append(body);
+  // Both are NEW children; insertBefore requires the reference to exist.
+  section.append(header,body);
   section.classList.add('librarySortableSection');
   section.setAttribute('aria-labelledby',toggle.id);
   container.append(section);toggleNodes.set(id,toggle);
