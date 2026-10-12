@@ -1,11 +1,11 @@
-# Play Along — Piano Practice App (v0.10.40)
+# Play Along — Piano Practice App (v0.10.41)
 
 Play Along is an independently hosted browser piano practice application with Web MIDI, Piano Roll, OpenSheetMusicDisplay (OSMD), MusicXML/MXL and MIDI import, optional online music catalogs, and Wait/Tempo/Listen practice modes.
 
 **Live site:** https://shafranek-js.github.io/play-along/
 
 
-## Current status — v0.10.40
+## Current status — v0.10.41
 
 **Finger Guidance in the published player:** Optional Off / Numbers / 2D Hands / Ghost modes use the **14 original transparent PNG images supplied by the project owner** (seven poses for each hand). Guidance targets the **next note to be played**, not a key that is already sounding. In **Wait**, it stays on an unfinished group and removes already accepted chord keys; after a complete chord it advances to the next target.
 
@@ -52,6 +52,9 @@ Open **http://localhost:4173/**. For browser MIDI permission on an external host
 | npm run benchmark:fingering:repertoire | Reproduce FG-02G on five pinned, checksum-verified licensed musical excerpts (requires network) |
 | npm run benchmark:fingering:contextual | Compare FG-02H with FG-02G, including author-anchor acceptance and movement warnings |
 | npm run benchmark:fingering:heldout | Reproduce FG-02E locked, 34-case educational scale evaluation |
+| `npm run research:fingering:polyphony-source` | FG-02J metadata-only external polyphonic fingering source qualification (requires network, noncommercial research scope) |
+| `npm run research:fingering:polyphony-align` | Compare 11 source-fingered PianoVAM records to corresponding MIDI-derived TSV note events at a pinned dataset commit; explicit mismatch report (noncommercial research only) |
+| `npm run benchmark:fingering:independent-polyphony` | Compare FG-02I on only *fully source-annotated same-hand chord/overlap islands*, excluding incomplete partial-ground-truth source groups; noncommercial research only |
 
 
 ## Deployment and third-party components
@@ -302,3 +305,22 @@ In retrospective comparison with the **same five FG-02G excerpts**, unannotated 
 - **No change in the player interface:** all 14 original owner-supplied PNG hand poses and anticipatory next-note hints still use the existing MusicXML/demo assignments. Experimental generated fingering remains **OFF**.
 
 [Technical scope, test evidence and limitations](docs/FG-02I-POLYPHONIC-SCORE-ROUTING.md). A separate expert-adjudicated, genuinely unseen polyphonic score study and a review of inter-segment motion are required before an opt-in learner feature.
+
+## FG-02J: independent polyphonic source qualification (v0.10.41)
+
+FG-02I's chord/held-voice router passes technical tests, but the five previous Piano Protege teaching excerpts have **no intra-hand chord islands**. They do not demonstrate independent musical accuracy for actual polyphony.
+
+FG-02J identifies a *candidate* independent resource: [PianoVAM v1.1](https://huggingface.co/datasets/PianoVAM/PianoVAM_v1), which describes real piano performances with source annotations and separately reported manually annotated fingering. **Its license is CC BY-NC-SA 4.0 (noncommercial, attribution and share-alike)**, distinct from the previous CC BY-SA teaching corpus. No source audio/video, hand data or fingering annotations are copied into Play Along.
+
+A new research-only discovery script inspects source metadata, verifies revision and license, checks for a real `Fingering_GT` directory, and examines the schema of at most one small source file. **Initial CI confirmed 11 small ground-truth TSV files containing `onset`, `key_offset`, `frame_offset`, `note`, `velocity`, `hand`, and `finger`.** The separate pinned source-alignment probe checks that each annotated event matches its corresponding original MIDI-derived TSV event without copying source rows into the report. Source schema discovery is not sufficient to claim musical correctness. Crucially, normal `onset/key_offset/frame_offset/note/velocity` TSV labels are **not a fingering source**. Exact RH/LH and 1..5 finger alignment to the original MIDI note events must be independently demonstrated before any percentage agreement or polyphonic "accuracy" can be calculated.
+
+**First verified external evidence:** 11 source files contain 1,800 finger-labelled events, all of which match the original MIDI-derived TSV by onset, physical key release, frame offset, pitch and velocity. The full performances contain 32,525 source notes: therefore coverage is only **5.53%**, not 100%. `hand` uses `L/R` and `finger` uses `1–5`. New FG-02J scoring checks **entire transitive held-key overlap components** against the original source; any component with missing finger labels is excluded and counted. The research report publishes aggregate counts and source SHA-256 only, never performer notes or raw finger records. Any measured chord agreement is agreement with this source's manual labels, **not independent pianist-certified teaching quality**.
+
+`npm test` checks fail-closed license/revision/file-availability and note-coverage gates. Run `npm run research:fingering:polyphony-source` to produce a structured qualification report, archived in PR CI. Discovery is **not** a score-level validation, does not improve the FG-02I algorithm or the five-piece 87/148 baseline, and does not license commercial use.
+
+
+**First independent real-polyphony measurement (FG-02J):** at the pinned PianoVAM revision, 11 manually annotated recordings provide **1,800 / 32,525** ground-truth note events (**5.53%** source coverage), and all 1,800 GT events match the original MIDI-derived TSV events exactly. After discarding any held-key component that contains an unannotated note, the new research benchmark identified **242 fully annotated same-hand overlapping-note islands (1,467 notes)**. The unchanged FG-02I research router returned proposals for **1,210/1,467 (82.48%)** eligible notes and matched the source labels on **644/1,467 (43.90%)**, or 53.22% of accepted proposals. It rejected 22/242 chord islands. Fully source-pinned evaluation accepted **543/1,467** notes (**37.01%**); 104 islands were rejected without overriding a single written finger. All 22 unannotated refusals were `NO_VALID_PATH`. The 104 source-pinned island refusals were `AUTHOR_PHYSICAL_CONFLICT`; the independent audit registered **148 modeled stretch violations**, **16 modeled held-finger-order crossings** and **11 concurrent finger reuses** (these are individual violations, not 175 distinct rejected islands). These findings require biomechanical and score-alignment review; they do **not** establish that human performers used impossible fingers. These numbers are measured on actual independent-source performances but represent agreement with the source's manual labels, **not** expert-adjudicated tutoring accuracy. See [FG-02J research report](docs/FG-02J-INDEPENDENT-POLYPHONY-EVIDENCE.md).
+
+**Release decision: automatic learner-facing fingering remains NO-GO**, irrespective of source discovery status. The original 14 PNG hand images, authoritative MusicXML finger notation and next-key preview are unchanged.
+
+[FG-02J source, methodology, licensing and next steps](docs/FG-02J-INDEPENDENT-POLYPHONY-EVIDENCE.md).
