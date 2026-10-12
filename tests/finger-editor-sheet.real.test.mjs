@@ -74,6 +74,10 @@ try{
  await page.locator('#fingerEditorZoom').selectOption('120');
  await page.locator('#fingerEditorScroller').evaluate(el=>{el.scrollLeft=el.scrollWidth-el.clientWidth});
  await page.waitForFunction(()=>window.__scoreTest.editor.scroll>100);
+ // Canvas paints only on the next animation frame after a scroll event;
+ // never assert its viewport hitboxes from a stale pre-scroll frame.
+ await page.waitForFunction(id=>window.__scoreTest.editor.boxes.some(b=>b.id===id),
+  original.notes[63].id,{timeout:6000});
  const last=await page.evaluate(()=>window.__scoreTest.editor);
  assert.ok(last.boxes.some(b=>b.id===original.notes[63].id),
   'The end of the full score must be accessible after horizontal scrolling');
