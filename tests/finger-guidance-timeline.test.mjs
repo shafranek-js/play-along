@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {fingerGuidanceTimeline,fingerGuidanceGhostWindow} from '../src/core/finger-guidance-timeline.mjs';
+import {fingerGuidanceTimeline,fingerGuidanceGhostWindow,fingerGuidanceHandsCross,fingerGuidanceMotionPlan} from '../src/core/finger-guidance-timeline.mjs';
 const note=(pitch,start,finger=null,extra={})=>({pitch,start,duration:.25,hand:'RH',
  finger,source:finger==null?null:'musicxml',track:0,...extra});
 
@@ -97,4 +97,54 @@ test('FG-03B missing/invalid timing or configuration fails closed',()=>{
  assert.equal(fingerGuidanceGhostWindow({nextOnset:.5,now:0,mode:'unknown'}).visible,false);
  assert.equal(fingerGuidanceGhostWindow({nextOnset:.5,now:0,loop:{enabled:true,start:2,end:1}}).visible,false);
  assert.equal(fingerGuidanceGhostWindow({nextOnset:.5,now:0,mode:'listen',speedPercent:0}).visible,false);
+});
+
+const pose=(x,width=80,unit=20)=>({x,width,unit});
+
+test('FG-03B2 Ghost translation uses deterministic smoothstep without moving fixed key targets',()=>{
+ const source=pose(40,100),target=pose(220,90),cfg={from:source,to:target,canvasWidth:500,leadMs:750,playing:true};
+ const start=fingerGuidanceMotionPlan({...cfg,remainingMs:750});
+ const middle=fingerGuidanceMotionPlan({...cfg,remainingMs:375});
+ const end=fingerGuidanceMotionPlan({...cfg,remainingMs:0});
+ assert.equal(start.kind,'moving');assert.equal(middle.kind,'moving');assert.equal(end.kind,'moving');
+ assert.equal(start.x,45);assert.equal(middle.x,132.5);assert.equal(end.x,220);
+ assert.equal(start.progress,0);assert.equal(middle.progress,.5);assert.equal(end.progress,1);
+ assert.equal(middle.targetCenter,265);
+ assert.deepEqual(source,pose(40,100));assert.deepEqual(target,pose(220,90));
+});
+test('FG-03B2 pause/seek do not retain stale interpolated hand x',()=>{
+ const cfg={from:pose(60),to:pose(260),remainingMs:375,leadMs:750,canvasWidth:600};
+ const motion=fingerGuidanceMotionPlan({...cfg,playing:true});
+ const pause=fingerGuidanceMotionPlan({...cfg,playing:false});
+ const seek=fingerGuidanceMotionPlan({...cfg,remainingMs:125,playing:true});
+ assert.ok(motion.x>60&&motion.x<260);
+ assert.deepEqual({kind:pause.kind,x:pause.x},{kind:'static',x:260});
+ assert.ok(seek.x>motion.x);
+ assert.deepEqual(fingerGuidanceMotionPlan({...cfg,playing:true}),motion);
+});
+test('FG-03B2 the pair of hands cannot visually interpolate through a crossing',()=>{
+ const cross=fingerGuidanceHandsCross(pose(20),pose(240),pose(230),pose(30));
+ assert.equal(cross,true);
+ assert.equal(fingerGuidanceMotionPlan({from:pose(20),to:pose(230),
+  canvasWidth:600,remainingMs:250,leadMs:750,crossing:cross}).kind,'markers');
+ assert.equal(fingerGuidanceHandsCross(pose(20),pose(260),pose(80),pose(320)),false);
+ assert.equal(fingerGuidanceHandsCross(null,pose(260),pose(80),pose(320)),false);
+ assert.equal(fingerGuidanceHandsCross(pose(20),pose(260),pose(240),pose(260)),true,
+  'Nearly coincident hands must not be represented as a safe 2D movement');
+});
+test('FG-03B2 unclipped repositioning refuses misleading translations outside visible piano range',()=>{
+ assert.equal(fingerGuidanceMotionPlan({from:pose(50),to:pose(450),canvasWidth:500,
+  remainingMs:250,leadMs:750}).kind,'markers');
+ assert.equal(fingerGuidanceMotionPlan({from:pose(-200),to:pose(200),canvasWidth:500,
+  remainingMs:250,leadMs:750}).kind,'static');
+ assert.equal(fingerGuidanceMotionPlan({from:null,to:pose(200),canvasWidth:500,
+  remainingMs:250,leadMs:750}).kind,'static');
+});
+test('FG-03B2 only genuine shifts become moving hands; other targets remain anchored badges',()=>{
+ assert.equal(fingerGuidanceMotionPlan({from:pose(200),to:pose(220),
+  canvasWidth:500,remainingMs:250,leadMs:750}).kind,'markers');
+ for(const cfg of [{remainingMs:-1},{remainingMs:800},{leadMs:0},{canvasWidth:0},{to:null}]){
+  assert.equal(fingerGuidanceMotionPlan({from:pose(20),to:pose(220),
+   canvasWidth:500,remainingMs:250,leadMs:750,...cfg}).kind,'markers');
+ }
 });
