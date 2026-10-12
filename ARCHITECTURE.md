@@ -1,6 +1,6 @@
 # Play Along — architecture and development plan
 
-**Current version:** v0.10.48 (FG-03C2A review branch; only merged changes deploy to production). The production GitHub Pages site is rebuilt and tested automatically from `main`.
+**Current version:** v0.10.49 (library UX and coverage review branch; only merged changes deploy to production). The production GitHub Pages site is rebuilt and tested automatically from `main`.
 
 ## Current implementation
 
@@ -60,3 +60,8 @@ License and provenance restrictions for online catalogs and bundled assets remai
 ## Normalized bar-grid module — v0.10.16
 
 `src/core/music-bars.mjs` defines the canonical, DOM-independent measure-span and bar-start model in quarter-note coordinates. XML reading remains in the legacy adapters; those adapters normalize each score measure to `{beats,beatType,occupied,implicit}` descriptors. The same pure implementation is used for multi-part downbeats, per-part fallback and OSMD bar navigation. The source is directly importable by Node and embedded once in the existing browser bundle.
+## Library v0.10.49 — source fidelity and movable sections
+
+Library results are assembled from saved IndexedDB workIndex metadata, connected-folder file descriptors and public catalog descriptors. Public/unopened scores are **not** inspected on listing and must display **unknown**, never a fabricated "no fingering" verdict. Lightweight `fingeringCoverage` counters are written to `workIndex` after real score parsing; the binary `works` store remains unchanged. Existing v3 works progressively backfill missing metadata, and manual canonical note overrides update counters. Only author/explicit-user finger markings count as score coverage, not FG-02 research proposals. Strict `librarySections` state validation prevents malformed order/closure maps in backups.
+
+The five library panels are moved as live DOM nodes (not recreated) under the single `#librarySections` sortable stack. A compact accessible accordion heading provides DnD, move buttons, keyboard alternative and validated persisted ordering. The dedicated Library screen deliberately uses a single column to honor arbitrary ordering of **Catalog itself**; search remains outside the rearrangeable stack, and the catalog has a bounded scroll. [Detailed contract](docs/LIBRARY-COVERAGE-AND-LAYOUT.md).

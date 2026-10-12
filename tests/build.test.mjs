@@ -13,7 +13,7 @@ const html=read('dist/index.html');
 const css=read('dist/assets/app.css');
 const manifest=JSON.parse(read('scripts/manifest.json'));
 const featureSource=manifest.features.map(name=>read('src/legacy/parts/'+name)).join('');
-const musicPrelude=['music-time.mjs','music-bars.mjs','finger-guidance-timeline.mjs','musicxml-note-identity.mjs','finger-overrides.mjs'].map(f=>read('src/core/'+f).replace(/^export /gm,'')).join('\n');
+const musicPrelude=['music-time.mjs','music-bars.mjs','finger-guidance-timeline.mjs','musicxml-note-identity.mjs','finger-overrides.mjs','fingering-coverage.mjs','library-section-layout.mjs'].map(f=>read('src/core/'+f).replace(/^export /gm,'')).join('\n');
 
 test('all feature parts form exactly one valid JavaScript bundle',()=>{
  assert.equal(manifest.features.length,21);

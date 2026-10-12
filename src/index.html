@@ -26,14 +26,16 @@
   <div class="sidebody">
     <div class="panelSection"><input class="search" id="librarySearch" placeholder="Поиск: название, композитор, жанр…" aria-label="Поиск в библиотеке">
     <div class="libv8-filters"><select id="librarySourceSelect" aria-label="Источник"><option value="all">Все источники</option><option value="saved">Моя коллекция</option><option value="folder">Подключённая папка</option><option value="demo">Демо</option><option value="repertoire">Public Domain MIDI</option><option value="mutopia">Mutopia</option><option value="musetrainer">MuseTrainer · MusicXML</option><option value="asap">ASAP · Piano</option><option value="openscore">OpenScore GitHub</option></select><select id="librarySort" aria-label="Сортировка"><option value="source">По источнику</option><option value="title">По названию</option><option value="author">По композитору</option><option value="difficulty">По сложности</option></select></div>
+    <div class="libv8-fingering"><label for="libraryFingeringSelect">Аппликатура</label><select id="libraryFingeringSelect" aria-label="Фильтр по аппликатуре"><option value="all">Любая</option><option value="full">Есть · все ноты</option><option value="partial">Частично</option><option value="none">Нет</option><option value="unknown">Не проверено</option></select></div>
+    <p id="libraryFingeringProgress" class="small" aria-live="polite"></p>
     <label class="libv8-switch"><input type="checkbox" id="libraryFavoritesOnly"> ★ Только избранное</label><p id="libV8Counts" class="small" style="margin:7px 0"></p>
     </div>
-    <div class="panelSection"><div class="sectionLabel">Каталог произведений</div><div class="list" id="songList"></div></div>
-    <div class="panelSection"><div class="sectionLabel">Моя коллекция</div>
-      <label class="fileUpload">＋ Импорт MIDI · MusicXML · MXL · MuseScore<input id="importMusicInput" type="file" accept=".mid,.midi,.musicxml,.xml,.mxl,.mscx,.mscz" multiple></label><div class="panelSection"><div class="sectionLabel">Резервная копия</div><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn tiny ghost" type="button" id="backupExport">↓ Экспорт библиотеки и настроек</button><button class="btn tiny ghost" type="button" id="backupImport">↑ Восстановить копию</button></div><input type="file" id="backupFile" accept=".json,application/json" style="display:none"><p class="small">Файл содержит локальные мелодии, историю тренировок и настройки. Храни его в безопасном месте.</p></div>
+    <div class="panelSection" data-library-section="catalog"><div class="sectionLabel">Каталог произведений</div><div class="list" id="songList"></div></div>
+    <div class="panelSection" data-library-section="collection"><div class="sectionLabel">Моя коллекция</div>
+      <label class="fileUpload">＋ Импорт MIDI · MusicXML · MXL · MuseScore<input id="importMusicInput" type="file" accept=".mid,.midi,.musicxml,.xml,.mxl,.mscx,.mscz" multiple></label><div class="panelSection" data-library-section="backup"><div class="sectionLabel">Резервная копия</div><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn tiny ghost" type="button" id="backupExport">↓ Экспорт библиотеки и настроек</button><button class="btn tiny ghost" type="button" id="backupImport">↑ Восстановить копию</button></div><input type="file" id="backupFile" accept=".json,application/json" style="display:none"><p class="small">Файл содержит локальные мелодии, историю тренировок и настройки. Храни его в безопасном месте.</p></div>
       <p class="small">Импортированные произведения сохраняются в браузере (IndexedDB). Личные файлы не загружаются на наш сервер. Можно открывать их повторно, пока хранилище браузера не очищено.</p>
     </div>
-    <div class="panelSection"><div class="sectionLabel">Подключённая папка</div>
+    <div class="panelSection" data-library-section="folder"><div class="sectionLabel">Подключённая папка</div>
       <div class="librarySource"><p id="folderStatus">Папка пока не подключена. Найдём MIDI, MusicXML, MXL и MuseScore во всех папках и подпапках, сохраним пути файлов.</p>
       <button class="btn tiny primary" id="browseFolder" disabled aria-label="Просмотреть файлы подключённой папки">📂 Просмотреть файлы</button>
       <button class="btn tiny" id="chooseFolder">▣ Подключить папку</button>
@@ -41,7 +43,7 @@
       <button class="btn tiny ghost" id="refreshFolder">↻ Обновить индекс</button>
       <div id="folderListing" class="small" style="margin-top:10px"></div></div>
     </div>
-    <div class="panelSection"><div class="sectionLabel">Онлайн-библиотеки</div>
+    <div class="panelSection" data-library-section="online"><div class="sectionLabel">Онлайн-библиотеки</div>
       <div class="librarySource"><strong style="font-size:12px">100 MIDI · Mutopia · MuseTrainer · ASAP · OpenScore</strong>
        <p>Mutopia: официальный GitHub-индекс основных партитур и ссылки на каталог опубликованных MIDI. У найденных через GitHub записей MIDI и лицензия проверяются при открытии; прямой импорт зависит от CORS сайта Mutopia.</p>
        <button class="btn tiny ghost" id="filterRepertoire">♪ Показать 100 MIDI</button>

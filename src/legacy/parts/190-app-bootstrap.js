@@ -1,3 +1,141 @@
+// User-configurable left library sections. Keep existing controls and their
+// listeners attached while moving DOM nodes; never rewrite their innerHTML.
+function setupLibrarySectionOrganizer(){
+ const sidebody=$('leftPanel').querySelector('.sidebody');
+ const keys=LIBRARY_SECTION_IDS;
+ const nodes=new Map(keys.map(id=>[id,sidebody.querySelector('[data-library-section="'+id+'"]')]));
+ if([...nodes.values()].some(node=>!node))throw Error('Missing reorderable library section');
+ // Legacy Library v0.8 makes two panes during module 110 initialization:
+ // it places Catalog inside .libResults and all other panels in .libControls.
+ // Flatten those wrappers BEFORE exposing arbitrary above/below ordering.
+ // Move real DOM nodes (never clone buttons/files, keeping their handlers).
+ const legacyControls=sidebody.querySelector(':scope > .libControls');
+ const legacyResults=sidebody.querySelector(':scope > .libResults');
+ const search=legacyControls?.querySelector(':scope > .panelSection')||
+  sidebody.querySelector(':scope > .panelSection');
+ if(!search)throw Error('Missing library search and filter controls');
+ sidebody.prepend(search);
+ const container=document.createElement('div');
+ container.id='librarySections';container.className='librarySections';
+ container.setAttribute('aria-label','Настраиваемые разделы библиотеки');
+ search.insertAdjacentElement('afterend',container);
+ const prefs=librarySectionLayoutNormalize(state.librarySections);
+ state.librarySections=prefs;
+ const toggleNodes=new Map();
+ const updateMoveButtons=()=>{
+  const sections=[...container.children];
+  for(let i=0;i<sections.length;i++){
+   sections[i].querySelector('.libraryMoveUp').disabled=i===0;
+   sections[i].querySelector('.libraryMoveDown').disabled=i===sections.length-1;
+  }
+ };
+ const storeLayout=()=>{
+  state.librarySections={order:[...container.children].map(el=>el.dataset.librarySection),
+   collapsed:{...state.librarySections.collapsed}};
+  updateMoveButtons();
+  persist();
+ };
+ const move=(section,direction)=>{
+  const siblings=[...container.children],index=siblings.indexOf(section),swap=siblings[index+direction];
+  if(!swap)return;
+  if(direction<0)container.insertBefore(section,swap);
+  else container.insertBefore(swap,section);
+  storeLayout();section.querySelector('.libraryDragHandle').focus();
+ };
+ for(const id of prefs.order){
+  const section=nodes.get(id),label=section.querySelector(':scope > .sectionLabel');
+  const heading=(label?.textContent||id).trim();
+  const body=document.createElement('div');
+  body.className='librarySectionBody';body.id='librarySectionBody-'+id;
+  while(section.firstChild)body.append(section.firstChild);
+  const header=document.createElement('div');header.className='librarySectionHeader';
+  const drag=document.createElement('button');drag.type='button';
+  drag.className='libraryDragHandle';drag.textContent='⠿';drag.draggable=false;
+  drag.setAttribute('aria-label','Перетащить раздел '+heading);
+  drag.title='Перетащите для изменения порядка; Alt + ↑/↓ — с клавиатуры';
+  drag.addEventListener('keydown',e=>{
+   if(!e.altKey||!['ArrowUp','ArrowDown'].includes(e.key))return;
+   e.preventDefault();move(section,e.key==='ArrowUp'?-1:1);
+  });
+  const toggle=document.createElement('button');toggle.type='button';
+  toggle.className='librarySectionToggle';toggle.id='librarySectionToggle-'+id;
+  toggle.setAttribute('aria-controls',body.id);
+  const chevron=document.createElement('span');chevron.className='libraryChevron';chevron.setAttribute('aria-hidden','true');
+  const name=document.createElement('span');name.textContent=heading;
+  toggle.append(chevron,name);
+  const setOpen=open=>{
+   body.hidden=!open;
+   toggle.setAttribute('aria-expanded',String(open));
+   chevron.textContent=open?'▾':'▸';
+   section.classList.toggle('isCollapsed',!open);
+  };
+  setOpen(!prefs.collapsed[id]);
+  toggle.onclick=()=>{
+   const open=toggle.getAttribute('aria-expanded')!=='true';
+   setOpen(open);
+   state.librarySections.collapsed[id]=!open;
+   persist();
+  };
+  const up=document.createElement('button');up.type='button';up.className='libraryMoveUp';
+  up.textContent='↑';up.title='Переместить «'+heading+'» выше';
+  up.setAttribute('aria-label',up.title);up.onclick=()=>move(section,-1);
+  const down=document.createElement('button');down.type='button';down.className='libraryMoveDown';
+  down.textContent='↓';down.title='Переместить «'+heading+'» ниже';
+  down.setAttribute('aria-label',down.title);down.onclick=()=>move(section,1);
+  header.append(drag,toggle,up,down);
+  // Both are NEW children; insertBefore requires the reference to exist.
+  section.append(header,body);
+  section.classList.add('librarySortableSection');
+  section.setAttribute('aria-labelledby',toggle.id);
+  container.append(section);toggleNodes.set(id,toggle);
+  // Pointer capture (instead of native HTML DragEvent) supports both mouse
+  // and touch, without Chromium button-draggable inconsistencies.
+  drag.addEventListener('pointerdown',e=>{
+   if(e.button!==0||pointerDrag)return;
+   pointerDrag={section,id,pointerId:e.pointerId,startY:e.clientY,started:false};
+   drag.setPointerCapture(e.pointerId);e.preventDefault();
+  });
+  drag.addEventListener('pointermove',e=>{
+   if(!pointerDrag||pointerDrag.id!==id||pointerDrag.pointerId!==e.pointerId)return;
+   if(!pointerDrag.started&&Math.abs(e.clientY-pointerDrag.startY)<7)return;
+   pointerDrag.started=true;container.classList.add('dragInProgress');section.classList.add('isDragging');
+   for(const node of container.children)node.classList.remove('dropBefore','dropAfter');
+   const target=document.elementFromPoint(e.clientX,e.clientY)?.closest('[data-library-section]');
+   if(target&&target.parentNode===container&&target!==section){
+    const after=e.clientY>target.getBoundingClientRect().top+target.offsetHeight/2;
+    target.classList.add(after?'dropAfter':'dropBefore');
+   }
+  });
+  drag.addEventListener('pointerup',e=>{
+   if(!pointerDrag||pointerDrag.id!==id||pointerDrag.pointerId!==e.pointerId)return;
+   if(pointerDrag.started){
+    const target=document.elementFromPoint(e.clientX,e.clientY)?.closest('[data-library-section]');
+    if(target&&target.parentNode===container&&target!==section){
+     const after=e.clientY>target.getBoundingClientRect().top+target.offsetHeight/2;
+     container.insertBefore(section,after?target.nextSibling:target);
+     storeLayout();
+    }
+   }
+   resetPointerDrag();
+  });
+  drag.addEventListener('pointercancel',()=>{if(pointerDrag?.id===id)resetPointerDrag()});
+ }
+ let pointerDrag=null;
+ function resetPointerDrag(){
+  pointerDrag=null;container.classList.remove('dragInProgress');
+  for(const node of container.children)node.classList.remove('isDragging','dropBefore','dropAfter');
+ }
+ // Preserve untouched Quick Actions and any future legacy nodes outside
+ // the movable five, then discard the no-longer-used two-pane wrappers.
+ for(const wrapper of [legacyControls,legacyResults]){
+  if(!wrapper)continue;
+  for(const child of [...wrapper.children])sidebody.append(child);
+  wrapper.remove();
+ }
+ updateMoveButtons();
+}
+setupLibrarySectionOrganizer();
+
 // Promote MusicXML/MXL index entries to searchable rows, after base folder scanning.
 const baseScanFolder=scanFolder;
 scanFolder=async function(handle){await baseScanFolder(handle);folderIndex.forEach(x=>x.song={id:'folder:'+x.path,title:libraryTitleFile(x.name),author:'📁 '+x.path,type:'folder',folderPath:x.path,tracks:[]});renderFolderListing();if(folderRevealOnScan)browseConnectedFolder();else renderLibrary()};
@@ -10,7 +148,7 @@ chooseFolder=async function(){folderRevealOnScan=true;try{await baseChooseFolder
 const baseRefreshFolder=refreshFolder;
 refreshFolder=async function(){folderRevealOnScan=true;try{await baseRefreshFolder()}finally{folderRevealOnScan=false}};
 // Inputs are bound once after the base event wiring has set its own listeners.
-$('librarySourceSelect').onchange=libraryFolderFiltersChanged;$('librarySort').onchange=libraryFolderFiltersChanged;$('libraryFavoritesOnly').onchange=libraryFolderFiltersChanged;$('browseFolder').onclick=browseConnectedFolder;
+$('librarySourceSelect').onchange=libraryFolderFiltersChanged;$('libraryFingeringSelect').onchange=libraryFolderFiltersChanged;$('librarySort').onchange=libraryFolderFiltersChanged;$('libraryFavoritesOnly').onchange=libraryFolderFiltersChanged;$('browseFolder').onclick=browseConnectedFolder;
 $('importMusicInput').onchange=async e=>{await importMusicFiles(e.target.files);e.target.value=''};
 backupSetup();
 $('openMutopia').onclick=()=>window.open('https://www.mutopiaproject.org/advsearch.html','_blank','noopener,noreferrer');

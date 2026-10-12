@@ -39,7 +39,55 @@ function libraryDB(){return new Promise((resolve,reject)=>{
  q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error);q.onblocked=()=>reject(Error('Закрой другие вкладки Play Along, чтобы обновить хранилище'));
 })}
 async function libraryTransaction(store,mode,run){const db=await libraryDB();try{return await new Promise((resolve,reject)=>{let t=db.transaction(store,mode),q=run(t.objectStore(store));t.oncomplete=()=>resolve(q?.result);t.onerror=()=>reject(t.error);t.onabort=()=>reject(t.error??new Error('Операция с библиотекой отменена'));})}finally{db.close()}}
-async function loadLibraryIndex(){try{collectionIndex=await libraryTransaction('workIndex','readonly',s=>s.getAll())||[];favoritesV08=new Set(await libraryTransaction('prefs','readonly',s=>s.get('favorites'))||[]);collectionReady=true;renderLibrary();}catch(e){collectionReady=true;setLibraryStatus('Браузер не разрешил доступ к библиотеке: '+e.message);renderLibrary()}}
+// Coverage is lightweight INDEX metadata. Never store the entire XML or the
+// MIDI events in workIndex. An unread legacy score is UNKNOWN, not "none".
+let libraryCoverageBackfillStarted=false,libraryCoverageChecked=0,libraryCoveragePending=0;
+async function libraryCoverageStore(song,id){
+ const found=collectionIndex.find(e=>e.id===id);
+ if(!found||!song)return;
+ const key=fingerOverrideWorkKey(song);
+ const coverage=fingeringCoverageFromSong(song,key?state.fingerOverrides?.[key]:null);
+ if(!fingeringCoverageValid(coverage))return;
+ const currentMeta=collectionIndex.find(e=>e.id===id);
+ if(!currentMeta||JSON.stringify(currentMeta.fingeringCoverage)===JSON.stringify(coverage))return;
+ const updated={...currentMeta,fingeringCoverage:coverage};
+ await libraryTransaction('workIndex','readwrite',store=>store.put(updated));
+ collectionIndex=collectionIndex.map(e=>e.id===id?updated:e);
+ renderLibrary();
+}
+async function libraryCoverageBackfill(){
+ if(libraryCoverageBackfillStarted)return;
+ libraryCoverageBackfillStarted=true;
+ const missing=collectionIndex.filter(e=>!fingeringCoverageValid(e.fingeringCoverage)&&
+  !['mid','midi'].includes(String(e.format||'').toLowerCase()));
+ libraryCoveragePending=missing.length;libraryCoverageChecked=0;
+ renderLibrary();
+ for(const entry of missing){
+  try{
+   // An untrusted/malformed score must not be indexed as having no fingering.
+   const binary=await libraryReadBinary(entry.id);
+   const song=await songFromBuffer(binary.name,binary.data);
+   await libraryCoverageStore(song,entry.id);
+  }catch(err){
+   console.warn('Fingering metadata not indexed for',entry.id,err?.message||err);
+  }
+  libraryCoverageChecked++;
+  // Cede the browser main thread between files; no remote catalog is fetched.
+  if(libraryCoverageChecked%3===0||libraryCoverageChecked===missing.length)renderLibrary();
+  await new Promise(resolve=>setTimeout(resolve,0));
+ }
+ libraryCoveragePending=0;renderLibrary();
+}
+async function loadLibraryIndex(){
+ try{
+  collectionIndex=await libraryTransaction('workIndex','readonly',s=>s.getAll())||[];
+  favoritesV08=new Set(await libraryTransaction('prefs','readonly',s=>s.get('favorites'))||[]);
+  collectionReady=true;renderLibrary();
+  // Existing v3 records have no coverage; upgrade metadata progressively.
+  // Keep the same IndexedDB schema and never rewrite original binary works.
+  void libraryCoverageBackfill().catch(e=>console.warn('Coverage scan failed',e));
+ }catch(e){collectionReady=true;setLibraryStatus('Браузер не разрешил доступ к библиотеке: '+e.message);renderLibrary()}
+}
 // Binary payloads are requested only when a user opens an individual piece.
 async function libraryReadBinary(id){
  const entry=await libraryTransaction('works','readonly',store=>store.get(id));
@@ -103,9 +151,12 @@ async function librarySaveBinary(name,buffer,origin,details={}){
  const id=await libraryContentId(buffer);
  const existing=await libraryTransaction('works','readonly',store=>store.get(id));
  if(existing&&libraryBuffersEqual(existing.data,buffer))return existing;
+ const coverage=current?.id===id?fingeringCoverageFromSong(current,
+  (fingerOverrideWorkKey(current)?state.fingerOverrides?.[fingerOverrideWorkKey(current)]:null)):null;
  const entry={id,name,title:details.title||name.replace(/\.(mid|midi|xml|musicxml|mxl|mscx|mscz)$/i,''),
   author:details.author||'Пользовательская коллекция',format:name.toLowerCase().split('.').pop(),
-  origin,license:details.license||'',page:details.page||'',added:Date.now(),data:buffer};
+  origin,license:details.license||'',page:details.page||'',added:Date.now(),
+  ...(fingeringCoverageValid(coverage)?{fingeringCoverage:coverage}:{}),data:buffer};
  await libraryWriteWork(entry);
  collectionIndex=collectionIndex.filter(e=>e.id!==id).concat(libraryEntryMetadata(entry));
  renderLibrary();return entry;

@@ -8,9 +8,31 @@
  await onlineOpen(e);
 }
 const onlineLookup=new Map(REMOTE_INDEX.map(e=>[e.id,e]));
+// A remote catalog entry or unread local score has UNKNOWN coverage. Never
+// claim "no fingering" merely because catalog metadata omits its annotations.
+function libraryCoverageFor(e,category){
+ if(category==='demo')return fingeringCoverageFromSong(e);
+ if(category==='saved'){
+  if(fingeringCoverageValid(e.fingeringCoverage))return e.fingeringCoverage;
+  // MIDI has no native author finger numbers; do not invent a 0/1 total.
+  if(['mid','midi'].includes(String(e.format||'').toLowerCase()))return null;
+ }
+ return null;
+}
+function libraryCoverageStatusFor(e,category){
+ if(category==='saved'&&['mid','midi'].includes(String(e.format||'').toLowerCase()))return 'none';
+ return fingeringCoverageStatus(libraryCoverageFor(e,category));
+}
 function libRow(e,category){
  const wrap=document.createElement('div');wrap.className='libv8-row'+(state.selected===e.id?' current':'');
- const main=document.createElement('button');main.className='libv8-main';const title=document.createElement('strong');title.textContent=e.title;const sub=document.createElement('span');sub.textContent=[e.author,e.source||category,e.instrument||'',e.license].filter(Boolean).join(' · ');main.append(title,sub);if(e.sourcePath){const d=document.createElement('small');d.className='mutopiaDetail';d.textContent=e.verifiedSource?'Mutopia FTP · опубликованный MIDI/ZIP найден':'GitHub Mutopia · опубликованный MIDI ещё не найден · '+e.sourcePath;main.append(d)}
+ const main=document.createElement('button');main.className='libv8-main';const title=document.createElement('strong');title.textContent=e.title;const sub=document.createElement('span');sub.textContent=[e.author,e.source||category,e.instrument||'',e.license].filter(Boolean).join(' · ');main.append(title,sub);
+ const coverage=libraryCoverageFor(e,category),coverageState=libraryCoverageStatusFor(e,category);
+ const finger=document.createElement('span');finger.className='libFingerStatus';finger.dataset.state=coverageState;
+ finger.textContent='Аппликатура: '+(coverageState==='none'&&!coverage?'Нет · MIDI':fingeringCoverageLabel(coverage));
+ if(category==='demo')finger.title='Учебная демо-аппликатура, не авторская MusicXML';
+ else if(coverageState==='unknown')finger.title='Файл ещё не проверен на наличие номеров пальцев; онлайн-каталоги не скачиваются автоматически';
+ else finger.title='Покрытие номерами пальцев 1–5; наличие правой/левой руки учитывается отдельно';
+ main.append(finger);if(e.sourcePath){const d=document.createElement('small');d.className='mutopiaDetail';d.textContent=e.verifiedSource?'Mutopia FTP · опубликованный MIDI/ZIP найден':'GitHub Mutopia · опубликованный MIDI ещё не найден · '+e.sourcePath;main.append(d)}
  main.onclick=async()=>{try{if(category==='demo')return loadSong(e),state.page='practice',applyPage();if(category==='folder')return await loadFolderSong(e.folderPath);if(category==='saved'){const found=collectionIndex.find(x=>x.id===e.id);const binary=await libraryReadBinary(found.id);return await libraryLoadFile(binary.name,binary.data,binary.id,{title:binary.title,author:binary.author,type:'saved'})}if(category==='online')return await (e.sourcePath?mutopiaOpen(e):onlineOpen(e))}catch(err){libraryError(err)}};
  const controls=document.createElement('div');controls.className='libv8-controls';
  const star=document.createElement('button');star.title='Добавить/удалить из избранного';star.textContent=favoritesV08.has(e.id)?'★':'☆';star.setAttribute('aria-label','Избранное');star.onclick=()=>libraryFavorite(e.id);controls.append(star);
@@ -29,13 +51,18 @@ function libRow(e,category){
  wrap.append(main,controls);return wrap;
 }
 function renderLibraryV08(){
- const query=$('librarySearch').value.toLocaleLowerCase().trim(),sel=$('librarySourceSelect').value,onlyFavorites=$('libraryFavoritesOnly').checked;
+ const query=$('librarySearch').value.toLocaleLowerCase().trim(),sel=$('librarySourceSelect').value,onlyFavorites=$('libraryFavoritesOnly').checked,
+  fingerFilter=$('libraryFingeringSelect').value;
  const demo=demoSongs.map(s=>({...s,source:'Демо'})),folder=folderIndex.map(x=>x.song).filter(Boolean).map(e=>({...e,source:'Папка'})),saved=collectionIndex.map(e=>({...e,source:'Моя коллекция'}));
  const combos=[...demo.map(e=>({e,category:'demo'})),...folder.map(e=>({e,category:'folder'})),...saved.map(e=>({e,category:'saved'})),...REMOTE_INDEX.map(e=>({e,category:'online'})),...mutopiaLive.map(e=>({e,category:'online'})),...museTrainerLive.map(e=>({e,category:'online'})),...asapLive.map(e=>({e,category:'online'}))];
  const mutopiaComposer=$('mutopiaComposer').value,mutopiaInstrument=$('mutopiaInstrument').value;
- const matches=combos.filter(({e,category})=>(sel==='all'||sel===category||(sel==='mutopia'&&e.source==='Mutopia')||(sel==='musetrainer'&&e.source==='MuseTrainer')||(sel==='asap'&&e.source==='ASAP Dataset')||(sel==='openscore'&&e.source==='OpenScore GitHub')||(sel==='repertoire'&&e.source==='Public Domain MIDI'))&&(!(sel==='mutopia'&&mutopiaComposer)||e.composerCode===mutopiaComposer||!e.sourcePath)&&(!(sel==='mutopia'&&mutopiaInstrument)||String(e.instrument||'').toLowerCase().includes(mutopiaInstrument))&&(!onlyFavorites||favoritesV08.has(e.id))&&(!query||[e.title,e.author,e.source,e.genre,e.license,e.instrument,e.composerCode,e.sourcePath].filter(Boolean).join(' ').toLocaleLowerCase().includes(query)));
+ const matches=combos.filter(({e,category})=>(sel==='all'||sel===category||(sel==='mutopia'&&e.source==='Mutopia')||(sel==='musetrainer'&&e.source==='MuseTrainer')||(sel==='asap'&&e.source==='ASAP Dataset')||(sel==='openscore'&&e.source==='OpenScore GitHub')||(sel==='repertoire'&&e.source==='Public Domain MIDI'))&&(!(sel==='mutopia'&&mutopiaComposer)||e.composerCode===mutopiaComposer||!e.sourcePath)&&(!(sel==='mutopia'&&mutopiaInstrument)||String(e.instrument||'').toLowerCase().includes(mutopiaInstrument))&&(!onlyFavorites||favoritesV08.has(e.id))&&(fingerFilter==='all'||libraryCoverageStatusFor(e,category)===fingerFilter)&&(!query||[e.title,e.author,e.source,e.genre,e.license,e.instrument,e.composerCode,e.sourcePath].filter(Boolean).join(' ').toLocaleLowerCase().includes(query)));
  matches.sort((a,b)=>{const mode=$('librarySort').value;return mode==='title'?a.e.title.localeCompare(b.e.title):mode==='author'?a.e.author.localeCompare(b.e.author): mode==='difficulty'?(a.e.level||9)-(b.e.level||9): (a.category==='saved'?-2:a.category==='folder'?-1:a.category==='demo'?0:1)-(b.category==='saved'?-2:b.category==='folder'?-1:b.category==='demo'?0:1)||a.e.title.localeCompare(b.e.title)});
  $('libraryCount').textContent=matches.length+' / '+combos.length;$('libV8Counts').textContent=collectionIndex.length+' сохранено · '+folderIndex.length+' в папке · '+(REMOTE_INDEX.length+mutopiaLive.length+museTrainerLive.length+asapLive.length)+' онлайн · '+favoritesV08.size+' избранных';
+ const progress=$('libraryFingeringProgress');
+ if(progress)progress.textContent=libraryCoveragePending&&libraryCoverageChecked<libraryCoveragePending
+  ?'Проверяю сохранённые партитуры: '+libraryCoverageChecked+' / '+libraryCoveragePending
+  :'Статус «Не проверено» означает, что содержимое ещё не прочитано.';
  const list=$('songList');list.replaceChildren();if(!matches.length){const empty=document.createElement('div');empty.className='empty';empty.textContent='Ничего не найдено. Попробуй другой источник или запрос.';list.append(empty)}
  // A page-sized window prevents giant source lists from blocking rendering.
  const pageSize=libraryPageLimit,limited=matches.slice(0,pageSize);for(const x of limited)list.append(libRow(x.e,x.category));

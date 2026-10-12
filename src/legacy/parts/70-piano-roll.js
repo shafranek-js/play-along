@@ -55,6 +55,7 @@ function fingerOverrideCommit(note,choice,{undo=false}={}){
  if(!undo)fingerOverrideUndo={key,id:note.noteId,before:previous?{...previous}:null};
  else fingerOverrideUndo=null;
  renderCanvas();if(selectedNote?.noteId===note.noteId)selectNote(selectedNote);
+ if(current?.id)void libraryCoverageStore(current,current.id).catch(e=>console.warn('Coverage after correction failed',e));
  return true;
 }
 // ===== FG-00: opt-in visual guidance over the EXISTING Piano Roll keyboard =====

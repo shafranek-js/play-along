@@ -1,6 +1,6 @@
 # Play Along — development roadmap: Finger Guidance and musical reliability
 
-**Decision date:** 2026-10-12. **Baseline:** v0.10.41 on main. **Implemented:** FG-03A / v0.10.42; FG-03B1 / v0.10.43; FG-03B2A / v0.10.44; FG-03B2B-1 / v0.10.46 (engineering QA); FG-03B2B-2 accepted by pianist per project-owner confirmation on 2026-10-12. FG-03C1 / v0.10.47 implemented; FG-03C2A / v0.10.48 implementation. This is a living engineering plan, not a promise that experimental fingers are safe for learners.
+**Decision date:** 2026-10-12. **Baseline:** v0.10.41 on main. **Implemented:** FG-03A / v0.10.42; FG-03B1 / v0.10.43; FG-03B2A / v0.10.44; FG-03B2B-1 / v0.10.46 (engineering QA); FG-03B2B-2 accepted by pianist per project-owner confirmation on 2026-10-12. FG-03C1 / v0.10.47 implemented; FG-03C2A / v0.10.48 implemented; library fingering coverage and movable UI / v0.10.49 implemented. This is a living engineering plan, not a promise that experimental fingers are safe for learners.
 
 ## Non-negotiable product principles
 
@@ -46,3 +46,9 @@
 ## Definition of done per stage
 
 Feature works in the existing Play Along build; regression suite and musical invariants remain green; failure states are explicit; README release history and this roadmap are updated; the developer documents what was and was **not** validated. Only a reviewed PR may merge to `main`.
+## Library v0.10.49 — companion UX milestone
+
+- **Delivered:** Show **Есть / Частично / Нет / Не проверено** per catalog row with exact percent for verified scores, provide the corresponding filter, preserve source-only authorship + explicitly corrected notes, background index existing saved files.
+- **Delivered:** Five independent collapsible, drag/keyboard/touch-reorderable library panels with persistent, backup-validated layout. Backup becomes a peer panel; search stays accessible outside the reorderable stack.
+- **Acceptance:** Node validation + Chromium filters, legacy index, finger edits and DnD/persistence; update README, CI and actual Pages release.
+- **Not enabled:** research-only automatic fingering, unrequested bulk fetching of online scores, or incorrectly treating unread scores as unannotated. [Technical protocol](LIBRARY-COVERAGE-AND-LAYOUT.md).
