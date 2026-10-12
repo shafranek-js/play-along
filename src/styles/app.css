@@ -64,5 +64,7 @@
 .fingerGuideControls{display:flex;align-items:center;gap:7px;min-width:0;flex-wrap:wrap}
 .fingerGuideControls label{font-size:11px;white-space:nowrap;font-weight:700;color:#b6c5d9}
 .fingerGuideControls select{max-width:190px;min-width:122px;border-radius:7px;border:1px solid #58647a;background:#222b3b;color:#e7f0ff;padding:5px 7px;font-size:11px}
+.fingerGuideControls #fingerGuideLookahead{min-width:84px;max-width:92px}
+.fingerGuideControls #fingerGuideLookahead:disabled{opacity:.5;cursor:not-allowed}
 .fingerGuideControls #fingerGuideStatus{font-size:10px;color:#b8c6da;max-width:210px;line-height:1.25}
 @media(max-width:660px){.keyboardInfo{flex-wrap:wrap;gap:5px}.fingerGuideControls{order:5;width:100%}.fingerGuideControls #fingerGuideStatus{max-width:none}}
