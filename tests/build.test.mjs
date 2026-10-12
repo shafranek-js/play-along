@@ -72,3 +72,14 @@ test('all 14 original user PNG hand poses are packaged with intact RGBA bytes',(
  }
  assert.equal(count,14);
 });
+
+
+test('README current version and release history match package.json',()=>{
+ const pkg=JSON.parse(read('package.json')),readme=read('README.md');
+ const title=readme.split(/\r?\n/,1)[0];
+ assert.equal(title,'# Play Along — Piano Practice App (v'+pkg.version+')');
+ const escaped=pkg.version.replace(/\./g,'\\.');
+ assert.match(readme,new RegExp('^## .+\\(v'+escaped+'\\)$','m'),
+  'A new version requires substantive release notes in README.md');
+ assert.match(readme,/Release documentation rule/);
+});
