@@ -51,8 +51,8 @@ function data(){
  const rows=[],records=[];
  for(let i=0;i<1276;i++){
   const split=i<962?'train':i<1099?'validation':'test';
-  const path=\`2008/fake-\${i}.midi\`;
-  rows.push([\`Composer \${i%31}\`,\`Piece \${i%45}\`,split,2008,path,\`2008/fake-\${i}.wav\`,1].join(','));
+  const path=`2008/fake-${i}.midi`;
+  rows.push([`Composer ${i%31}`,`Piece ${i%45}`,split,2008,path,`2008/fake-${i}.wav`,1].join(','));
   records.push({name:'maestro-v3.0.0/'+path,data:midi()});
  }
  return {csv:'canonical_composer,canonical_title,split,year,midi_filename,audio_filename,duration\n'+rows.join('\n')+'\n',records};
