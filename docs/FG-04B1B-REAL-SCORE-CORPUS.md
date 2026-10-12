@@ -44,6 +44,8 @@ Offline Node tests are included in `npm test`. PR CI runs both the actual pinned
 
 **FG-04B3a update:** A pure normalized-score-events ↔ reference-MIDI one-to-one matcher is available in [FG-04B3a](FG-04B3A-EVENT-ALIGNMENT.md), with exact temporal checks and conservative refusals. It has **not yet** been connected to an independently audited MusicXML parser for the 16 ASAP files; do not call the frozen source pairs semantically aligned until FG-04B3b.
 
+**FG-04B3b progress:** A conservative, independently implemented raw MusicXML 3.x notation-to-score-event adapter is now available; the [FG-04B3b real 16-score audit](FG-04B3B-ASAP-XML-MIDI-AUDIT.md) records both definitive matches and explicit unsupported/refusal reasons on the pinned ASAP pairs. Event matches use the original MIDI score tempo clock; source tempo, repeats/ornaments and finger correctness are not independently proven.
+
 ## Precise limits / next gate
 
 - **Paired source availability** does not establish exact MusicXML-to-MIDI note identity, ties, repeat unfolding or onset/release equality. These must be compared in a later independently validated, source-aware adapter before running FG-04B2 note alignment.
