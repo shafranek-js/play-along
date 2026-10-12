@@ -83,6 +83,17 @@
    <div class="fingerEditorTop">
     <div class="fingerEditorTopLine"><strong>✍ Редактор аппликатуры</strong><span id="fingerEditorCount" aria-live="polite">Ноты не выбраны</span><div class="fingerEditorSpacer"></div><label for="fingerEditorZoom">Масштаб времени</label><select id="fingerEditorZoom" aria-label="Масштаб временной шкалы"><option value="40">Мелкий</option><option value="72" selected>Средний</option><option value="120">Крупный</option><option value="200">Очень крупный</option></select></div>
     <div class="fingerEditorTopLine"><button id="fingerEditorAll" class="btn tiny">Выбрать все</button><button id="fingerEditorClear" class="btn tiny ghost">Снять выделение</button><label for="fingerEditorFinger">Палец</label><select id="fingerEditorFinger" aria-label="Палец для выбранных нот"><option value="keep">Не менять</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select><label for="fingerEditorHand">Рука</label><select id="fingerEditorHand" aria-label="Рука для выбранных нот"><option value="keep">Не менять</option><option value="RH">Правая</option><option value="LH">Левая</option><option value="null">Не определена</option></select><button id="fingerEditorApply" class="btn tiny primary">Применить</button><button id="fingerEditorReset" class="btn tiny ghost">Вернуть автора</button><button id="fingerEditorUndo" class="btn tiny ghost">↶ Отменить</button><button id="fingerEditorRedo" class="btn tiny ghost">↷ Повторить</button></div>
+    <details id="fingerResearchPanel" class="fingerResearchPanel"><summary>🔬 Сравнение внешней аппликатуры (исследование)</summary>
+     <p class="small">Загрузите результат MasterPiano или PianoPlayer для <strong>уже открытого исходного MusicXML</strong>. Сравнение выполняется локально, ничего не изменяет и не принимает алгоритмические пальцы автоматически.</p>
+     <div class="fingerResearchControls">
+       <label for="fingerResearchEngine">Генератор</label><select id="fingerResearchEngine" aria-label="Источник предложенной аппликатуры"><option value="MasterPiano">MasterPiano</option><option value="PianoPlayer">PianoPlayer</option><option value="PineappleMusicLab">PineappleMusicLab</option><option value="other">Другой / вручную</option></select>
+       <label for="fingerResearchFile">Размеченный XML/MXL</label><input type="file" id="fingerResearchFile" accept=".xml,.musicxml,.mxl" aria-label="Размеченный кандидатом MusicXML или MXL">
+       <button type="button" class="btn tiny" id="fingerResearchCompare">Проверить кандидата</button>
+       <button type="button" class="btn tiny ghost" id="fingerResearchExport" disabled>Экспорт отчёта JSON</button>
+     </div>
+     <p id="fingerResearchSummary" class="small" role="status" aria-live="polite">Нет загруженного предложения.</p>
+     <div id="fingerResearchDetails" class="small"></div>
+    </details>
     <div class="fingerEditorHelp">Прокрутка вправо — всё произведение · Ctrl+A — все · Shift+клик — диапазон · Ctrl+клик — произвольно · рамка мышью — область. <span class="fingerEditorLegend">RH правая · LH левая · <span class="fingerEditorAuthor">автор</span> · <span class="fingerEditorUser">правка пользователя</span> · ? без пальца</span></div>
    </div>
    <div class="fingerEditorScroller" id="fingerEditorScroller" tabindex="0" aria-label="Прокручиваемый список нот, выделение мышью">
