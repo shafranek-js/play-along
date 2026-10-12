@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {fingerGuidanceTimeline} from '../src/core/finger-guidance-timeline.mjs';
+import {fingerGuidanceTimeline,fingerGuidanceGhostWindow} from '../src/core/finger-guidance-timeline.mjs';
 const note=(pitch,start,finger=null,extra={})=>({pitch,start,duration:.25,hand:'RH',
  finger,source:finger==null?null:'musicxml',track:0,...extra});
 
@@ -53,4 +53,48 @@ test('FG-03A nonmusical values fail closed and do not crash or create phantom no
   note(60,0,1)]);
  assert.equal(result.length,1);
  assert.equal(result[0].notes[0].pitch,60);
+});
+
+test('FG-03B secondary ghost is hidden until the upcoming note enters the wall-clock lead window',()=>{
+ const options={nextOnset:2,now:1,leadMs:750,speedPercent:100,mode:'listen'};
+ const early=fingerGuidanceGhostWindow(options);
+ assert.deepEqual(early,{visible:false,remainingMs:1000,alpha:0});
+ const late=fingerGuidanceGhostWindow({...options,now:1.5});
+ assert.equal(late.visible,true);assert.equal(late.remainingMs,500);
+ assert.ok(late.alpha>.10&&late.alpha<.35);
+ const due=fingerGuidanceGhostWindow({...options,now:2});
+ assert.equal(due.visible,false,'No zero-time secondary position after the next note arrives');
+});
+test('FG-03B lookahead responds to playback tempo without altering score time',()=>{
+ const state={nextOnset:1,now:.2,leadMs:750,mode:'tempo'};
+ assert.equal(fingerGuidanceGhostWindow({...state,speedPercent:100}).visible,false);
+ assert.equal(fingerGuidanceGhostWindow({...state,speedPercent:150}).visible,true);
+ assert.equal(fingerGuidanceGhostWindow({...state,speedPercent:50}).visible,false);
+});
+test('FG-03B Wait never shows a second hand configuration before unfinished input',()=>{
+ for(const leadMs of [500,750,1000]){
+  const state=fingerGuidanceGhostWindow({nextOnset:.5,now:0,mode:'wait',leadMs});
+  assert.equal(state.visible,false);
+  assert.equal(state.remainingMs,null);
+ }
+});
+test('FG-03B loop wrap measures forward next-cycle time, not negative score delta',()=>{
+ const loop={enabled:true,start:2,end:4};
+ const near=fingerGuidanceGhostWindow({nextOnset:2.2,now:3.8,loop,mode:'listen',leadMs:500,speedPercent:100});
+ assert.equal(near.visible,true);
+ assert.equal(near.remainingMs,400);
+ const far=fingerGuidanceGhostWindow({nextOnset:2.2,now:3.1,loop,mode:'listen',leadMs:500,speedPercent:100});
+ assert.equal(far.visible,false);
+ assert.equal(far.remainingMs,1100);
+});
+test('FG-03B missing/invalid timing or configuration fails closed',()=>{
+ for(const nextOnset of [undefined,null,NaN,Infinity]){
+  assert.equal(fingerGuidanceGhostWindow({nextOnset,now:0}).visible,false);
+ }
+ for(const leadMs of [0,499,1001,NaN,750.5]){
+  assert.equal(fingerGuidanceGhostWindow({nextOnset:.5,now:0,leadMs}).visible,false);
+ }
+ assert.equal(fingerGuidanceGhostWindow({nextOnset:.5,now:0,mode:'unknown'}).visible,false);
+ assert.equal(fingerGuidanceGhostWindow({nextOnset:.5,now:0,loop:{enabled:true,start:2,end:1}}).visible,false);
+ assert.equal(fingerGuidanceGhostWindow({nextOnset:.5,now:0,mode:'listen',speedPercent:0}).visible,false);
 });
