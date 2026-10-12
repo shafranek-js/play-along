@@ -52,17 +52,17 @@ export function parseCsv(input){
   if(rows.length===0)throw Error('Empty metadata CSV');
   const header=rows.shift();
   if(new Set(header).size!==header.length)throw Error('Duplicate CSV headers');
-  for(const col of REQUIRED)if(!header.includes(col))throw Error(\`Missing MAESTRO column: \${col}\`);
+  for(const col of REQUIRED)if(!header.includes(col))throw Error(`Missing MAESTRO column: ${col}`);
   return rows.map((cells,i)=>{
-    if(cells.length!==header.length)throw Error(\`CSV row \${i+2}: expected \${header.length} columns, got \${cells.length}\`);
+    if(cells.length!==header.length)throw Error(`CSV row ${i+2}: expected ${header.length} columns, got ${cells.length}`);
     return Object.fromEntries(header.map((name,j)=>[name,cells[j]]));
   });
 }
 
 function cleanPath(value,label){
-  if(typeof value!=='string'||!value||value.length>500||value.includes('\\')||value.startsWith('/')||value.includes('\0')||value.includes(':'))throw Error(\`Unsafe \${label}\`);
+  if(typeof value!=='string'||!value||value.length>500||value.includes('\\')||value.startsWith('/')||value.includes('\0')||value.includes(':'))throw Error(`Unsafe ${label}`);
   const segments=value.split('/');
-  if(segments.some(s=>!s||s==='.'||s==='..'||s.startsWith('.'))||!/^[\x20-\x7e]+$/.test(value))throw Error(\`Unsafe \${label}\`);
+  if(segments.some(s=>!s||s==='.'||s==='..'||s.startsWith('.'))||!/^[\x20-\x7e]+$/.test(value))throw Error(`Unsafe ${label}`);
   return value;
 }
 
@@ -73,24 +73,24 @@ export function validateMetadata(rows,{strict=true}={}){
     const n=index+2;
     const composer=String(r.canonical_composer||'').trim();
     const title=String(r.canonical_title||'').trim();
-    if(!composer||!title)throw Error(\`CSV row \${n}: missing composer/title\`);
-    if(!ALLOWED_SPLITS.has(r.split))throw Error(\`CSV row \${n}: invalid split\`);
+    if(!composer||!title)throw Error(`CSV row ${n}: missing composer/title`);
+    if(!ALLOWED_SPLITS.has(r.split))throw Error(`CSV row ${n}: invalid split`);
     const midi=cleanPath(r.midi_filename,'midi_filename');
     cleanPath(r.audio_filename,'audio_filename');
-    if(!/\.midi?$/i.test(midi))throw Error(\`CSV row \${n}: not a MIDI path\`);
-    if(!/\.wav$/i.test(r.audio_filename))throw Error(\`CSV row \${n}: not a WAV path\`);
-    if(seen.has(midi))throw Error(\`CSV row \${n}: duplicate MIDI path\`);
+    if(!/\.midi?$/i.test(midi))throw Error(`CSV row ${n}: not a MIDI path`);
+    if(!/\.wav$/i.test(r.audio_filename))throw Error(`CSV row ${n}: not a WAV path`);
+    if(seen.has(midi))throw Error(`CSV row ${n}: duplicate MIDI path`);
     seen.add(midi);
     const year=Number(r.year),duration=Number(r.duration);
-    if(!/^\d{4}$/.test(String(r.year))||!Number.isInteger(year)||year<2000||year>2100)throw Error(\`CSV row \${n}: invalid year\`);
-    if(!Number.isFinite(duration)||duration<=0||duration>20000)throw Error(\`CSV row \${n}: invalid duration\`);
+    if(!/^\d{4}$/.test(String(r.year))||!Number.isInteger(year)||year<2000||year>2100)throw Error(`CSV row ${n}: invalid year`);
+    if(!Number.isFinite(duration)||duration<=0||duration>20000)throw Error(`CSV row ${n}: invalid duration`);
     counts[r.split]++;
     return {canonical_composer:composer,canonical_title:title,split:r.split,year,
       midi_filename:midi,duration};
   });
   if(strict){
-    if(normalized.length!==MAESTRO.expectedRows)throw Error(\`Expected \${MAESTRO.expectedRows} rows, got \${normalized.length}\`);
-    for(const split of Object.keys(counts))if(counts[split]!==MAESTRO.splitCounts[split])throw Error(\`Unexpected \${split} count: \${counts[split]}\`);
+    if(normalized.length!==MAESTRO.expectedRows)throw Error(`Expected ${MAESTRO.expectedRows} rows, got ${normalized.length}`);
+    for(const split of Object.keys(counts))if(counts[split]!==MAESTRO.splitCounts[split])throw Error(`Unexpected ${split} count: ${counts[split]}`);
   }
   return {rows:normalized,counts};
 }
@@ -102,7 +102,7 @@ export function selectQaCorpus(rows,quotas=DEFAULT_QUOTAS){
   for(const split of ['train','validation','test']){
     const source=rows.filter(row=>row.split===split).sort((a,b)=>a.duration-b.duration||a.midi_filename.localeCompare(b.midi_filename,'en'));
     const quota=quotas[split]??0;
-    if(!Number.isInteger(quota)||quota<0||source.length<quota)throw Error(\`Insufficient valid \${split} rows for quota \${quota}\`);
+    if(!Number.isInteger(quota)||quota<0||source.length<quota)throw Error(`Insufficient valid ${split} rows for quota ${quota}`);
     for(let i=0;i<quota;i++){
       const bucket=pattern[i%pattern.length];
       const start=Math.floor(source.length*bucket/4);
@@ -110,18 +110,18 @@ export function selectQaCorpus(rows,quotas=DEFAULT_QUOTAS){
       let pool=source.slice(start,end).filter(row=>!usedPaths.has(row.midi_filename));
       // Tiny fixture pools may have empty quartiles; full MAESTRO splits do not.
       if(!pool.length)pool=source.filter(row=>!usedPaths.has(row.midi_filename));
-      if(!pool.length)throw Error(\`No unused \${split} candidates for duration bucket \${bucket}\`);
+      if(!pool.length)throw Error(`No unused ${split} candidates for duration bucket ${bucket}`);
       const target=(bucket+0.5)/4;
       const rank=row=>{
         const comp=composers.get(row.canonical_composer)||0;
-        const title=titles.get(\`\${row.canonical_composer}\0\${row.canonical_title}\`)||0;
+        const title=titles.get(`${row.canonical_composer}\0${row.canonical_title}`)||0;
         const position=source.indexOf(row)/Math.max(1,source.length-1);
         return comp*10000+title*1000+Math.abs(position-target)*100;
       };
       pool.sort((a,b)=>rank(a)-rank(b)||a.midi_filename.localeCompare(b.midi_filename,'en'));
       const chosen=pool[0];usedPaths.add(chosen.midi_filename);
       composers.set(chosen.canonical_composer,(composers.get(chosen.canonical_composer)||0)+1);
-      const key=\`\${chosen.canonical_composer}\0\${chosen.canonical_title}\`;
+      const key=`${chosen.canonical_composer}\0${chosen.canonical_title}`;
       titles.set(key,(titles.get(key)||0)+1);
       selected.push({...chosen,selection_bucket:['shorter','lower_mid','upper_mid','longer'][bucket]});
     }
@@ -163,15 +163,15 @@ async function cli(argv){
   let archiveSha256Verified=false;
   if(zipPath){
     const got=await sha256File(zipPath);
-    if(got!==MAESTRO.zipSha256)throw Error(\`MAESTRO archive SHA256 mismatch: \${got}\`);
+    if(got!==MAESTRO.zipSha256)throw Error(`MAESTRO archive SHA256 mismatch: ${got}`);
     archiveSha256Verified=true;
   }
   const content=await readFile(csvPath,'utf8');
   const manifest=createManifest(content,{archiveSha256Verified});
   const json=JSON.stringify(manifest,null,2)+'\n';
-  if(outPath){await writeFile(outPath,json,'utf8');process.stdout.write(\`Wrote \${manifest.works.length} research records to \${outPath}\n\`)}
+  if(outPath){await writeFile(outPath,json,'utf8');process.stdout.write(`Wrote ${manifest.works.length} research records to ${outPath}\n`)}
   else process.stdout.write(json);
 }
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
-  cli(process.argv.slice(2)).catch(e=>{console.error(\`MAESTRO corpus error: \${e.message}\`);process.exitCode=1});
+  cli(process.argv.slice(2)).catch(e=>{console.error(`MAESTRO corpus error: ${e.message}`);process.exitCode=1});
 }
