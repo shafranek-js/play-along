@@ -15,7 +15,7 @@ export function fingeringCoverageFromSong(song,overrides=null){
  if(!usable.length)return null;
  const validated=overrides&&typeof overrides==='object'?overrides:null;
  let marked=0,hands=0,author=0,user=0;
- const isDemo=['demo-scale','demo-chords','demo-finger-duet'].includes(song?.id);
+ const isDemo=song?.id==='demo-finger-duet';
  for(const n of usable){
   const manual=n.noteId&&validated?.[n.noteId];
   const manualOk=manual&&Number.isInteger(manual.finger)&&manual.finger>=1&&manual.finger<=5&&
@@ -23,7 +23,7 @@ export function fingeringCoverageFromSong(song,overrides=null){
   const annotated=n.fingeringSource==='musicxml'&&Number.isInteger(n.finger)&&n.finger>=1&&n.finger<=5;
   if(manualOk){marked++;user++;if(manual.hand)hands++}
   else if(annotated){marked++;author++;if(n.hand==='RH'||n.hand==='LH')hands++}
-  else if(isDemo){marked++;if(song.id!=='demo-scale'||n.track===0)hands++}
+  else if(isDemo){marked++;hands++}
  }
  return {total:usable.length,marked,hands,author,user};
 }
