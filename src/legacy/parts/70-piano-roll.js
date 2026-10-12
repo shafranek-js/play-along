@@ -108,6 +108,7 @@ function fingerOverrideCommit(note,choice,{action='edit',batch=null}={}){
   localStorage.setItem(STORE,JSON.stringify({...state,fingerOverrides:validated}));
  }catch(err){notify('Не удалось сохранить аппликатуру: '+err.message);return false}
  state.fingerOverrides=validated;
+ scoreFingerCorrectionsChanged();
  fingerOverrideHistories.delete(key);
  fingerOverrideHistories.set(key,transition.history);
  while(fingerOverrideHistories.size>12)
