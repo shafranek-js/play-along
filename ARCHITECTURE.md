@@ -1,6 +1,6 @@
 # Play Along — architecture and development plan
 
-**Current version:** v0.10.43 (FG-03B1 review branch; only merged changes deploy to production). The production GitHub Pages site is rebuilt and tested automatically from `main`.
+**Current version:** v0.10.44 (FG-03B2A review branch; only merged changes deploy to production). The production GitHub Pages site is rebuilt and tested automatically from `main`.
 
 ## Current implementation
 
@@ -41,7 +41,7 @@ The evidence-gated feature roadmap is maintained in [docs/ROADMAP-FINGER-GUIDANC
 
 Research-only FG-02 automatic fingering stays **NO-GO for learner instruction**: independent PianoVAM results show 644 source-matching labels of 1,467 eligible notes (43.90%), with 82.48% proposal coverage and only 5.53% annotation coverage of original notes. This measures source agreement, not independently certified ergonomic technique. The source data is CC BY-NC-SA 4.0 and is not bundled into Play Along.
 
-FG-03B1 adds a pure, tempo-scaled, loop-aware `fingerGuidanceGhostWindow()` and a validated 500–1000 ms preparation preference (default 750 ms). It gates **only the secondary semitransparent preview**, not the actionable next unfinished note; Wait suppresses premature second-hand preview. Subsequent FG-03B2 requires visual/musician acceptance of continuous hand repositioning, crossings and viewport scaling. This is not automatic fingering. FG-03C addresses note identity, provenance and user edits; future experimental Worker predictions require independent pianist validation before learner-facing use.
+FG-03B1 adds a pure, tempo-scaled, loop-aware `fingerGuidanceGhostWindow()` and a validated 500–1000 ms preparation preference (default 750 ms). It gates **only the secondary semitransparent preview**, not the actionable next unfinished note; Wait suppresses premature second-hand preview. FG-03B2A now adds a pure smoothstep `fingerGuidanceMotionPlan()` on the **secondary PNG only**, and `fingerGuidanceHandsCross()` prevents visually simulating unverified crossed-hand paths. Fixed future piano-key badge geometry, no persisted movement state, and explicit clipped-image refusal are architecture invariants. Full FG-03B2B still requires independent musician review, 25/49/61/88-key screenshot acceptance and validated crossing/black-key biomechanics. This is not automatic fingering. FG-03C addresses note identity, provenance and user edits; future experimental Worker predictions require independent pianist validation before learner-facing use.
 
 ## Existing reliability and architecture milestones
 

@@ -87,6 +87,18 @@ window.__prototypeTest={get pianoGeometry(){return pianoGeom},get soundingKeys()
 window.__fingerGuideTest={
  get mode(){return state.fingerGuidanceMode},
  get lookaheadMs(){return state.fingerLookaheadMs},
+ get ghostMotion(){
+  const frame=fingerGuidanceFrame(fingerGuidanceSteps(),pos);
+  const ghostTime=fingerGuidanceGhostWindow({nextOnset:frame.next?.start,now:pos,
+   leadMs:state.fingerLookaheadMs,speedPercent:state.speed,mode:state.mode,loop});
+  if(state.fingerGuidanceMode!=='ghost'||!frame.current?.complete||
+   !frame.next?.complete||!ghostTime.visible||!pianoGeom)
+   return {visible:false,crossing:false,plans:null};
+  const motion=fingerGuidanceMotionState(frame.current,frame.next,pianoGeom,
+   keyboardBottom-keyboardTop,lastCanvasSize.h-keyboardBottom,ghostTime,isPlaying);
+  return {visible:true,crossing:motion.crossing,plans:motion.plans,
+   targets:Object.fromEntries(['LH','RH'].map(h=>[h,motion.pairs[h].to?.notes?.map(n=>({pitch:n.pitch,finger:n.finger}))||[]]))};
+ },
  get ghostWindow(){const next=fingerGuidanceFrame(fingerGuidanceSteps(),pos).next;
   return fingerGuidanceGhostWindow({nextOnset:next?.complete?next.start:null,now:pos,
    leadMs:state.fingerLookaheadMs,speedPercent:state.speed,mode:state.mode,loop})},

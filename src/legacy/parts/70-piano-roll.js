@@ -190,7 +190,7 @@ function fingerGuidanceSpritePlacement(notes,hand,geom,keyboardH,tail=0){
  const y=registrationY-tipY*height;
  return {x,y,width,height,error,unit,notes:items,hand,pose};
 }
-function drawFingerGuidanceHand(c,geom,keyY,keyboardH,group,hand,ghost=false,tail=0){
+function drawFingerGuidanceHand(c,geom,keyY,keyboardH,group,hand,ghost=false,tail=0,renderX=null){
  const placement=fingerGuidanceSpritePlacement(group,hand,geom,keyboardH,tail);
  if(!placement)return null;
  const entry=fingerGuidanceGetImage(hand,placement.pose);
@@ -199,11 +199,25 @@ function drawFingerGuidanceHand(c,geom,keyY,keyboardH,group,hand,ghost=false,tai
  c.beginPath();c.rect(0,keyY,lastCanvasSize.w,keyboardH+tail);c.clip();
  c.globalAlpha=typeof ghost==='number'?ghost:ghost?.25:.87;
  c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';
- c.drawImage(entry.image,placement.x,placement.y,placement.width,placement.height);
+ c.drawImage(entry.image,Number.isFinite(renderX)?renderX:placement.x,
+  placement.y,placement.width,placement.height);
  c.restore();
  return placement;
 }
 
+function fingerGuidanceMotionState(group,next,geom,keyboardH,handTail,ghostTime,playing){
+ const pairs=Object.fromEntries(['LH','RH'].map(hand=>[hand,{
+  from:fingerGuidanceSpritePlacement(group?.notes,hand,geom,keyboardH,handTail),
+  to:fingerGuidanceSpritePlacement(next?.notes,hand,geom,keyboardH,handTail)
+ }]));
+ const crossing=fingerGuidanceHandsCross(pairs.LH.from,pairs.RH.from,
+  pairs.LH.to,pairs.RH.to);
+ const plans=Object.fromEntries(['LH','RH'].map(hand=>[hand,
+  fingerGuidanceMotionPlan({from:pairs[hand].from,to:pairs[hand].to,
+   remainingMs:ghostTime.remainingMs,leadMs:state.fingerLookaheadMs,
+   canvasWidth:lastCanvasSize.w,playing,crossing})]));
+ return {crossing,pairs,plans};
+}
 function drawFingerGuidance(c,geom,keyY,keyboardH,handsAllowed,handTail=0){
  const status=$('fingerGuideStatus'),mode=state.fingerGuidanceMode,steps=mode==='off'?[]:fingerGuidanceSteps();
  const hasPreset=current&&['demo-scale','demo-chords','demo-finger-duet'].includes(current.id);
@@ -231,25 +245,34 @@ function drawFingerGuidance(c,geom,keyY,keyboardH,handsAllowed,handTail=0){
   leadMs:state.fingerLookaheadMs,speedPercent:state.speed,mode:state.mode,loop});
  // Static PNG is a teaching pose, not a frame-by-frame model of finger joints.
  if(mode==='ghost'&&next?.complete&&ghostTime.visible){
+  const motion=fingerGuidanceMotionState(group,next,geom,keyboardH,handTail,ghostTime,isPlaying);
   for(const hand of ['LH','RH']){
-   const a=fingerGuidanceSpritePlacement(group.notes,hand,geom,keyboardH,handTail);
-   const b=fingerGuidanceSpritePlacement(next.notes,hand,geom,keyboardH,handTail);
-   if(!b)continue;
-   if(!a||Math.abs((a.x+a.width*.5)-(b.x+b.width*.5))>b.unit*1.35){
-    drawFingerGuidanceHand(c,geom,keyY,keyboardH,next.notes,hand,ghostTime.alpha,handTail);
-    if(a){
-     c.save();c.strokeStyle=FINGER_GUIDANCE_PALETTE[hand].ink;c.globalAlpha=Math.min(.58,ghostTime.alpha+.15);
-     c.setLineDash([4,5]);c.lineWidth=2;c.beginPath();
-     const y=keyY+keyboardH*.88;
-     c.moveTo(a.x+a.width/2,y);c.quadraticCurveTo((a.x+a.width/2+b.x+b.width/2)/2,y-22,b.x+b.width/2,y);
-     c.stroke();c.restore();
+   const {from:fromPose,to:toPose}=motion.pairs[hand],plan=motion.plans[hand];
+   if(!toPose)continue;
+   if(plan.kind!=='markers'){
+    // The target PNG silhouette translates smoothly; it does NOT articulate
+    // fingers. Exact future key badges stay fixed at the *destination*.
+    if(fromPose&&plan.kind==='moving'){
+     c.save();c.strokeStyle=FINGER_GUIDANCE_PALETTE[hand].ink;
+     c.globalAlpha=Math.min(.55,ghostTime.alpha+.12);c.setLineDash([4,5]);
+     c.lineWidth=2;c.beginPath();
+     const y=keyY+keyboardH*.87;
+     const x0=plan.sourceCenter,x1=plan.targetCenter;
+     c.moveTo(x0,y);c.quadraticCurveTo((x0+x1)/2,y-20,x1,y);
+     c.stroke();c.setLineDash([]);
+     c.beginPath();c.arc(x1,y,3.5,0,2*Math.PI);c.stroke();c.restore();
     }
-   }else{
-    for(const n of next.notes.filter(n=>n.hand===hand)){
-     if(group.notes.some(z=>z.hand===hand&&z.pitch===n.pitch))continue;
-     const k=geom.byPitch.get(n.pitch);
-     if(k)drawFingerGuidanceBadge(c,keyY,keyboardH,k,n.finger,hand,{preview:true,previewAlpha:ghostTime.alpha});
-    }
+    drawFingerGuidanceHand(c,geom,keyY,keyboardH,next.notes,hand,
+     ghostTime.alpha,handTail,plan.x);
+   }
+   // Always anchor future targets to actual key centers, independent of
+   // the in-transit sprite. In a hand crossing or clipped range, this is
+   // the ONLY preview: never invent the physical route of either hand.
+   for(const n of next.notes.filter(n=>n.hand===hand)){
+    if(group.notes.some(z=>z.hand===hand&&z.pitch===n.pitch))continue;
+    const key=geom.byPitch.get(n.pitch);
+    if(key)drawFingerGuidanceBadge(c,keyY,keyboardH,key,n.finger,hand,
+     {preview:true,previewAlpha:ghostTime.alpha});
    }
   }
  }

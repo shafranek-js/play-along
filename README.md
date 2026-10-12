@@ -1,11 +1,11 @@
-# Play Along — Piano Practice App (v0.10.43)
+# Play Along — Piano Practice App (v0.10.44)
 
 Play Along is an independently hosted browser piano practice application with Web MIDI, Piano Roll, OpenSheetMusicDisplay (OSMD), MusicXML/MXL and MIDI import, optional online music catalogs, and Wait/Tempo/Listen practice modes.
 
 **Live site:** https://shafranek-js.github.io/play-along/
 
 
-## Current status — v0.10.43
+## Current status — v0.10.44
 
 **Finger Guidance in the published player:** Optional Off / Numbers / 2D Hands / Ghost modes use the **14 original transparent PNG images supplied by the project owner** (seven poses for each hand). Guidance targets the **next note to be played**, not a key that is already sounding. In **Wait**, it stays on an unfinished group and removes already accepted chord keys; after a complete chord it advances to the next target.
 
@@ -27,6 +27,8 @@ FG-02H flags **11 quick same-finger changes** requiring musician review. Preserv
 **FG-03A update:** Author-verified guidance now retains unannotated score onsets as explicit empty preview boundaries. The player no longer jumps from a still-unlabelled note to a later labelled one. A partially annotated chord displays individually confirmed **numeric** fingers rather than an unverified full hand silhouette. This adds no automatically predicted fingers. See the [updated roadmap](docs/ROADMAP-FINGER-GUIDANCE.md).
 
 **FG-03B1 update:** The **secondary** translucent Ghost hand now appears only within a configurable **500–1000 ms** wall-clock preparation window (default **750 ms**), adjusted for playback speed. Wait never presents a premature second-hand position; a wrapped Loop counts the next cycle forward. The actionable first/next pending hand hint remains available as before. No automatically generated fingers are presented to learners. See [the implementation note](docs/FG-03B1-LOOKAHEAD.md) and [roadmap](docs/ROADMAP-FINGER-GUIDANCE.md).
+
+**FG-03B2A update:** Ghost Hands now offers a stateless smooth translation of a **secondary verified future-hand PNG** toward its next source-authorized position. Actual next-key circles always stay fixed to piano geometry. A two-hand crossing, largely clipped sprite or ambiguous movement falls back to exact source finger-number markers, not a fabricated physical gesture. This does **not** animate finger joints or generate new fingering. See [technical details](docs/FG-03B2A-SAFE-MOTION.md).
 
 ### Release documentation rule
 
@@ -342,3 +344,13 @@ References: [updated development roadmap](docs/ROADMAP-FINGER-GUIDANCE.md), [FG-
 A second (preview-only) hand pose is now gated by the actual distance to its next onset, measured in **wall-clock milliseconds** after applying playback speed, with the selected 500 / 600 / 750 / 900 / 1000 ms preview window. The default is 750 ms. Ghost opacity increases as the next position approaches; known actionable finger numbers remain visually separate. The preview is disabled while **Wait** has an unfinished group and does not incorrectly treat a prior note from a Loop iteration as imminent. The setting persists in validated global browser preferences and is available only with **Руки + следующая позиция / Ghost** enabled. A source-incomplete next chord cannot receive a fully posed hand preview.
 
 **Verification:** Five new deterministic unit cases verify relative tempo, invalid inputs, Wait and Loop wrapping; real Chromium regression checks selected time, 150% speed, Wait, Loop and persistence across page reload. GitHub Actions runs build + Node + browser acceptance. **Not in scope:** image replacement, true articulation of physical fingers, computed source-agnostic fingering, learned-motion accuracy or continuous motion tweening. The original 14 owner-provided PNGs remain intact; any automatic finger selection remains a research-only NO-GO. See [FG-03B1 technical details](docs/FG-03B1-LOOKAHEAD.md) and the [updated roadmap](docs/ROADMAP-FINGER-GUIDANCE.md).
+
+## FG-03B2A: conservative Ghost repositioning (v0.10.44)
+
+Inside the v0.10.43 tempo-aware 500–1000 ms Ghost window, the additional semitransparent PNG may now move smoothly along the horizontal piano axis from the **current authored hand location** toward the **next authored hand location**. This is a time-driven cubic easing, computed from the existing key geometry in the live player; it is not a change to Web MIDI scoring and not an attempt to render articulated anatomy. Destination **finger-number badges remain on the correct future physical key** throughout the preview. Seek and Pause derive the image position directly from the current transport state, without persisted animation history.
+
+A detected **LH/RH crossing** or near-collision never interpolates two entire hand images through one another; only the verified destination key badges are shown. Very short shifts suppress redundant duplicate hands. Strongly clipped or unknown start/end placements fall back to a static target image or badge-only preview without falsely sliding fingers to different keys. No movement is presented in Wait until the current task is satisfied, consistent with FG-03B1.
+
+**Verification:** New Node tests cover starting, midway and final easing, input immutability, clipping, crossings, pause/seek, and conservative marker fallbacks. The Chromium suite now exercises a wide authored right-hand jump in playback versus pause, mobile viewport, both hands crossing, Wait and screenshot capture in the existing PNG test. PR CI also re-runs music timing, OSMD, backup/security and all published fingering research audits. The original 14 owner PNGs are unchanged.
+
+**Limitations / next FG-03B2B:** static-finger PNG translation is not physically faithful full-hand animation, and no independent pianist review has yet approved crossings or thumb-under biomechanics. Screenshot artifacts are available for visual UAT, but musician sign-off on 25/49/61/88-key layouts and representative real music remains pending. Research-only auto fingering remains **NO-GO** for teaching. [Detailed methods, checks and exceptions](docs/FG-03B2A-SAFE-MOTION.md) · [Roadmap](docs/ROADMAP-FINGER-GUIDANCE.md).

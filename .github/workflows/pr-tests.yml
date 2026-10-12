@@ -134,7 +134,7 @@ jobs:
         run: npm audit --audit-level=high
 
       - name: Upload visual PNG-hand review screenshots
-        if: always() && github.event_name == 'pull_request' && (github.head_ref == 'feature/finger-guidance-png-hands' || github.head_ref == 'feature/finger-guidance-pose-assets-v0.10.29')
+        if: always() && github.event_name == 'pull_request' && (github.head_ref == 'feature/finger-guidance-png-hands' || github.head_ref == 'feature/finger-guidance-pose-assets-v0.10.29' || github.head_ref == 'feature/fg03b2-safe-hand-motion-v0.10.44')
         uses: actions/upload-artifact@v4
         with:
           name: finger-guidance-png-real-app
