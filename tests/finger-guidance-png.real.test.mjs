@@ -81,8 +81,6 @@ try{
  }),null,'wrist margin below keyboard is not an interactive piano key');
  // FG-03B2: same source-anchored phrase in desktop, seek and narrow view.
  // These are explicit test fingers, not automated inference.
- const guidanceNote=(pitch,start,finger,hand)=>({pitch,start,duration:.3,velocity:80,track:hand==='RH'?0:1,
-  finger,hand,fingeringSource:'musicxml'});
  await page.setViewportSize({width:1440,height:900});
  await page.evaluate(()=>window.__prototypeTest.loadSong({
   id:'fg03b2-shift',title:'FG-03B2 authored shift',author:'Test',type:'import',
