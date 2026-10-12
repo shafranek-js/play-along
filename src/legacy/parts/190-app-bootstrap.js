@@ -97,7 +97,8 @@ window.__fingerGuideTest={
   const motion=fingerGuidanceMotionState(frame.current,frame.next,pianoGeom,
    keyboardBottom-keyboardTop,lastCanvasSize.h-keyboardBottom,ghostTime,isPlaying);
   return {visible:true,crossing:motion.crossing,plans:motion.plans,
-   targets:Object.fromEntries(['LH','RH'].map(h=>[h,motion.pairs[h].to?.notes?.map(n=>({pitch:n.pitch,finger:n.finger}))||[]]))};
+   targets:Object.fromEntries(['LH','RH'].map(h=>[h,frame.next.notes.filter(n=>n.hand===h)
+    .map(n=>({pitch:n.pitch,finger:n.finger}))]))};
  },
  get ghostWindow(){const next=fingerGuidanceFrame(fingerGuidanceSteps(),pos).next;
   return fingerGuidanceGhostWindow({nextOnset:next?.complete?next.start:null,now:pos,
