@@ -1,0 +1,51 @@
+name: MAESTRO v3.0.0 Real MIDI Research Audit
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/maestro-midi-audit.mjs'
+      - 'tests/maestro-midi-audit.test.mjs'
+      - 'package.json'
+      - '.github/workflows/maestro-real-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-maestro:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Synthetic ZIP, MIDI and metadata tests
+        run: npm run test:maestro
+      - name: Download official MAESTRO v3.0.0 CSV and MIDI ZIP
+        run: |
+          mkdir -p "$RUNNER_TEMP/maestro" artifacts
+          curl --fail --location --retry 3 --max-time 120 --silent --show-error \
+            'https://storage.googleapis.com/magentadata/datasets/maestro/v3.0.0/maestro-v3.0.0.csv' \
+            --output "$RUNNER_TEMP/maestro/maestro-v3.0.0.csv"
+          curl --fail --location --retry 3 --max-time 360 --silent --show-error \
+            'https://storage.googleapis.com/magentadata/datasets/maestro/v3.0.0/maestro-v3.0.0-midi.zip' \
+            --output "$RUNNER_TEMP/maestro/maestro-v3.0.0-midi.zip"
+      - name: Official archive SHA256 verification
+        run: |
+          echo '70470ee253295c8d2c71e6d9d4a815189e35c89624b76d22fce5a019d5dde12c  '"$RUNNER_TEMP/maestro/maestro-v3.0.0-midi.zip" | sha256sum --check --status
+      - name: Audit 1276 archive paths and profile 24 real MIDI performances
+        run: |
+          npm run research:maestro:audit -- \
+            --csv "$RUNNER_TEMP/maestro/maestro-v3.0.0.csv" \
+            --zip "$RUNNER_TEMP/maestro/maestro-v3.0.0-midi.zip" \
+            --out artifacts/maestro-v3-actual-audit.json
+      - name: Upload derived metadata-only audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maestro-v3-actual-midi-audit
+          path: artifacts/maestro-v3-actual-audit.json
+          if-no-files-found: warn
+          retention-days: 14
