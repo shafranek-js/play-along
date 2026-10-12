@@ -49,6 +49,25 @@ Outputs include separate `hands.RH`/`hands.LH`, `methods`, `segments` and `diagn
 - CI saves `artifacts/fg02i-score-router.json` including SHA-256, per-note reference versus candidate, warnings and the separate fully pinned author pass.
 - The five excerpts currently have monophonic RH/LH passages. They do **not** test real chord correctness. A genuinely independent, licensed, **polyphonic and expertly labelled** score corpus is required before claiming practical chord fingering accuracy.
 
+## First CI and retrospective measurements — 12 October 2026
+
+[PR #17 CI run](https://github.com/shafranek-js/play-along/actions/runs/38208755084) passed **203/203 unit tests**, browser regression suites for authored MusicXML, original owner-provided hand PNGs, next-note hints, Wait/Tempo, and dependency audit (0 detected vulnerabilities).
+
+The same five source-pinned and SHA-256-verified CC BY-SA Stage 3 excerpts were used for a fair *retrospective* comparison:
+
+| Measure (five excerpts, 148 notes) | FG-02H | FG-02I |
+|---|---:|---:|
+| Unannotated finger matches against source | 87/148 = 58.78% | **87/148 = 58.78%** |
+| Accepted notes with every author finger fixed | 148/148 | **148/148** |
+| Source-preservation warnings on fast same-finger changes | 11 | **11** |
+| Independent modeled key/finger conflicts | 0 | **0** |
+
+For this deliberately small corpus, all seven one-hand passages are monophonic. Consequently, FG-02I routes their unannotated notes through the unchanged FG-02H engine. The result is expected to be identical; **there is no measured polyphonic performance improvement to claim from these five files**.
+
+The new evidence for polyp​honic coverage is synthetic and contract-driven: explicit RH/LH triads, simultaneous held voices, unison note ID retention, occupancy constraints, immutable authored chords, and boundary warnings. **No independently sourced pianist-adjudicated polyphonic score has yet been benchmarked.**
+
+**Decision: research-only; production automatic fingering is NOT APPROVED.**
+
 ## Next approval gates
 
 1. Independent pianist examination of explicitly fingered polyrhythmic and polyphonic fragments with key release and active holds; include different hand sizes and ambiguous hand-crossing.
