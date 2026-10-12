@@ -44,13 +44,10 @@ try{
  const click=async(i,modifiers=[])=>{
   const box=(await getBoxes()).find(b=>b.id===ids[i]);
   assert.ok(box,'Note '+i+' must be visible');
-  await page.keyboard.down('Shift').catch(()=>{});
-  await page.keyboard.up('Shift').catch(()=>{});
   for(const key of modifiers)await page.keyboard.down(key);
   await page.mouse.click(rect.x+box.x+box.w/2,rect.y+box.y+box.h/2);
   for(const key of modifiers.reverse())await page.keyboard.up(key);
  };
- const sorted=async()=>ids.filter(id=>(await selected()).includes(id));
  await click(0);
  assert.deepEqual(await selected(),[ids[0]],'Ordinary click selects one note');
  await click(2,['Control']);
@@ -96,7 +93,8 @@ try{
  assert.equal(Object.keys(await corrections()).length,5);
  await page.locator('.fingerCorrectionGroup select').first().selectOption('4');
  await page.getByRole('button',{name:'Применить ко всем'}).click();
- assert.deepEqual(ids.map(id=>(await corrections())[id].finger),Array(5).fill(4),
+ const updated=await corrections();
+ assert.deepEqual(ids.map(id=>updated[id].finger),Array(5).fill(4),
   'Explicit finger assignment updates all selected notes');
  assert.equal((await history()).past,2);
  await page.getByRole('button',{name:'Отменить правку'}).click();
