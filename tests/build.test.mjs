@@ -16,7 +16,7 @@ const featureSource=manifest.features.map(name=>read('src/legacy/parts/'+name)).
 const musicPrelude=['music-time.mjs','music-bars.mjs','finger-guidance-timeline.mjs','musicxml-note-identity.mjs','finger-overrides.mjs','finger-override-history.mjs','finger-note-selection.mjs','sheet-fingering-overlay.mjs','finger-editor-geometry.mjs','fingering-coverage.mjs','library-section-layout.mjs'].map(f=>read('src/core/'+f).replace(/^export /gm,'')).join('\n');
 
 test('all feature parts form exactly one valid JavaScript bundle',()=>{
- assert.equal(manifest.features.length,21);
+ assert.equal(manifest.features.length,22);
  const expected="\n(()=>{'use strict';\n"+musicPrelude+'\n'+featureSource.replace("window.__playAlongVersion='0.9.1'","window.__playAlongVersion='"+JSON.parse(read('package.json')).version+"'")+"})();\n";
  assert.equal(js,expected);
  execFileSync(process.execPath,['--check',path.join(root,'dist/assets/app.js')]);
