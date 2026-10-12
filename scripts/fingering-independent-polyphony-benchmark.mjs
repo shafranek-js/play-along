@@ -92,7 +92,8 @@ export function evaluatePolyphonicGroundTruth(sourceRows,gtRows){
   pinnedAccepted:0,pinnedRejectedIslands:0,sourceAnchorOverrides:0,
   proposedExactIslands:0,pinnedExactIslands:0,modeledConflicts:0,
   unsafeUnverifiedTransitions:0,
-  proposedRejectionReasons:{},pinnedRejectionReasons:{}};
+  proposedRejectionReasons:{},pinnedRejectionReasons:{},
+  pinnedModeledConflictTypes:{}};
  const details=[];
  for(const [islandIndex,island] of eligible.entries()){
   if(island.length>2500)throw Error('POLYPHONY_COMPONENT_TOO_LARGE');
@@ -136,6 +137,9 @@ export function evaluatePolyphonicGroundTruth(sourceRows,gtRows){
   }else{
    metrics.pinnedRejectedIslands++;
    metrics.pinnedRejectionReasons[authored.reason]=(metrics.pinnedRejectionReasons[authored.reason]??0)+1;
+   for(const issue of authored.violations??[])
+    metrics.pinnedModeledConflictTypes[issue.code]=
+     (metrics.pinnedModeledConflictTypes[issue.code]??0)+1;
   }
   // Strict aggregate evidence only. Do not publish raw performer notes,
   // individual source GT finger assignments, or timestamps.
@@ -160,7 +164,7 @@ export async function runIndependentPolyphonyBenchmark({fetcher=globalThis.fetch
   proposedMatched:0,proposedAccepted:0,pinnedAccepted:0,
   proposedRejectedIslands:0,pinnedRejectedIslands:0,
   sourceAnchorOverrides:0,modeledConflicts:0,
-  annotatedNotesInIncompleteContext:0,proposedRejectionReasons:{},pinnedRejectionReasons:{}
+  annotatedNotesInIncompleteContext:0,proposedRejectionReasons:{},pinnedRejectionReasons:{},pinnedModeledConflictTypes:{}
  };
  for(const name of EXPECTED_NAMES){
   const [ground,raw]=await Promise.all([
@@ -175,7 +179,7 @@ export async function runIndependentPolyphonyBenchmark({fetcher=globalThis.fetch
    'pinnedRejectedIslands','sourceAnchorOverrides','modeledConflicts'])
    totals[k]+=r.metrics[k];
   totals.annotatedNotesInIncompleteContext+=r.sourceCoverage.skippedPartialGTNotes;
-  for(const type of ['proposedRejectionReasons','pinnedRejectionReasons'])
+  for(const type of ['proposedRejectionReasons','pinnedRejectionReasons','pinnedModeledConflictTypes'])
    for(const [reason,count] of Object.entries(r.metrics[type]))
     totals[type][reason]=(totals[type][reason]??0)+count;
   perRecording.push({id:name,sourceSha256:raw.sha256,gtSha256:ground.sha256,
