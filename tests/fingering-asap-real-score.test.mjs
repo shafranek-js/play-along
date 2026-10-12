@@ -8,7 +8,7 @@ const XML=Buffer.from('<?xml version="1.0"?><score-partwise version="3.1">'+
  '<part id="P1"><measure number="1"><note><pitch><step>C</step><octave>4</octave>'+
  '</pitch><duration>1</duration></note></measure></part></score-partwise>');
 const header=[...Buffer.from('MThd'),0,0,0,6,0,0,0,1,1,224];
-const events=[0,255,81,3,7,161,32,0,144,60,90,
+const events=[0,255,81,3,7,161,32,0,255,3,8,...Buffer.from('TestMIDI'),0,144,60,90,
               0x83,0x60,128,60,0,0,255,47,0];
 const MIDI=Buffer.from([...header,...Buffer.from('MTrk'),0,0,0,events.length,...events]);
 const copy=o=>structuredClone(o);
@@ -96,7 +96,7 @@ test('FG-04B1b: all 16 pairs audited without returning copyrighted note data',as
  assert.equal(r.midiParserReady,16);
  assert.equal(r.handthesiaCandidateOutputs,0);
  assert.equal(r.scoreMidiSemanticAlignmentVerified,undefined);
- assert.equal(r.xmlMidiSemanticAlignmentVerified,undefined);
+ assert.equal(r.xmlMidiSemanticAlignmentVerified,false);
  assert.equal(r.pianistFingeringValidated,false);
  assert.equal(r.productionAutoFingeringAllowed,false);
  assert.deepEqual(m,snapshot);
