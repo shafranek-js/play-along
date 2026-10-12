@@ -5,10 +5,20 @@ function setupLibrarySectionOrganizer(){
  const keys=LIBRARY_SECTION_IDS;
  const nodes=new Map(keys.map(id=>[id,sidebody.querySelector('[data-library-section="'+id+'"]')]));
  if([...nodes.values()].some(node=>!node))throw Error('Missing reorderable library section');
+ // Legacy Library v0.8 makes two panes during module 110 initialization:
+ // it places Catalog inside .libResults and all other panels in .libControls.
+ // Flatten those wrappers BEFORE exposing arbitrary above/below ordering.
+ // Move real DOM nodes (never clone buttons/files, keeping their handlers).
+ const legacyControls=sidebody.querySelector(':scope > .libControls');
+ const legacyResults=sidebody.querySelector(':scope > .libResults');
+ const search=legacyControls?.querySelector(':scope > .panelSection')||
+  sidebody.querySelector(':scope > .panelSection');
+ if(!search)throw Error('Missing library search and filter controls');
+ sidebody.prepend(search);
  const container=document.createElement('div');
  container.id='librarySections';container.className='librarySections';
  container.setAttribute('aria-label','Настраиваемые разделы библиотеки');
- sidebody.insertBefore(container,nodes.get('catalog'));
+ search.insertAdjacentElement('afterend',container);
  const prefs=librarySectionLayoutNormalize(state.librarySections);
  state.librarySections=prefs;
  const toggleNodes=new Map();
@@ -110,6 +120,13 @@ function setupLibrarySectionOrganizer(){
   }else if(!target)container.append(dragged);
   resetDrag();storeLayout();
  });
+ // Preserve untouched Quick Actions and any future legacy nodes outside
+ // the movable five, then discard the no-longer-used two-pane wrappers.
+ for(const wrapper of [legacyControls,legacyResults]){
+  if(!wrapper)continue;
+  for(const child of [...wrapper.children])sidebody.append(child);
+  wrapper.remove();
+ }
  updateMoveButtons();
 }
 setupLibrarySectionOrganizer();
