@@ -42,6 +42,9 @@ Hand-thesia's `HandAnimator.performance` may **release keys early or strike chor
 3. **FG-03D1** — Standalone animation feasibility prototype using **original independently designed** hand geometry only after license decision and review of motion/timing contracts. Compare existing PNG poses vs IK for crossings, chords, thumb-under and lookahead, with pixel/latency/performance metrics and next-target invariants. Do not remove the fourteen supplied PNG assets.
 4. **Evidence gate** — Professional pianist checks held-out fingering and physical reachability separately from pixel-perfect animation; benchmark refused notes and timing deltas; unchanged original MusicXML, exact Wait/Tempo notes and reproducible screenshot evidence.
 
+
+**FG-04B2 implementation update (2026-10-12):** A new independently written research-only MIDI marker alignment module and synthetic tests now exist; see [FG-04B2](FG-04B2-MIDI-ALIGNMENT.md). This does not complete FG-04B1's licensed score corpus or authorize automatic instructional fingering. No third-party code was copied.
+
 ## Source links reviewed
 
 - [Upstream repository and README](https://github.com/V9011N/pygame-piano-animator)
