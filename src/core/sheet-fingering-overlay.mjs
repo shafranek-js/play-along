@@ -105,7 +105,7 @@ export function sheetFingeringOverlay(song,changes,{parse,serialize}={}){
  // when the imported source contains one, so restore it for the DISPLAY
  // CLONE ONLY. Never modify song.notationXML or downloaded content.
  const serialized=serialize(doc);
- const rendered=/^\\s*<\\?xml\\b/i.test(serialized)?serialized:
-  '<?xml version="1.0" encoding="utf-8"?>\\n'+serialized;
+ const rendered=/^\s*<\?xml\b/i.test(serialized)?serialized:
+  '<?xml version="1.0" encoding="utf-8"?>\n'+serialized;
  return {xml:rendered,status:'applied',count,handOnly,reason:null};
 }
