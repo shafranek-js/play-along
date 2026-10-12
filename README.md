@@ -1,11 +1,11 @@
-# Play Along — Piano Practice App (v0.10.41)
+# Play Along — Piano Practice App (v0.10.42)
 
 Play Along is an independently hosted browser piano practice application with Web MIDI, Piano Roll, OpenSheetMusicDisplay (OSMD), MusicXML/MXL and MIDI import, optional online music catalogs, and Wait/Tempo/Listen practice modes.
 
 **Live site:** https://shafranek-js.github.io/play-along/
 
 
-## Current status — v0.10.41
+## Current status — v0.10.42
 
 **Finger Guidance in the published player:** Optional Off / Numbers / 2D Hands / Ghost modes use the **14 original transparent PNG images supplied by the project owner** (seven poses for each hand). Guidance targets the **next note to be played**, not a key that is already sounding. In **Wait**, it stays on an unfinished group and removes already accepted chord keys; after a complete chord it advances to the next target.
 
@@ -23,6 +23,8 @@ Most recent research measurement (FG-02H) on five CC BY-SA hand-annotated excerp
 | Modeled physical conflicts | 0 | 0 |
 
 FG-02H flags **11 quick same-finger changes** requiring musician review. Preserving all original anchors is a data-integrity result, **not** evidence that every transition is a good teaching recommendation. The five excerpts were already known during development: this is *retrospective* evaluation, not a new blind trial. See [FG-02H research](docs/FG-02H-MIXED-PHRASING-RESEARCH.md) and [PR #15](https://github.com/shafranek-js/play-along/pull/15).
+
+**FG-03A update:** Author-verified guidance now retains unannotated score onsets as explicit empty preview boundaries. The player no longer jumps from a still-unlabelled note to a later labelled one. A partially annotated chord displays individually confirmed **numeric** fingers rather than an unverified full hand silhouette. This adds no automatically predicted fingers. See the [updated roadmap](docs/ROADMAP-FINGER-GUIDANCE.md).
 
 ### Release documentation rule
 
@@ -324,3 +326,11 @@ A new research-only discovery script inspects source metadata, verifies revision
 **Release decision: automatic learner-facing fingering remains NO-GO**, irrespective of source discovery status. The original 14 PNG hand images, authoritative MusicXML finger notation and next-key preview are unchanged.
 
 [FG-02J source, methodology, licensing and next steps](docs/FG-02J-INDEPENDENT-POLYPHONY-EVIDENCE.md).
+
+## FG-03A: score-complete, source-safe Finger Guidance timeline (v0.10.42)
+
+The pure `src/core/finger-guidance-timeline.mjs` is now used by the built player to group **all valid score-note onsets**, not only those with known fingering. This prevents misleading lookahead in MusicXML passages containing missing author labels. Unannotated onsets remain silent guidance boundaries; they are not allocated an invented finger and never permit guidance to skip visually to a later note. Partially annotated chords show only verified individual numeric badges; a full PNG hand pose and next full Ghost preview require complete annotation at that onset. Explicit demonstration fingering still works. The original fourteen PNG assets, piano-key geometry, transport and physical MIDI handling are unchanged.
+
+**Checks:** Seven new Node unit tests cover trustworthy source/hand constraints, retained note IDs, missing-label boundaries, partial chords, simultaneous duplicate pitches, millisecond score ordering and invalid inputs. The real Chromium MusicXML acceptance test checks that the player retains silent boundaries for unannotated notes. Run `npm run build`, `npm test`, then `npm run test:browser`. CI must pass before merge. **Limitations:** This improves source fidelity and preview correctness; it is neither auto-fingering nor an anatomical motion model. All experimental auto-generated fingerprints remain disabled for learners.
+
+References: [updated development roadmap](docs/ROADMAP-FINGER-GUIDANCE.md), [FG-03A design and acceptance](docs/FG-03A-SCORE-GUIDANCE.md), and the independent [FG-02J NO-GO evidence](docs/FG-02J-INDEPENDENT-POLYPHONY-EVIDENCE.md).
