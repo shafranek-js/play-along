@@ -53,6 +53,7 @@ Open **http://localhost:4173/**. For browser MIDI permission on an external host
 | npm run benchmark:fingering:contextual | Compare FG-02H with FG-02G, including author-anchor acceptance and movement warnings |
 | npm run benchmark:fingering:heldout | Reproduce FG-02E locked, 34-case educational scale evaluation |
 | `npm run research:fingering:polyphony-source` | FG-02J metadata-only external polyphonic fingering source qualification (requires network, noncommercial research scope) |
+| `npm run research:fingering:polyphony-align` | Compare 11 source-fingered PianoVAM records to corresponding MIDI-derived TSV note events at a pinned dataset commit; explicit mismatch report (noncommercial research only) |
 
 
 ## Deployment and third-party components
@@ -310,7 +311,7 @@ FG-02I's chord/held-voice router passes technical tests, but the five previous P
 
 FG-02J identifies a *candidate* independent resource: [PianoVAM v1.1](https://huggingface.co/datasets/PianoVAM/PianoVAM_v1), which describes real piano performances with source annotations and separately reported manually annotated fingering. **Its license is CC BY-NC-SA 4.0 (noncommercial, attribution and share-alike)**, distinct from the previous CC BY-SA teaching corpus. No source audio/video, hand data or fingering annotations are copied into Play Along.
 
-A new research-only discovery script inspects source metadata, verifies revision and license, checks for a real `Fingering_GT` directory, and examines the schema of at most one small source file. Crucially, normal `onset/key_offset/frame_offset/note/velocity` TSV labels are **not a fingering source**. Exact RH/LH and 1..5 finger alignment to the original MIDI note events must be independently demonstrated before any percentage agreement or polyphonic "accuracy" can be calculated.
+A new research-only discovery script inspects source metadata, verifies revision and license, checks for a real `Fingering_GT` directory, and examines the schema of at most one small source file. **Initial CI confirmed 11 small ground-truth TSV files containing `onset`, `key_offset`, `frame_offset`, `note`, `velocity`, `hand`, and `finger`.** The separate pinned source-alignment probe checks that each annotated event matches its corresponding original MIDI-derived TSV event without copying source rows into the report. Source schema discovery is not sufficient to claim musical correctness. Crucially, normal `onset/key_offset/frame_offset/note/velocity` TSV labels are **not a fingering source**. Exact RH/LH and 1..5 finger alignment to the original MIDI note events must be independently demonstrated before any percentage agreement or polyphonic "accuracy" can be calculated.
 
 `npm test` checks fail-closed license/revision/file-availability and note-coverage gates. Run `npm run research:fingering:polyphony-source` to produce a structured qualification report, archived in PR CI. Discovery is **not** a score-level validation, does not improve the FG-02I algorithm or the five-piece 87/148 baseline, and does not license commercial use.
 
