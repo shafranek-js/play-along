@@ -18,6 +18,45 @@ function pianoKeyGeometry(min,max,w){
 }
 let pianoGeom=null,lastCanvasSize={w:0,h:0},keyboardTop=0,keyboardBottom=0,keyboardBlackH=0;
 
+// FG-03C2A: one score key per unmodified imported XML payload.
+let fingerOverrideMemoSong=null,fingerOverrideMemoKey=null,fingerOverrideUndo=null;
+function fingerGuideWorkKey(){
+ if(!current)return null;
+ if(current!==fingerOverrideMemoSong){
+  fingerOverrideMemoSong=current;
+  fingerOverrideMemoKey=fingerOverrideWorkKey(current);
+ }
+ return fingerOverrideMemoKey;
+}
+function fingerOverrideForNote(note){
+ const key=fingerGuideWorkKey();
+ return key&&note?.noteId?fingerOverrideEffective(note,state.fingerOverrides?.[key]?.[note.noteId]):null;
+}
+function fingerOverrideCommit(note,choice,{undo=false}={}){
+ if(!current||current.format!=='MusicXML'||state.adaptMode!=='original'||!note?.noteId)
+  return false;
+ const key=fingerGuideWorkKey(),source=current.tracks.flatMap(t=>t.notes)
+  .find(n=>n.noteId===note.noteId);
+ if(!key||!source||source.pitch!==note.pitch)return false;
+ const previous=state.fingerOverrides?.[key]?.[note.noteId]??null;
+ const work={...(state.fingerOverrides?.[key]||{})};
+ if(choice===null)delete work[note.noteId];
+ else work[note.noteId]={finger:choice.finger,hand:choice.hand};
+ const map={...state.fingerOverrides};
+ if(Object.keys(work).length)map[key]=work;else delete map[key];
+ let validated;
+ try{
+  validated=fingerOverrideValidate(map,{strict:true});
+  // Persist the prospective snapshot before changing in-memory state. A
+  // storage/quota failure must not create unsaved, misleading hints.
+  localStorage.setItem(STORE,JSON.stringify({...state,fingerOverrides:validated}));
+ }catch(err){notify('Не удалось сохранить аппликатуру: '+err.message);return false}
+ state.fingerOverrides=validated;
+ if(!undo)fingerOverrideUndo={key,id:note.noteId,before:previous?{...previous}:null};
+ else fingerOverrideUndo=null;
+ renderCanvas();if(selectedNote?.noteId===note.noteId)selectNote(selectedNote);
+ return true;
+}
 // ===== FG-00: opt-in visual guidance over the EXISTING Piano Roll keyboard =====
 // These are hand-entered teaching fixtures. No arbitrary MIDI is fingered here.
 // Finger numbers (1 thumb ... 5 little finger) are not observable through Web MIDI.
@@ -31,7 +70,8 @@ function fingerGuidanceSteps(){
  const demo=validDemo.has(id);
  // For non-demo works only explicitly annotated MusicXML is eligible.
  // An ordinary MIDI pitch is never treated as evidence of a finger.
- if(!demo&&!current.tracks.some(t=>t.notes.some(n=>n.fingeringSource==='musicxml'&&n.finger>=1&&n.finger<=5)))return [];
+ const key=fingerGuideWorkKey(),edits=key?state.fingerOverrides?.[key]||{}:{};
+ if(!demo&&!current.tracks.some(t=>t.notes.some(n=>n.fingeringSource==='musicxml'&&n.finger>=1&&n.finger<=5))&&!Object.keys(edits).length)return [];
  const scale=[1,2,3,1,2,3,4,5,4,3,2,1,3,2,1];
  const events=[];
  current.tracks.forEach((track,trackIndex)=>{
@@ -46,6 +86,9 @@ function fingerGuidanceSteps(){
      finger=(hand==='RH'?[1,3,5]:[5,3,1])[index%3];
     }
     source='demo';
+   }else if(fingerOverrideEffective(n,edits[n.noteId])){
+    const selected=fingerOverrideEffective(n,edits[n.noteId]);
+    finger=selected.finger;hand=selected.hand;source='user';
    }else if(n.fingeringSource==='musicxml'&&Number.isInteger(n.finger)&&n.finger>=1&&n.finger<=5){
     finger=n.finger;hand=n.hand==='RH'||n.hand==='LH'?n.hand:null;source='musicxml';
    }
@@ -233,12 +276,14 @@ function drawFingerGuidance(c,geom,keyY,keyboardH,handsAllowed,handTail=0){
  const status=$('fingerGuideStatus'),mode=state.fingerGuidanceMode,steps=mode==='off'?[]:fingerGuidanceSteps();
  const hasPreset=current&&['demo-scale','demo-chords','demo-finger-duet'].includes(current.id);
  const authored=steps.flatMap(g=>g.notes).filter(n=>n.source==='musicxml');
- const unassigned=authored.some(n=>!n.hand);
+ const corrected=steps.flatMap(g=>g.notes).filter(n=>n.source==='user');
+ const unassigned=steps.flatMap(g=>g.notes).some(n=>!n.hand);
  const total=current?.tracks.reduce((acc,t,i)=>acc+(state.allTracks||i===state.track?t.notes.length:0),0)||0;
  const message=mode==='off'?'':state.adaptMode!=='original'?'Адаптация: подсказки пока недоступны':
   !steps.length?'Для этой партии пока нет подтверждённой аппликатуры':
   hasPreset?'Демо-аппликатура · MIDI не определяет реальные пальцы':
   'MusicXML: авторская аппликатура '+authored.length+'/'+total+
+   (corrected.length?' · правки пользователя: '+corrected.length:'')+
    (unassigned?' · рука не указана: только номера':'');
  if(status&&status.textContent!==message)status.textContent=message;
  if(!steps.length)return;
@@ -447,7 +492,39 @@ function endVirtualPointer(e){if(!virtualPointer||e.pointerId!==virtualPointer.i
 roll.addEventListener('pointerup',endVirtualPointer);
 roll.addEventListener('pointercancel',endVirtualPointer);
 roll.addEventListener('lostpointercapture',endVirtualPointer);
-function selectNote(n){selectedNote=n;if(!n){$('selection').innerHTML='<strong>Ничего не выбрано</strong><p>Щёлкни цветную ноту на Piano Roll.</p>';return}$('selection').replaceChildren();const head=document.createElement('strong'),desc=document.createElement('p');head.textContent=nameOf(n.pitch)+' · MIDI '+n.pitch+(Number.isInteger(n.sourcePitch)&&n.sourcePitch!==n.pitch?' · из '+nameOf(n.sourcePitch):'');desc.textContent='Дорожка: '+(current.tracks[n.track]?.name||n.track)+' | Позиция: '+n.start.toFixed(2)+' с | Длительность: '+n.duration.toFixed(2)+' с | Velocity: '+n.velocity;$('selection').append(head,desc);const review=reviewForNote(n);if(review){const p=document.createElement('p');p.className='small';p.textContent=review.miss?'Разбор: пропущена':review.hit?'Разбор: сыграна'+(review.timingMs!=null?' · отклонение '+Math.round(review.timingMs)+' мс':'')+(review.holdRatio!=null?' · удержание '+Math.round(review.holdRatio*100)+'%':'')+(review.chordSpreadMs!=null?' · разброс аккорда '+Math.round(review.chordSpreadMs)+' мс':''):'Разбор: нет данных о нажатии';$('selection').append(p)}if(!state.right){state.right=true;applyPanels()}switchRightTab('practice');}
+function selectNote(n){selectedNote=n;if(!n){$('selection').innerHTML='<strong>Ничего не выбрано</strong><p>Щёлкни цветную ноту на Piano Roll.</p>';return}$('selection').replaceChildren();const head=document.createElement('strong'),desc=document.createElement('p');head.textContent=nameOf(n.pitch)+' · MIDI '+n.pitch+(Number.isInteger(n.sourcePitch)&&n.sourcePitch!==n.pitch?' · из '+nameOf(n.sourcePitch):'');desc.textContent='Дорожка: '+(current.tracks[n.track]?.name||n.track)+' | Позиция: '+n.start.toFixed(2)+' с | Длительность: '+n.duration.toFixed(2)+' с | Velocity: '+n.velocity;$('selection').append(head,desc);const review=reviewForNote(n);if(review){const p=document.createElement('p');p.className='small';p.textContent=review.miss?'Разбор: пропущена':review.hit?'Разбор: сыграна'+(review.timingMs!=null?' · отклонение '+Math.round(review.timingMs)+' мс':'')+(review.holdRatio!=null?' · удержание '+Math.round(review.holdRatio*100)+'%':'')+(review.chordSpreadMs!=null?' · разброс аккорда '+Math.round(review.chordSpreadMs)+' мс':''):'Разбор: нет данных о нажатии';$('selection').append(p)}if(!state.right){state.right=true;applyPanels()}switchRightTab('practice');fingerOverrideRenderEditor(n);}
+function fingerOverrideRenderEditor(n){
+ if(!n||!current||current.format!=='MusicXML'||state.adaptMode!=='original'||!n.noteId||
+  !fingerGuideWorkKey())return;
+ const original=current.tracks.flatMap(t=>t.notes).find(x=>x.noteId===n.noteId);
+ if(!original||original.pitch!==n.pitch)return;
+ const saved=state.fingerOverrides?.[fingerGuideWorkKey()]?.[n.noteId]||null;
+ const editor=document.createElement('section');editor.className='fingerCorrection';
+ const title=document.createElement('strong');title.textContent='Аппликатура этой ноты';
+ const source=document.createElement('p');source.className='small';
+ source.textContent='Автор: '+(original.fingeringSource==='musicxml'?('палец '+original.finger):'палец не указан')+
+  ' · '+(original.hand==='RH'?'правая рука':original.hand==='LH'?'левая рука':'рука не указана')+
+  (saved?' · есть ручная правка':' · источник не изменён');
+ const controls=document.createElement('div');controls.className='fingerCorrectionControls';
+ const finger=document.createElement('select');finger.setAttribute('aria-label','Выбрать палец 1–5');
+ for(let i=1;i<=5;i++){const opt=document.createElement('option');opt.value=String(i);opt.textContent='Палец '+i;finger.append(opt)}
+ finger.value=String(saved?.finger??original.finger??1);
+ const hand=document.createElement('select');hand.setAttribute('aria-label','Выбрать руку');
+ for(const [value,label] of [['','Рука неизвестна'],['RH','Правая'],['LH','Левая']]){
+  const opt=document.createElement('option');opt.value=value;opt.textContent=label;hand.append(opt);
+ }
+ hand.value=saved?.hand??original.hand??'';
+ const save=document.createElement('button');save.className='btn tiny';save.textContent='Сохранить правку';
+ save.onclick=()=>fingerOverrideCommit(original,{finger:Number(finger.value),hand:hand.value||null});
+ const reset=document.createElement('button');reset.className='btn tiny ghost';reset.textContent='Вернуть автора';
+ reset.disabled=!saved;reset.onclick=()=>fingerOverrideCommit(original,null);
+ const undo=document.createElement('button');undo.className='btn tiny ghost';undo.textContent='Отменить правку';
+ const history=fingerOverrideUndo;
+ undo.disabled=!history||history.key!==fingerGuideWorkKey()||history.id!==n.noteId;
+ undo.onclick=()=>{if(history)fingerOverrideCommit(original,history.before,{undo:true})};
+ controls.append(finger,hand,save,reset,undo);editor.append(title,source,controls);
+ $('selection').append(editor);
+}
 function contextMenu(e){e.preventDefault();let n=noteHit(e);const opts=n?[['Свойства и оценка ноты',()=>selectNote(n)],['Открыть разбор исполнения',()=>openReview()],['Начать отсюда',()=>seek(n.start)],['Начало повтора здесь',()=>{loop.start=n.start;ensureLoop();}],['Конец повтора здесь',()=>{loop.end=n.start+n.duration;ensureLoop();}],['Добавить закладку',()=>bookmark(n.start)]]:[['Начать отсюда',()=>seek(pos)],['Начало Loop',()=>{loop.start=pos;ensureLoop()}],['Конец Loop',()=>{loop.end=pos;ensureLoop()}],['Сбросить Loop',()=>{loop={start:null,end:null,enabled:false};updateUI()}]];showMenu(e.clientX,e.clientY,opts)}
 function showMenu(x,y,opts){const m=$('contextMenu');m.innerHTML='';for(const [label,fn] of opts){let b=document.createElement('button');b.textContent=label;b.onclick=()=>{hideMenu();fn()};m.append(b)}m.classList.add('show');let r=m.getBoundingClientRect();m.style.left=clamp(x,4,innerWidth-r.width-5)+'px';m.style.top=clamp(y,4,innerHeight-r.height-5)+'px'}function hideMenu(){$('contextMenu').classList.remove('show')}
 function ensureLoop(){if(loop.start!=null&&loop.end!=null){let a=Math.min(loop.start,loop.end),b=Math.max(loop.start,loop.end);loop.start=a;loop.end=b;loop.enabled=b>a+.1}updateUI()}
