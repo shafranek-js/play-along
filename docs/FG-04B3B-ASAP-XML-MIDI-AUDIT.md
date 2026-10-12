@@ -1,6 +1,6 @@
 # FG-04B3b — Independent MusicXML-to-MIDI Score Audit
 
-**Release:** v0.10.60 · **Status:** research implementation, no learner-facing fingering.
+**Release:** v0.10.61 · **Status:** research implementation, no learner-facing fingering.
 
 ## Purpose
 
