@@ -63,3 +63,49 @@ export function fingerGuidanceGhostWindow({
  return {visible:true,remainingMs:Math.round(remainingMs),
   alpha:Math.round((.10+.25*progress)*1000)/1000};
 }
+
+/**
+ * FG-03B2: purely geometric preview movement between two already AUTHORED
+ * positions. This is a two-dimensional PNG translation, NOT joint motion.
+ *
+ * Returns markers-only for ambiguous crossing, invalid/off-screen sprites,
+ * or close positions. Future target key markers remain pinned to keyboard
+ * geometry while an otherwise valid translucent sprite travels between poses.
+ * No stale frame state is retained: Pause / Seek / Loop / resize recalculate.
+ */
+export function fingerGuidanceHandsCross(fromLH,fromRH,toLH,toRH){
+ const valid=p=>p&&Number.isFinite(p.x)&&Number.isFinite(p.width)&&
+  Number.isFinite(p.unit)&&p.width>0&&p.unit>0;
+ if(![fromLH,fromRH,toLH,toRH].every(valid))return false;
+ const center=p=>p.x+p.width/2;
+ const old=center(fromRH)-center(fromLH),next=center(toRH)-center(toLH);
+ const minGap=1.25*Math.max(fromLH.unit,fromRH.unit,toLH.unit,toRH.unit);
+ return old*next<0||Math.abs(old)<minGap||Math.abs(next)<minGap;
+}
+export function fingerGuidanceMotionPlan({
+ from,to,remainingMs,leadMs=750,canvasWidth,playing=true,crossing=false
+}={}){
+ const markers={kind:'markers',x:null,progress:0};
+ const valid=p=>p&&Number.isFinite(p.x)&&Number.isFinite(p.width)&&
+  Number.isFinite(p.unit)&&p.width>0&&p.unit>0;
+ if(!valid(to)||!Number.isFinite(canvasWidth)||canvasWidth<=0||
+  !Number.isFinite(remainingMs)||remainingMs<0||
+  !Number.isFinite(leadMs)||leadMs<=0||remainingMs>leadMs||
+  crossing)return markers;
+ const visibleRatio=x=>Math.max(0,Math.min(canvasWidth,x+to.width)-Math.max(0,x))/to.width;
+ if(visibleRatio(to.x)<.65)return markers;
+ const targetCenter=to.x+to.width/2;
+ if(!valid(from))return {kind:'static',x:to.x,progress:1,targetCenter};
+ const sourceCenter=from.x+from.width/2;
+ const startX=sourceCenter-to.width/2;
+ const distance=Math.abs(sourceCenter-targetCenter);
+ if(distance<=to.unit*1.35)return markers;
+ // The future pose may be wider than the prior pose; on a cropped piano
+ // viewport, avoid showing a false fingertip offset by shifting/clamping.
+ if(visibleRatio(startX)<.65)return {kind:'static',x:to.x,progress:1,targetCenter};
+ if(!playing)return {kind:'static',x:to.x,progress:1,targetCenter};
+ const t=Math.max(0,Math.min(1,1-remainingMs/leadMs));
+ const progress=t*t*(3-2*t);
+ return {kind:'moving',x:startX+(to.x-startX)*progress,
+  progress,targetCenter,sourceCenter};
+}
