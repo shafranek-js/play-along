@@ -3,12 +3,12 @@ import assert from 'node:assert/strict';
 import {parseCsv,validateMetadata,selectQaCorpus,createManifest,MAESTRO} from '../scripts/maestro-corpus.mjs';
 
 const header='canonical_composer,canonical_title,split,year,midi_filename,audio_filename,duration';
-const record=(i,split='train',overrides={})=>({canonical_composer:\`Composer \${i%31}\`,
-  canonical_title:\`Work \${i%67}\`,split,year:String(2004+i%15),
-  midi_filename:\`\${2004+i%15}/performance-\${i}.midi\`,audio_filename:\`\${2004+i%15}/performance-\${i}.wav\`,
+const record=(i,split='train',overrides={})=>({canonical_composer:`Composer ${i%31}`,
+  canonical_title:`Work ${i%67}`,split,year:String(2004+i%15),
+  midi_filename:`${2004+i%15}/performance-${i}.midi`,audio_filename:`${2004+i%15}/performance-${i}.wav`,
   duration:String(60+i*3.14),...overrides});
 const csvRows=(rows)=>header+'\n'+rows.map(row=>Object.values(row).map(s=>{
-  const v=String(s);return /[",\r\n]/.test(v)?\`"\${v.replaceAll('"','""')}"\`:v;
+  const v=String(s);return /[",\r\n]/.test(v)?`"${v.replaceAll('"','""')}"`:v;
 }).join(',')).join('\n')+'\n';
 const fullRows=()=>[
   ...Array.from({length:962},(_,i)=>record(i,'train')),
