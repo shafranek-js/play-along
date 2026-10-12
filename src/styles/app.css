@@ -133,3 +133,6 @@ body.onlyLibrary #leftPanel .sidebody>.panelSection:first-child{
 .fingerCorrectionGroup .fingerCorrectionControls{margin-top:8px}
 .fingerCorrectionGroup .fingerCorrectionControls select{min-width:150px}
 #roll:focus-visible{outline:2px solid #f5dc82;outline-offset:-2px}
+.sheetFingerStatus{margin:7px 14px 9px;padding:6px 10px;border-left:3px solid #C77D28;color:#efcf9e;background:#383022;border-radius:3px;font-size:12px;line-height:1.45}
+.sheetFingerStatus.isWarning{border-left-color:#d98677;color:#ffd2c9;background:#442b2c}
+.sheetFingerStatus.hidden{display:none}
