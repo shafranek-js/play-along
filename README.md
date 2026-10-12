@@ -1,11 +1,11 @@
-# Play Along — Piano Practice App (v0.10.61)
+# Play Along — Piano Practice App (v0.10.62)
 
 Play Along is an independently hosted browser piano practice application with Web MIDI, Piano Roll, OpenSheetMusicDisplay (OSMD), MusicXML/MXL and MIDI import, optional online music catalogs, and Wait/Tempo/Listen practice modes.
 
 **Live site:** https://shafranek-js.github.io/play-along/
 
 
-## Current status — v0.10.61
+## Current status — v0.10.62
 
 **Finger Guidance in the published player:** Optional Off / Numbers / 2D Hands / Ghost modes use the **14 original transparent PNG images supplied by the project owner** (seven poses for each hand). Guidance targets the **next note to be played**, not a key that is already sounding. In **Wait**, it stays on an unfinished group and removes already accepted chord keys; after a complete chord it advances to the next target.
 
@@ -65,6 +65,8 @@ FG-02H flags **11 quick same-finger changes** requiring musician review. Preserv
 
 **FG-04B3b v0.10.61 (research only):** Added independently parsed **raw MusicXML 3.x score-partwise → normalized musical note events → MIDI-score pitch/onset/release alignment**. Handles divisions, rests, chords, multiple voices via backup/forward, staff/part/voice identities and explicit connected ties. Unsupported repeats, grace-note realizations, ambiguous unisons, unrelated XML/MIDI note times and unsupported scores refuse rather than fabricate note identities. Research CI checks all **16 immutable CC BY-NC-SA ASAP real-score pairs** and reports exact aligned/refused counts and reasons, with **no original XML/MIDI bytes, notes or fingerings in the report**. Uses the original score MIDI tempo clock; independent MusicXML tempo, repeat/ornament semantics and pianist fingering remain unverified. No changes to player, 14 owner PNG hands, Wait/Tempo, original XML or manual corrections. [FG-04B3b contract](docs/FG-04B3B-ASAP-XML-MIDI-AUDIT.md).
 
+**MAE-02C research v0.10.62:** The independent offline MAESTRO pipeline now checks all 1,276 original MIDI files, computes reproducible performance complexity metrics and selects 24 recordings for coverage of polyphony, note density, repeated attacks, velocity spread and CC64/66/67 variation. Train/validation/test remain separate (16/4/4). Original metadata-only sampling is retained in any split where it covers more predefined feature categories. The result is **QA diversity, not representative statistics, musical difficulty or verified fingering**. The research-only GitHub Action archives only derived metadata; original MIDI/audio and 14 approved hand PNGs remain untouched. See [MAESTRO MAE-02C](docs/MAESTRO-INTEGRATION.md).
+
 ### Release documentation rule
 
 **Every Play Along feature, fix and version update must update README.md in the same pull request**, with user-visible behavior, technical limitations, reproducible checks and links to supporting documentation. The unit test suite verifies that the README heading and a version-specific release-history section match package.json. This automated check is a minimum safeguard, not a replacement for meaningful release notes. Never mark a version as complete while its README is stale.
@@ -92,6 +94,7 @@ Open **http://localhost:4173/**. For browser MIDI permission on an external host
 | `npm run test:maestro` | Run MAESTRO metadata, ZIP integrity and MIDI-event regression tests |
 | `npm run research:maestro:plan -- --csv PATH [--zip ZIP] [--out JSON]` | Offline 24-piece QA candidate manifest from official v3 CSV; optional ZIP hash verification |
 | `npm run research:maestro:audit -- --csv CSV --zip ZIP --out JSON` | Verify official ZIP, 1,276 file memberships and 24 MIDI event profiles (offline research) |
+| `npm run research:maestro:diversity -- --csv CSV --zip ZIP --out JSON` | Profile all 1,276 MIDI files and select 24 measured-diversity QA performances |
 | `npm run test:browser` | Run real Chromium scenarios (requires `npx playwright install chromium`) |
 | npm run benchmark:fingering:repertoire | Reproduce FG-02G on five pinned, checksum-verified licensed musical excerpts (requires network) |
 | npm run benchmark:fingering:contextual | Compare FG-02H with FG-02G, including author-anchor acceptance and movement warnings |
@@ -144,6 +147,12 @@ Real physical MIDI device behavior, sustain pedal/CC64, live service availabilit
 
 ---
 ### Release history
+
+## Full MAESTRO performance profiling and diversity selection (v0.10.62)
+
+- Added a bounded offline scan of all official MAESTRO v3.0.0 MIDI performances, independently using the existing checksum/CRC/SMF integrity gates. The report freezes the 24 selected source paths, individual MIDI SHA256 and event-derived metrics, without storing source tracks or audio.
+- Compare duration, note density, held-note polyphony, repeated key attacks, velocity spread, pitch range, tempo event count and sustain/sostenuto/una corda controller presence with split-local quantile buckets. Select 16 train, 4 validation and 4 test by weighted coverage, retaining the metadata-only baseline for any split where measured coverage does not strictly improve. This is a targeted regression QA sample, **not** a pedagogical skill rating, a representative sample or blind independent ML holdout.
+- New deterministic/split-independence/tie-handling tests and dedicated official-source CI report; default playback, user library, author fingering, physical hand poses and Wait/Tempo remain unmodified. The independently verified 2026-10-12 official-source run scanned **1,276 MIDI files and 7,040,164 key attacks**, and the new 24-piece sample includes **143,923 attacks**. Weighted feature-coverage scores improved **train 67→71, validation 52→68, test 45→67** (not percentages or difficulty ratings). [Verified CI run](https://github.com/shafranek-js/play-along/actions/runs/38291524798). See [MAESTRO integration](docs/MAESTRO-INTEGRATION.md).
 
 ## Research: actual MusicXML score-to-MIDI semantic gate (v0.10.61)
 
