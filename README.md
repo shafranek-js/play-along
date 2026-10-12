@@ -1,11 +1,11 @@
-# Play Along — Piano Practice App (v0.10.54)
+# Play Along — Piano Practice App (v0.10.55)
 
 Play Along is an independently hosted browser piano practice application with Web MIDI, Piano Roll, OpenSheetMusicDisplay (OSMD), MusicXML/MXL and MIDI import, optional online music catalogs, and Wait/Tempo/Listen practice modes.
 
 **Live site:** https://shafranek-js.github.io/play-along/
 
 
-## Current status — v0.10.54
+## Current status — v0.10.55
 
 **Finger Guidance in the published player:** Optional Off / Numbers / 2D Hands / Ghost modes use the **14 original transparent PNG images supplied by the project owner** (seven poses for each hand). Guidance targets the **next note to be played**, not a key that is already sounding. In **Wait**, it stays on an unfinished group and removes already accepted chord keys; after a complete chord it advances to the next target.
 
@@ -49,6 +49,9 @@ FG-02H flags **11 quick same-finger changes** requiring musician review. Preserv
 **FG-04A v0.10.54 — External candidate research gate:** The dedicated fingering editor now has a collapsed **🔬 Сравнение внешней аппликатуры** panel for inspecting locally selected MusicXML/MXL outputs from MasterPiano, PianoPlayer, PineappleMusicLab and others. An exact source/voice/timing/part/notation comparison accepts differences **only in finger annotations**; original author markers, generated additions, conflicts, removals, unknown hands and gaps are reported. Download a per-note JSON evidence report. **Nothing is applied to learner hints, source notes, user overrides, playback or storage.** Updated roadmap separates FG-04A integrity gate, FG-04B frozen 10–20 score corpus, and conditional FG-04C/D expert-validated auto suggestions (currently NO-GO). [Detailed contract](docs/FG-04A-EXTERNAL-CANDIDATE-EVALUATION.md).
 
 **FG-04B research update (2026-10-12, documentation-only):** Reviewed [Hand-thesia / pygame-piano-animator](https://github.com/V9011N/pygame-piano-animator), a Python MIDI player with source-independent RH/LH separation, beam-search fingering, animated per-finger IK, ergonomic hand profiles, a fingering editor and embedded-MIDI finger tags. It **does not document MusicXML export** and has **no declared repository code license** (fonts are separately OFL-licensed). Its renderer may adjust strike/release timing to match simulated hands — forbidden for Play Along's source playback and Wait/Tempo contracts. Roadmap now treats it only as a separate **licensed-access-first MIDI/animation research comparator**; no third-party code, model, automatically generated instructional fingers or hand images were incorporated. [Review and evidence gates](docs/FG-04B-HAND-THESIA-REVIEW.md).
+
+
+**FG-04B2 v0.10.55 (research only):** Added an independently written, bounded read-only Standard MIDI File parser and source-identity comparison for Hand-thesia-style R1–R5/L1–L5/F1–F5 markers. It requires original source-derived MIDI, candidate MIDI and original MusicXML note IDs. It rejects different tempo, pitch, note length, velocity or ambiguous unisons; author-finger conflicts are reported, never applied. **No learner auto-fingering, no player changes, no Python dependency, no copied upstream code.** Nine synthetic Node regression tests passed locally. The licensed real-score corpus and independent pianist review are still pending. [FG-04B2 contract](docs/FG-04B2-MIDI-ALIGNMENT.md).
 
 ### Release documentation rule
 
@@ -126,6 +129,13 @@ Real physical MIDI device behavior, sustain pedal/CC64, live service availabilit
 
 ---
 ### Release history
+
+## FG-04B2 research-only MIDI marker alignment (v0.10.55)
+
+- Parse bounded MIDI note on/off, normalized tempo map and finger text markers in a standalone, read-only research module. Compare annotated candidate MIDI with unchanged reference MIDI and original MusicXML identities; accept changes only to research markers and hand/channel assignment, never timing, pitch or velocity.
+- Return externally generated candidate labels and explicit author conflicts; reject ambiguous unisons or source mismatch without guessing. Nine synthetic local unit cases; real Hand-thesia exports and licensed 10–20-score validation remain unverified. FG-04C/D learner auto-fingers remain NO-GO.
+- The 14 user-supplied hand PNG assets, Wait/Tempo scoring, original MusicXML and manual overrides remain unchanged. See [FG-04B2](docs/FG-04B2-MIDI-ALIGNMENT.md) and [roadmap](docs/ROADMAP-FINGER-GUIDANCE.md).
+
 
 ## Persistent library & preferences (v0.10.1)
 
