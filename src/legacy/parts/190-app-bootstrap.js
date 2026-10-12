@@ -125,8 +125,8 @@ function setupLibrarySectionOrganizer(){
   pointerDrag=null;container.classList.remove('dragInProgress');
   for(const node of container.children)node.classList.remove('isDragging','dropBefore','dropAfter');
  }
- // Preserve untouched Quick Actions and any future legacy nodes outside
- // the movable five, then discard the no-longer-used two-pane wrappers.
+ // Preserve any future legacy nodes outside the six movable sections,
+ // then discard the no-longer-used two-pane wrappers.
  for(const wrapper of [legacyControls,legacyResults]){
   if(!wrapper)continue;
   for(const child of [...wrapper.children])sidebody.append(child);
