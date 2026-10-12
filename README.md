@@ -1,11 +1,11 @@
-# Play Along — Piano Practice App (v0.10.55)
+# Play Along — Piano Practice App (v0.10.56)
 
 Play Along is an independently hosted browser piano practice application with Web MIDI, Piano Roll, OpenSheetMusicDisplay (OSMD), MusicXML/MXL and MIDI import, optional online music catalogs, and Wait/Tempo/Listen practice modes.
 
 **Live site:** https://shafranek-js.github.io/play-along/
 
 
-## Current status — v0.10.55
+## Current status — v0.10.56
 
 **Finger Guidance in the published player:** Optional Off / Numbers / 2D Hands / Ghost modes use the **14 original transparent PNG images supplied by the project owner** (seven poses for each hand). Guidance targets the **next note to be played**, not a key that is already sounding. In **Wait**, it stays on an unfinished group and removes already accepted chord keys; after a complete chord it advances to the next target.
 
@@ -52,6 +52,8 @@ FG-02H flags **11 quick same-finger changes** requiring musician review. Preserv
 
 
 **FG-04B2 v0.10.55 (research only):** Added an independently written, bounded read-only Standard MIDI File parser and source-identity comparison for Hand-thesia-style R1–R5/L1–L5/F1–F5 markers. It requires original source-derived MIDI, candidate MIDI and original MusicXML note IDs. It rejects different tempo, pitch, note length, velocity or ambiguous unisons; author-finger conflicts are reported, never applied. **No learner auto-fingering, no player changes, no Python dependency, no copied upstream code.** Nine synthetic Node regression tests passed locally. The licensed real-score corpus and independent pianist review are still pending. [FG-04B2 contract](docs/FG-04B2-MIDI-ALIGNMENT.md).
+
+**FG-04B1a v0.10.56 (technical corpus preparation):** Freeze **16 MIT-licensed MusicXML test-suite sources** across chord, voice, arpeggio, tie, cross-staff, repeat, tuplet, grace and related notation cases, each with pinned upstream commit, source byte length and Git blob SHA-1. A read-only Node research command validates actual online files; **8 offline unit tests** catch mutable or malformed manifests, mismatched content, wrong sources and missing provenance. **These 16 tests are not 16 real piano compositions or validated fingerings**: the planned 10–20-score *real repertoire* corpus and external candidate pairs remain outstanding. No new player behavior or automatic hand/finger hints. See [FG-04B1a corpus](docs/FG-04B1A-TECHNICAL-CORPUS.md) and [roadmap](docs/ROADMAP-FINGER-GUIDANCE.md).
 
 ### Release documentation rule
 
@@ -129,6 +131,13 @@ Real physical MIDI device behavior, sustain pedal/CC64, live service availabilit
 
 ---
 ### Release history
+
+## Pinned MusicXML technical corpus (v0.10.56)
+
+- Add version-pinned, separately licensed 16-file MusicXML regression research manifest and integrity-audited download script. Never check in the third-party source scores; network failure and hash mismatch are hard errors.
+- Add 8 offline tests and PR CI artifact with fixture IDs, categories, note-tag counts and SHA evidence. These are **notation-engine fixtures**, not independently fingered performances; this release makes **no** music accuracy or automatic fingering claim.
+- Existing playing modes, original source notation, 14 hand PNGs and user corrections are untouched. Real 10–20-score repertoire selection and pianist-validation gate remain open. [Research scope](docs/FG-04B1A-TECHNICAL-CORPUS.md).
+
 
 ## FG-04B2 research-only MIDI marker alignment (v0.10.55)
 
