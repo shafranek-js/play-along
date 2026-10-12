@@ -28,6 +28,10 @@ try{
  const order=()=>page.locator('#librarySections > [data-library-section]').evaluateAll(nodes=>nodes.map(n=>n.dataset.librarySection));
  const initial=['catalog','collection','backup','folder','online'];
  assert.deepEqual(await order(),initial);
+ assert.equal(await page.locator('#leftPanel .libControls, #leftPanel .libResults').count(),0,
+  'Legacy fixed two-pane wrappers must not survive movable library initialization');
+ assert.equal(await page.locator('#leftPanel .sidebody > .panelSection').first()
+  .locator('#librarySearch').count(),1,'Search stays pinned outside the reorderable stack');
  assert.equal(await page.locator('#librarySections [data-library-section="backup"] #backupExport').count(),1,
   'Backup is now a sibling, not nested inside My Collection');
  assert.equal(await page.locator('#librarySections [data-library-section="backup"] #backupImport').count(),1);
