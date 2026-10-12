@@ -1,10 +1,12 @@
-name: MAESTRO v3.0.0 Real MIDI Research Audit
+name: MAESTRO v3.0.0 MIDI and Diversity Research Audit
 
 on:
   pull_request:
     paths:
       - 'scripts/maestro-midi-audit.mjs'
+      - 'scripts/maestro-diversity.mjs'
       - 'tests/maestro-midi-audit.test.mjs'
+      - 'tests/maestro-diversity.test.mjs'
       - 'package.json'
       - '.github/workflows/maestro-real-audit.yml'
   workflow_dispatch:
@@ -15,7 +17,7 @@ permissions:
 jobs:
   verify-maestro:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -41,6 +43,29 @@ jobs:
             --csv "$RUNNER_TEMP/maestro/maestro-v3.0.0.csv" \
             --zip "$RUNNER_TEMP/maestro/maestro-v3.0.0-midi.zip" \
             --out artifacts/maestro-v3-actual-audit.json
+      - name: Profile all 1276 real MIDI performances and select balanced 24-work corpus
+        run: |
+          npm run research:maestro:diversity -- \
+            --csv "$RUNNER_TEMP/maestro/maestro-v3.0.0.csv" \
+            --zip "$RUNNER_TEMP/maestro/maestro-v3.0.0-midi.zip" \
+            --out artifacts/maestro-v3-measured-diversity.json
+      - name: Log 24 derived path/SHA256 pins for immutable QA corpus
+        run: |
+          node --input-type=module -e '
+          import fs from "node:fs";
+          const report=JSON.parse(fs.readFileSync("artifacts/maestro-v3-measured-diversity.json","utf8"));
+          for (const item of report.works) {
+            console.log("MAESTRO_PIN "+JSON.stringify({split:item.split,midi_filename:item.midi_filename,midi_sha256:item.midi_sha256}));
+          }
+          '
+      - name: Upload measured-diversity corpus report (no source MIDI)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maestro-v3-measured-diversity
+          path: artifacts/maestro-v3-measured-diversity.json
+          if-no-files-found: error
+          retention-days: 14
       - name: Upload derived metadata-only audit report
         if: always()
         uses: actions/upload-artifact@v4
