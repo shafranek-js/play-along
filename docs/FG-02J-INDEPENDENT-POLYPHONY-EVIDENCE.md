@@ -33,6 +33,20 @@ An independent manually annotated `Fingering_GT` stream must be inspected and ac
 
 Run `npm run research:fingering:polyphony-source` to generate the report (requires source-site access). CI archives `artifacts/fg02j-polyphony-source.json`. Run `npm test` for offline licensing, movement, revision and failure-gate tests.
 
+## First source discovery CI result and exact event alignment
+
+First run: [PR #18 CI 38210752540](https://github.com/shafranek-js/play-along/actions/runs/38210752540). It confirmed:
+
+- Actual **11** `Fingering_GT/*.tsv` files, distinct from the ordinary MIDI-derived `TSV/` files.
+- Dataset commit pinned: `1f039ab9d6128626bff708faad6472d220b50eaa`.
+- Manifest and license: `CC BY-NC-SA 4.0`.
+- Annotated file schema: `onset, key_offset, frame_offset, note, velocity, hand, finger`.
+- The initial status was **SCHEMA_ALIGNMENT_NOT_VERIFIED**: this correctly refused to report a musical accuracy percentage.
+
+Follow-up `scripts/fingering-polyphony-alignment-probe.mjs` now downloads only these 11 bounded small text GT files and their corresponding MIDI-derived TSV tables at the **same exact commit**. It verifies all five event fields with six-decimal exact matching in a multiset, detects missing or duplicate events, stores **SHA-256 digests** and produces aggregate hand/finger value distributions. No raw notes or personal performance data are written into the report.
+
+Until the value coding, hand-specific simultaneous note coverage, source-event bijection and independent human annotation validity are checked, `perNoteHandFingerReady` and `polyphonicCoverageVerified` remain false. This separation ensures a valid file *format* cannot be mistaken for validated per-note fingering data.
+
 ## Publication / quality decisions
 
 - A published file tree is **not** evidence of successfully aligned ground-truth fingers.
