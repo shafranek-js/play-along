@@ -162,8 +162,11 @@ function fingerGuidanceGetImage(hand,pose){
 }
 function fingerGuidanceSpritePlacement(notes,hand,geom,keyboardH,tail=0){
  if(!geom?.whites?.length)return null;
- const items=(notes||[]).filter(n=>n.hand===hand&&Number.isInteger(n.finger)&&geom.byPitch.has(n.pitch));
- if(!items.length)return null;
+ // A partial chord is not a valid full-hand pose: if any authored note
+ // lies outside the visible keyboard, show in-range numeric keys only.
+ const handNotes=(notes||[]).filter(n=>n.hand===hand);
+ if(!handNotes.length||handNotes.some(n=>!geom.byPitch.has(n.pitch)||!Number.isInteger(n.finger)))return null;
+ const items=handNotes;
  const pose=fingerGuidancePoseName(items,hand),tips=FINGER_GUIDANCE_TIPS[hand][pose];
  const unit=geom.whites[0].w,refW=unit*(pose==='spread'?5.25:4.85);
  const data=items.map(n=>({finger:n.finger,x:geom.byPitch.get(n.pitch).center,tx:tips[n.finger]}));
