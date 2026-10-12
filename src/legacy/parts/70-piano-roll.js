@@ -114,11 +114,11 @@ function fingerGuidancePose(items,hand,geom){
  });
  return {cx,unit,offsets,points};
 }
-function drawFingerGuidanceBadge(c,keyY,keyboardH,k,finger,hand,{preview=false}={}){
+function drawFingerGuidanceBadge(c,keyY,keyboardH,k,finger,hand,{preview=false,previewAlpha=.55}={}){
  const color=FINGER_GUIDANCE_PALETTE[hand]||{ink:'#737d90'};
  const y=keyY+keyboardH*(k.black?.38:.61);
  const r=Math.max(8,Math.min(11,k.w*.45));
- c.save();c.lineWidth=2;c.strokeStyle=color.ink;c.globalAlpha=preview?.55:1;
+ c.save();c.lineWidth=2;c.strokeStyle=color.ink;c.globalAlpha=preview?previewAlpha:1;
  c.beginPath();c.arc(k.center,y,r,0,2*Math.PI);
  c.fillStyle=preview?'#121820':color.ink;c.fill();c.stroke();
  c.fillStyle='#fff';c.font='bold 12px system-ui';c.textAlign='center';c.textBaseline='middle';
@@ -197,7 +197,7 @@ function drawFingerGuidanceHand(c,geom,keyY,keyboardH,group,hand,ghost=false,tai
  if(!entry?.loaded)return null;
  c.save();
  c.beginPath();c.rect(0,keyY,lastCanvasSize.w,keyboardH+tail);c.clip();
- c.globalAlpha=ghost?.25:.87;
+ c.globalAlpha=typeof ghost==='number'?ghost:ghost?.25:.87;
  c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';
  c.drawImage(entry.image,placement.x,placement.y,placement.width,placement.height);
  c.restore();
@@ -225,17 +225,20 @@ function drawFingerGuidance(c,geom,keyY,keyboardH,handsAllowed,handTail=0){
   for(const n of group.notes){const k=geom.byPitch.get(n.pitch);if(k)drawFingerGuidanceBadge(c,keyY,keyboardH,k,n.finger,n.hand);}
   return;
  }
+ // Secondary Ghost is a timed preparation hint, never another active note.
+ // A frozen Wait task cannot preview a second hand pose before it is done.
+ const ghostTime=fingerGuidanceGhostWindow({nextOnset:next?.start,now:pos,
+  leadMs:state.fingerLookaheadMs,speedPercent:state.speed,mode:state.mode,loop});
  // Static PNG is a teaching pose, not a frame-by-frame model of finger joints.
- // Draw future sprites only when a meaningful hand relocation is required.
- if(mode==='ghost'&&next?.complete){
+ if(mode==='ghost'&&next?.complete&&ghostTime.visible){
   for(const hand of ['LH','RH']){
    const a=fingerGuidanceSpritePlacement(group.notes,hand,geom,keyboardH,handTail);
    const b=fingerGuidanceSpritePlacement(next.notes,hand,geom,keyboardH,handTail);
    if(!b)continue;
    if(!a||Math.abs((a.x+a.width*.5)-(b.x+b.width*.5))>b.unit*1.35){
-    drawFingerGuidanceHand(c,geom,keyY,keyboardH,next.notes,hand,true,handTail);
+    drawFingerGuidanceHand(c,geom,keyY,keyboardH,next.notes,hand,ghostTime.alpha,handTail);
     if(a){
-     c.save();c.strokeStyle=FINGER_GUIDANCE_PALETTE[hand].ink;c.globalAlpha=.48;
+     c.save();c.strokeStyle=FINGER_GUIDANCE_PALETTE[hand].ink;c.globalAlpha=Math.min(.58,ghostTime.alpha+.15);
      c.setLineDash([4,5]);c.lineWidth=2;c.beginPath();
      const y=keyY+keyboardH*.88;
      c.moveTo(a.x+a.width/2,y);c.quadraticCurveTo((a.x+a.width/2+b.x+b.width/2)/2,y-22,b.x+b.width/2,y);
@@ -245,7 +248,7 @@ function drawFingerGuidance(c,geom,keyY,keyboardH,handsAllowed,handTail=0){
     for(const n of next.notes.filter(n=>n.hand===hand)){
      if(group.notes.some(z=>z.hand===hand&&z.pitch===n.pitch))continue;
      const k=geom.byPitch.get(n.pitch);
-     if(k)drawFingerGuidanceBadge(c,keyY,keyboardH,k,n.finger,hand,{preview:true});
+     if(k)drawFingerGuidanceBadge(c,keyY,keyboardH,k,n.finger,hand,{preview:true,previewAlpha:ghostTime.alpha});
     }
    }
   }

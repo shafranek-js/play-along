@@ -29,6 +29,21 @@ try{
  assert.deepEqual(await frame(),{current:0,next:.46});
  await page.evaluate(()=>window.__prototypeTest.seek(.1));
  assert.deepEqual(await frame(),{current:.46,next:.92});
+ // At 100% playback .92 - .10 = 820ms. A short window must NOT draw
+ // the second Ghost; extending it to 1000ms should expose it.
+ await page.locator('#fingerGuideMode').selectOption('ghost');
+ await page.locator('#fingerGuideLookahead').selectOption('500');
+ assert.equal(await page.evaluate(()=>window.__fingerGuideTest.ghostWindow.visible),false);
+ await page.locator('#fingerGuideLookahead').selectOption('1000');
+ assert.equal(await page.evaluate(()=>window.__fingerGuideTest.ghostWindow.visible),true);
+ await page.locator('#fingerGuideLookahead').selectOption('750');
+ assert.equal(await page.evaluate(()=>window.__fingerGuideTest.ghostWindow.visible),false);
+ // At 150% playback, the same 820 score-ms are about 547 wall-ms.
+ await page.locator('#speed').evaluate(el=>{el.value='150';el.dispatchEvent(new Event('input',{bubbles:true}))});
+ const scaled=await page.evaluate(()=>window.__fingerGuideTest.ghostWindow);
+ assert.equal(scaled.visible,true,JSON.stringify(scaled));
+ assert.ok(scaled.remainingMs>=540&&scaled.remainingMs<=555);
+ await page.locator('#speed').evaluate(el=>{el.value='100';el.dispatchEvent(new Event('input',{bubbles:true}))});
  await page.evaluate(()=>window.__prototypeTest.seek(.46));
  assert.ok(await page.evaluate(()=>{const f=window.__fingerGuideTest.frame;return Math.abs(f.current-.92)<1e-6&&Math.abs(f.next-1.38)<1e-6;}));
  await page.evaluate(()=>window.__prototypeTest.seek(.92));
@@ -44,6 +59,8 @@ try{
  });
  await page.waitForFunction(()=>window.__prototypeTest.isPlaying);
  assert.equal((await frame()).current,0);
+ assert.equal(await page.evaluate(()=>window.__fingerGuideTest.ghostWindow.visible),false,
+  'Wait must not pre-display a second hand target before finishing the chord');
  const before=await page.evaluate(()=>window.__fingerGuideTest.steps[0].notes.length);
  assert.equal(before,6,'Both hands remain represented at the shared chord onset');
  await page.evaluate(()=>window.__prototypeTest.receiveNoteOn(60));
@@ -79,6 +96,8 @@ try{
  assert.equal(await page.evaluate(()=>window.__prototypeTest.loop.enabled),true);
  await page.evaluate(()=>window.__prototypeTest.seek(3.6));
  assert.equal((await frame()).current,1.8,'Next loop iteration should be previewed');
+ assert.equal(await page.evaluate(()=>window.__fingerGuideTest.ghostWindow.visible),false,
+  'Ghost lead window must count the next loop cycle forward, not assume a past note is imminent');
  await page.locator('#loopBtn').click();
 
  // Near the end of a one-pass piece, don't show the previously sounding note.

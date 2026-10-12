@@ -1,11 +1,11 @@
-# Play Along — Piano Practice App (v0.10.42)
+# Play Along — Piano Practice App (v0.10.43)
 
 Play Along is an independently hosted browser piano practice application with Web MIDI, Piano Roll, OpenSheetMusicDisplay (OSMD), MusicXML/MXL and MIDI import, optional online music catalogs, and Wait/Tempo/Listen practice modes.
 
 **Live site:** https://shafranek-js.github.io/play-along/
 
 
-## Current status — v0.10.42
+## Current status — v0.10.43
 
 **Finger Guidance in the published player:** Optional Off / Numbers / 2D Hands / Ghost modes use the **14 original transparent PNG images supplied by the project owner** (seven poses for each hand). Guidance targets the **next note to be played**, not a key that is already sounding. In **Wait**, it stays on an unfinished group and removes already accepted chord keys; after a complete chord it advances to the next target.
 
@@ -25,6 +25,8 @@ Most recent research measurement (FG-02H) on five CC BY-SA hand-annotated excerp
 FG-02H flags **11 quick same-finger changes** requiring musician review. Preserving all original anchors is a data-integrity result, **not** evidence that every transition is a good teaching recommendation. The five excerpts were already known during development: this is *retrospective* evaluation, not a new blind trial. See [FG-02H research](docs/FG-02H-MIXED-PHRASING-RESEARCH.md) and [PR #15](https://github.com/shafranek-js/play-along/pull/15).
 
 **FG-03A update:** Author-verified guidance now retains unannotated score onsets as explicit empty preview boundaries. The player no longer jumps from a still-unlabelled note to a later labelled one. A partially annotated chord displays individually confirmed **numeric** fingers rather than an unverified full hand silhouette. This adds no automatically predicted fingers. See the [updated roadmap](docs/ROADMAP-FINGER-GUIDANCE.md).
+
+**FG-03B1 update:** The **secondary** translucent Ghost hand now appears only within a configurable **500–1000 ms** wall-clock preparation window (default **750 ms**), adjusted for playback speed. Wait never presents a premature second-hand position; a wrapped Loop counts the next cycle forward. The actionable first/next pending hand hint remains available as before. No automatically generated fingers are presented to learners. See [the implementation note](docs/FG-03B1-LOOKAHEAD.md) and [roadmap](docs/ROADMAP-FINGER-GUIDANCE.md).
 
 ### Release documentation rule
 
@@ -334,3 +336,9 @@ The pure `src/core/finger-guidance-timeline.mjs` is now used by the built player
 **Checks:** Seven new Node unit tests cover trustworthy source/hand constraints, retained note IDs, missing-label boundaries, partial chords, simultaneous duplicate pitches, millisecond score ordering and invalid inputs. The real Chromium MusicXML acceptance test checks that the player retains silent boundaries for unannotated notes. Run `npm run build`, `npm test`, then `npm run test:browser`. CI must pass before merge. **Limitations:** This improves source fidelity and preview correctness; it is neither auto-fingering nor an anatomical motion model. All experimental auto-generated fingerings remain disabled for learners.
 
 References: [updated development roadmap](docs/ROADMAP-FINGER-GUIDANCE.md), [FG-03A design and acceptance](docs/FG-03A-SCORE-GUIDANCE.md), and the independent [FG-02J NO-GO evidence](docs/FG-02J-INDEPENDENT-POLYPHONY-EVIDENCE.md).
+
+## FG-03B1: configurable tempo-aware Ghost lookahead (v0.10.43)
+
+A second (preview-only) hand pose is now gated by the actual distance to its next onset, measured in **wall-clock milliseconds** after applying playback speed, with the selected 500 / 600 / 750 / 900 / 1000 ms preview window. The default is 750 ms. Ghost opacity increases as the next position approaches; known actionable finger numbers remain visually separate. The preview is disabled while **Wait** has an unfinished group and does not incorrectly treat a prior note from a Loop iteration as imminent. The setting persists in validated global browser preferences and is available only with **Руки + следующая позиция / Ghost** enabled. A source-incomplete next chord cannot receive a fully posed hand preview.
+
+**Verification:** Five new deterministic unit cases verify relative tempo, invalid inputs, Wait and Loop wrapping; real Chromium regression checks selected time, 150% speed, Wait, Loop and persistence across page reload. GitHub Actions runs build + Node + browser acceptance. **Not in scope:** image replacement, true articulation of physical fingers, computed source-agnostic fingering, learned-motion accuracy or continuous motion tweening. The original 14 owner-provided PNGs remain intact; any automatic finger selection remains a research-only NO-GO. See [FG-03B1 technical details](docs/FG-03B1-LOOKAHEAD.md) and the [updated roadmap](docs/ROADMAP-FINGER-GUIDANCE.md).

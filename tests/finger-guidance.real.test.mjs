@@ -34,6 +34,9 @@ try{
  assert.deepEqual(scale.slice(0,5).map(g=>g.notes[0].finger),[1,2,3,1,2]);
  assert.equal(scale[3].notes[0].pitch,65);
  await page.locator('#fingerGuideMode').selectOption('ghost');
+ assert.equal(await page.locator('#fingerGuideLookahead').isEnabled(),true);
+ await page.locator('#fingerGuideLookahead').selectOption('900');
+ assert.equal(await page.evaluate(()=>window.__fingerGuideTest.lookaheadMs),900);
  await page.waitForFunction(()=>document.querySelector('#fingerGuideStatus').textContent.includes('Демо-аппликатура'));
  const high=await page.evaluate(()=>window.__fingerGuideTest.layout);
  assert.ok(high.keyboardBlackH>75,'Hands should use enlarged existing canvas keyboard');
@@ -45,6 +48,7 @@ try{
  assert.ok(Math.abs(third.current-1.38)<1e-6&&Math.abs(third.next-1.84)<1e-6);
  // Switching off restores the original keyboard dimensions.
  await page.locator('#fingerGuideMode').selectOption('off');
+ assert.equal(await page.locator('#fingerGuideLookahead').isDisabled(),true);
  await page.waitForTimeout(50);
  const low=await page.evaluate(()=>window.__fingerGuideTest.layout);
  assert.ok(low.keyboardBlackH<high.keyboardBlackH);
@@ -55,6 +59,8 @@ try{
  await page.waitForFunction(()=>window.__fingerGuideTest&&window.__prototypeTest);
  assert.equal(await page.locator('#fingerGuideMode').inputValue(),'hands');
  assert.equal(await page.evaluate(()=>window.__fingerGuideTest.mode),'hands');
+ assert.equal(await page.locator('#fingerGuideLookahead').inputValue(),'900',
+  'Lookahead setting must persist across reload without forcing Ghost mode');
 
  // A real two-track piece: each chord receives distinct LH/RH fingering.
  await page.evaluate(()=>{

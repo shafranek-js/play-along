@@ -32,3 +32,34 @@ export function fingerGuidanceTimeline(events){
   ...group,complete:group.notes.length===group.totalNotes
  }));
 }
+
+/**
+ * FG-03B: presentation-only secondary Ghost preview schedule.
+ * Musical events remain in score seconds, whereas lookahead is wall-clock
+ * milliseconds; the user's tempo multiplier converts between them.
+ * A stopped Wait task never receives a premature second-hand target.
+ * Wrapped loop events refer to the NEXT cycle, not a past onset.
+ * This function does not assign fingers or modify playback state.
+ */
+export function fingerGuidanceGhostWindow({
+ nextOnset,now,leadMs=750,speedPercent=100,mode='listen',loop=null
+}={}){
+ const hidden={visible:false,remainingMs:null,alpha:0};
+ if(mode==='wait'||!['listen','tempo'].includes(mode)||
+  !Number.isFinite(nextOnset)||!Number.isFinite(now)||now<0||
+  !Number.isInteger(leadMs)||leadMs<500||leadMs>1000||
+  !Number.isFinite(speedPercent)||speedPercent<25||speedPercent>150)return hidden;
+ let delta=nextOnset-now;
+ if(loop?.enabled){
+  const {start,end}=loop;
+  if(!Number.isFinite(start)||!Number.isFinite(end)||end<=start||
+   now<start-.001||now>end+.001||nextOnset<start-.001||nextOnset>=end+.001)return hidden;
+  if(delta<=0)delta=end-now+nextOnset-start;
+ }
+ if(delta<=0)return hidden;
+ const remainingMs=delta*1000/(speedPercent/100);
+ if(remainingMs>leadMs+1e-6)return {visible:false,remainingMs:Math.round(remainingMs),alpha:0};
+ const progress=Math.max(0,Math.min(1,1-remainingMs/leadMs));
+ return {visible:true,remainingMs:Math.round(remainingMs),
+  alpha:Math.round((.10+.25*progress)*1000)/1000};
+}
