@@ -17,22 +17,35 @@ const musicPrelude=['music-time.mjs','music-bars.mjs','finger-guidance-timeline.
 
 test('all feature parts form exactly one valid JavaScript bundle',()=>{
  assert.equal(manifest.features.length,21);
- const expected="\n(()=>{'use strict';\n"+musicPrelude+'\n'+featureSource.replace("window.__playAlongVersion='0.9.1'","window.__playAlongVersion='0.10.44'")+"})();\n";
+ const expected="\n(()=>{'use strict';\n"+musicPrelude+'\n'+featureSource.replace("window.__playAlongVersion='0.9.1'","window.__playAlongVersion='0.10.45'")+"})();\n";
  assert.equal(js,expected);
  execFileSync(process.execPath,['--check',path.join(root,'dist/assets/app.js')]);
 });
 test('CSS and HTML are separate, all expected DOM anchors exist',()=>{
  assert.equal(css,read('src/styles/app.css'));
- assert.match(html,/href="\.\/assets\/app\.css"/);
- assert.match(html,/defer src="\.\/assets\/app\.js"/);
+ assert.match(html,/href="\.\/assets\/app\.css\?v=0\.10\.45"/);
+ assert.match(html,/defer src="\.\/assets\/app\.js\?v=0\.10\.45"/);
  assert.doesNotMatch(html,/<style>|<script>/);
  for(const id of ['playBtn','viewRoll','viewSheet','sheetCanvas','rollWrap','librarySourceSelect','asapSync','museTrainerSync','mutopiaSync','connectMidi','songList','fingerGuideLookahead']){
   assert.ok(html.includes(`id="${id}"`),`Missing UI ID ${id}`);
  }
 });
+test('HTML visible branding, browser tab and asset revisions are derived only from package.json',()=>{
+ const pkg=JSON.parse(read('package.json'));
+ const source=read('src/index.html');
+ const token='__PLAY_ALONG_VERSION__';
+ assert.equal(source.split(token).length-1,5,'All three labels and both resource URLs must be templated');
+ assert.equal(html,source.split(token).join(pkg.version),
+  'Build must stamp all five version slots from package.json, without changing other HTML');
+ assert.ok(html.includes('Standalone · v'+pkg.version),'Visible header must be current');
+ assert.ok(html.includes('<title>Play Along · v'+pkg.version),'Browser tab must be current');
+ assert.ok(html.includes('INTERACTIVE SCORE v'+pkg.version),'Initial score label must be current');
+ assert.ok(!html.includes(token),'Release template token must never be visible in deployed HTML');
+ assert.ok(!html.includes('v0.10.41'),'Old hardcoded version must not leak into new builds');
+});
 test('preserved features: MIDI auto connection, Wait, OSMD, imports, catalogs',()=>{
  for(const term of ['requestMIDIAccess','onstatechange','waitReleasePitches','holdForInput','scoreEnsureRendered','opensheetmusicdisplay.min.js','mutopiaLoadIndex','museTrainerLoadIndex','asapLoadIndex','zipUnpackMXL','readMusicXML','parseMidi','indexedDB']) assert.ok(js.includes(term),`Missing ${term}`);
- assert.ok(js.includes("window.__playAlongVersion='0.10.44'"));
+ assert.ok(js.includes("window.__playAlongVersion='0.10.45'"));
  assert.ok(js.includes('function musicCreateTempoTimeline('));
  assert.ok(js.includes('function musicSecondsToBeat('));
  assert.ok(js.includes('function musicBarGrid('));
