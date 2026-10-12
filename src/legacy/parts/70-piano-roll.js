@@ -541,6 +541,13 @@ function renderCanvas(){
  }
  c.strokeStyle='#e5997f';c.lineWidth=2;c.beginPath();c.moveTo(0,strikeY);c.lineTo(w,strikeY);c.stroke();
  drawFingerGuidance(c,geom,keyY,keyboardH,handsAllowed,handTail);
+ if(fingerSelectionPointer?.dragging){
+  const p=fingerSelectionPointer;
+  const x=Math.min(p.x,p.endX),y=Math.min(p.y,p.endY);
+  c.fillStyle='rgba(245,221,115,.14)';c.fillRect(x,y,Math.abs(p.endX-p.x),Math.abs(p.endY-p.y));
+  c.strokeStyle='#f8e183';c.lineWidth=1.5;c.setLineDash([5,4]);
+  c.strokeRect(x,y,Math.abs(p.endX-p.x),Math.abs(p.endY-p.y));c.setLineDash([]);
+ }
 }
 function noteHit(e){const box=roll.getBoundingClientRect(),x=e.clientX-box.left,y=e.clientY-box.top;return hitboxes.slice().reverse().find(b=>x>=b.x&&x<=b.x+b.w&&y>=b.y&&y<=b.y+b.h)?.n||null;}
 function virtualKeyAt(e){
@@ -552,6 +559,47 @@ function virtualKeyAt(e){
  const natural=pianoGeom.whites.find(k=>x>=k.x&&x<k.x+k.w);
  return natural?.pitch??null;
 }
+// Selection gestures only in the NOTE AREA; the keyboard below remains a
+// sounding virtual MIDI instrument. Capture on canvas avoids losing drag.
+function rollSelectPoint(e){
+ const box=roll.getBoundingClientRect();
+ return {x:e.clientX-box.left,y:e.clientY-box.top};
+}
+roll.addEventListener('pointerdown',e=>{
+ if(e.button!==0||!fingerSelectionAvailable()||state.scoreView!=='roll'||fingerSelectionPointer)return;
+ const p=rollSelectPoint(e);if(p.y>=keyboardTop)return;
+ e.preventDefault();roll.focus({preventScroll:true});roll.setPointerCapture(e.pointerId);
+ fingerSelectionPointer={id:e.pointerId,x:p.x,y:p.y,endX:p.x,endY:p.y,
+  toggle:e.ctrlKey||e.metaKey,shift:e.shiftKey,dragging:false};
+});
+roll.addEventListener('pointermove',e=>{
+ const d=fingerSelectionPointer;if(!d||d.id!==e.pointerId)return;
+ const p=rollSelectPoint(e);d.endX=p.x;d.endY=Math.max(0,Math.min(keyboardTop,p.y));
+ if(!d.dragging&&Math.hypot(d.endX-d.x,d.endY-d.y)>=5)d.dragging=true;
+ if(d.dragging)renderCanvas();
+});
+function finishFingerSelection(e){
+ const d=fingerSelectionPointer;if(!d||d.id!==e.pointerId)return;
+ fingerSelectionPointer=null;
+ if(e.type!=='pointerup'){renderCanvas();return}
+ const order=fingerSelectionOrdered(),validIds=new Set(order.map(n=>n.id));
+ if(d.dragging){
+  const picked=fingerSelectRectangle(hitboxes,{x1:d.x,y1:d.y,x2:d.endX,y2:d.endY},{ids:validIds});
+  const next=d.toggle||d.shift?[...fingerSelectedIds,...picked]:picked;
+  fingerSelectionSet([...new Set(next)],picked[picked.length-1]||fingerSelectionAnchor);
+ }else{
+  const hit=hitboxes.slice().reverse().find(b=>d.endX>=b.x&&d.endX<=b.x+b.w&&
+   d.endY>=b.y&&d.endY<=b.y+b.h)?.n;
+  if(hit&&validIds.has(hit.noteId)){
+   const next=fingerSelectUpdate(order,fingerSelectedIds,hit.noteId,fingerSelectionAnchor,
+    {shift:d.shift,toggle:d.toggle});
+   fingerSelectionSet(next.selected,next.anchor);
+  }else if(!d.toggle&&!d.shift)fingerSelectionSet([]);
+ }
+}
+roll.addEventListener('pointerup',finishFingerSelection);
+roll.addEventListener('pointercancel',finishFingerSelection);
+roll.addEventListener('lostpointercapture',finishFingerSelection);
 let virtualPointer=null;
 roll.addEventListener('pointerdown',e=>{
  if(e.button!==0||virtualPointer!==null)return;
@@ -570,7 +618,12 @@ function endVirtualPointer(e){if(!virtualPointer||e.pointerId!==virtualPointer.i
 roll.addEventListener('pointerup',endVirtualPointer);
 roll.addEventListener('pointercancel',endVirtualPointer);
 roll.addEventListener('lostpointercapture',endVirtualPointer);
-function selectNote(n){selectedNote=n;if(!n){$('selection').innerHTML='<strong>Ничего не выбрано</strong><p>Щёлкни цветную ноту на Piano Roll.</p>';return}$('selection').replaceChildren();const head=document.createElement('strong'),desc=document.createElement('p');head.textContent=nameOf(n.pitch)+' · MIDI '+n.pitch+(Number.isInteger(n.sourcePitch)&&n.sourcePitch!==n.pitch?' · из '+nameOf(n.sourcePitch):'');desc.textContent='Дорожка: '+(current.tracks[n.track]?.name||n.track)+' | Позиция: '+n.start.toFixed(2)+' с | Длительность: '+n.duration.toFixed(2)+' с | Velocity: '+n.velocity;$('selection').append(head,desc);const review=reviewForNote(n);if(review){const p=document.createElement('p');p.className='small';p.textContent=review.miss?'Разбор: пропущена':review.hit?'Разбор: сыграна'+(review.timingMs!=null?' · отклонение '+Math.round(review.timingMs)+' мс':'')+(review.holdRatio!=null?' · удержание '+Math.round(review.holdRatio*100)+'%':'')+(review.chordSpreadMs!=null?' · разброс аккорда '+Math.round(review.chordSpreadMs)+' мс':''):'Разбор: нет данных о нажатии';$('selection').append(p)}if(!state.right){state.right=true;applyPanels()}switchRightTab('practice');fingerOverrideRenderEditor(n);}
+function selectNote(n,{keepGroup=false}={}){
+ if(!keepGroup){
+  fingerSelectedIds=new Set(fingerSelectionAvailable()&&n?.noteId?[n.noteId]:[]);
+  fingerSelectionAnchor=n?.noteId||null;
+ }
+ selectedNote=n;if(!n){$('selection').innerHTML='<strong>Ничего не выбрано</strong><p>Щёлкни цветную ноту на Piano Roll.</p>';return}$('selection').replaceChildren();const head=document.createElement('strong'),desc=document.createElement('p');head.textContent=nameOf(n.pitch)+' · MIDI '+n.pitch+(Number.isInteger(n.sourcePitch)&&n.sourcePitch!==n.pitch?' · из '+nameOf(n.sourcePitch):'');desc.textContent='Дорожка: '+(current.tracks[n.track]?.name||n.track)+' | Позиция: '+n.start.toFixed(2)+' с | Длительность: '+n.duration.toFixed(2)+' с | Velocity: '+n.velocity;$('selection').append(head,desc);const review=reviewForNote(n);if(review){const p=document.createElement('p');p.className='small';p.textContent=review.miss?'Разбор: пропущена':review.hit?'Разбор: сыграна'+(review.timingMs!=null?' · отклонение '+Math.round(review.timingMs)+' мс':'')+(review.holdRatio!=null?' · удержание '+Math.round(review.holdRatio*100)+'%':'')+(review.chordSpreadMs!=null?' · разброс аккорда '+Math.round(review.chordSpreadMs)+' мс':''):'Разбор: нет данных о нажатии';$('selection').append(p)}if(!state.right){state.right=true;applyPanels()}switchRightTab('practice');fingerOverrideRenderEditor(n);renderCanvas();}
 function fingerOverrideRenderEditor(n){
  if(!n||!current||current.format!=='MusicXML'||state.adaptMode!=='original'||!n.noteId||
   !fingerGuideWorkKey())return;
