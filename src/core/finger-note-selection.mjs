@@ -25,7 +25,11 @@ export function fingerSelectUpdate(order,selected,id,anchor,{shift=false,toggle=
  }
  if(toggle){
   const chosen=new Set(selected);if(chosen.has(id))chosen.delete(id);else chosen.add(id);
-  return {selected:ids.filter(x=>chosen.has(x)),anchor:id};
+  // Toggling off the anchor must not leave Shift ranges attached to an
+  // unselected note. Prefer a still-selected anchor, then first remaining.
+  const nextAnchor=chosen.has(id)?id:chosen.has(anchor)?anchor:
+   ids.find(x=>chosen.has(x))||null;
+  return {selected:ids.filter(x=>chosen.has(x)),anchor:nextAnchor};
  }
  return {selected:[id],anchor:id};
 }
