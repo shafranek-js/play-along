@@ -1,4 +1,5 @@
 import test from 'node:test';
+import {readFileSync} from 'node:fs';
 import assert from 'node:assert/strict';
 import {selectMeasuredCorpus,coverage} from '../scripts/maestro-diversity.mjs';
 
@@ -79,4 +80,17 @@ test('weighted metric weights align with coverage tokens, not fictitious difficu
  assert.ok(info.baseline.covered_feature_buckets>0);
  assert.ok(result.works.every(r=>Number.isInteger(r.measured_buckets.note_density)&&r.measured_buckets.note_density>=0&&r.measured_buckets.note_density<=3));
  assert.equal(typeof coverage,'function');
+});
+
+test('frozen official 24-file source pins are complete, attributed and unique',()=>{
+ const lock=JSON.parse(readFileSync(new URL('../research/maestro-v3-measured-qa-pins.json',import.meta.url),'utf8'));
+ assert.equal(lock.schema,'play-along-maestro-frozen-qa-pins/1');
+ assert.equal(lock.provenance.dataset,'Google LLC MAESTRO v3.0.0');
+ assert.equal(lock.provenance.license,'CC BY-NC-SA 4.0');
+ assert.match(lock.provenance.official_midi_zip_sha256,/^[a-f0-9]{64}$/);
+ assert.equal(lock.works.length,24);
+ assert.equal(new Set(lock.works.map(w=>w.midi_filename)).size,24);
+ assert.deepEqual(Object.fromEntries(['train','validation','test'].map(s=>[s,lock.works.filter(w=>w.split===s).length])),{train:16,validation:4,test:4});
+ assert.ok(lock.works.every(w=>/^[a-f0-9]{64}$/.test(w.midi_sha256)));
+ assert.deepEqual(Object.fromEntries(['train','validation','test'].map(s=>[s,lock.verified_corpus.weighted_feature_coverage[s].final])),{train:71,validation:68,test:67});
 });
