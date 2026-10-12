@@ -70,6 +70,7 @@
 .fingerCorrectionControls{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .fingerCorrectionControls select{min-width:94px;max-width:155px;flex:1;border-radius:7px;border:1px solid #687590;background:#222b3b;color:#e7f0ff;padding:5px}
 .fingerCorrectionControls button:disabled{opacity:.4;cursor:not-allowed}
+.fingerCorrectionHistory{margin:6px 0 0;color:var(--muted);font-variant-numeric:tabular-nums}
 .fingerGuideControls #fingerGuideLookahead{min-width:84px;max-width:92px}
 .fingerGuideControls #fingerGuideLookahead:disabled{opacity:.5;cursor:not-allowed}
 .fingerGuideControls #fingerGuideStatus{font-size:10px;color:#b8c6da;max-width:210px;line-height:1.25}
