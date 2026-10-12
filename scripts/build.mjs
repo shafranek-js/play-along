@@ -37,9 +37,9 @@ const htmlTemplate=fs.readFileSync(path.join(root,'src/index.html'),'utf8');
 const token='__PLAY_ALONG_VERSION__';
 const tokenCount=htmlTemplate.split(token).length-1;
 if(tokenCount!==5)throw Error('HTML version placeholders changed: expected 5, found '+tokenCount);
-if(!/^\\d+\\.\\d+\\.\\d+$/.test(version))throw Error('Invalid semver for HTML release stamp');
+if(!/^\d+\.\d+\.\d+$/.test(version))throw Error('Invalid semver for HTML release stamp');
 const html=htmlTemplate.split(token).join(version);
-if(html.includes(token)||/v0\\.10\\.41/.test(html))throw Error('Stale HTML release version');
+if(html.includes(token)||/v0\.10\.41/.test(html))throw Error('Stale HTML release version');
 fs.writeFileSync(path.join(dist,'index.html'),html);
 
 // Preserve all 14 user-owned alpha PNG files bit-for-bit (seven poses per hand).
