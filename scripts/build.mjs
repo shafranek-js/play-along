@@ -14,7 +14,7 @@ const parts = names.map(name => fs.readFileSync(path.join(partsDir, name), 'utf8
 const body = parts.join('');
 // Transitional bridge: a genuine, independently importable ES module is
 // included in the legacy IIFE without duplicating its musical math.
-const coreModules=['music-time.mjs','music-bars.mjs','finger-guidance-timeline.mjs','musicxml-note-identity.mjs','finger-overrides.mjs','fingering-coverage.mjs','library-section-layout.mjs'];
+const coreModules=['music-time.mjs','music-bars.mjs','finger-guidance-timeline.mjs','musicxml-note-identity.mjs','finger-overrides.mjs','finger-override-history.mjs','fingering-coverage.mjs','library-section-layout.mjs'];
 const musicPrelude=coreModules.map(filename=>{
  const source=fs.readFileSync(path.join(root,'src/core',filename),'utf8');
  const adapted=source.replace(/^export /gm,'');
