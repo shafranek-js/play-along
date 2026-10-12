@@ -1,11 +1,11 @@
-# Play Along — Piano Practice App (v0.10.40)
+# Play Along — Piano Practice App (v0.10.41)
 
 Play Along is an independently hosted browser piano practice application with Web MIDI, Piano Roll, OpenSheetMusicDisplay (OSMD), MusicXML/MXL and MIDI import, optional online music catalogs, and Wait/Tempo/Listen practice modes.
 
 **Live site:** https://shafranek-js.github.io/play-along/
 
 
-## Current status — v0.10.40
+## Current status — v0.10.41
 
 **Finger Guidance in the published player:** Optional Off / Numbers / 2D Hands / Ghost modes use the **14 original transparent PNG images supplied by the project owner** (seven poses for each hand). Guidance targets the **next note to be played**, not a key that is already sounding. In **Wait**, it stays on an unfinished group and removes already accepted chord keys; after a complete chord it advances to the next target.
 
@@ -52,6 +52,7 @@ Open **http://localhost:4173/**. For browser MIDI permission on an external host
 | npm run benchmark:fingering:repertoire | Reproduce FG-02G on five pinned, checksum-verified licensed musical excerpts (requires network) |
 | npm run benchmark:fingering:contextual | Compare FG-02H with FG-02G, including author-anchor acceptance and movement warnings |
 | npm run benchmark:fingering:heldout | Reproduce FG-02E locked, 34-case educational scale evaluation |
+| `npm run research:fingering:polyphony-source` | FG-02J metadata-only external polyphonic fingering source qualification (requires network, noncommercial research scope) |
 
 
 ## Deployment and third-party components
@@ -302,3 +303,17 @@ In retrospective comparison with the **same five FG-02G excerpts**, unannotated 
 - **No change in the player interface:** all 14 original owner-supplied PNG hand poses and anticipatory next-note hints still use the existing MusicXML/demo assignments. Experimental generated fingering remains **OFF**.
 
 [Technical scope, test evidence and limitations](docs/FG-02I-POLYPHONIC-SCORE-ROUTING.md). A separate expert-adjudicated, genuinely unseen polyphonic score study and a review of inter-segment motion are required before an opt-in learner feature.
+
+## FG-02J: independent polyphonic source qualification (v0.10.41)
+
+FG-02I's chord/held-voice router passes technical tests, but the five previous Piano Protege teaching excerpts have **no intra-hand chord islands**. They do not demonstrate independent musical accuracy for actual polyphony.
+
+FG-02J identifies a *candidate* independent resource: [PianoVAM v1.1](https://huggingface.co/datasets/PianoVAM/PianoVAM_v1), which describes real piano performances with source annotations and separately reported manually annotated fingering. **Its license is CC BY-NC-SA 4.0 (noncommercial, attribution and share-alike)**, distinct from the previous CC BY-SA teaching corpus. No source audio/video, hand data or fingering annotations are copied into Play Along.
+
+A new research-only discovery script inspects source metadata, verifies revision and license, checks for a real `Fingering_GT` directory, and examines the schema of at most one small source file. Crucially, normal `onset/key_offset/frame_offset/note/velocity` TSV labels are **not a fingering source**. Exact RH/LH and 1..5 finger alignment to the original MIDI note events must be independently demonstrated before any percentage agreement or polyphonic "accuracy" can be calculated.
+
+`npm test` checks fail-closed license/revision/file-availability and note-coverage gates. Run `npm run research:fingering:polyphony-source` to produce a structured qualification report, archived in PR CI. Discovery is **not** a score-level validation, does not improve the FG-02I algorithm or the five-piece 87/148 baseline, and does not license commercial use.
+
+**Release decision: automatic learner-facing fingering remains NO-GO**, irrespective of source discovery status. The original 14 PNG hand images, authoritative MusicXML finger notation and next-key preview are unchanged.
+
+[FG-02J source, methodology, licensing and next steps](docs/FG-02J-INDEPENDENT-POLYPHONY-EVIDENCE.md).
