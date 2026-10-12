@@ -86,7 +86,16 @@ try{
  const overlay=await page.evaluate(()=>window.__scoreTest.overlay);
  assert.deepEqual({status:overlay.status,count:overlay.count,handOnly:overlay.handOnly},
   {status:'applied',count:2,handOnly:62},'Author-labelled notes show corrected hand without inventing fingers');
- assert.equal(await page.locator('#sheetCanvas svg').count()>0,true,'Real OSMD sheet must render');
+ const svgCount=await page.locator('#sheetCanvas svg').count();
+ if(!svgCount)console.log('SHEET FAILURE DIAGNOSTIC:',JSON.stringify(await page.evaluate(()=>({
+  status:document.querySelector('#sheetStatus')?.textContent,
+  notice:document.querySelector('#sheetNotice')?.textContent,
+  visibleNotice:!document.querySelector('#sheetNotice')?.classList.contains('hidden'),
+  overlay:window.__scoreTest.overlay,
+  scriptAvailable:!!window.opensheetmusicdisplay?.OpenSheetMusicDisplay,
+  html:document.querySelector('#sheetCanvas')?.innerHTML.slice(0,180),
+ }))), 'PAGE ERRORS',errors);
+ assert.equal(svgCount>0,true,'Real OSMD sheet must render');
  assert.match(await page.locator('#sheetFingerStatus').innerText(),/Пользовательские/);
  // Verify generated score XML against all source IDs, and fail closed for
  // unknown/ambiguous target rather than placing a misleading finger.
