@@ -138,3 +138,29 @@ test('FG-02G rejects altered pinned source checksum before scoring',async()=>{
  const fake=async ()=>({ok:true,url:'https://huggingface.co/test',text:async()=>text});
  await assert.rejects(loadRepertoireSource(entry,{download:fake}),/SOURCE_MANIFEST_INVALID_SHA256/);
 });
+
+test('FG-02G transient HF 429 then 500 retries with bounded backoff and unchanged SHA-256',async()=>{
+ const entry=corpus.cases[0];
+ const payload=pig(Array.from({length:entry.expectedNotes},(_,i)=>
+  line(i,i*.6,i*.6+.5,'G4',i%5+1)));
+ const sample={...entry,sha256:createHash('sha256').update(payload).digest('hex')};
+ let requests=0;const slept=[];
+ const download=async()=>{
+  requests++;
+  if(requests<=2)return {ok:false,status:requests===1?429:500};
+  return {ok:true,url:'https://huggingface.co/datasets/test',text:async()=>payload};
+ };
+ const r=await loadRepertoireSource(sample,{download,sleep:async ms=>{slept.push(ms)}});
+ assert.equal(r.parsed.notes.length,entry.expectedNotes);
+ assert.equal(requests,3);
+ assert.deepEqual(slept,[500,1000]);
+});
+test('FG-02G permanent 403 fails immediately and never erases provenance gate',async()=>{
+ const entry=corpus.cases[0];
+ let attempts=0;
+ await assert.rejects(loadRepertoireSource(entry,{
+  download:async()=>{attempts++;return {ok:false,status:403}},
+  sleep:async()=>{throw Error('should never wait')}
+ }),/SOURCE_UNAVAILABLE:.*SOURCE_FETCH_HTTP_403/);
+ assert.equal(attempts,1);
+});
