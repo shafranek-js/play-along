@@ -165,8 +165,8 @@ try{
  const zeroTickOff=midi.find(event=>event.type==='noteOff'&&event.pitch===67);
  assert.deepEqual([zeroTickOn.time,zeroTickOff.time],[0,0],'zero-tick MIDI NoteOn/Off retains simultaneous event time');
  assert.ok(zeroTickOn.sequence<zeroTickOff.sequence,'zero-tick note preserves NoteOn-before-NoteOff sequence');
- assert.equal(results.midi.notes.find(note=>note.noteId===zeroTickOn.noteId).duration,.025,
-  'the score projection applies its existing 25 ms minimum without changing raw audio event timing');
+ assert.ok(Math.abs(results.midi.notes.find(note=>note.noteId===zeroTickOn.noteId).duration-1/960)<1e-9,
+  'zero-tick MIDI events get a one-tick positive score length, not an invented 25 ms duration; raw NoteOn/Off remain simultaneous');
  const programAtZero=midi.find(event=>event.sourceTrack===1&&event.time===0&&event.type==='programChange');
  const noteAtZero=midi.find(event=>event.sourceTrack===1&&event.time===0&&event.type==='noteOn');
  assert.ok(programAtZero.sequence<noteAtZero.sequence,'same-tick program change must precede its note');
