@@ -85,6 +85,8 @@ jobs:
         run: FG02J_ALIGNMENT_REPORT=artifacts/fg02j-gt-alignment.json npm run research:fingering:polyphony-align
       - name: FG-02J independent real polyphonic GT closed-island benchmark (noncommercial research only)
         run: FG02J_POLYPHONY_REPORT=artifacts/fg02j-real-polyphony.json npm run benchmark:fingering:independent-polyphony
+      - name: FG-04B4-R6 pinned canonical performer/work leakage audit (aggregates only)
+        run: FG04B4_R6_REPORT=artifacts/fg04b4-r6-publisher-metadata-overlaps.json npm run research:fingering:publisher-metadata
       - name: FG-04B4-R5 original pseudo-only recording split and eight source-paired NC pilot
         run: FG04B4_R5_REPORT=artifacts/fg04b4-r5-disjoint-pseudo-pilot.json npm run research:fingering:pseudo-disjoint-pilot
       - name: FG-04B4-R4 source-matched automatic video pseudolabels vs human GT (NC research)
@@ -184,6 +186,13 @@ jobs:
           name: fg02j-real-polyphony-closed-islands
           path: artifacts/fg02j-real-polyphony.json
           if-no-files-found: error
+      - name: Upload FG-04B4-R6 only aggregate original publisher metadata collisions (no personal names)
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: fg04b4-r6-publisher-metadata-collision-aggregates
+          path: artifacts/fg04b4-r6-publisher-metadata-overlaps.json
+          if-no-files-found: warn
       - name: Upload FG-04B4-R5 source-only pseudo pool and disjoint eight-source research totals
         if: always() && github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
