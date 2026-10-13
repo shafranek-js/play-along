@@ -89,3 +89,12 @@ No separate Hand Animation #59 or newly delivered Music Engine #60 implementatio
 **No new product defect has yet been reproduced by executing the new QA suite.** Do not report SKIP as passing or synthetic agreement as pianist acceptance.
 
 For each new PR: record current main/PR SHAs, diff paths, branch boundaries, source hashes, actual Node/Chromium/256 GM/MAESTRO outputs, note onset/release error and mismatches, candidate fixed/proposed/unknown/incorrect denominators, exact P0/P1/P2 findings, performance and licensing. Post findings to PR and inform Lead Architect. QA never merges.
+
+
+## Lead Architect integration v0.10.69 (2026-10-13)
+
+This document preserves the **original QA-01 initial snapshot** above, including its historically accurate NOT RUN and SKIP states before integration. The Lead integrated the three `tests/qa-*.test.mjs` files into the **actual** root `npm test` command in the separate versioned integration branch together with the already-present experimental Fingering AI module (v0.10.68) and the corrected FG-03D1 research planner. Consequently the four conditional hand-separation tests are now **mandatory** rather than skipped. A successful CI run is necessary to promote their runtime results to PASS; do not treat this paragraph as proof of runtime success.
+
+The earlier CI README conflict was resolved on main by PR #63; draft PR #66 remained intentionally limited to four QA-owned files. Integration continues to preserve all 14 original PNG hashes, both full 128 GM program SoundFont banks and their manifest SHA-256, MAESTRO catalog and source events, source author/user finger precedence and auto-generated teacher hints OFF. These immutable-source tests complement — do not replace — actual browser-rendered SoundFont PCM/MAESTRO timing suites.
+
+FG-03D1 includes two Lead-detected P1 fixes: late first-call movement must respect remaining note time; other-hand clearance requires the same performed target onset and repeat iteration. The future UI adapter is not enabled, and professional pianist/physical MIDI acceptance remain NOT RUN.
