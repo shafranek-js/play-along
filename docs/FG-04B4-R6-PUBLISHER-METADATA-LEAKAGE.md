@@ -19,6 +19,27 @@ Original pinned revision: `1f039ab9d6128626bff708faad6472d220b50eaa`. Reuse the 
 
 This is a provenance and **potential leakage detection** check, **not** a model-accuracy evaluation. It does not train or tune the hand separator, validate piano finger trajectories, alter source MIDI/MusicXML, or use these source-derived automatic labels as teacher GT. No publisher-name metadata is considered consent to commercial use.
 
+## Measured original publisher overlap (13 October 2026)
+
+First fully successful, frozen original-source [PR #86 CI](https://github.com/shafranek-js/play-along/actions/runs/38448298167) verified **107** original timestamped MIDI-derived source TSV recordings against the **107** canonical source metadata rows, **106** automatic video pseudolabel recordings, **11** original already-reviewed human GT recordings and **95** pseudolabel-only filename-disjoint recordings. All eleven GT source performer/composition labels and all 95 candidate metadata records had non-missing required fields. Results from the exact publisher metadata comparison:
+
+| Shared with any of the 11 previously examined human-GT original performances | Full pseudo-only pool (95) | Original unchanged eight-pilot |
+| --- | ---: | ---: |
+| Any named publisher performer matches (either P1 or P2) | **79** | **4** |
+| Composer + exact work title matches | **20** | **3** |
+| Both performer and work match | **19** | **2** |
+| Performer only (work does not match) | **60** | **2** |
+| Work only (performer does not match) | **1** | **1** |
+| Neither exact performer nor work match | **15** | **3** |
+| Missing/unknown publisher performer metadata | **0** | **0** |
+| Missing/unknown composer/work metadata | **0** | **0** |
+
+The categories `both` / `performer only` / `work only` / `neither` partition **all** source records: **19 + 60 + 1 + 15 = 95** and **2 + 2 + 1 + 3 = 8**. A shared performer or musical work can appear in an entirely different file and publisher split. Accordingly **80 of the 95** pseudo-only source recordings (**5 of the 8** pilot recordings) have a *known metadata-level overlap* with the previously inspected human benchmark. This is not merely a theoretical possibility: the purported independent-by-filename cohort **definitively fails to be source-performer/work-disjoint under the publisher's own exact labels**.
+
+Publisher-defined splits for the 95 pseudo-only recordings: `train` **47**, `valid` **8**, `test` **7**, `ext-train` **26**, `special(blurry)` **7**, `special(4hands)` **0**. The pilot contains `train` **2**, `test` **1**, `ext-train` **4**, `special(blurry)` **1**. The original `train/test` split labels are **not** verified pianist-identity separation. We did **not** emit the individual's names, work titles, original timestamps or raw metadata.
+
+**Fail-closed scientific decision:** **15** of 95 source recordings have no *exact* publisher performer+work collision, but this is at most a candidate for additional independent adjudication, **not a certified performer-independent test**, and none of those automatically generated finger labels is separately human-validated in this sample. The full pseudo-only set and the current eight-record pilot must **not** be treated as an unbiased external test or musician-approved RH/LH training source. The existing Hand-thesia development benchmark remains **35%**, production guided automatic fingers remain **NO-GO**, and no change to the frozen hand separator was made.
+
 ## Verification and release conditions
 
 `node --test tests/pianovam-metadata-leakage-gate.test.mjs` covers independently constructed 107-original/106-pseudo/11-reference source manifests, both-participant collisions, composition repetition, unknown/malformed GT, tampered canonical metadata, publisher split cross-over, privacy, and mocked exact pinned metadata download. `npm run research:fingering:publisher-metadata` performs a real noncommercial publisher-source read and writes aggregate JSON only when `FG04B4_R6_REPORT` is supplied.
