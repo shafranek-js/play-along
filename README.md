@@ -1,4 +1,10 @@
-# Play Along — Piano Practice App (v0.10.75)
+# Play Along — Piano Practice App (v0.10.76)
+
+## FG-03C2B7 — Source-verified tied-note cross-edition review (v0.10.76)
+
+**✍ Аппликатура → 🔁 Перенос ручной аппликатуры** now allows an explicitly selected transfer of a previously edited *sustained* MusicXML note across score editions, where the importer merged two or more **written tie segments** into one MIDI note. All original `sourceNoteIds` must be present and have the complete start/stop(/start) chain; source and target must match in exact non-fingering MusicXML notation for **every segment**, including durations, pitch, staff, voice, and tie topology. The user selects the target, checks the note confirmation and separately acknowledges any conflicting author or user annotations. Changed segmentation/rhythm, malformed/orphan ties, excessive repeated matches and unverified note identity refuse. No automatic matching of ties, no generated fingers and no player/audio changes. The existing atomic single Undo/Redo applies. Tested using real Chromium XML→one sustained note→manual transfer/Undo, plus adversarial Node chains. [FG-03C2B7 contract](docs/FG-03C2B7-VERIFIED-TIE-CHAINS.md).
+
+
 
 ## FG-03C2B6 — Explicit review of ambiguous cross-edition fingering (v0.10.75)
 

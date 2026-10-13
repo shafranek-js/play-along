@@ -282,3 +282,125 @@ test('B6: pure reconciliation does not mutate any snapshot, edits or selection',
  assert.equal(out.status,'ready');
  assert.equal(JSON.stringify([old,next,changes,current]),before);
 });
+
+
+// FG-03C2B7: realistic, complete XML tied source segments, preserved by the
+// importer as ONE playable note with two or three original sourceNoteIds.
+function tiedFixture({
+ insert=false,three=false,duplicate=false,
+ changeStopDuration=false,invalidTie=false,
+ orphan=false,authorFinger=null
+}={}){
+ const groups=[[60],...(insert?[[64]]:[]),
+  [62],[62],...(three?[[62]]:[]),[67],
+  ...(duplicate?[[62],[62],...(three?[[62]]:[])]:[])];
+ const first=insert?2:1,last=first+(three?2:1);
+ const beginnings=duplicate?[first,groups.length-(three?3:2)]:[first];
+ const records=[],measures=[],serial=++incarnation;
+ let ordinal=0;
+ let ongoing=null;
+ groups.forEach(([pitchValue],mi)=>{
+  const id='xml:P1:0:'+mi+':'+(++ordinal);
+  const start=beginnings.includes(mi);
+  const end=beginnings.some(n=>mi===n+(three?2:1));
+  const middle=three&&beginnings.some(n=>mi===n+1);
+  let types=start?['start']:end?['stop']:middle?['stop','start']:[];
+  if(invalidTie&&end&&mi===last)types=['start'];
+  if(orphan&&start&&mi===first)types=['stop'];
+  const note=E('note',{},pitch(pitchValue),
+   E('duration',{},T(changeStopDuration&&end&&mi===last?'960':'480')),
+   E('voice',{},T('1')),E('staff',{},T('1')),
+   ...types.map(type=>E('tie',{type})),
+   ...(authorFinger!==null&&start?[E('notations',{},
+    E('technical',{},E('fingering',{},T(authorFinger))))]:[]));
+  measures.push(E('measure',{number:String(mi+1)},
+   ...(mi===0?[E('attributes',{},E('divisions',{},T('480')))]:[]),note));
+  if(start){
+   ongoing={noteId:id,sourceNoteIds:[id],pitch:pitchValue,
+    partId:'P1',voice:'1',staff:'1',start:mi*.5,duration:.5};
+   records.push(ongoing);
+   if(authorFinger!==null){ongoing.finger=authorFinger;ongoing.fingeringSource='musicxml'}
+  }else if(middle||end){
+   if(!ongoing)throw Error('Broken test tie fixture');
+   ongoing.sourceNoteIds.push(id);
+   ongoing.duration+=.5;
+   if(end)ongoing=null;
+  }else records.push({noteId:id,sourceNoteIds:[id],pitch:pitchValue,
+   partId:'P1',voice:'1',staff:'1',start:mi*.5,duration:.5});
+ });
+ const dom=E('score-partwise',{},E('part',{id:'P1'},...measures));
+ return {song:{format:'MusicXML',title:'Edition Demo',author:'Same Composer',
+  notationXML:'<score-partwise data-tie-fixture="'+serial+'"/>',
+  tracks:[{notes:records}]},
+  parse:()=>({documentElement:dom,getElementsByTagName:dom.getElementsByTagName}),
+  notes:records,tieNotes:records.filter(n=>n.sourceNoteIds.length>1)};
+}
+test('B7: fully verified two-segment tie shifts with inserted bar, manual consent required',()=>{
+ const before=tiedFixture(),after=tiedFixture({insert:true});
+ const source=before.tieNotes[0],target=after.tieNotes[0];
+ assert.equal(source.sourceNoteIds.length,2);
+ assert.equal(S(before).status,'ready');
+ assert.equal(S(after).status,'ready');
+ const changes={[source.noteId]:edit(4,'LH')};
+ assert.equal(reconcile(S(before),S(after),changes).unresolved[0].reason,'tied-note-requires-review');
+ const review=manualReview(S(before),S(after),changes);
+ assert.equal(review.status,'review');assert.equal(review.rows.length,1);
+ assert.equal(review.rows[0].tieCount,2);
+ assert.deepEqual(review.rows[0].options.map(x=>x.to),[target.noteId]);
+ const choice=[{from:source.noteId,to:target.noteId,
+  acknowledgeAuthor:false,acknowledgeExisting:false}];
+ const plan=manualBatch(S(before),S(after),changes,{},choice);
+ assert.deepEqual(plan.entries,[{id:target.noteId,before:null,after:edit(4,'LH')}]);
+ assert.equal(plan.automaticApply,false);
+});
+test('B7: middle stop/start in three-segment chain matches only exact topology',()=>{
+ const from=tiedFixture({three:true}),to=tiedFixture({insert:true,three:true});
+ assert.equal(S(from).status,'ready');assert.equal(S(to).status,'ready');
+ const changes={[from.tieNotes[0].noteId]:edit(3)};
+ const review=manualReview(S(from),S(to),changes);
+ assert.equal(review.rows[0].options.length,1);
+ assert.equal(review.rows[0].options[0].tieCount,3);
+ assert.equal(manualBatch(S(from),S(to),changes,{},[{
+  from:from.tieNotes[0].noteId,to:to.tieNotes[0].noteId,
+  acknowledgeAuthor:false,acknowledgeExisting:false
+ }]).status,'ready');
+ const mismatch=tiedFixture({insert:true});
+ assert.equal(manualReview(S(from),S(mismatch),changes).rows.length,0);
+});
+test('B7: altered duration on tied stop cannot be mapped as equivalent source',()=>{
+ const from=tiedFixture(),to=tiedFixture({insert:true,changeStopDuration:true});
+ const changes={[from.tieNotes[0].noteId]:edit(2)};
+ const result=manualReview(S(from),S(to),changes);
+ assert.equal(result.rows.length,0);
+ assert.equal(result.excluded[0].reason,'no-compatible-note');
+ assert.equal(manualBatch(S(from),S(to),changes,{},[{
+  from:from.tieNotes[0].noteId,to:to.tieNotes[0].noteId,
+  acknowledgeAuthor:true,acknowledgeExisting:true
+ }]).reason,'unverified-manual-destination');
+});
+test('B7: malformed stop/start and orphan stop refuse snapshot',()=>{
+ const invalid=tiedFixture({invalidTie:true}),orphan=tiedFixture({orphan:true});
+ assert.equal(S(invalid).reason,'inconsistent-tie-chain');
+ assert.equal(S(orphan).reason,'inconsistent-tie-chain');
+});
+test('B7: cannot map a tied old note onto a plain same-pitch note',()=>{
+ const old=tiedFixture(),target=score([[60],[62],[67]]);
+ const result=manualReview(S(old),S(target),{[old.tieNotes[0].noteId]:edit(2)});
+ assert.equal(result.rows.length,0);
+});
+test('B7: duplicate verified tie chains are shown as manual alternatives, never auto-selected',()=>{
+ const old=tiedFixture(),target=tiedFixture({insert:true,duplicate:true});
+ const review=manualReview(S(old),S(target),{[old.tieNotes[0].noteId]:edit(5)});
+ assert.equal(review.rows.length,1);
+ assert.equal(review.rows[0].options.length,2);
+ assert.equal(new Set(review.rows[0].options.map(x=>x.to)).size,2);
+});
+test('B7: exact tie candidate still requires explicit target overwrite acknowledgements',()=>{
+ const old=tiedFixture(),target=tiedFixture({insert:true,authorFinger:5});
+ const changes={[old.tieNotes[0].noteId]:edit(3)};
+ const pick=[{from:old.tieNotes[0].noteId,to:target.tieNotes[0].noteId,
+  acknowledgeAuthor:false,acknowledgeExisting:false}];
+ assert.equal(manualBatch(S(old),S(target),changes,{},pick).reason,'manual-overwrite-not-acknowledged');
+ pick[0].acknowledgeAuthor=true;
+ assert.equal(manualBatch(S(old),S(target),changes,{},pick).status,'ready');
+});
