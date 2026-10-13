@@ -1,5 +1,11 @@
 # Play Along — Piano Practice App (v0.10.86)
 
+## Next two owner priorities — Fingering AI and optional PianoMotion IK hands
+
+**Priority P0-A: fingering quality.** Compare PianoMotion Studio's score-aware Beam Search, musical figure analysis and per-pianist ergonomic cost against Play Along's existing FG-02/FG-04C algorithms on identical, immutable source-note IDs. Preserve original MusicXML author fingers and explicitly user-corrected notes; no automatically generated fingers are trusted learner instructions without independent validation.
+
+**Priority P0-B: user-selectable visual hands.** Keep all 14 owner PNG poses intact as the default **Classic PNG** hand display. Add an optional procedural PianoMotion IK display with four skins: Cartoon, Gloves, Robot and Skeleton. The renderer is opt-in, and must preserve next-unfinished-note targeting, Wait, Seek, Loop, tempo and physical-key/hand-contact correctness. No style is available to select until its implementation passes browser QA. [Implementation, acceptance and rights plan](docs/PRIORITY-FINGERING-IK-PIANOMOTION.md). Hand-thesia goal progress remains **35%** until verified production integration.
+
 ## PianoMotion Studio — owner-authorized integration assessment (no code import yet)
 
 The project owner has authorized reuse of their [PianoMotion Studio](https://github.com/shafranek-js/pianomotion-studio). Its procedural motion buffer, articulated hands/PixiJS renderer, validated plan contracts and Worker/Pyodide bridge are integration candidates for source-verified next-note motion. The separate Python numerical core contains adapted Hand-thesia lineage and still requires per-file source/right verification before copy or public redistribution. The current fourteen original PNG poses, playback, MusicXML/MIDI timing and verified author/user fingers remain unchanged. Optional renderer and cost-model integration are gated on browser QA and pianist validity; automatic fingering remains NO-GO. [Detailed interface and provenance plan](docs/PIANOMOTION-STUDIO-INTEGRATION.md). No application version bump for this assessment; Hand-thesia progress remains **35%**.
