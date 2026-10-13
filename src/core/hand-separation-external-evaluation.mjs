@@ -68,7 +68,7 @@ const aggregate=()=>({
  islands:0,sourceNotes:0,anchors:0,heldout:0,
  correct:0,incorrect:0,proposed:0,abstained:0,
  anchorViolations:0,refusedIslands:0,refusalReasons:empty(),
- unresolvedReasons:empty(),wrongDirection:{'RH-as-LH':0,'LH-as-RH':0},
+ unresolvedReasons:empty(),wrongDirection:{'predicted-RH-actual-LH':0,'predicted-LH-actual-RH':0},
  diagnosticAxes:initDiagnostics()
 });
 const safeId=(id,i)=>'eval-'+i+'-'+id;
@@ -141,7 +141,7 @@ function record(result,island,anchors,stats){
     scoreDiagnostics(stats,island,anchors,i,'proposed-correct');
    }else{
     stats.incorrect++;
-    const key=item.hand==='RH'?'RH-as-LH':'LH-as-RH';
+    const key=item.hand==='RH'?'predicted-RH-actual-LH':'predicted-LH-actual-RH';
     stats.wrongDirection[key]++;
     scoreDiagnostics(stats,island,anchors,i,'proposed-incorrect');
    }
