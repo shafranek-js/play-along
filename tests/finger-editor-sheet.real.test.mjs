@@ -71,7 +71,36 @@ try{
   .every(v=>v.finger===4&&v.hand==='LH'),'Finger assignment must apply to the full set');
  await page.locator('#fingerEditorUndo').click();
  assert.equal((await page.evaluate(()=>window.__fingerGuideTest.userCorrections))[original.notes[63].id].finger,null);
- await page.locator('#fingerEditorZoom').selectOption('120');
+ // Export must be a separate MusicXML artifact, without visible preview
+ // color/notehead edits and without changing original playback or source.
+ const downloadPending=page.waitForEvent('download');
+ await page.locator('#fingerEditorDownloadXML').click();
+ const download=await downloadPending;
+ assert.match(download.suggestedFilename(),/-user-fingering\\.musicxml$/);
+ const exportedXML=fs.readFileSync(await download.path(),'utf8');
+ assert.match(exportedXML,/play-along-user-fingering/);
+ assert.match(exportedXML,/User-edited numeric fingering/);
+ assert.doesNotMatch(exportedXML,/#C77D28/,'Display tint must not leak into exported MusicXML');
+ assert.equal((exportedXML.match(/<fingering(?:\\s[^>]*)?>/g)||[]).length,2,
+  'Only two explicitly numbered author notes are rewritten, not sixty-two invented fingers');
+ const sourceCheck=await page.evaluate(out=>{
+  const imported=window.__libraryV08.readMusicXML(out,'play-along-user-fingering.musicxml');
+  const source=window.__prototypeTest.song;
+  return {
+   sameSourceXML:source.notationXML,
+   noteIds:imported.tracks.flatMap(t=>t.notes.map(n=>n.noteId)),
+   sourceIds:source.tracks.flatMap(t=>t.notes.map(n=>n.noteId)),
+   notes:imported.tracks.flatMap(t=>t.notes.map(n=>[n.pitch,n.start,n.duration])),
+   original:source.tracks.flatMap(t=>t.notes.map(n=>[n.pitch,n.start,n.duration])),
+   exportWarning:imported.warnings.some(w=>w.includes('пользовательских правках'))
+  };
+ },exportedXML);
+ assert.equal(sourceCheck.sameSourceXML,original.xml);
+ assert.deepEqual(sourceCheck.noteIds,sourceCheck.sourceIds);
+ assert.deepEqual(sourceCheck.notes,sourceCheck.original);
+ assert.equal(sourceCheck.exportWarning,true,
+  'Imported exported MusicXML must warn that the fingering is user-edited');
+  await page.locator('#fingerEditorZoom').selectOption('120');
  await page.locator('#fingerEditorScroller').evaluate(el=>{el.scrollLeft=el.scrollWidth-el.clientWidth});
  await page.waitForFunction(()=>window.__scoreTest.editor.scroll>100);
  // Canvas paints only on the next animation frame after a scroll event;
