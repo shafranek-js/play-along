@@ -24,6 +24,25 @@ The PR pipeline produces a JSON artifact with safe per-work counts of original s
 
 The original FG-04B3b strict note matching, exact 2-ms time comparison, FG-04B2 candidate evaluation and *production* MIDI playback are unchanged. The diagnostic scanner **never supplies timings or notes back to the matcher**.
 
+## Verified real-corpus measurements (16 exact upstream source pairs)
+
+The first [FG-04B3d PR CI run](https://github.com/shafranek-js/play-along/actions/runs/38361177985) completed successfully and uploaded `fg04b3d-asap-source-event-diagnostics`. The two non-mutating inspectors found:
+
+| Original-source observation | Measured total |
+| --- | ---: |
+| Original MIDI score note-on/off pairs | **38,267** |
+| Pairs with exactly zero MIDI ticks of duration | **1,060** (about 2.77%) |
+| Distinct works containing at least one zero-tick pair | **14 of 16** |
+| MusicXML grace markers (lexical) | **340** |
+| Grace markers with explicit MusicXML steal-time/make-time attributes | **0** |
+| MusicXML repeat markers | **25** |
+| MusicXML ending markers | **12** |
+| Fully aligned MusicXML ↔ original score MIDI | **1 of 16**, unchanged |
+
+The zero-tick events were **not confined to the two previously identified files**. Illustrative per-work counts from the verified CI artifact: Schumann *Arabeske* **262**, Chopin *Polonaise Op. 53* **220**, Liszt *Concert Étude S.145/1* **181**, Schubert *Impromptu Op. 90/3* **174**, Debussy *Pour le piano I* **113**, Bach *Fugue BWV 846* **7**, and Schubert *Moment musical 3* **3**. The Bach Prelude and Chopin Étude Op. 10/1 had **zero** original zero-tick MIDI events.
+
+**Musical inference is NOT justified by this table.** A zero duration is a property of a source MIDI event, not proof of a grace note, a missing tie, a particular finger movement or a sound to delete. In particular, there are more zero-tick pairs than XML grace markers and none of these XML grace markers contains explicit steal/make-time instructions. No one-to-one correspondence between the two populations has been established. Reader-facing fingering remains off.
+
 ## Musical interpretation and next development
 
 A zero-tick `NoteOn`/`NoteOff` pair is a fact about the MIDI encoding, **not** proof that an original score note should be deleted, stretched or played with a particular finger. The MusicXML score may be a separate edition or contain grace notes, articulation, repeat expansions, ornamental performance choices or exporter artifacts. The lexical counts indicate where to investigate, but **do not prove** how those constructs sound.
