@@ -1,0 +1,102 @@
+{
+  "schema": "fg04b3c-asap-alignment-baseline-v1",
+  "source": {
+    "repository": "fosfrancesco/asap-dataset",
+    "revision": "afc815c75c42e83a79c03feb6da8a35e77d4c6b8",
+    "license": "CC-BY-NC-SA-4.0",
+    "usage": "noncommercial-research-only"
+  },
+  "provenance": {
+    "release": "v0.10.61",
+    "commit": "217feb21703040b30f0bc66bf0ea4edc5476c9c4",
+    "run": "https://github.com/shafranek-js/play-along/actions/runs/38291508054",
+    "artifact": "fg04b3b-asap-16-score-xml-midi-audit"
+  },
+  "baseline": {
+    "total": 16,
+    "aligned": 1,
+    "rejected": 15
+  },
+  "cases": [
+    {
+      "id": "bach-prelude-846",
+      "status": "aligned",
+      "reason": null
+    },
+    {
+      "id": "bach-fugue-846",
+      "status": "rejected",
+      "reason": "MUSICXML_UNPAIRED_TIE_STOP"
+    },
+    {
+      "id": "beethoven-sonata-17-1",
+      "status": "rejected",
+      "reason": "MUSICXML_REPEAT_NAVIGATION_UNSUPPORTED"
+    },
+    {
+      "id": "beethoven-sonata-11-2",
+      "status": "rejected",
+      "reason": "MUSICXML_GRACE_TIMING_UNSUPPORTED"
+    },
+    {
+      "id": "chopin-etude-10-1",
+      "status": "rejected",
+      "reason": "SCORE_EVENT_UNMATCHED"
+    },
+    {
+      "id": "chopin-etude-10-3",
+      "status": "rejected",
+      "reason": "MUSICXML_GRACE_TIMING_UNSUPPORTED"
+    },
+    {
+      "id": "chopin-etude-25-1",
+      "status": "rejected",
+      "reason": "MUSICXML_GRACE_TIMING_UNSUPPORTED"
+    },
+    {
+      "id": "mozart-sonata-12-2",
+      "status": "rejected",
+      "reason": "MUSICXML_GRACE_TIMING_UNSUPPORTED"
+    },
+    {
+      "id": "haydn-sonata-39-1",
+      "status": "rejected",
+      "reason": "MUSICXML_REPEAT_NAVIGATION_UNSUPPORTED"
+    },
+    {
+      "id": "schumann-arabeske",
+      "status": "rejected",
+      "reason": "MUSICXML_REPEAT_NAVIGATION_UNSUPPORTED"
+    },
+    {
+      "id": "schubert-impromptu-90-3",
+      "status": "rejected",
+      "reason": "MUSICXML_GRACE_TIMING_UNSUPPORTED"
+    },
+    {
+      "id": "liszt-concert-etude-145-1",
+      "status": "rejected",
+      "reason": "MUSICXML_GRACE_TIMING_UNSUPPORTED"
+    },
+    {
+      "id": "debussy-pour-piano-1",
+      "status": "rejected",
+      "reason": "MUSICXML_BACKUP_BEFORE_MEASURE"
+    },
+    {
+      "id": "chopin-polonaise-53",
+      "status": "rejected",
+      "reason": "MUSICXML_GRACE_TIMING_UNSUPPORTED"
+    },
+    {
+      "id": "schumann-kreisleriana-1",
+      "status": "rejected",
+      "reason": "MUSICXML_REPEAT_NAVIGATION_UNSUPPORTED"
+    },
+    {
+      "id": "schubert-moment-musical-3",
+      "status": "rejected",
+      "reason": "ZERO_LENGTH_MIDI_NOTE"
+    }
+  ]
+}
