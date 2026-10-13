@@ -7,7 +7,7 @@ const direct=(node,name)=>[...(node?.children||[])].find(x=>x.localName===name)|
 const directAll=(node,name)=>[...(node?.children||[])].filter(x=>x.localName===name);
 const textOf=(node,name,or='')=>direct(node,name)?.textContent?.trim()??String(or);
 const noteNumber=n=>Number.isInteger(n)&&n>=0&&n<=127;
-export function sheetFingeringOverlay(song,changes,{parse,serialize}={}){
+export function sheetFingeringOverlay(song,changes,{parse,serialize,exportMode=false}={}){
  const original=song?.notationXML;
  const fail=reason=>({xml:original||'',status:'skipped',count:0,handOnly:0,reason});
  if(typeof original!=='string'||song?.format!=='MusicXML'||!Array.isArray(song.tracks))
@@ -86,9 +86,12 @@ export function sheetFingeringOverlay(song,changes,{parse,serialize}={}){
   if(!technical){technical=create('technical');notations.append(technical)}
   for(const child of directAll(technical,'fingering'))technical.removeChild(child);
   const finger=create('fingering');
-  finger.setAttribute('color','#C77D28');finger.setAttribute('placement','above');
+  if(!exportMode){finger.setAttribute('color','#C77D28');finger.setAttribute('placement','above');}
   finger.textContent=String(value);
   technical.append(finger);
+  // Export mode is notation-only: never inject display-specific noteheads
+  // or recolor existing author notation in a user-downloaded score.
+  if(exportMode){count++;continue}
   // A colored notehead additionally differentiates user numbering from
   // ordinary author digits even where OSMD ignores fingering XML color.
   let head=direct(node,'notehead');
