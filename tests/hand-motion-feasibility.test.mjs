@@ -206,3 +206,55 @@ test('bounded per-onset work never scans full-song arrays',()=>{
  for(let i=0;i<2000;i++)assert.equal(plan(cfg).kind,'moving');
  assert.equal(JSON.stringify(cfg.target),before);assert.equal(foreign.length,100000);
 });
+
+test('P1: first invocation 10ms before attack never invents elapsed travel',()=>{
+ const a=result({transport:{...fixture().transport,now:.79}});
+ assert.equal(a.kind,'markers');
+ assert.equal(a.reason,'movement-infeasible-now');
+ assert.ok(.8-.79<.02);
+});
+test('P1: exact earlier moving token permits safe continuity without relaunch',()=>{
+ const first=result();
+ assert.equal(first.kind,'moving');
+ assert.ok(first.motionContinuation.motionKey.length>0);
+ const late=result({transport:{...fixture().transport,now:.79,
+  motionContinuation:first.motionContinuation}});
+ assert.equal(late.kind,'moving',late.reason);
+ assert.equal(late.motionContinuation.startedAtScore,.1);
+ assert.equal(late.keys[0].pitch,64);
+ assert.ok(late.phase>first.phase);
+});
+test('P1: fabricated or stale journey data cannot bypass late-start refusal',()=>{
+ const first=result().motionContinuation;
+ const stale={...first,motionKey:'old-score-target'};
+ const impossible={...first,startedAtScore:.7};
+ const altered= result({transport:{...fixture().transport,now:.79,
+  speedPercent:150,motionContinuation:first}});
+ for(const motionContinuation of [stale,impossible,{...first,startedAtScore:-1}]){
+  const r=result({transport:{...fixture().transport,now:.79,motionContinuation}});
+  assert.equal(r.reason,'movement-infeasible-now',r.reason);
+ }
+ assert.equal(altered.reason,'movement-infeasible-now');
+ const changed=result({target:group(.8,[N(65,3)]),
+  transport:{...fixture().transport,now:.79,motionContinuation:first}});
+ assert.equal(changed.reason,'movement-infeasible-now');
+});
+test('P1: other-hand notes at a different score onset do not authorize motion',()=>{
+ const target=group(.8,[N(64,3),N(48,3,'LH')]);
+ const opposite={origin:group(0,[N(43,4,'LH')]),target:group(2.0,[N(48,3,'LH')])};
+ const r=result({target,opposite});
+ assert.equal(r.kind,'markers');
+ assert.equal(r.reason,'crossing-unknown');
+});
+test('P1: other-hand repeat iteration and next-status must match canonical target',()=>{
+ const target={...group(.8,[N(64,3),N(48,3,'LH')]),iteration:2,loopCycle:3};
+ const opposite={origin:group(0,[N(43,4,'LH')]),
+  target:{...group(.8,[N(48,3,'LH')]),iteration:3,loopCycle:3}};
+ assert.equal(result({target,opposite}).reason,'crossing-unknown');
+ opposite.target={...opposite.target,iteration:2,loopCycle:4};
+ assert.equal(result({target,opposite}).reason,'crossing-unknown');
+ opposite.target={...opposite.target,loopCycle:3,isNextUnfinished:false};
+ assert.equal(result({target,opposite}).reason,'crossing-unknown');
+ opposite.target={...opposite.target,isNextUnfinished:true};
+ assert.equal(result({target,opposite}).kind,'moving');
+});
