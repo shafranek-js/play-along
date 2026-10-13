@@ -1,8 +1,10 @@
-# Play Along — Piano Practice App (v0.10.71)
+# Play Along — Piano Practice App (v0.10.72)
 
 Play Along is an independently hosted browser piano practice application with Web MIDI, Piano Roll, OpenSheetMusicDisplay (OSMD), MusicXML/MXL and MIDI import, optional online music catalogs, and Wait/Tempo/Listen practice modes.
 
 **Live site:** https://shafranek-js.github.io/play-along/
+
+**FG-04D0 v0.10.72 — Research-only hand/finger/motion bridge:** Added a pure, bounded three-solver interface connecting experimental FG-04B4 RH/LH hand-separation summaries, FG-02I finger-planning **aggregate counts** and FG-03D1 verified next-unfinished-note motion screening. Only complete same-layer **MusicXML author** or explicitly **user-verified** hand+finger pairs may reach the motion planner; generated or ambiguous hands/fingers, partial overrides, prior unplayed onsets and partial chords fail closed. The original note timing/IDs, MAESTRO/SoundFont audio, all 14 original hand PNGs and learner preview are untouched. Registered 21 research regression tests. **No learner auto-fingering, real-world hand-label accuracy or anatomical motion certification is claimed.** [FG-04D0 contract](docs/FG-04D0-RESEARCH-PROVENANCE-BRIDGE.md). Project Hand-thesia progress remains provisional 35% until independently accepted visual/pedagogical behavior.
 
 **Parallel-PR CI policy (coordination update; no application release):** Research-only branches `research/fingering-ai-*`, `research/hand-motion-*`, `research/music-engine-*` and `qa/*` must provide dedicated `docs/FG-*.md` / `docs/QA-*.md` and are limited to research modules/tests/scripts/docs/data manifests; they cannot change production player, SoundFont/MAESTRO, shared README, package versions or CI. All **other** application/integration PRs still must update README and pass full existing tests. The Lead Architect merges compatible work, updates release docs/version and verifies deployment. This change does not itself increase Hand-thesia completion or enable auto-fingering.
 
