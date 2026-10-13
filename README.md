@@ -1,4 +1,4 @@
-# Play Along — Piano Practice App (v0.10.67)
+# Play Along — Piano Practice App (v0.10.68)
 
 Play Along is an independently hosted browser piano practice application with Web MIDI, Piano Roll, OpenSheetMusicDisplay (OSMD), MusicXML/MXL and MIDI import, optional online music catalogs, and Wait/Tempo/Listen practice modes.
 
@@ -82,6 +82,8 @@ FG-02H flags **11 quick same-finger changes** requiring musician review. Preserv
 **FG-04B3d v0.10.67 (source diagnostics, research only):** The original ASAP MusicXML/MIDI comparison remains **1 fully aligned / 15 refused**. Added a separate strict MIDI 0/1 structural anomaly scanner which counts original zero-tick NoteOn/NoteOff pairs **without changing their duration, replaying them or treating them as valid teaching events**. A lexical MusicXML inventory counts grace/author timing attributes, repeats, endings and score-navigation markings without inventing the performed notes. The existing 16 immutable CC BY-NC-SA ASAP pairs now have a hash-verified per-score aggregate diagnostic report with no copied musical passages, pitches or generated fingers, while the FG-04B3c regression guard and main FG-04B2/FG-04B3b refusal behavior remain unchanged. Added 13 source-integrity/refusal tests. **SoundFont SF2/SF3 banks, 256-program audio checks, original MAESTRO catalog, Web MIDI/Wait/Tempo, 14 transparent hand images and original MusicXML remain unchanged.** [FG-04B3d evidence](docs/FG-04B3D-ZERO-EVENT-SCORE-DIAGNOSTICS.md).
 
 **Measured FG-04B3d original-data results (16 pinned ASAP scores):** 38,267 original MIDI note-on/off pairs were examined, including **1,060 zero-tick pairs in 14 scores** (about **2.77%**). The MusicXML files contain **340 lexical grace markers, 25 repeat markers and 12 ending markers**; none of the 340 grace markers contains an explicit MusicXML `steal-time-previous`, `steal-time-following` or `make-time` attribute. This establishes source-data inventory, **not** an algorithmic correction of grace-note timing. The full-score matching gate stays **1/16** with zero new matches and zero regressions. [Research method and per-work findings](docs/FG-04B3D-ZERO-EVENT-SCORE-DIAGNOSTICS.md).
+
+**FG-04B4 v0.10.68 — source-aware RH/LH hand separation research (NO-GO for learner hints):** Added an independent pure candidate `separateHandsResearch` with a bounded onset-group beam search; evaluates simultaneous notes, held-key occupancy, reachable hand spans, movement, voice continuity and crossings **without a fixed middle-C split**. It accepts trusted source/author hand anchors and user overrides without changing them; ambiguous or impossible inference returns `unknown` or a diagnostic. This release **registers 17 new Node tests for full CI**, but the five reference patterns are synthetic: 6/12 unanchored predictions proposed, 6/6 match the synthetic labels, 6 unknown. **Independent real-repertoire hand attribution, pianist review and safe auto-fingering have NOT been established.** The research module is not imported into playback, lessons or hand hints; all 14 user PNGs, SoundFont banks, MAESTRO, user corrections and original MusicXML/MIDI timing remain unchanged. [FG-04B4 research](docs/FG-HAND-SEPARATION-RESEARCH.md). This research-only change does **not** raise the provisional 35% Hand-thesia completion estimate.
 
 ### Release documentation rule
 
@@ -169,6 +171,13 @@ Real physical MIDI device behavior, sustain pedal/CC64, live service availabilit
 
 ---
 ### Release history
+
+## Experimental RH/LH Hand Separation (v0.10.68)
+
+- Integrate research-only Fingering AI PR #62 as a **pure, separately versioned module**; bounded beam search respects held-key/simultaneous-note constraints and author/user hand labels with no middle-C hard split. Ambiguous hypotheses abstain, not confidently assign. No generated finger numbers.
+- Register 17 new synthetic/refusal/immutability tests in the main `npm test` suite. Five synthetic mini-fixtures (12 unlabeled notes) produced 6 proposed, 6 unknown and 6 synthetic-agreement matches. **Not** an independently pianist-scored real-corpus benchmark or proof of safe teaching guidance.
+- Preserve production MusicXML/MIDI, Wait/Tempo/Listen, SoundFont GM 256-program checks, MAESTRO catalog and both existing sets of seven original transparent PNG hand poses. Auto-applicative hand hints remain disabled. [FG-04B4 details](docs/FG-HAND-SEPARATION-RESEARCH.md).
+
 
 ## Original MIDI and notation anomaly inventory (v0.10.67)
 
