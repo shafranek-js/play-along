@@ -30,6 +30,28 @@ Because the same 1,800 human notes have already been used to inspect FG-04B4-R1/
 
 The 11 source files and their three SHA256 hashes may appear in CI artifacts; **no raw performer event sequence, pitch/timestamp arrays, per-recording mistake profiles, numeric labels or video/audio** are stored. Project-owned generated code is independent of upstream algorithms.
 
+## Measured, source-matched result (13 October 2026)
+
+From [PR #84 initial full green CI](https://github.com/shafranek-js/play-along/actions/runs/38438624340) on pinned original PianoVAM v1.2: **11** recordings, all **32,525** original MIDI-derived TSV events matched automatically generated `Fingering/` rows **in exact order**, and **1,800** independent manual GT note records matched original event identities with **no indistinguishable-duplicate GT rows**.
+
+| Measured population | Count / calculation |
+| --- | ---: |
+| All original notes in 11 recordings | **32,525** |
+| All automatically assigned hands | **26,879 / 32,525 = 82.64%** |
+| Original notes marked automatic `Noinfo` | **5,646** |
+| Human-annotated benchmark notes | **1,800** |
+| Auto-label hands present within manually annotated subset | **1,588 / 1,800 = 88.22%** |
+| Auto-label hands missing within manually annotated subset | **212 / 1,800 = 11.78%** |
+| Hands correct among **1,588** automatically labeled manual notes | **1,576 / 1,588 = 99.24%** |
+| Hands incorrect among automatically labeled manual notes | **12 / 1,588 = 0.76%** |
+| Combined hand **and finger** correct among automatically labeled manual notes | **1,520 / 1,588 = 95.72%** |
+| Combined hand/finger wrong among automatically labeled manual notes | **68 / 1,588** |
+| Correct hand of **all** original human-annotated notes (unknown included) | **1,576 / 1,800 = 87.56%** |
+
+The 12 wrong hands comprised **4 automatic LH where human GT indicated RH** and **8 automatic RH where human GT indicated LH**. Among the reviewed subset, `Fingering/` returned no separate hand-only annotations: all 1,588 identified hands also supplied numeric fingers. The measured 99.24% agrees closely with the dataset publisher's own approximate 99.2% hand agreement, but this is **a reconstruction of the publisher's automatic pseudo-label validation on the same human benchmark**, **not** independent predictive validation of Play Along or all 106 video performances. The earlier Play Along result (0 unanchored hands; 325 proposed with seeded external anchors and 53 errors) is from a **different algorithm and different eligible subset** and cannot be compared as a matched head-to-head result.
+
+**Safety decision:** even at 99.24% conditional agreement, 212 of 1,800 human-reviewed original events have no automatic hand label and **12 automatically labeled hands are explicitly wrong**. Automatically suggested labels must never be silently converted to teacher-approved source fingers, used to authorize animations, or included in user-facing Play Along hand hints. Keep **NO-GO** and Hand-thesia **35%** until verified independent/pianist tests outside this already-inspected GT subset.
+
 ## Tests, releases, boundaries
 
 Run `node --test tests/hand-pseudolabel-evidence.test.mjs` and `npm run research:fingering:pseudo-hand-audit`. PR CI fetches original source TSV/automatic TSV/human GT for all 11 pinned recordings, verifies exactly **32,525** original source rows and **1,800** original GT rows, and emits an aggregate-only JSON report. A failure to fetch `Fingering/` at the pinned revision or any source mismatch **blocks the release**; it must not silently use mutable main or alternative web pseudolabels. MAESTRO, full Node, Chromium, SoundFonts and GitHub Pages must remain green.
