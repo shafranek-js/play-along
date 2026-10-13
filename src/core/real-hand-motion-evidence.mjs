@@ -86,7 +86,23 @@ export function auditImportedHandMotion(song,{maxNotes=25000}={}){
    return verdict('SUBMILLISECOND_GROUP_AMBIGUITY',{totalNotes:notes.length});
   previousByMs.set(millisecond,n.start);
  }
- const groups=[];
+ // Prefix-max interval index: answer held-key clearance in O(log N),
+ // rather than doing an O(score length) scan for every motion candidate.
+ const heldIndex=new Map(['LH','RH','unknown'].map(h=>[h,{onsets:[],ends:[]}]));
+ for(const n of sorted){
+  const h=authorized(n)?n.hand:'unknown';
+  const q=heldIndex.get(h);
+  q.onsets.push(n.start);
+  q.ends.push(Math.max(q.ends.at(-1)??-1,n.start+n.duration));
+ }
+ const stillHeld=(h,at)=>{
+  const q=heldIndex.get(h);let lo=0,hi=q.onsets.length;
+  while(lo<hi){const mid=(lo+hi)>>1;
+   if(q.onsets[mid]<=at)lo=mid+1;else hi=mid;
+  }
+  return lo>0&&q.ends[lo-1]>at+1e-7;
+ };
+  const groups=[];
  for(const n of sorted){
   const g=groups.at(-1);
   if(g&&g.onset===n.start)g.notes.push(n);
@@ -128,8 +144,7 @@ export function auditImportedHandMotion(song,{maxNotes=25000}={}){
    // It requires every prior note to carry a trusted hand and no other
    // physical key still depressed at the observed score-clock instant.
    const other=hand==='RH'?'LH':'RH';
-   const oppositeClear=sorted.filter(n=>n.start<=now&&n.start+n.duration>now+1e-7)
-    .every(n=>authorized(n)&&n.hand===hand);
+   const oppositeClear=!stillHeld(other,now)&&!stillHeld('unknown',now);
    const others=next.notes.some(n=>n.hand===other);
    const prevOther=prev.notes.filter(n=>n.hand===other);
    let opposite;
