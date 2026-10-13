@@ -1,5 +1,11 @@
 # Play Along — Piano Practice App (v0.10.86)
 
+## FG-04C2 — Verified PianoMotion fingering comparator (research integrated)
+
+[PR #93](https://github.com/shafranek-js/play-along/pull/93) integrated the score-MIDI provenance-locked comparison bridge (merge commit `cc951ff6`) after complete successful CI. It invokes **Play Along's real FG-02I solver** and separately consumes actual [PianoMotion Studio](https://github.com/shafranek-js/pianomotion-studio) finger assignments. The converter requires the SHA-256 of the same original MIDI, exact unique raw event locators and stable MusicXML note/hand/timing identity; it refuses repairs, ambiguous unisons, missing provenance, changed author/user anchors or musical times. It never silently uses inferred fingers as verified teaching hints. An optional local Node launcher invokes the owner's installed Python core without copying that source into Play Along; `scripts/fingering-engine-comparison.mjs` returns aggregate-only results. See [FG-04C2 methods and commands](docs/FG-04C2-PIANOMOTION-FINGERING-COMPARISON.md).
+
+This is a **research/tooling integration, not a measured accuracy improvement**. PianoMotion and Play Along have not yet been benchmarked here on an accepted identical independent score corpus. A new opt-in finger-pair anatomy Beam Search model (FG-04C3) is being evaluated separately; the legacy algorithm remains unchanged by default. No source music, audio, MIDI, fourteen original PNG hand assets or student-facing guidance changed. App version stays **v0.10.86** and Hand-thesia goal completion **35%**.
+
 ## Next two owner priorities — Fingering AI and optional PianoMotion IK hands
 
 **Research foundation integrated:** FG-04C1 cost evaluator and FG-03D4 source-bound PianoMotion pose adapter are in `main` after passing CI. Neither is yet a learner-facing fingering engine or IK renderer. [FG-03D4 contract](docs/FG-03D4-PIANOMOTION-POSE-ADAPTER.md).
