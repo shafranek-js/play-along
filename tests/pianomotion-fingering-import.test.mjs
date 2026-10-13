@@ -122,3 +122,9 @@ test('FG-04C2b local runner executes both actual-engine envelopes without export
   assert.ok(!JSON.stringify(result).includes('piano-1'),'Do not output external source note IDs');
  }finally{await rm(dir,{recursive:true,force:true});}
 });
+
+test('FG-04C2 Node launcher rejects missing local Python core without invoking anything',async()=>{
+ const {runPianoMotionLocally}=await import('../scripts/fg04c2-run-pianomotion.mjs');
+ assert.equal(runPianoMotionLocally([]).reason,'THREE_PATHS_REQUIRED');
+ assert.equal(runPianoMotionLocally(['/does-not-exist','x.mid','out.json']).reason,'PIANOMOTION_CORE_NOT_FOUND');
+});
