@@ -74,18 +74,53 @@ export function auditImportedHandMotion(song,{maxNotes=25000}={}){
      Math.abs(offs.get(n.noteId).time-(n.start+n.duration))>1e-7))
   return verdict('SOURCE_AUDIO_TIMELINE_MISMATCH');
  const sorted=[...notes].sort((a,b)=>a.start-b.start||a.pitch-b.pitch||a.noteId.localeCompare(b.noteId));
- // Identical physical key in overlapping voices is not independently
- // playable by two fingers; collapse-free global abstention.
- const ends=new Map(),previousByMs=new Map();
+ // A repeated physical pitch may be represented by overlapping notation
+ // voices in a *perfectly legitimate* real score. This is NOT independently
+ // executable evidence for two fingers on one physical key, but neither
+ // should it discard the whole piece. Mark the transitive union interval
+ // around each same-key collision as locally unknowable. No MIDI/note edit.
+ // O(N) cluster construction, O(N log N) merged interval search.
+ const pitchRuns=new Map(),ambiguousSourceIds=new Set(),collisionWindows=[];
+ let collisionClusters=0;
+ const finishRun=run=>{
+  if(!run?.collided)return;
+  collisionClusters++;
+  collisionWindows.push({start:run.start,end:run.end});
+  for(const id of run.ids)ambiguousSourceIds.add(id);
+ };
+ const previousByMs=new Map();
  for(const n of sorted){
-  if((ends.get(n.pitch)??-1)>n.start+1e-7)
-   return verdict('OVERLAPPING_IDENTICAL_PHYSICAL_KEY',{totalNotes:notes.length});
-  ends.set(n.pitch,n.start+n.duration);
+  const prior=pitchRuns.get(n.pitch),end=n.start+n.duration;
+  if(!prior||prior.end<=n.start+1e-7){
+   finishRun(prior);
+   pitchRuns.set(n.pitch,{start:n.start,end,ids:[n.noteId],collided:false});
+  }else{
+   prior.collided=true;
+   prior.end=Math.max(prior.end,end);
+   prior.ids.push(n.noteId);
+  }
   const millisecond=Math.round(n.start*1000);
   if(previousByMs.has(millisecond)&&previousByMs.get(millisecond)!==n.start)
    return verdict('SUBMILLISECOND_GROUP_AMBIGUITY',{totalNotes:notes.length});
   previousByMs.set(millisecond,n.start);
  }
+ for(const run of pitchRuns.values())finishRun(run);
+ collisionWindows.sort((a,b)=>a.start-b.start||a.end-b.end);
+ const collisionUnion=[];
+ for(const w of collisionWindows){
+  const last=collisionUnion.at(-1);
+  if(last&&last.end>=w.start-1e-7)last.end=Math.max(last.end,w.end);
+  else collisionUnion.push({...w});
+ }
+ const crossesCollision=(start,end)=>{
+  let lo=0,hi=collisionUnion.length;
+  while(lo<hi){
+   const mid=(lo+hi)>>1;
+   if(collisionUnion[mid].end<start-1e-7)lo=mid+1;
+   else hi=mid;
+  }
+  return lo<collisionUnion.length&&collisionUnion[lo].start<=end+1e-7;
+ };
  // Prefix-max interval index: answer held-key clearance in O(log N),
  // rather than doing an O(score length) scan for every motion candidate.
  const heldIndex=new Map(['LH','RH','unknown'].map(h=>[h,{onsets:[],ends:[]}]));
@@ -117,7 +152,11 @@ export function auditImportedHandMotion(song,{maxNotes=25000}={}){
  for(let i=1;i<groups.length;i++){
   const prev=groups[i-1],next=groups[i];
   // No skips, no guessed previous posture and no manufactured movement
-  // through unknown score onsets.
+  // through unknown score onsets. Crossing any ambiguous same-pitch
+  // overlap interval is a LOCAL abstention, not a whole-piece refusal.
+  if(crossesCollision(prev.onset,next.onset)){
+   count(limits,'ambiguous-physical-key-interval');continue;
+  }
   if(prev.notes.length>16||next.notes.length>16){count(limits,'oversized-onset');continue;}
   if(!prev.notes.every(authorized)||!next.notes.every(authorized)){
    count(limits,'incomplete-author-finger-or-hand');continue;
@@ -171,6 +210,9 @@ export function auditImportedHandMotion(song,{maxNotes=25000}={}){
  return {status,reason:null,totalNotes:notes.length,
   authorizedAuthorPairs:trusted,unverifiedOrUnpaired:notes.length-trusted,
   onsetGroups:groups.length,fullyAuthorizedGroups:full,
+  physicallyAmbiguousSamePitchClusters:collisionClusters,
+  physicallyAmbiguousSourceNotes:ambiguousSourceIds.size,
+  physicallyAmbiguousTimeWindows:collisionUnion.length,
   consecutiveCompleteGroups:considered,attemptedHandTransitions:attempted,
   decisions:{moving:decision.moving||0,static:decision.static||0,
    markers:decision.markers||0,refuse:decision.refuse||0},
