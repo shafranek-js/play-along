@@ -1,4 +1,12 @@
-# Play Along — Piano Practice App (v0.10.76)
+# Play Along — Piano Practice App (v0.10.77)
+
+## FG-04D1 — Correct author/user provenance before hand-motion research (v0.10.77)
+
+**Safety fix:** MusicXML that carries Play Along's **user-edited fingering** export marker is no longer treated as independently composer-authored fingering after reimport. The source still displays its note numbers, original pitches/rhythms and tied segments, but the imported digits are classified **unverified** and cannot supply automatic learner hand/finger guidance or count as authored fingering. This avoids silently treating a previous user's corrections as musical authority. To enable guidance, review and explicitly save source-keyed manual fingers **and hands** in the editor. A metadata marker is not a cryptographic signature, so originally authored and edited digits cannot be separated securely from a mixed exported file.
+
+**Research-only FG-04D1 adapter:** A separate source reimport gate now compares every canonical MusicXML note/tie ID, voice/staff/part, full MIDI timeline and tempo map before passing only independently reimported author hand+finger pairs or matching locally saved user edits to the existing FG-04D0 hand/finger/motion research bridge. Forged note metadata, incomplete override pairs, mismatched score provenance and user-export fingers refuse or abstain; generated fingers cannot authorize motion. Node adversarial and real Chromium export→reimport tests added. **This adapter is not wired into learner guidance and does not imply pianist-approved hand motion.** [Source provenance contract](docs/FG-04D1-IMPORT-PROVENANCE-GATE.md). Hand-thesia progress remains **35%**.
+
+
 
 ## FG-03C2B7 — Source-verified tied-note cross-edition review (v0.10.76)
 
