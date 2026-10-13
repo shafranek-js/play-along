@@ -22,6 +22,29 @@ Each original held-out event is grouped into a fixed, coarse bucket using only M
 
 Each bucket contains **heldout, proposed, correct, incorrect, abstained**. Extra, strictly post-score direction totals **predicted RH / actual LH** and **predicted LH / actual RH** distinguish misassignment direction; these never enter algorithm inputs. Existing explicit refusal and abstention reasons (including NO_FEASIBLE_HAND_PATH, ambiguous path, beam pruning and missing identity) are preserved. Classifiers are fixed prior to external data inspection, and note-by-note classifications never appear in GitHub reports.
 
+## First measured stratification (13 October 2026)
+
+Full independent [PR #82 CI](https://github.com/shafranek-js/play-along/actions/runs/38410830019), artifact `fg04b4-r1-real-performer-hand-labels`, confirmed all **11 original recordings** and reproduced the unchanged R1 baseline: 1,467 unanchored held-out notes with **zero** self-selected RH/LH predictions; oracle seeded **404** source-verified hand labels, leaving **1,063** notes, **325** proposals, **272 correct**, **53 incorrect**, **738** abstained. The numbers below refer **only to oracle-assisted held-out notes**.
+
+| Grouping of the 1,063 held-out notes | Total | Proposed | Correct | Incorrect | Abstained | Error / proposed |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Only one hand provided as GT seed | 150 | 76 | 44 | **32** | 74 | **42.11%** |
+| Both hands independently seeded | 913 | 249 | 228 | **21** | 664 | **8.43%** |
+| Nearest exposed seed 0–4 semitones | 459 | 143 | 135 | **8** | 316 | 5.59% |
+| Nearest exposed seed 5–12 semitones | 559 | 166 | 123 | **43** | 393 | **25.90%** |
+| Nearest exposed seed 13+ semitones | 45 | 16 | 14 | **2** | 29 | 12.50% |
+| Island contains 2–3 original notes | 105 | 60 | 40 | **20** | 45 | **33.33%** |
+| Island contains 4–7 original notes | 332 | 146 | 118 | **28** | 186 | 19.18% |
+| Island contains 8+ original notes | 626 | 119 | 114 | **5** | 507 | 4.20% |
+
+**Important:** rows from different groupings are separate views of the **same** 1,063 notes. Do **not** add the rows together across groups, nor infer causality from this selective sample. A low conditional error rate can coexist with poor coverage: for 8+ note islands, **507 of 626** notes were simply left unassigned. The 13+ semitone group has only 16 proposals and cannot establish general hand-reach correctness.
+
+Wrong-assignment directions were **37 predicted RH but externally marked LH**, versus **16 predicted LH but externally marked RH**. None of the 1,063 eligible held-out notes in this particular strict population overlapped another physical same-pitch key; the overlapping-unison taxonomy therefore provides a zero-sample diagnostic, not evidence of safe unisons.
+
+Of the **738** abstentions, original solver reasons were **583 NO_FEASIBLE_HAND_PATH** (78.997%), **133 AMBIGUOUS_HAND** (18.02%), **22 BEAM_TRUNCATED_AMBIGUOUS** (2.98%). "No feasible path" is a **model verdict**, not proof a pianist cannot physically execute the passage.
+
+**Interpretation / action:** observed erroneous hand assignments are particularly concentrated when only one independent hand is anchored (**32 of the 53** errors) and when a held-out note lies **5–12 semitones** from the nearest exposed seed (**43 of the 53**). These are correlated features, not independently confirmed causal factors or a new training target. Future solver proposals must be developed on different, rights-cleared reference data, with prior performance weights frozen, then blindly evaluated on a separate holdout set. Production learner auto-hand remains **NO-GO**.
+
 ## Provenance and release gates
 
 - For *each* of five axes, the sum of all category denominators must equal the original R1 frozen counts exactly: held-out = proposed + abstained; proposed = correct + incorrect; category totals = protocol totals. Incorrect direction counts must sum to original incorrect total. Any inconsistency fails the audit.
