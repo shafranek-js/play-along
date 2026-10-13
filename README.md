@@ -1,4 +1,12 @@
-# Play Along — Piano Practice App (v0.10.79)
+# Play Along — Piano Practice App (v0.10.80)
+
+## FG-04B4-R1 — Independent REAL performer RH/LH ground-truth benchmark (v0.10.80)
+
+Instead of interpreting the four unlabeled ASAP real scores as evidence of correct piano finger/hand placement, FG-04B4 now has a separate **noncommercial research-only** source-based benchmark on **11 immutable PianoVAM performances** (existing FG-02J original-source event alignment: 32,525 MIDI/TSV notes, 1,800 externally hand+finger annotated notes, 5.53% initial GT coverage). A strict **source-complete held-key polyphonic island** gate refuses any partial GT chord and any identical duplicate five-field source events which cannot unambiguously link an external hand label to a particular original note. Notes, MIDI or hand labels are not copied into reports or product builds (upstream **CC BY-NC-SA 4.0**, research only).
+
+Two independent test protocols are reported side by side: **MIDI-only** with every original hand withheld (the conservative splitter may abstain), and **source/oracle-seeded** with at most the earliest independently labeled note from each hand provided as fixed identity per score island. In the latter, the fixed anchors are excluded from prediction denominators and all other hands and **all finger numbers** remain hidden. Each report separates eligible versus fully held-out notes, algorithm coverage, true agreement, false-hand assignments, unknowns and rejected islands. Seeded/source-assisted agreement is **not** real MIDI-only autonomous hand discovery, pianist-approved technique, or certified motion. No production auto hand hints, automatic fingers, original 14 PNG changes, SoundFont/MAESTRO/music timing changes, or learner release gating is altered. [Method and licence](docs/FG-04B4-R1-REAL-HAND-GT.md). Hand-thesia progress stays **35%**.
+
+
 
 ## FG-03D3 — Real piano polyphony does not mean the whole score is corrupt (v0.10.79)
 
@@ -11,6 +19,8 @@ Original CI evidence: 4/4 sources imported; Bach prelude 549 source notes assess
 ## FG-03D2 — Actual pinned real-score hand motion eligibility audit (v0.10.78)
 
 The original **Play Along Chromium MusicXML importer** now feeds a separate, **research-only** feasibility audit across four revision-pinned, rights-reviewed *real* ASAP piano works (Bach prelude/fugue, Chopin etude, Mozart sonata). Source bytes are verified against exact Git hashes and sizes, and are never included in reports or shipped to Pages (ASAP **CC BY-NC-SA 4.0, research only**). The evaluator verifies original source note/tie IDs and MIDI note-on/off identity, counts only fully original author-provided hand **and** finger pairs, refuses duplicate/held physical keys, submillisecond collisions and incomplete simultaneous groups, then invokes FG-03D1 motion *only* on consecutive original onsets. The output is aggregate numbers of eligible/refused/moving/static decisions, never exported note/finger data. **No inferred finger, hand identity or pianist-approved motion is invented.** Real scores may have *zero* usable author labels; ground-truth musician accuracy remains **unmeasured**, not 100% or 0%. Detailed source and acceptance contract: [FG-03D2](docs/FG-03D2-REAL-SCORE-MOTION-EVIDENCE.md).
+
+**First measured external result (2026-10-13):** all 11 source recordings validated; 242 complete GT polyphonic islands (1,467 original notes). Without hand anchors: **0/1,467** proposals (100% conservative abstention). With **404 known source GT hand anchors**, **1,063** notes remained held out; algorithm proposed hands for **325/1,063 (30.57% coverage)**, correctly matching **272** and incorrectly assigning **53** (**83.69% agreement ONLY among proposals**, **16.31% error among proposals**, **25.59% correct among all held-out**). Do not interpret source-assisted conditional agreement as MIDI-only accuracy. Still research **NO-GO**. [Measured evidence](docs/FG-04B4-R1-REAL-HAND-GT.md).
 
 All player behavior, original 14 PNG hands, Source MusicXML, MIDI/Wait/Tempo/Ghost, SoundFonts, MAESTRO and the no-go research/learner boundary remain untouched. Hand-thesia progress stays at **35%**.
 

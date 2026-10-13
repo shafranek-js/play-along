@@ -85,6 +85,8 @@ jobs:
         run: FG02J_ALIGNMENT_REPORT=artifacts/fg02j-gt-alignment.json npm run research:fingering:polyphony-align
       - name: FG-02J independent real polyphonic GT closed-island benchmark (noncommercial research only)
         run: FG02J_POLYPHONY_REPORT=artifacts/fg02j-real-polyphony.json npm run benchmark:fingering:independent-polyphony
+      - name: FG-04B4-R1 pinned external performer RH/LH ground truth (PianoVAM, noncommercial)
+        run: FG04B4_REAL_HAND_REPORT=artifacts/fg04b4-real-hand-gt.json npm run research:fingering:real-hand-gt
       - name: FG-04B1a pinned MIT MusicXML technical corpus integrity
         run: FG04B1A_REPORT=artifacts/fg04b1a-technical-corpus.json npm run research:fingering:corpus:technical
       - name: FG-04B1b immutable ASAP real score pair integrity (NC research)
@@ -176,6 +178,13 @@ jobs:
           name: fg02j-real-polyphony-closed-islands
           path: artifacts/fg02j-real-polyphony.json
           if-no-files-found: error
+      - name: Upload FG-04B4-R1 real performer hand-label metrics only (no source events)
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: fg04b4-r1-real-performer-hand-labels
+          path: artifacts/fg04b4-real-hand-gt.json
+          if-no-files-found: warn
       - name: Upload FG-04B1a pinned MusicXML technical source verification
         if: always() && github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
