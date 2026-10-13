@@ -259,3 +259,6 @@ test('P1: other-hand repeat iteration and next-status must match canonical targe
  opposite.target={...opposite.target,isNextUnfinished:true};
  assert.equal(result({target,opposite}).kind,'moving');
 });
+
+// FG-03D4: run the isolated PianoMotion pose interchange safety suite in npm test.
+import './pianomotion-pose-adapter.test.mjs';
