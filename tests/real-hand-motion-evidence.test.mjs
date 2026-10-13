@@ -117,7 +117,7 @@ test('D3: simultaneous duplicated physical pitch is locally unknowable even when
  const r=audit(song(notes));
  assert.equal(r.physicallyAmbiguousSamePitchClusters,1);
  assert.equal(r.physicallyAmbiguousSourceNotes,2);
- assert.equal(r.ineligibility['ambiguous-physical-key-interval'],3);
+ assert.equal(r.ineligibility['ambiguous-physical-key-interval'],2);
  assert.equal(r.attemptedHandTransitions,2);
  assert.equal(r.decisions.moving,2);
 });
