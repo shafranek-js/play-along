@@ -54,9 +54,21 @@ export async function runRealHandSeparationBenchmark({
   'proposed','abstained','anchorViolations','refusedIslands'];
  const merge=(target,from)=>{
   for(const k of sumKeys)target[k]=(target[k]||0)+from[k];
-  for(const f of ['refusalReasons','unresolvedReasons']){
+  for(const f of ['refusalReasons','unresolvedReasons','wrongDirection']){
    target[f]||={};
    for(const [reason,n] of Object.entries(from[f]))count(target[f],reason,n);
+  }
+  target.diagnosticAxes||={};
+  for(const [axis,values] of Object.entries(from.diagnosticAxes)){
+   target.diagnosticAxes[axis]||={};
+   for(const [category,bucket] of Object.entries(values)){
+    const d=target.diagnosticAxes[axis][category]??{
+     heldout:0,proposed:0,correct:0,incorrect:0,abstained:0
+    };
+    for(const k of ['heldout','proposed','correct','incorrect','abstained'])
+     d[k]+=bucket[k];
+    target.diagnosticAxes[axis][category]=d;
+   }
   }
  };
  const pct=(n,d)=>d?+(100*n/d).toFixed(2):null;
@@ -88,7 +100,12 @@ export async function runRealHandSeparationBenchmark({
    ambiguousGTMasked:dedup.ambiguousGTRowsMasked,
    eligibleIslands:closed.eligible.length,
    eligibleNotes:closed.summary.polyphonicNotes,
-   protocols:evaluated.protocols
+   // Per-recording source GT cells can be very small. Diagnostic bins and
+   // wrong-hand direction are emitted ONLY at full 11-recording aggregate
+   // level, not as reconstructable source/performance event slices.
+   protocols:Object.fromEntries(Object.entries(evaluated.protocols).map(([k,v])=>{
+    const {diagnosticAxes,wrongDirection,...summary}=v;return [k,summary];
+   }))
   });
  }
  for(const protocol of ['unanchored','oracleSeeded']){
@@ -101,7 +118,21 @@ export async function runRealHandSeparationBenchmark({
   m.accuracyAmongProposedPct=pct(m.correct,m.proposed);
   m.errorAmongProposedPct=pct(m.incorrect,m.proposed);
   m.correctAmongAllHeldoutPct=pct(m.correct,m.heldout);
-  for(const f of ['refusalReasons','unresolvedReasons'])
+  for(const [axis,categories] of Object.entries(m.diagnosticAxes||{})){
+   const sums={heldout:0,proposed:0,correct:0,incorrect:0,abstained:0};
+   for(const bucket of Object.values(categories)){
+    if(bucket.heldout!==bucket.proposed+bucket.abstained||
+       bucket.proposed!==bucket.correct+bucket.incorrect)
+     throw Error('HAND_GT_DIAGNOSTIC_DENOMINATOR_CORRUPT');
+    for(const field of Object.keys(sums))sums[field]+=bucket[field];
+   }
+   if(Object.keys(sums).some(k=>sums[k]!==m[k]))
+    throw Error('HAND_GT_DIAGNOSTIC_AXIS_MARGINAL_MISMATCH:'+axis);
+   m.diagnosticAxes[axis]=Object.fromEntries(Object.entries(categories).sort());
+  }
+  if(Object.values(m.wrongDirection||{}).reduce((a,b)=>a+b,0)!==m.incorrect)
+   throw Error('HAND_GT_DIRECTION_TOTAL_MISMATCH');
+  for(const f of ['refusalReasons','unresolvedReasons','wrongDirection'])
    m[f]=Object.fromEntries(Object.entries(m[f]||{}).sort());
  }
  totals.externalGTCoveragePct=pct(totals.externalGTNotes,totals.sourceNotes);

@@ -168,3 +168,104 @@ test('R1: unusable/mutated pinned source GT is rejected instead of being benchma
  await assert.rejects(runRealHandSeparationBenchmark({fetcher:broken}),
   /UNKNOWN_SOURCE_FINGER_CODING/);
 });
+
+
+// FG-04B4-R2 — pre-registered score-structure diagnostics, aggregate only.
+// None of these features is allowed to use hidden external hand or finger.
+const axisFields=['heldout','proposed','correct','incorrect','abstained'];
+const assertAxes=protocol=>{
+ for(const [axis,buckets] of Object.entries(protocol.diagnosticAxes)){
+  const sums=Object.fromEntries(axisFields.map(k=>[k,0]));
+  for(const [key,counts] of Object.entries(buckets)){
+   assert.equal(typeof key,'string');
+   assert.equal(counts.heldout,counts.proposed+counts.abstained);
+   assert.equal(counts.proposed,counts.correct+counts.incorrect);
+   for(const k of axisFields)sums[k]+=counts[k];
+  }
+  for(const k of axisFields)
+   assert.equal(sums[k],protocol[k],'Axis '+axis+' field '+k);
+ }
+ assert.equal(Object.values(protocol.wrongDirection).reduce((a,b)=>a+b,0),
+  protocol.incorrect);
+};
+test('R2: pre-registered axes independently reconcile exactly to every original R1 denominator',()=>{
+ const island=duet(),r=evaluate([island]);
+ assertAxes(r.protocols.unanchored);
+ assertAxes(r.protocols.oracleSeeded);
+ assert.deepEqual(Object.keys(r.protocols.unanchored.diagnosticAxes).sort(),[
+  'attackTexture','exposedHandAnchors','heldSamePitchOverlap',
+  'islandSize','nearestExposedAnchorPitch'].sort());
+ const u=r.protocols.unanchored,o=r.protocols.oracleSeeded;
+ assert.equal(u.diagnosticAxes.exposedHandAnchors.none.heldout,4);
+ assert.equal(u.diagnosticAxes.nearestExposedAnchorPitch.none.heldout,4);
+ assert.equal(o.diagnosticAxes.exposedHandAnchors.both.heldout,2);
+ assert.equal(o.diagnosticAxes.nearestExposedAnchorPitch['0-4-semitones'].heldout,2);
+ assert.equal(o.diagnosticAxes.attackTexture['simultaneous-onset'].heldout,2);
+});
+test('R2: withheld GT changes can affect scored correctness, never pre-scoring feature denominators',()=>{
+ const original=duet(),changed=structuredClone(original);
+ changed[2].hand='RH';changed[3].hand='LH';
+ changed[2].finger=5;changed[3].finger=1;
+ const a=evaluate([original]).protocols.oracleSeeded;
+ const b=evaluate([changed]).protocols.oracleSeeded;
+ assert.equal(a.anchors,b.anchors);
+ assert.equal(a.proposed,b.proposed);
+ assert.equal(a.abstained,b.abstained);
+ for(const axis of Object.keys(a.diagnosticAxes))
+  for(const category of Object.keys(a.diagnosticAxes[axis])){
+   assert.equal(a.diagnosticAxes[axis][category].heldout,
+    b.diagnosticAxes[axis][category].heldout);
+   assert.equal(a.diagnosticAxes[axis][category].proposed,
+    b.diagnosticAxes[axis][category].proposed);
+   assert.equal(a.diagnosticAxes[axis][category].abstained,
+    b.diagnosticAxes[axis][category].abstained);
+  }
+ assertAxes(a);assertAxes(b);
+});
+test('R2: same-key overlap and chord texture are source features, not guessed RH/LH identity',()=>{
+ const island=[N(0,60,0,'RH'),N(1,60,.1,'LH'),
+  N(2,64,.1,'RH'),N(3,67,.3,'RH')];
+ const r=evaluate([island]).protocols.unanchored;
+ assertAxes(r);
+ assert.equal(r.diagnosticAxes.heldSamePitchOverlap['overlapping-physical-key'].heldout,2);
+ assert.equal(r.diagnosticAxes.heldSamePitchOverlap['no-overlapping-physical-key'].heldout,2);
+ assert.equal(r.diagnosticAxes.attackTexture['simultaneous-onset'].heldout,2);
+ assert.equal(r.diagnosticAxes.attackTexture['staggered-onset'].heldout,2);
+ assert.equal(r.proposed,0);
+});
+test('R2: rejected solver population is fully counted in every diagnostic abstention axis',()=>{
+ // 11 same-onset keys trigger the research solver's 10-key cap; each
+ // held-out note must remain unassigned and counted once on every axis.
+ const island=Array.from({length:11},(_,i)=>N(i,48+i,0,i%2?'LH':'RH'));
+ const r=evaluate([island]);
+ for(const p of Object.values(r.protocols)){
+  assertAxes(p);
+  assert.equal(p.proposed,0);
+  assert.equal(p.abstained,p.heldout);
+ }
+ assert.ok(r.protocols.oracleSeeded.unresolvedReasons.UNRESOLVED_ONSET_SEARCH_CAP>0);
+});
+test('R2: score-feature bins are complete without exposing original note arrays or performer labels',()=>{
+ const result=evaluate([duet()]);
+ const json=JSON.stringify(result);
+ assert.ok(!json.includes('eval-'));
+ assert.ok(!json.includes('"pitch":'));
+ assert.ok(!json.includes('"start":'));
+ assert.ok(!json.includes('"noteId":'));
+ assert.ok(!json.includes('"finger":'));
+ assert.ok(!json.includes('"hand":'));
+ assertAxes(result.protocols.unanchored);
+ assertAxes(result.protocols.oracleSeeded);
+});
+test('R2: 11 original-source mock benchmark exports only population-wide diagnostic bins',async()=>{
+ const r=await runRealHandSeparationBenchmark({fetcher:fetchMock});
+ const seeded=r.totals.protocols.oracleSeeded;
+ assertAxes(seeded);
+ assertAxes(r.totals.protocols.unanchored);
+ assert.equal(seeded.heldout,22);
+ assert.equal(seeded.diagnosticAxes.exposedHandAnchors.both.heldout,22);
+ assert.ok(r.recordings.every(x=>Object.values(x.protocols).every(p=>
+  p.diagnosticAxes===undefined&&p.wrongDirection===undefined)));
+ assert.equal(r.productionEligible,false);
+ assert.equal(r.learnerAutomaticHandHintsAllowed,false);
+});
