@@ -92,8 +92,9 @@
     <div class="fingerEditorTopLine"><strong>✍ Редактор аппликатуры</strong><span id="fingerEditorCount" aria-live="polite">Ноты не выбраны</span><div class="fingerEditorSpacer"></div><label for="fingerEditorZoom">Масштаб времени</label><select id="fingerEditorZoom" aria-label="Масштаб временной шкалы"><option value="40">Мелкий</option><option value="72" selected>Средний</option><option value="120">Крупный</option><option value="200">Очень крупный</option></select></div>
     <div class="fingerEditorTopLine"><button id="fingerEditorAll" class="btn tiny">Выбрать все</button><button id="fingerEditorClear" class="btn tiny ghost">Снять выделение</button><label for="fingerEditorFinger">Палец</label><select id="fingerEditorFinger" aria-label="Палец для выбранных нот"><option value="keep">Не менять</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select><label for="fingerEditorHand">Рука</label><select id="fingerEditorHand" aria-label="Рука для выбранных нот"><option value="keep">Не менять</option><option value="RH">Правая</option><option value="LH">Левая</option><option value="null">Не определена</option></select><button id="fingerEditorApply" class="btn tiny primary">Применить</button><button id="fingerEditorReset" class="btn tiny ghost">Вернуть автора</button><button id="fingerEditorUndo" class="btn tiny ghost">↶ Отменить</button><button id="fingerEditorRedo" class="btn tiny ghost">↷ Повторить</button><button id="fingerEditorDownloadXML" class="btn tiny primary" type="button" disabled title="Скачать копию MusicXML с ручными номерами пальцев">↓ MusicXML с правками</button></div><p class="small" id="fingerEditorExportStatus" role="status" aria-live="polite">Экспорт сохраняет только ручные номера пальцев, не изменяя исходную партитуру. Изменения только руки не записываются.</p>
     <details id="fingerResearchPanel" class="fingerResearchPanel"><summary>🔬 Расчёт и сравнение аппликатуры (исследование)</summary>
-    <details id="fingerBrowserPanel" class="fingerResearchPanel">
-     <summary>🧠 Рассчитать аппликатуру в браузере · эксперимент</summary>
+    <section id="fingerBrowserPanel" class="fingerResearchPanel">
+     <button type="button" class="btn tiny ghost" id="fingerBrowserToggle" aria-controls="fingerBrowserContents" aria-expanded="false">🧠 Рассчитать аппликатуру в браузере · эксперимент</button>
+     <div id="fingerBrowserContents" hidden>
      <p class="small">Сравнить исходный Beam Search Play Along и экспериментальную модель растяжения пальцев. Работает локально в браузере без Python. Только для исходного MusicXML с определёнными руками. Предложения <strong>не применяются</strong> и не используются в подсказках; алгоритм PianoMotion здесь пока не запускается.</p>
      <div class="fingerResearchControls">
       <label for="fingerBrowserHandSize">Размер кисти</label>
@@ -104,7 +105,8 @@
      <p class="small" id="fingerBrowserStatus" role="status" aria-live="polite">Откройте исходный MusicXML и нажмите «Рассчитать».</p>
      <div class="fingerBrowserMetrics" id="fingerBrowserMetrics"></div>
      <div id="fingerBrowserCandidates" class="fingerBrowserCandidates" aria-label="Экспериментальные предложения пальцев"></div>
-    </details>
+     </div>
+    </section>
      <p class="small">Загрузите результат MasterPiano или PianoPlayer для <strong>уже открытого исходного MusicXML</strong>. Сравнение выполняется локально, ничего не изменяет и не принимает алгоритмические пальцы автоматически.</p>
      <div class="fingerResearchControls">
        <label for="fingerResearchEngine">Генератор</label><select id="fingerResearchEngine" aria-label="Источник предложенной аппликатуры"><option value="MasterPiano">MasterPiano</option><option value="PianoPlayer">PianoPlayer</option><option value="PineappleMusicLab">PineappleMusicLab</option><option value="other">Другой / вручную</option></select>
