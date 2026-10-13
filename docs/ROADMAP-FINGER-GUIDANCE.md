@@ -9,7 +9,7 @@
 3. **No anatomically invented fingers.** Original fourteen owner-supplied transparent PNG poses are preserved bit-for-bit; painted fingertips are never evidence of which physical finger the learner pressed.
 4. **No implied chord completeness.** An incomplete author-annotated chord may display known **numeric** labels but must not present a complete hand position; an intervening completely unannotated onset blocks jumping ahead to a later annotated one.
 5. **Keep production and research separate.** All FG-02A…FG-02J auto-fingering is research-only, and neither its predictions nor benchmark weights enter learner-facing hints.
-6. **Privacy, licensing and maintainability.** Continue GitHub Pages without a backend. Respect PianoVAM CC BY-NC-SA research restrictions, keep source pinned and report only aggregate metrics. Update README with every PR, and run build + unit + real browser regression before merge.
+6. **Privacy, licensing and maintainability.** Continue GitHub Pages without a backend. Respect PianoVAM CC BY-NC-SA research restrictions, keep source pinned and report only aggregate metrics. Update README with every product/release PR; worker research PRs use isolated dedicated FG/QA documentation under the parallel-chat CI exemption and the Lead updates README at integration. Run build + unit + real browser regression before merge.
 7. **Generator provenance and coverage are separate.** A score with 100% proposed fingers is *not* musician-verified; distinguish original author, external generated, user-confirmed and unknown in comparisons and later library metadata. External comparison cannot overwrite the trusted author or local user layer.
 
 ## Current capabilities already implemented (do not reinvent)
