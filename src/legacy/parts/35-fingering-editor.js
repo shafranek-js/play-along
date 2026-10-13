@@ -21,6 +21,7 @@ function fingerEditorNotes(){return fingerEditorAvailable()?fingerSelectionOrder
 function fingerEditorRender(){
  if(state.scoreView!=='editor'||state.page!=='practice')return;
  fingerResearchSync();
+ fingerBrowserSync();
  if(fingerEditionPlan&&fingerEditionTarget!==current)fingerEditionReset();
   const width=Math.max(0,Math.floor(fingerEditorScroller.clientWidth));
  if(width<100)return;
@@ -383,6 +384,134 @@ $('fingerEditionApply').onclick=()=>{
 };
 window.addEventListener('resize',fingerEditorPaintSoon);
 
+/** FG-04C4: local browser-only preview of our JS Beam Search.
+ * This explicitly DOES NOT run PianoMotion Python or drive learner hints.
+ */
+let fingerBrowserWorker=null,fingerBrowserSeq=0,fingerBrowserSong=null,
+    fingerBrowserSnapshotKey=null;
+function fingerBrowserInput(){
+ if(!fingerEditorAvailable())return null;
+ const key=fingerGuideWorkKey(),edits=key?state.fingerOverrides?.[key]||{}:{};
+ const notes=fingerEditorNotes().map(n=>{
+  const change=fingerOverrideEffective(n,edits[n.noteId]);
+  const h=change?change.hand:n.hand;
+  const candidate={noteId:n.noteId,pitch:n.pitch,start:n.start,
+   duration:n.duration,hand:h};
+  if(change){
+   if(Number.isInteger(change.finger))candidate.userFinger=change.finger;
+  }else if(n.fingeringSource==='musicxml'&&Number.isInteger(n.finger))
+   candidate.authorFinger=n.finger;
+  return candidate;
+ });
+ return {notes,handSize:$('fingerBrowserHandSize').value};
+}
+function fingerBrowserAbort(message){
+ fingerBrowserSeq++;
+ if(fingerBrowserWorker){fingerBrowserWorker.terminate();fingerBrowserWorker=null}
+ fingerBrowserSong=null;fingerBrowserSnapshotKey=null;
+ $('fingerBrowserMetrics').replaceChildren();
+ $('fingerBrowserCandidates').replaceChildren();
+ if(message)$('fingerBrowserStatus').textContent=message;
+}
+function fingerBrowserSync(){
+ const allowed=fingerEditorAvailable();
+ $('fingerBrowserCalculate').disabled=!allowed||!!fingerBrowserWorker;
+ if(!allowed){
+  if(fingerBrowserSong)fingerBrowserAbort('Доступно только для исходного MusicXML.');
+  return;
+ }
+ if(fingerBrowserSong&&fingerBrowserSnapshotKey!==JSON.stringify(fingerBrowserInput())){
+  fingerBrowserAbort('Исходные ноты или правки изменились. Нажмите «Рассчитать» заново.');
+ }
+}
+function fingerBrowserShow(report){
+ const status=$('fingerBrowserStatus'),metrics=$('fingerBrowserMetrics'),
+       candidates=$('fingerBrowserCandidates');
+ metrics.replaceChildren();candidates.replaceChildren();
+ if(!report||!report.ok){
+  status.textContent='Расчёт отклонён: '+(report?.reason||'неизвестная ошибка')+'. Исходное произведение не изменено.';
+  return;
+ }
+ const l=report.models.legacy,a=report.models.anatomical;
+ status.textContent='Вычислено локально · '+report.engine+
+  ' · Исходные события неизменны · Автоматические пальцы не приняты.';
+ const rows=[
+  ['Всего нот',report.noteCount],['Авторских/ручных обозначений',report.anchored],
+  ['Обычная модель',l.status==='computed'?l.proposed+' предложений':'Отказ: '+l.reason],
+  ['Анатомическая модель',a.status==='computed'?a.proposed+' предложений':'Отказ: '+a.reason],
+  ['Различающихся пальцев',report.disagreements??'Невозможно сравнить'],
+  ['Экспертная проверка','Не выполнена']
+ ];
+ for(const [label,value]of rows){
+  const span=document.createElement('span');span.className='fingerResearchMetric';
+  span.textContent=label+': '+value;metrics.append(span);
+ }
+ if(a.status==='computed'&&a.candidates.length){
+  const title=document.createElement('strong');title.textContent='Первые 30 предложений · только для просмотра';
+  candidates.append(title);
+  const list=document.createElement('ol');
+  for(const n of a.candidates.slice(0,30)){
+   const li=document.createElement('li');
+   li.textContent=n.hand+' · '+nameOf(n.pitch)+' · '+n.start.toFixed(2)+
+    ' с → палец '+n.finger+' (не подтверждён)';
+   list.append(li);
+  }
+  candidates.append(list);
+ }
+}
+$('fingerBrowserHandSize').onchange=()=>fingerBrowserAbort('Размер кисти изменён. Повторите расчёт.');
+$('fingerBrowserCalculate').onclick=()=>{
+ fingerBrowserAbort();
+ if(!fingerEditorAvailable()){
+  $('fingerBrowserStatus').textContent='Откройте исходный MusicXML в режиме «Оригинал».';
+  return;
+ }
+ const input=fingerBrowserInput();
+ if(!input||!input.notes.length){
+  $('fingerBrowserStatus').textContent='Нет нот исходной партитуры.';
+  return;
+ }
+ if(!input.notes.every(n=>n.hand==='RH'||n.hand==='LH')){
+  $('fingerBrowserStatus').textContent='Рука некоторых нот не определена. Укажите руку вручную; по высоте алгоритм её не угадывает.';
+  return;
+ }
+ if(!window.Worker){
+  $('fingerBrowserStatus').textContent='В этом браузере Web Worker недоступен.';
+  return;
+ }
+ const id=++fingerBrowserSeq,source=current,snapshot=JSON.stringify(input);
+ fingerBrowserSong=source;fingerBrowserSnapshotKey=snapshot;
+ $('fingerBrowserStatus').textContent='Вычисляю варианты аппликатуры в отдельном потоке…';
+ let worker;
+ try{worker=new Worker('./assets/fingering-research-worker.js');}
+ catch{
+  fingerBrowserAbort('Не удалось запустить Web Worker. Проверьте поддержку браузера.');
+  return;
+ }
+ fingerBrowserWorker=worker;
+ $('fingerBrowserCalculate').disabled=true;
+ const timeout=setTimeout(()=>{
+  if(id!==fingerBrowserSeq)return;
+  fingerBrowserAbort('Расчёт превысил ограничение времени. Исходные ноты не изменены.');
+  fingerBrowserSync();
+ },15000);
+ const finish=(result)=>{
+  clearTimeout(timeout);
+  if(id!==fingerBrowserSeq)return;
+  worker.terminate();fingerBrowserWorker=null;
+  if(current!==source||JSON.stringify(fingerBrowserInput())!==snapshot){
+   fingerBrowserAbort('Партитура или правки изменились. Запустите расчёт заново.');
+   fingerBrowserSync();return;
+  }
+  fingerBrowserShow(result);fingerBrowserSync();
+ };
+ worker.onmessage=e=>{
+  if(e.data?.id!==id)return;
+  finish(e.data.report);
+ };
+ worker.onerror=()=>finish({ok:false,reason:'Ошибка Web Worker'});
+ worker.postMessage({id,...input});
+};
 /** FG-04A: local, read-only comparison against an external generator's XML.
  * Never turn these suggestions into teacher hints or saved user overrides.
  */
