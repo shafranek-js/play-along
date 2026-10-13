@@ -222,3 +222,29 @@ test('ties are carried but never silently consolidated across repeat boundaries'
  assert.equal(matchRepeatExpansionToMidi(exp,midi(onoff(exp.notes))).reason,
   'REPEAT_TIE_CONSOLIDATION_UNSUPPORTED');
 });
+
+test('safe inert MusicXML public DTD declaration is not expanded or executed',()=>{
+ const input='<?xml version="1.0"?>'+
+  '<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 3.1 Partwise//EN" "musicxml.dtd">'+
+  xml([L(fw),R(bw)]);
+ const parsed=parseMusicXmlRepeatControls(input);
+ assert.deepEqual(seq(plan({...parsed,durations:[1,1]})),[0,1,0,1]);
+});
+test('internal DTD and XML external entity declarations refuse',()=>{
+ assert.throws(()=>parseMusicXmlRepeatControls(
+  '<!DOCTYPE score-partwise [<!ENTITY evil SYSTEM "file:///etc/passwd">]>'+xml([''])),
+ /REPEAT_XML_DTD_OR_ENTITY_UNSUPPORTED/);
+});
+test('unresolved grace and ornaments are control-only diagnostics, never traversed',()=>{
+ const grace=parseMusicXmlRepeatControls(xml([L(fw)+'<note><grace/></note>',R(bw)]));
+ assert.equal(grace.hasUnresolvedGrace,true);
+ assert.throws(()=>plan({...grace,durations:[1,1]}),/REPEAT_GRACE_TIMING_UNSUPPORTED/);
+ const ornament=parseMusicXmlRepeatControls(xml([L(fw)+'<trill-mark/>',R(bw)]));
+ assert.throws(()=>plan({...ornament,durations:[1,1]}),
+  /REPEAT_ORNAMENT_REALIZATION_UNSUPPORTED/);
+});
+test('repeat after-jump must not be processed as plain backward repeat',()=>{
+ assert.throws(()=>parseMusicXmlRepeatControls(
+  xml([L(fw),R('<repeat direction="backward" after-jump="yes"/>')])),
+ /REPEAT_AFTER_JUMP_UNSUPPORTED/);
+});
