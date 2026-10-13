@@ -6,3 +6,8 @@
 *.json text eol=lf
 *.md text eol=lf
 *.yml text eol=lf
+
+# SoundFont catalogs and original notices are pinned by byte count and SHA-256.
+# Preserve their exact bytes on Windows and Linux checkouts.
+src/assets/audio/** -text
+src/assets/audio/soundfonts/** whitespace=-blank-at-eol,-blank-at-eof
