@@ -62,8 +62,8 @@ jobs:
         run: FG04B1A_REPORT=artifacts/fg04b1a-technical-corpus.json npm run research:fingering:corpus:technical
       - name: FG-04B1b immutable ASAP real score pair integrity (NC research)
         run: FG04B1B_REPORT=artifacts/fg04b1b-asap-scores.json npm run research:fingering:corpus:asap
-      - name: FG-04B3c pinned 16-score music-semantic alignment triage with baseline guard
-        run: FG04B3C_REPORT=artifacts/fg04b3c-asap-xml-midi.json npm run research:fingering:asap:xml-midi
+      - name: FG-04B3d original 16-score MIDI zero-tick and grace/repeat anomaly evidence
+        run: FG04B3D_REPORT=artifacts/fg04b3d-asap-source-diagnostics.json npm run research:fingering:asap:xml-midi
       - name: Browser regressions
         run: npm run test:browser
       - name: Upload FG-02C reference comparison
@@ -161,12 +161,12 @@ jobs:
           name: fg04b1b-asap-16-real-score-pairs-research
           path: artifacts/fg04b1b-asap-scores.json
           if-no-files-found: error
-      - name: Upload FG-04B3c real score alignment and baseline refusal triage
+      - name: Upload FG-04B3d original MIDI and score-notation diagnostics
         if: always() && github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
         with:
-          name: fg04b3c-asap-16-score-alignment-triage
-          path: artifacts/fg04b3c-asap-xml-midi.json
+          name: fg04b3d-asap-16-source-anomaly-diagnostics
+          path: artifacts/fg04b3d-asap-source-diagnostics.json
           if-no-files-found: error
       - name: Dependency audit
         run: npm audit --audit-level=high

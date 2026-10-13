@@ -12,6 +12,8 @@ import {realCorpusManifest,validateRealCorpusManifest,gitBlobHash}
  from './fingering-asap-real-score-audit.mjs';
 import {compareRawMusicXmlToScoreMidi} from '../src/core/musicxml-score-midi-bridge.mjs';
 import {compareAsapAuditBaseline} from '../src/core/asap-audit-triage.mjs';
+import {inspectScoreMidiAnomalies,inspectScoreXmlNotationFeatures,summarizeScoreAnomalies}
+ from '../src/core/asap-score-anomalies.mjs';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const REPO='fosfrancesco/asap-dataset';
@@ -82,6 +84,7 @@ export async function auditAsapRawScoreMidi({manifest=realCorpusManifest(),
  if(!Number.isInteger(concurrency)||concurrency<1||concurrency>3)
   fail('INVALID_AUDIT_CONCURRENCY');
  const results=new Array(manifest.cases.length);
+ const sourceDiagnostics=new Array(manifest.cases.length);
  let next=0;
  await Promise.all(Array.from({length:concurrency},async()=>{
   while(next<results.length){
@@ -90,6 +93,11 @@ export async function auditAsapRawScoreMidi({manifest=realCorpusManifest(),
    // accurately recorded with reasons and never treated as validation.
    const source=await loadVerifiedScorePair(manifest,entry,{fetcher});
    const comparison=compareRawMusicXmlToScoreMidi(source.xml,source.midi);
+   // Analyze independently verified original source bytes even when the
+   // strict musical matcher refuses the score. Never normalize or edit.
+   sourceDiagnostics[idx]={id:entry.id,
+    midi:inspectScoreMidiAnomalies(source.midi),
+    xml:inspectScoreXmlNotationFeatures(source.xml)};
    results[idx]={id:entry.id,status:comparison.status,
     reason:comparison.reason,summary:comparison.summary,
     productionAutoFingeringAllowed:comparison.productionAutoFingeringAllowed};
@@ -106,13 +114,14 @@ export async function auditAsapRawScoreMidi({manifest=realCorpusManifest(),
  return {...summary,sourceRevision:manifest.source.revision,
   license:manifest.source.license,usage:manifest.source.usage,
   provenance:'ASAP 2020 original MusicXML and score MIDI; no third-party finger data',
-  fg04b3cTriage:triage};
+  fg04b3cTriage:triage,
+  fg04b3dSourceAnomalies:summarizeScoreAnomalies(sourceDiagnostics)};
 }
 const invoked=process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url);
 if(invoked){
  try{
   const result=await auditAsapRawScoreMidi();
-  const reportFile=process.env.FG04B3C_REPORT||process.env.FG04B3B_REPORT;
+  const reportFile=process.env.FG04B3D_REPORT||process.env.FG04B3C_REPORT||process.env.FG04B3B_REPORT;
   if(reportFile){
    const location=path.resolve(reportFile);
    fs.mkdirSync(path.dirname(location),{recursive:true});
@@ -125,6 +134,15 @@ if(invoked){
    newlyAligned:result.fg04b3cTriage.newlyAligned,
    priorAlignmentRegressions:result.fg04b3cTriage.regressions,
    refusalsByFamily:result.fg04b3cTriage.refusalsByFamily,
+   originalMidiZeroLengthNotes:result.fg04b3dSourceAnomalies.totals.zeroLengthNotes,
+   affectedScoreCounts:{zeroMidi:result.fg04b3dSourceAnomalies.withZeroLengthMidi,
+    grace:result.fg04b3dSourceAnomalies.withGraceNotes,
+    repeat:result.fg04b3dSourceAnomalies.withRepeatNavigation},
+   // Per-piece counts only; no actual pitches, event times or source notes.
+   anomalyCountsByScore:result.fg04b3dSourceAnomalies.perScore.map(x=>({
+    id:x.id,zeroLengthMidi:x.midi.zeroLengthNotes,
+    graceNotes:x.xml.graceNotes,repeatForward:x.xml.repeatForward,
+    repeatBackward:x.xml.repeatBackward})),
    // These are approved score identifiers and refusal categories only:
    cases:result.cases.map(({id,status,reason})=>({id,status,reason})),
    learnerAutoFingeringAllowed:false},null,2));
