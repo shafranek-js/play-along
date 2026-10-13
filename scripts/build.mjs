@@ -31,6 +31,14 @@ if (!js.includes(`window.__playAlongVersion='${version}'`)) throw Error('Failed 
 const dist = path.join(root, 'dist');
 fs.mkdirSync(path.join(dist, 'assets'), {recursive:true});
 fs.writeFileSync(path.join(dist, 'assets/app.js'), js);
+// FG-04C4: classic dedicated research Worker, bundled for offline use.
+// This is independent of the player's music/audio transport and loads on demand.
+await esbuild({
+ entryPoints:[path.join(root,'src/workers/fingering-research-worker.mjs')],
+ outfile:path.join(dist,'assets/fingering-research-worker.js'),
+ bundle:true,format:'iife',platform:'browser',target:['es2022'],
+ minify:true,legalComments:'none',sourcemap:false,logLevel:'silent'
+});
 fs.copyFileSync(path.join(root, 'src/styles/app.css'), path.join(dist, 'assets/app.css'));
 // Single authoritative release version: HTML title, visible brand and initial
 // score label are stamped from package.json, just like the executable bundle.
