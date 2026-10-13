@@ -85,6 +85,8 @@ jobs:
         run: FG02J_ALIGNMENT_REPORT=artifacts/fg02j-gt-alignment.json npm run research:fingering:polyphony-align
       - name: FG-02J independent real polyphonic GT closed-island benchmark (noncommercial research only)
         run: FG02J_POLYPHONY_REPORT=artifacts/fg02j-real-polyphony.json npm run benchmark:fingering:independent-polyphony
+      - name: FG-04B4-R4 source-matched automatic video pseudolabels vs human GT (NC research)
+        run: FG04B4_R4_REPORT=artifacts/fg04b4-r4-video-pseudohand.json npm run research:fingering:pseudo-hand-audit
       - name: FG-04B4-R3 frozen solver and independent ORIGINAL SYNTHETIC hypothesis audit (not real GT)
         run: FG04B4_R3_REPORT=artifacts/fg04b4-r3-original-synthetic-challenges.json npm run research:fingering:structural-challenges
       - name: FG-04B4-R1 pinned external performer RH/LH ground truth (PianoVAM, noncommercial)
@@ -180,6 +182,13 @@ jobs:
           name: fg02j-real-polyphony-closed-islands
           path: artifacts/fg02j-real-polyphony.json
           if-no-files-found: error
+      - name: Upload FG-04B4-R4 source-verified automatic pseudolabel reliability aggregates (NOT learner GT)
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: fg04b4-r4-piano-video-pseudohand-quality
+          path: artifacts/fg04b4-r4-video-pseudohand.json
+          if-no-files-found: warn
       - name: Upload FG-04B4-R3 CC0 source-engineered synthetic falsification metrics (NOT real GT)
         if: always() && github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
