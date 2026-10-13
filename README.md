@@ -158,6 +158,12 @@ Real physical MIDI device behavior, sustain pedal/CC64, live service availabilit
 ---
 ### Release history
 
+### Pages release publication reliability (v0.10.64 deployment fix)
+
+- GitHub Pages publishing now runs after the production build and Node unit tests, without rerunning the lengthy Chromium/FG browser suite that already passes in mandatory pull-request CI. This avoids leaving the previously published version visible while redundant browser tests run again on every merge.
+- The deployment job checks the **actual built HTML and JS version** against `package.json` before uploading Pages. After the Pages deployment step it also re-requests the **public Pages URL** with a cache-busting query and verifies both the live `Standalone · vX.Y.Z` banner and corresponding JavaScript version. A release fails visibly if Pages still serves outdated files.
+- When GitHub Pages has finished successfully but a particular browser still displays an older version, open `https://shafranek-js.github.io/play-along/?v=0.10.64` or reload the page without cache (Ctrl+Shift+R). PR tests still cover the full real Chromium workflow; neither the player nor MIDI processing is changed by this deployment-only maintenance.
+
 ## MAESTRO v3 Online Library (v0.10.64)
 
 - Added **♩ MAESTRO · 1 276 MIDI** as a separate Online Libraries source and select filter. The catalog loads only on request, shows canonical composer/title/year, supports the existing search, sorting, pagination and favorites, and can be refreshed without resetting the user's collection.
