@@ -4,6 +4,8 @@ FG-04B4-R1 independent source measurement (2026-10-13): 11 PianoVAM real recordi
 
 **Decision date:** 2026-10-12. **Updated for external algorithm research:** 2026-10-12. **Baseline:** v0.10.41 on main. **Implemented:** FG-03A / v0.10.42; FG-03B1 / v0.10.43; FG-03B2A / v0.10.44; FG-03B2B-1 / v0.10.46 (engineering QA); FG-03B2B-2 accepted by pianist per project-owner confirmation on 2026-10-12. FG-03C1 / v0.10.47 implemented; FG-03C2A / v0.10.48 implemented; library fingering coverage and movable UI / v0.10.49 implemented. This is a living engineering plan, not a promise that experimental fingers are safe for learners.
 
+**FG-03A-P1 (v0.10.86):** Live next-chord source identity guard refuses ambiguous simultaneous duplicate canonical `noteId` finger placements (including duplicates without author finger marks), while preserving every original score onset and note count; adjacent independent onset identities are unaffected. Added deterministic nonmutation and negative tests. No automatic fingers or MIDI/audio edits.
+
 ## Non-negotiable product principles
 
 1. **Score authority before inference.** Preserve original MusicXML `<notations><technical><fingering>` values, note identity, explicit staff/hand and provenance. Do not infer fingers from MIDI NoteOn/NoteOff.
