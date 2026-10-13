@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {fingerEditionSnapshot as snapshot,fingerEditionReconcile as reconcile}
+import {fingerEditionSnapshot as snapshot,fingerEditionReconcile as reconcile,
+ fingerEditionManualReview as manualReview,fingerEditionManualBatch as manualBatch}
  from '../src/core/fingering-edition-reconcile.mjs';
 
 const T=value=>({nodeType:3,nodeValue:String(value)});
@@ -159,4 +160,125 @@ test('transfer planning never mutates immutable source, target or correction obj
  const first=reconcile(source,target,changes),second=reconcile(source,target,changes);
  assert.deepEqual(first,second);
  assert.equal(JSON.stringify([source,target,changes]),before);
+});
+
+
+test('B6: duplicated bars require explicit destination selection and no auto mapping',()=>{
+ const a=score([[60],[62],[62]]),b=score([[60],[64],[62],[62]]);
+ const edits={[a.noteIds[1]]:edit(4)};
+ const p=manualReview(S(a),S(b),edits);
+ assert.equal(p.status,'review');assert.equal(p.automaticApply,false);
+ assert.equal(p.rows.length,1);
+ assert.equal(p.rows[0].options.length,2);
+ const chosen=p.rows[0].options[1].to;
+ const confirmed=[{from:a.noteIds[1],to:chosen,acknowledgeAuthor:false,acknowledgeExisting:false}];
+ assert.deepEqual(manualBatch(S(a),S(b),edits,{},confirmed),{
+  status:'ready',entries:[{id:chosen,before:null,after:edit(4)}],
+  accepted:1,automaticApply:false
+ });
+});
+test('B6: edited measures are not silently mapped but exact compatible note may be manually chosen',()=>{
+ const a=score([[60],[62]]),b=score([[60],[67],[62]]);
+ const edits={[a.noteIds[1]]:edit(5,'LH')};
+ assert.equal(reconcile(S(a),S(b),edits).proposals.length,1,
+  'Unchanged source measure can still be verified automatically');
+ const target=score([[60],[62,64]]),changes={[a.noteIds[1]]:edit(2,'LH')};
+ assert.equal(reconcile(S(a),S(target),changes).proposals.length,0);
+ const review=manualReview(S(a),S(target),changes);
+ assert.equal(review.rows.length,1);
+ assert.equal(review.rows[0].options.length,1);
+ const choice=[{from:a.noteIds[1],to:review.rows[0].options[0].to,
+  acknowledgeAuthor:false,acknowledgeExisting:false}];
+ assert.equal(manualBatch(S(a),S(target),changes,{},choice).status,'ready');
+});
+test('B6: explicit different target author fingering needs a separate acknowledgement',()=>{
+ const a=score([[60],[62]]),b=score([[60],[64],[62]],{fingers:{'xml:P1:0:2:3':5}});
+ const edits={[a.noteIds[1]]:edit(3)};
+ const row=manualReview(S(a),S(b),edits).rows[0];
+ assert.equal(row.options[0].authorConflict,true);
+ const pick=[{from:row.from,to:row.options[0].to,
+   acknowledgeAuthor:false,acknowledgeExisting:false}];
+ assert.equal(manualBatch(S(a),S(b),edits,{},pick).reason,'manual-overwrite-not-acknowledged');
+ pick[0].acknowledgeAuthor=true;
+ assert.equal(manualBatch(S(a),S(b),edits,{},pick).status,'ready');
+});
+test('B6: changing existing user override requires its own acknowledgement and keeps expected before',()=>{
+ const a=score([[60],[62]]),b=score([[60],[64],[62]]);
+ const edits={[a.noteIds[1]]:edit(2,'RH')},existing={[b.noteIds[2]]:edit(5,'LH')};
+ const row=manualReview(S(a),S(b),edits,existing).rows[0];
+ assert.equal(row.options.find(o=>o.to===b.noteIds[2]).existingConflict,true);
+ const choice=[{from:row.from,to:b.noteIds[2],
+   acknowledgeAuthor:false,acknowledgeExisting:false}];
+ assert.equal(manualBatch(S(a),S(b),edits,existing,choice).reason,'manual-overwrite-not-acknowledged');
+ choice[0].acknowledgeExisting=true;
+ const saved=manualBatch(S(a),S(b),edits,existing,choice);
+ assert.equal(saved.status,'ready');
+ assert.deepEqual(saved.entries,[{id:b.noteIds[2],before:edit(5,'LH'),after:edit(2,'RH')}]);
+});
+test('B6: author hand conflict independent from author finger conflict',()=>{
+ const a=score([[60],[62]]),b=score([[60],[64],[62]],{fingers:{'xml:P1:0:2:3':3}});
+ b.song.tracks[0].notes[2].hand='RH';
+ const changes={[a.noteIds[1]]:edit(3,'LH')};
+ const row=manualReview(S(a),S(b),changes).rows[0];
+ assert.equal(row.options[0].authorConflict,true);
+ const choose=[{from:row.from,to:row.options[0].to,acknowledgeAuthor:false,acknowledgeExisting:false}];
+ assert.equal(manualBatch(S(a),S(b),changes,{},choose).status,'rejected');
+ choose[0].acknowledgeAuthor=true;
+ assert.equal(manualBatch(S(a),S(b),changes,{},choose).status,'ready');
+});
+test('B6: same target cannot be assigned by two old notes even with explicit acknowledgement',()=>{
+ const a=score([[60],[62],[62]]),b=score([[60],[64],[62],[62]]);
+ const edits={[a.noteIds[1]]:edit(2),[a.noteIds[2]]:edit(3)};
+ const p=manualReview(S(a),S(b),edits),target=p.rows[0].options[0].to;
+ const selections=p.rows.map(row=>({
+  from:row.from,to:target,acknowledgeAuthor:false,acknowledgeExisting:false
+ }));
+ assert.equal(manualBatch(S(a),S(b),edits,{},selections).reason,'duplicate-manual-mapping');
+});
+test('B6: unknown target and unknown source IDs are never accepted',()=>{
+ const a=score([[60],[62],[62]]),b=score([[60],[64],[62],[62]]);
+ const edits={[a.noteIds[1]]:edit(2)};
+ const invalid=[{from:a.noteIds[1],to:'xml:P1:0:99:500',
+  acknowledgeAuthor:true,acknowledgeExisting:true}];
+ assert.equal(manualBatch(S(a),S(b),edits,{},invalid).reason,'unverified-manual-destination');
+ invalid[0].from='xml:P1:0:0:999';
+ assert.equal(manualBatch(S(a),S(b),edits,{},invalid).reason,'unverified-manual-destination');
+});
+test('B6: invalid/implicit choice confirmation is refused, never silently assumed',()=>{
+ const a=score([[60],[62],[62]]),b=score([[60],[64],[62],[62]]);
+ const changes={[a.noteIds[1]]:edit(4)},row=manualReview(S(a),S(b),changes).rows[0];
+ for(const invalid of [
+  null,[],{},[{from:row.from,to:row.options[0].to}],
+  [{from:row.from,to:row.options[0].to,acknowledgeAuthor:0,acknowledgeExisting:false}],
+  [{from:row.from,to:row.options[0].to,acknowledgeAuthor:false,acknowledgeExisting:false,force:true}]
+ ]){
+  assert.equal(manualBatch(S(a),S(b),changes,{},invalid).status,'rejected');
+ }
+});
+test('B6: exact matching prior user value gives no manual transfer entry',()=>{
+ const a=score([[60],[62]]),b=score([[60],[64],[62]]);
+ const old={[a.noteIds[1]]:edit(3)},current={[b.noteIds[2]]:edit(3)};
+ assert.equal(manualReview(S(a),S(b),old,current).rows.length,0);
+});
+test('B6: tied source and tied target are ineligible regardless of manual confirmation',()=>{
+ const a=score([[60],[62]]),b=score([[60],[64],[62]]);
+ a.song.tracks[0].notes[1].sourceNoteIds.push('xml:P1:0:1:900');
+ const r=manualReview(S(a),S(b),{[a.noteIds[1]]:edit(3)});
+ assert.equal(r.status,'rejected'); // fixture missing expanded tied segment in DOM
+});
+test('B6: candidate list is bounded, no scrolling to thousands of guessed matches',()=>{
+ const a=score([[60],[62]]),b=score([[60],...Array.from({length:30},()=>[62])]);
+ const x=manualReview(S(a),S(b),{[a.noteIds[1]]:edit(3)});
+ assert.equal(x.rows.length,0);
+ assert.equal(x.excluded[0].reason,'too-many-candidates');
+});
+test('B6: pure reconciliation does not mutate any snapshot, edits or selection',()=>{
+ const a=score([[60],[62],[62]]),b=score([[60],[64],[62],[62]]);
+ const old=S(a),next=S(b),changes={[a.noteIds[1]]:edit(4)},current={};
+ const before=JSON.stringify([old,next,changes,current]);
+ const review=manualReview(old,next,changes,current),picked=[{from:review.rows[0].from,
+  to:review.rows[0].options[0].to,acknowledgeAuthor:false,acknowledgeExisting:false}];
+ const out=manualBatch(old,next,changes,current,picked);
+ assert.equal(out.status,'ready');
+ assert.equal(JSON.stringify([old,next,changes,current]),before);
 });
