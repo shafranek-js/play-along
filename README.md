@@ -2,6 +2,8 @@
 
 ## Next two owner priorities — Fingering AI and optional PianoMotion IK hands
 
+**Research foundation integrated:** FG-04C1 cost evaluator and FG-03D4 source-bound PianoMotion pose adapter are in `main` after passing CI. Neither is yet a learner-facing fingering engine or IK renderer. [FG-03D4 contract](docs/FG-03D4-PIANOMOTION-POSE-ADAPTER.md).
+
 **Priority P0-A: fingering quality.** Compare PianoMotion Studio's score-aware Beam Search, musical figure analysis and per-pianist ergonomic cost against Play Along's existing FG-02/FG-04C algorithms on identical, immutable source-note IDs. Preserve original MusicXML author fingers and explicitly user-corrected notes; no automatically generated fingers are trusted learner instructions without independent validation.
 
 **Priority P0-B: user-selectable visual hands.** Keep all 14 owner PNG poses intact as the default **Classic PNG** hand display. Add an optional procedural PianoMotion IK display with four skins: Cartoon, Gloves, Robot and Skeleton. The renderer is opt-in, and must preserve next-unfinished-note targeting, Wait, Seek, Loop, tempo and physical-key/hand-contact correctness. No style is available to select until its implementation passes browser QA. [Implementation, acceptance and rights plan](docs/PRIORITY-FINGERING-IK-PIANOMOTION.md). Hand-thesia goal progress remains **35%** until verified production integration.
