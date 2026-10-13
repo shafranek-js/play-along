@@ -44,16 +44,20 @@ test('QA02-E: compact five-note chord without source hand abstains',()=>{
  const r=separate([60,62,64,65,67].map((p,i)=>n('c'+i,p,0,.4)));
  assert.equal(stats(r).unknown,5);assert.equal(stats(r).proposed,0);
 });
-test('QA02-F: nine-note 5+4 chord uniquely partitions',()=>{
+test('QA02-F: a feasible nine-note 5+4 chord cannot establish hand identities without anchors',()=>{
  const pitches=[48,50,52,53,55,72,74,76,77];
  const r=separate(pitches.map((p,i)=>n('c'+i,p,0,.4)));
- assert.equal(stats(r).proposed,9);
- assert.deepEqual(r.items.map(x=>x.hand),['LH','LH','LH','LH','LH','RH','RH','RH','RH']);
+ assert.equal(r.ok,true);
+ assert.equal(stats(r).proposed,0);
+ assert.equal(stats(r).unknown,9);
+ assert.ok(r.diagnostics.every(x=>x.code==='UNANCHORED_HAND_IDENTITY'));
 });
-test('QA02-G: documented known coverage defect, feasible ten-note 5+5 onset refused',()=>{
+test('QA02-G: feasible ten-note 5+5 onset receives search coverage without forced ownership',()=>{
  const pitches=[48,50,52,53,55,72,74,76,77,79];
  const r=separate(pitches.map((p,i)=>n('c'+i,p,0,.4)));
- assert.equal(r.ok,true);assert.equal(r.diagnostics[0].code,'ONSET_SEARCH_CAP');
+ assert.equal(r.ok,true);
+ assert.ok(!r.diagnostics.some(x=>x.code==='ONSET_SEARCH_CAP'));
+ assert.ok(r.diagnostics.every(x=>x.code==='UNANCHORED_HAND_IDENTITY'));
  assert.equal(stats(r).proposed,0);assert.equal(stats(r).unknown,10);
 });
 test('QA02-H: held LH while RH voice proceeds',()=>{
@@ -85,13 +89,13 @@ test('QA02-K: overlapping unison refused; adjacent reattack not falsely rejected
  const adjacent=separate([n('a',60,0,.2),n('b',60,.2,.2)]);
  assert.ok(!adjacent.diagnostics.some(x=>x.code==='SAME_KEY_OVERLAP'));
 });
-test('QA02-L: underdetermined opposite crossed-hand interpretation can be confidently mislabeled',()=>{
+test('QA02-L: identical ambiguous crossed-hand performance must abstain',()=>{
  const notes=[n('lower',72),n('higher',96)],result=separate(notes);
- assert.deepEqual(result.items.map(x=>x.hand),['LH','RH']);
- assert.equal(stats(result).unknown,0);
- const syntheticCrossedTruth={lower:'RH',higher:'LH'};
- assert.equal(result.items.filter(x=>x.hand!==syntheticCrossedTruth[x.noteId]).length,2);
- // This is an adversarial identifiability example, not a measured real-world error rate.
+ assert.deepEqual(result.items.map(x=>x.hand),[null,null]);
+ assert.equal(stats(result).unknown,2);
+ assert.equal(stats(result).proposed,0);
+ assert.ok(result.items.every(x=>x.reason==='UNANCHORED_HAND_IDENTITY'));
+ // No proposed hand means no synthetic false assignment; not real-world accuracy.
 });
 test('QA02-M: multi-voice identity stable against shuffled note order',()=>{
  const notes=[voice('RH',0,50,0,.2,true),voice('LH',0,74,0,.2,true),
@@ -142,7 +146,10 @@ test('QA02-P: transparent synthetic category denominators, no real GT claims',()
  assert.equal(total.eligible,total.proposed+total.unknown);
  assert.equal(total.proposed,total.correct+total.wrong);
  assert.equal(categories['ten-key-chord'].unknown,10);
- assert.equal(categories['adversarial-crossed-two-hand'].wrong,2);
+ assert.equal(categories['adversarial-crossed-two-hand'].wrong,0);
+ assert.equal(categories['adversarial-crossed-two-hand'].unknown,2);
+ assert.equal(categories['nine-key-chord'].unknown,9);
+ assert.equal(total.wrong,0);
 });
 test('QA02-Q: short/long bounded solver probes, not SLA',()=>{
  const sizes=[20,200,1000,2500],results=[];
