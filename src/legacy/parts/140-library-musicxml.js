@@ -471,7 +471,7 @@ function readMusicXML(xmlString,filename){
  const segments=[],tempos=[{tick:0,tempo:500000}],ppq=10080;let warnings=new Set();
  const userExportMarker=xmlList(xmlDirect(xmlDirect(root,'identification'),'miscellaneous'),'miscellaneous-field')
   .some(x=>x.getAttribute('name')==='play-along-user-fingering');
- if(userExportMarker)warnings.add('В MusicXML есть отметка пользовательских правок Play Along. Все номера пальцев из файла считаются неподтверждёнными: они НЕ используются как авторские подсказки. Чтобы включить подсказку, проверь и назначь палец и руку вручную в редакторе.');
+ if(userExportMarker)warnings.add('В MusicXML есть отметка о пользовательских правках Play Along. Все номера пальцев из файла считаются неподтверждёнными: они НЕ используются как авторские подсказки. Чтобы включить подсказку, проверь и назначь палец и руку вручную в редакторе.');
  // MusicXML fingerings are optional authorial annotations (not inferred).
  // Preserve only a single unambiguous finger 1..5; never invent one.
  const authorFinger=(el)=>{
