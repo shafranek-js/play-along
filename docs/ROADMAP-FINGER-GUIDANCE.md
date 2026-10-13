@@ -1,5 +1,13 @@
 # Play Along — development roadmap: Finger Guidance and musical reliability
 
+## Owner reprioritization — Fingering AI first, selectable IK hands second (2026-10-13)
+
+**P0-A:** Improve the fingering calculation by comparing [PianoMotion Studio](https://github.com/shafranek-js/pianomotion-studio)'s beam/figure/biomechanical engine against current FG-02 and FG-04C using identical immutable MusicXML note identities, verified hand/finger provenance, hard source/manual anchors and independently evaluated heldout cases. Implement only measured improvements. No learner-facing unverified auto-fingers.
+
+**P0-B:** Offer user-selected **Classic PNG** (unchanged 14 original owner assets, default) or optional **PianoMotion IK · Cartoon / Gloves / Robot / Skeleton** backed by a single articulated motion engine. Respect next *unfinished* notes, Wait/Seek/Loop/tempo, anatomical/held-key refusals and visual contact, with explicit automatic fallback; do not replace the current PNG flow.
+
+Detailed implementation sequence, gates and per-file source permissions are specified in [PRIORITY-FINGERING-IK-PIANOMOTION.md](PRIORITY-FINGERING-IK-PIANOMOTION.md). Other discretionary PianoVAM metadata investigations are paused. **35% progress unchanged** until verified user-visible acceptance.
+
 FG-04B4-R1 independent source measurement (2026-10-13): 11 PianoVAM real recordings, 1,800 GT events among 32,525 source events, 242 complete same-hand islands (1,467 notes); zero-anchor RH/LH 0/1,467 proposed. With 404 independent GT oracle anchors, 325/1,063 held-out notes proposed (30.57% coverage), 272 matched and **53 incorrect** (83.69% among proposed; 25.59% of all held-out correct). This is source-**assisted**, **NOT** autonomous performance accuracy. Remains NO-GO for learner automation. See [FG-04B4-R1](FG-04B4-R1-REAL-HAND-GT.md).
 
 **Decision date:** 2026-10-12. **Updated for external algorithm research:** 2026-10-12. **Baseline:** v0.10.41 on main. **Implemented:** FG-03A / v0.10.42; FG-03B1 / v0.10.43; FG-03B2A / v0.10.44; FG-03B2B-1 / v0.10.46 (engineering QA); FG-03B2B-2 accepted by pianist per project-owner confirmation on 2026-10-12. FG-03C1 / v0.10.47 implemented; FG-03C2A / v0.10.48 implemented; library fingering coverage and movable UI / v0.10.49 implemented. This is a living engineering plan, not a promise that experimental fingers are safe for learners.
