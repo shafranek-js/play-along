@@ -50,12 +50,13 @@ export function comparePseudoHandLabels(source,pseudo,manual){
   fullHandFingerCorrect:0,fullHandFingerIncorrect:0,
   handErrorsByPredictedSide:{'L-as-R':0,'R-as-L':0}
  };
- const manuallySeen=new Set();
+ const manuallySeen=new Map();
  for(const gt of manual){
   const k=key(gt);
   if(!counts.has(k))fail('MANUAL_GT_MISSING_IN_ORIGINAL');
-  if(manuallySeen.has(k))fail('DUPLICATE_MANUAL_GT_SOURCE_EVENT');
-  manuallySeen.add(k);
+  const gtOccurrences=(manuallySeen.get(k)||0)+1;
+  if(gtOccurrences>counts.get(k))fail('DUPLICATE_MANUAL_GT_SOURCE_EVENT');
+  manuallySeen.set(k,gtOccurrences);
   if(!validHand(gt.hand)||!validFinger(gt.finger))
    fail('INVALID_MANUAL_HAND_FINGER');
   if(counts.get(k)>1){
