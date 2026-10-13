@@ -138,6 +138,9 @@ export function inspectGuidanceResearchBridge({
  const previous=(forHand)=>{
   for(let i=index-1;i>=0;i--){
    const g=groups[i];
+   // Previous chord clearance is unprovable when ANY simultaneous source
+   // note has unknown hand/finger provenance; do not filter it away.
+   if(g.notes.some(n=>!evidence.get(n.noteId)))return null;
    const matching=g.notes.filter(n=>evidence.get(n.noteId)?.hand===forHand);
    if(!matching.length)continue;
    if(matching.some(n=>!completed.has(n.noteId)))return null;
