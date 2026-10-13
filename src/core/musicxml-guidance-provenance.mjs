@@ -121,12 +121,18 @@ export function inspectMusicXmlProvenanceResearch({
   }
   return entry;
  });
- const result=inspectGuidanceResearchBridge({
+ const provenanceSummary={
+  authorPairs:notes.filter(n=>d1Hand(n.authorHand)&&d1Finger(n.authorFinger)).length,
+  manualPairs:notes.filter(n=>d1Hand(n.userHand)&&d1Finger(n.userFinger)).length,
+  unverifiedExportNumbers:verified.filter(n=>n.fingeringSource==='musicxml-user-export-unverified'&&d1Finger(n.finger)).length
+ };
+  const result=inspectGuidanceResearchBridge({
   notes,completedNoteIds,hand,targetNoteId,geometry,viewport,transport,handSize
  });
  return {...result,sourceReimportVerified:true,sourceWorkKey:key,
   // No decoded output proving physical fingers; this merely enforces
   // authentic imported XML numbers + validated local edit records.
   provenanceGate:'independent-musicxml-reimport-and-exact-local-edits',
+  provenanceSummary,
   ...D1_FLAGS};
 }
