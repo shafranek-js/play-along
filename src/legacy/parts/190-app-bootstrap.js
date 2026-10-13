@@ -158,6 +158,11 @@ $('filterMuseTrainer').onclick=()=>{$('librarySourceSelect').value='musetrainer'
 $('filterAsap').onclick=()=>{$('librarySourceSelect').value='asap';state.page='library';applyPage();$('leftPanel').scrollTop=0;renderLibrary();if(!asapLoaded)asapLoadIndex().catch(()=>{})};
 $('asapSync').onclick=()=>asapLoadIndex().catch(()=>{});
 $('asapRefresh').onclick=()=>asapLoadIndex(true).catch(()=>{});
+$('filterMaestro').onclick=()=>{$('librarySourceSelect').value='maestro';state.page='library';applyPage();$('leftPanel').scrollTop=0;renderLibrary();if(!maestroLoaded)maestroLoadIndex().catch(()=>{})};
+$('maestroSync').onclick=()=>maestroLoadIndex().catch(()=>{});
+$('maestroRefresh').onclick=()=>maestroLoadIndex(true).catch(()=>{});
+$('maestroPickZip').onclick=()=>$('maestroZipFile').click();
+$('maestroZipFile').onchange=e=>maestroImportZipFile(e.target.files?.[0]);
 $('museTrainerSync').onclick=()=>museTrainerLoadIndex().catch(()=>{});
 $('museTrainerRefresh').onclick=()=>museTrainerLoadIndex(true).catch(()=>{});
 $('filterRepertoire').onclick=()=>{$('librarySourceSelect').value='repertoire';state.page='library';applyPage();$('leftPanel').scrollTop=0;renderLibrary()};
@@ -170,13 +175,14 @@ $('mutopiaInstrument').onchange=libraryFolderFiltersChanged;
 // Search is user-initiated: no GitHub request on application startup.
 const mutopiaOldFilter=$('filterMutopia').onclick;
 $('filterMutopia').onclick=()=>{mutopiaOldFilter();if(!mutopiaCatalogLoaded)mutopiaLoadIndex().catch(()=>{});};
-$('librarySourceSelect').addEventListener('change',()=>{if($('librarySourceSelect').value==='mutopia'&&!mutopiaCatalogLoaded)mutopiaLoadIndex().catch(()=>{});if($('librarySourceSelect').value==='musetrainer'&&!museTrainerLoaded)museTrainerLoadIndex().catch(()=>{});if($('librarySourceSelect').value==='asap'&&!asapLoaded)asapLoadIndex().catch(()=>{});});
+$('librarySourceSelect').addEventListener('change',()=>{if($('librarySourceSelect').value==='mutopia'&&!mutopiaCatalogLoaded)mutopiaLoadIndex().catch(()=>{});if($('librarySourceSelect').value==='musetrainer'&&!museTrainerLoaded)museTrainerLoadIndex().catch(()=>{});if($('librarySourceSelect').value==='asap'&&!asapLoaded)asapLoadIndex().catch(()=>{});if($('librarySourceSelect').value==='maestro'&&!maestroLoaded)maestroLoadIndex().catch(()=>{});});
 const startupSelectedSongId=state.selected;
 startupSongRestorePending=true;
 const startupLibraryPromise=loadLibraryIndex();
 const startupPerformancePromise=loadPerformanceHistory().catch(e=>console.warn('Performance history restore failed',e));
 window.__playAlongVersion='0.9.1';
 window.__asapCatalog={asapCsvRows,asapParseMetadata,asapLoadIndex,asapItem,asapOpenMidi,asapShowPerformances,get entries(){return [...ASAP_INDEX,...asapLive]}};
+window.__maestroCatalog={maestroParseIndex,maestroLoadIndex,maestroZipDirectory,maestroUseArchive,maestroExtractMidi,maestroOpen,get entries(){return maestroLive},get archiveReady(){return !!maestroArchive}};
 window.__museTrainerCatalog={museTrainerParseReadme,museTrainerParseTree,museTrainerLoadIndex,get entries(){return [...MUSETRAINER_INDEX,...museTrainerLive]}};
 window.__mutopiaCatalog={mutopiaCatalogItems,mutopiaHeader,mutopiaLoadIndex,mutopiaEnrichBatch,mutopiaUnpackMidiZip,get entries(){return mutopiaLive},get cache(){return mutopiaMetaCache}};
 window.__libraryV08={scanFolderNow:(dir)=>scanFolder(dir),fallbackFolderNow:(files)=>importFallbackFolder(files),musicSafeXml,readMusicXML,zipUnpackMXL,museRead,zipUnpackMuseScore,songFromBuffer,get folderScanSummary(){return folderScanSummary},browseConnectedFolder,get manifest(){return REMOTE_INDEX},get collection(){return collectionIndex},get favorites(){return [...favoritesV08]},onlineOpen,importMusicFiles,libraryLoadFile,librarySaveBinary,loadLibraryIndex};

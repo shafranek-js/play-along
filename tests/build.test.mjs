@@ -16,7 +16,7 @@ const featureSource=manifest.features.map(name=>read('src/legacy/parts/'+name)).
 const musicPrelude=['music-time.mjs','music-bars.mjs','finger-guidance-timeline.mjs','musicxml-note-identity.mjs','finger-overrides.mjs','finger-override-history.mjs','finger-note-selection.mjs','sheet-fingering-overlay.mjs','external-fingering-evaluation.mjs','finger-editor-geometry.mjs','fingering-coverage.mjs','library-section-layout.mjs'].map(f=>read('src/core/'+f).replace(/^export /gm,'')).join('\n');
 
 test('all feature parts form exactly one valid JavaScript bundle',()=>{
- assert.equal(manifest.features.length,22);
+ assert.equal(manifest.features.length,23);
  const expected="\n(()=>{'use strict';\n"+musicPrelude+'\n'+featureSource.replace("window.__playAlongVersion='0.9.1'","window.__playAlongVersion='"+JSON.parse(read('package.json')).version+"'")+"})();\n";
  assert.equal(js,expected);
  execFileSync(process.execPath,['--check',path.join(root,'dist/assets/app.js')]);
@@ -26,7 +26,7 @@ test('CSS and HTML are separate, all expected DOM anchors exist',()=>{
  assert.ok(html.includes(`href="./assets/app.css?v=${JSON.parse(read('package.json')).version}"`));
  assert.ok(html.includes(`defer src="./assets/app.js?v=${JSON.parse(read('package.json')).version}"`));
  assert.doesNotMatch(html,/<style>|<script>/);
- for(const id of ['playBtn','viewRoll','viewSheet','sheetCanvas','rollWrap','librarySourceSelect','asapSync','museTrainerSync','mutopiaSync','connectMidi','songList','fingerGuideLookahead']){
+ for(const id of ['playBtn','viewRoll','viewSheet','sheetCanvas','rollWrap','librarySourceSelect','asapSync','maestroSync','filterMaestro','maestroZipFile','museTrainerSync','mutopiaSync','connectMidi','songList','fingerGuideLookahead']){
   assert.ok(html.includes(`id="${id}"`),`Missing UI ID ${id}`);
  }
 });
