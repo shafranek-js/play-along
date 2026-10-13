@@ -133,6 +133,38 @@ export function auditPublisherMetadataDisjointness({
    sharedPerformer:Boolean(d.performers?.some(x=>knownPerformers.has(x))),
    sharedWork:Boolean(d.work&&knownWorks.has(d.work)),split:d.split};
  };
+ // R7: the subset without a collision against the 11 references may still
+ // contain the SAME performer/work internally. Count aggregate *pairs* only.
+ // Never export candidate identities, titles, dates, hashes or pair indexes.
+ const internallyClean=autoOnly.filter(name=>{
+  const r=view(name);
+  return r.performerKnown&&r.workKnown&&!r.sharedPerformer&&!r.sharedWork;
+ });
+ let samePerformerPairs=0,sameWorkPairs=0,bothPairs=0,crossSplitPairs=0;
+ const involved=new Set();
+ for(let i=0;i<internallyClean.length;i++){
+  const a=project(index.get(internallyClean[i]));
+  for(let j=i+1;j<internallyClean.length;j++){
+   const b=project(index.get(internallyClean[j]));
+   const performer=a.performers.some(p=>b.performers.includes(p));
+   const work=a.work===b.work;
+   if(!performer&&!work)continue;
+   involved.add(i);involved.add(j);
+   if(performer)samePerformerPairs++;
+   if(work)sameWorkPairs++;
+   if(performer&&work)bothPairs++;
+   if(a.split!==b.split)crossSplitPairs++;
+  }
+ }
+ const internalCandidateCollisions={
+  candidates:internallyClean.length,
+  comparedPairs:internallyClean.length*(internallyClean.length-1)/2,
+  samePerformerPairs,sameWorkPairs,bothPairs,crossSplitPairs,
+  candidatesWithAnyInternalCollision:involved.size,
+  candidatesWithoutDetectedInternalCollision:internallyClean.length-involved.size,
+  verifiedIndependentPerformers:0,
+  eligibleForLearnerUse:false
+ };
  const entire=emptyGroup(),pilot=emptyGroup();
  for(const name of autoOnly)sumRow(entire,view(name));
  for(const name of gate.pilotNames){
@@ -151,6 +183,7 @@ export function auditPublisherMetadataDisjointness({
   referenceMetadataComplete,
   fullPseudoOnlyCohort:entire,
   unchangedEightRecordingPilot:pilot,
+  internalCandidateCollisions,
   metadataNormalization:'NFKC, lowercase, whitespace collapse, exact performer name and composer+piece comparison; no fuzzy identity',
   metadataLevelIndependenceOnly:true,
   externalPerformerIdentityVerified:false,
