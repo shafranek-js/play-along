@@ -169,3 +169,6 @@ test('FG-02I unannotated proposals are marked research only, not presented as ce
 
 // FG-04C2 actual-router comparison controls; no simulated PianoMotion engine execution.
 import './fingering-engine-comparison.test.mjs';
+
+// FG-04C4: bundled offline Worker research engine integrity suite.
+import './browser-fingering-research.test.mjs';
