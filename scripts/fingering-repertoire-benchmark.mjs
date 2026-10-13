@@ -60,7 +60,7 @@ export async function loadRepertoireSource(entry,{download=globalThis.fetch,slee
     break;
    // Pinned source fingerprints and note-count rules NEVER relax. Retry only
    // transient transport faults (429/5xx/network) with bounded backoff.
-   const m=String(e.message).match(/^SOURCE_FETCH_HTTP_(\\d{3})$/);
+   const m=String(e.message).match(/^SOURCE_FETCH_HTTP_([0-9]{3})$/);
    if(m&&Number(m[1])!==429&&Number(m[1])<500)break;
    if(String(e.message)==='UNEXPECTED_SOURCE_REDIRECT')break;
    if(attempt<5)await sleep(500*2**attempt);
