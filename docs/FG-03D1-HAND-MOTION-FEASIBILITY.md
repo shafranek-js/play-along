@@ -37,9 +37,17 @@ Research feasibility heuristic: 12-semitone max simultaneous chord width, consis
     node --test tests/hand-motion-feasibility.test.mjs
     node --expose-gc scripts/hand-motion-benchmark.mjs 200000
 
-Local Node v22.16.0: **35/35 deterministic tests passed**. Synthetic tests cover 25/49/61/88-key ranges, exact black keys, viewport clipping, both hands and crossing, chord conflicts, held original and physical keys, Wait incomplete chord, missing/candidate provenance, Pause/Seek, Loop wrapping, 500/600/750/900/1000 ms Ghost windows, 50/100/200% speed, immutability, and bounded work with a large external song array.
+Local Node v22.16.0: **35/35 original deterministic tests passed on the first draft; five additional P1 regression tests require fresh CI verification**. Synthetic tests cover 25/49/61/88-key ranges, exact black keys, viewport clipping, both hands and crossing, chord conflicts, held original and physical keys, Wait incomplete chord, missing/candidate provenance, Pause/Seek, Loop wrapping, 500/600/750/900/1000 ms Ghost windows, 50/100/200% speed, immutability, and bounded work with a large external song array.
 
 Local microbenchmark: **200,000 pure planner calls in 354.49 ms**, mean **1.772 microseconds** after warm-up. Balanced classifications: 40,000 moving, 40,000 infeasible, 40,000 Wait-static, 40,000 held, 40,000 unverified. With explicit GC, retained heap delta **+22,856 bytes**. Separate 20,000-call V8 allocation sampling (512-byte interval) recorded **8,448 sampled bytes**; it is statistical, **not** an exact total allocation count. Measurements are one-run, one-machine and exclude rendering, browser frames, PNG decoding and audio. Input scan is bounded at 16 notes/group rather than scanning a full song.
+
+## Lead Architect P1 correction — first-frame time and synchronized hands
+
+Two independent architectural defects in the first draft were corrected. A motion that **starts on the current frame** must have enough **remaining wall-clock time**, not merely an ample historical rest between score notes. A new first call 10 ms before E4 at 0.8 s with a C4 origin requires ≈312 ms travel + 80 ms buffer and now **refuses** with `movement-infeasible-now`. If the caller retains the exact `motionContinuation` token from an earlier accepted moving result on the same canonical note IDs, origin/target onsets, viewport geometry, speed and lookahead, a subsequent late frame may continue that already-started trajectory; stale, mismatched or late-start tokens refuse. The token is **caller-supplied state, not a cryptographic attestation**: the future product adapter must clear it after Seek/Pause, score changes, hand changes, loop-cycle boundaries or resize, and must never construct it from guessed candidate fingers. No production adapter is added here.
+
+Opposite-hand checks now require the **identical source target onset** and matching optional `iteration` / `loopCycle` identities plus `isNextUnfinished:true`. The same pitch/finger/ID shown in a different measure visit can no longer justify a hand-clearance or crossing animation.
+
+Five new standalone regression tests cover late first-frame refusal, legitimate continuation, stale/forged continuity, opposite-hand target-onset mismatch, and wrong repeat iteration/next-task state. This gate **still requires independent browser integration and musician review**, and rejects motions conservatively.
 
 ## NO-GO conditions and exclusions
 
