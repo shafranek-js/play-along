@@ -42,8 +42,6 @@ const sumRow=(tot,r)=>{
  counted(tot.splitCounts,r.split);
 };
 const verify=(g)=>{
- if(g.recordings!==g.bothShared+g.performerOnly+g.workOnly+
-  g.recordings-g.bothShared-g.performerOnly-g.workOnly)return fail('INVALID_GROUP_COUNTS');
  if(g.recordings!==Object.values(g.splitCounts).reduce((a,b)=>a+b,0))
   fail('INVALID_METADATA_SPLIT_TOTAL');
  if(g.sharedPerformer!==g.bothShared+g.performerOnly||
@@ -74,9 +72,14 @@ function processOriginalPublisherMetadata(metadata,sourceFiles){
 const performerKeys=item=>{
  if(!item)return null;
  const primary=norm(item.P1_name),secondary=norm(item.P2_name);
- // An explicitly absent P2 is fine; an unknown P1 is not proof of
- // participant disjointness. Multi-hand performance includes both players.
- if(!primary)return null;
+ // The publisher may record multiple performers as "4hands", duo/duet
+ // or explicitly in P2_name. An unknown secondary participant can NOT be
+ // treated as a solo performer or proven performer-disjoint.
+ const mode=norm(item.performance_method)||'';
+ const multi=/4.?hand|duo|duet|two.?piano|ensemble/.test(mode);
+ const p2IsExplicitUnknown=typeof item.P2_name==='string'&&
+  item.P2_name.trim()!==''&&!secondary;
+ if(!primary||(multi&&!secondary)||p2IsExplicitUnknown)return null;
  return [...new Set([primary,...(secondary?[secondary]:[])])];
 };
 const workKey=item=>{
