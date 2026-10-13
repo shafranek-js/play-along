@@ -136,3 +136,48 @@ test('FG-04B3b: source-derived ID not invented from MIDI track/channel',()=>{
  assert.equal(r.links[0].midiChannel,8);
  assert.equal(r.scoreXmlSemanticValidation,false);
 });
+
+test('FG-04B3c: cross-voice same-staff contiguous tie uniquely preserves original source IDs',()=>{
+ const start=note('G',4,4,'<tie type="start"/>');
+ const stop='<note><tie type="stop"/><pitch><step>G</step><octave>4</octave></pitch>'+
+  '<duration>4</duration><voice>3</voice><staff>1</staff></note>';
+ const xml=score([start,stop]);
+ const normalized=normalizeMusicXmlBeats(xml);
+ assert.equal(normalized.notes.length,1);
+ assert.equal(normalized.stats.crossVoiceTieSegments,1);
+ assert.deepEqual(normalized.notes[0].sourceNoteIds,[
+  'xml:P1:0:0:1','xml:P1:0:1:1'
+ ]);
+ const report=compareRawMusicXmlToScoreMidi(xml,midi([ev(67,0,960)]));
+ assert.equal(report.status,'aligned');
+ assert.equal(report.summary.crossVoiceTieSegments,1);
+ assert.equal(report.productionAutoFingeringAllowed,false);
+});
+test('FG-04B3c: simultaneous same-pitch start ties cannot select a cross-voice winner',()=>{
+ const a=note('G',4,4,'<tie type="start"/>');
+ const second='<note><tie type="start"/><pitch><step>G</step>'+
+  '<octave>4</octave></pitch><duration>4</duration><voice>2</voice>'+
+  '<staff>1</staff></note>';
+ const stop='<note><tie type="stop"/><pitch><step>G</step>'+
+  '<octave>4</octave></pitch><duration>4</duration><voice>3</voice>'+
+  '<staff>1</staff></note>';
+ const xml=score([a+'<backup><duration>4</duration></backup>'+second,stop]);
+ assertReject(xml,midi([ev(67,0,960,0),ev(67,0,480,1)]),
+  'MUSICXML_AMBIGUOUS_TIE_STOP');
+});
+test('FG-04B3c: unique cross-staff tie is not assumed physically continuous',()=>{
+ const a=note('G',4,4,'<tie type="start"/>');
+ const stop='<note><tie type="stop"/><pitch><step>G</step>'+
+  '<octave>4</octave></pitch><duration>4</duration><voice>3</voice>'+
+  '<staff>2</staff></note>';
+ assertReject(score([a,stop]),midi([ev(67,0,960)]),
+  'MUSICXML_UNPAIRED_TIE_STOP');
+});
+test('FG-04B3c: same pitch and staff at different time cannot synthesize a tie',()=>{
+ const a=note('G',4,4,'<tie type="start"/>');
+ const stop='<note><tie type="stop"/><pitch><step>G</step>'+
+  '<octave>4</octave></pitch><duration>4</duration><voice>3</voice>'+
+  '<staff>1</staff></note>';
+ assertReject(score([a,rest(4)+stop]),midi([ev(67,0,960)]),
+  'MUSICXML_UNPAIRED_TIE_STOP');
+});
