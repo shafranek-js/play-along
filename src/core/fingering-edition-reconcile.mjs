@@ -7,13 +7,13 @@
  * Duplicate musical measures, cross-measure ties and changed contents refuse.
  * No string-fuzzy matching, no inferred fingering, no MIDI time edits.
  */
-const child=(el,name)=>[...(el?.children||[])].find(n=>n.localName===name)||null;
-const children=(el,name)=>[...(el?.children||[])].filter(n=>n.localName===name);
-const textAt=(el,name,otherwise='')=>child(el,name)?.textContent?.trim()??otherwise;
-const validFinger=x=>x===null||(Number.isInteger(x)&&x>=1&&x<=5);
-const validHand=x=>x===null||x==='RH'||x==='LH';
-const own=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
-const idParts=id=>{
+const feChild=(el,name)=>[...(el?.children||[])].find(n=>n.localName===name)||null;
+const feChildren=(el,name)=>[...(el?.children||[])].filter(n=>n.localName===name);
+const feTextAt=(el,name,otherwise='')=>feChild(el,name)?.textContent?.trim()??otherwise;
+const feValidFinger=x=>x===null||(Number.isInteger(x)&&x>=1&&x<=5);
+const feValidHand=x=>x===null||x==='RH'||x==='LH';
+const feOwn=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
+const feIdParts=id=>{
  const match=/^xml:([^:]*):([0-9]+):([0-9]+):([1-9][0-9]*)$/.exec(id||'');
  if(!match)return null;
  try{
@@ -23,16 +23,16 @@ const idParts=id=>{
   return {partId:p,partIndex:index,measureIndex:measure,ordinal};
  }catch{return null}
 };
-const normalize=s=>String(s||'').trim().replace(/\s+/g,' ').toLocaleLowerCase('en');
-const bad=reason=>({status:'rejected',reason});
-const safeXML=s=>typeof s==='string'&&s.length>0&&s.length<=15e6&&
+const feNormalize=s=>String(s||'').trim().replace(/\s+/g,' ').toLocaleLowerCase('en');
+const feBad=reason=>({status:'rejected',reason});
+const feSafeXML=s=>typeof s==='string'&&s.length>0&&s.length<=15e6&&
  !/<!\s*(?:DOCTYPE|ENTITY)\b/i.test(s);
 /** Strip fingering ONLY in its standard technical/notations/note ancestry.
  * A foreign <fingering> elsewhere is rejected (not silently ignored).
  * Strip only the measure number attribute, never timing, notes or voices.
  * Retain all source musical/notation attributes, including tied segments.
  */
-function signature(root){
+function feSignature(root){
  let seen=0;
  function visit(n,parent=null){
   if(++seen>120000)throw Error('XML measure complexity bound');
@@ -64,14 +64,14 @@ function signature(root){
  */
 export function fingerEditionSnapshot(song,{parse}={}){
  const fail=reason=>({status:'rejected',reason});
- if(song?.format!=='MusicXML'||!safeXML(song.notationXML)||
+ if(song?.format!=='MusicXML'||!feSafeXML(song.notationXML)||
     song.originalNotationXML||!Array.isArray(song.tracks)||
     typeof parse!=='function')return fail('unsupported-source');
  let doc;
  try{doc=parse(song.notationXML)}catch{return fail('xml-parse-error')}
  if(!doc?.documentElement||doc.documentElement.localName!=='score-partwise'||
     doc.getElementsByTagName('parsererror').length)return fail('invalid-musicxml');
- const parts=children(doc.documentElement,'part');
+ const parts=feChildren(doc.documentElement,'part');
  if(!parts.length||parts.length>32)return fail('unsupported-part-count');
  const sourceSegments=new Map(),originalNotes=new Map();
  let total=0;
@@ -83,7 +83,7 @@ export function fingerEditionSnapshot(song,{parse}={}){
    return fail('invalid-imported-notes');
   originalNotes.set(n.noteId,n);
   for(const id of n.sourceNoteIds){
-   const parsed=idParts(id);
+   const parsed=feIdParts(id);
    if(!parsed||sourceSegments.has(id)||parsed.partId!==n.partId)
     return fail('ambiguous-source-segments');
    sourceSegments.set(id,{note:n,...parsed});
@@ -93,8 +93,8 @@ export function fingerEditionSnapshot(song,{parse}={}){
  const result=[];
  try{
   for(const [partIndex,part] of parts.entries()){
-   const partId=part.getAttribute('id')||'part',measures=children(part,'measure');
-   if(!measures.length||measures.length>6000||children(part,'barline').length)
+   const partId=part.getAttribute('id')||'part',measures=feChildren(part,'measure');
+   if(!measures.length||measures.length>6000||feChildren(part,'barline').length)
     return fail('unsupported-measure-count');
    let transpose=0,ordinal=0;
    const output=[];
@@ -107,27 +107,27 @@ export function fingerEditionSnapshot(song,{parse}={}){
     const keys=[];
     for(const el of [...measure.children]){
      if(el.localName==='attributes'){
-      const tr=child(el,'transpose');
+      const tr=feChild(el,'transpose');
       if(tr){
-       transpose=Number(textAt(tr,'chromatic','0'))+
-        12*Number(textAt(tr,'octave-change','0'));
+       transpose=Number(feTextAt(tr,'chromatic','0'))+
+        12*Number(feTextAt(tr,'octave-change','0'));
        if(!Number.isInteger(transpose))return fail('invalid-transposition');
       }
       continue;
      }
      if(el.localName!=='note')continue;
-     if(child(el,'grace')||child(el,'unpitched'))return fail('grace-or-unpitched-unsupported');
-     if(child(el,'rest'))continue;
-     const pitch=child(el,'pitch');if(!pitch)return fail('missing-pitch');
-     const step=({C:0,D:2,E:4,F:5,G:7,A:9,B:11})[textAt(pitch,'step')];
-     const value=step+Number(textAt(pitch,'alter','0'))+
-      (Number(textAt(pitch,'octave','4'))+1)*12+transpose;
+     if(feChild(el,'grace')||feChild(el,'unpitched'))return fail('grace-or-unpitched-unsupported');
+     if(feChild(el,'rest'))continue;
+     const pitch=feChild(el,'pitch');if(!pitch)return fail('missing-pitch');
+     const step=({C:0,D:2,E:4,F:5,G:7,A:9,B:11})[feTextAt(pitch,'step')];
+     const value=step+Number(feTextAt(pitch,'alter','0'))+
+      (Number(feTextAt(pitch,'octave','4'))+1)*12+transpose;
      if(!Number.isInteger(value)||value<0||value>127)return fail('invalid-note-pitch');
      const id='xml:'+encodeURIComponent(partId)+':'+partIndex+':'+measureIndex+':'+(++ordinal);
      const found=sourceSegments.get(id);
      if(!found||found.note.pitch!==value||
-        found.note.staff!==textAt(el,'staff','1')||
-        found.note.voice!==textAt(el,'voice','1')||
+        found.note.staff!==feTextAt(el,'staff','1')||
+        found.note.voice!==feTextAt(el,'voice','1')||
         found.partIndex!==partIndex||found.measureIndex!==measureIndex||
         !originalNotes.has(found.note.noteId))
       return fail('xml-playback-identity-mismatch');
@@ -141,7 +141,7 @@ export function fingerEditionSnapshot(song,{parse}={}){
      });
     }
     output.push({index:measureIndex,number:measure.getAttribute('number')||'',
-     key:signature(measure),notes:keys});
+     key:feSignature(measure),notes:keys});
    }
    result.push({partIndex,partId,measures:output});
   }
@@ -152,13 +152,13 @@ export function fingerEditionSnapshot(song,{parse}={}){
   mapped.add(n.sourceId);
  }
  if(mapped.size!==sourceSegments.size)return fail('incomplete-source-note-correspondence');
- return {status:'ready',title:normalize(song.title),author:normalize(song.author),
+ return {status:'ready',title:feNormalize(song.title),author:feNormalize(song.author),
   xmlIdentity:song.notationXML,partCount:result.length,parts:result,noteCount:total};
 }
 const validChanges=changes=>!!changes&&typeof changes==='object'&&!Array.isArray(changes)&&
  Object.keys(changes).length<=30000&&Object.entries(changes).every(([id,v])=>
-  typeof id==='string'&&idParts(id)&&v&&typeof v==='object'&&!Array.isArray(v)&&
-  own(v,'finger')&&own(v,'hand')&&validFinger(v.finger)&&validHand(v.hand)&&
+  typeof id==='string'&&feIdParts(id)&&v&&typeof v==='object'&&!Array.isArray(v)&&
+  feOwn(v,'finger')&&feOwn(v,'hand')&&feValidFinger(v.finger)&&feValidHand(v.hand)&&
   !(v.finger===null&&v.hand===null)&&Object.keys(v).every(k=>k==='finger'||k==='hand'));
 /**
  * Dry-run. It never writes user overrides, generates fingers, or resolves
@@ -207,7 +207,7 @@ export function fingerEditionReconcile(oldEdition,newEdition,oldCorrections,curr
   lookedUp.add(target.noteId);
   const entry={from:id,to:target.noteId,finger:change.finger,hand:change.hand,
    fromMeasure:old.measure.number,toMeasure:candidates[0].number};
-  if(own(currentCorrections,target.noteId)){
+  if(feOwn(currentCorrections,target.noteId)){
    const present=currentCorrections[target.noteId];
    if(present.finger===change.finger&&present.hand===change.hand){
     unresolved.push({from:id,reason:'already-identical'});continue;
