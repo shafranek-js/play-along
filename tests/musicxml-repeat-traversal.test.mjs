@@ -142,7 +142,8 @@ test('score navigation Dal Segno refuses rather than invents playing order',()=>
 });
 test('partially annotated part repeats must not synchronize by guessing',()=>{
  const source=xml([L(fw),R(bw)]);
- const second='<part id="P2"><measure number="1"/><measure number="2"/></part>';
+ const second='<part id="P2"><measure number="1"><note/></measure>'+
+  '<measure number="2"><note/></measure></part>';
  assert.throws(()=>parseMusicXmlRepeatControls(
   source.replace('</score-partwise>',second+'</score-partwise>')),
  /REPEAT_PARTS_NOT_SYNCHRONIZED/);
