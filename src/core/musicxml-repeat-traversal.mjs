@@ -35,11 +35,14 @@ const identical=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
 export function parseMusicXmlRepeatControls(xml){
  if(typeof xml!=='string'||!xml.length||xml.length>MAX_XML)
   fail('REPEAT_XML_SIZE_INVALID');
- if(/<!DOCTYPE\b|<!ENTITY\b|<!\[CDATA\[/i.test(xml))
+ if(/<!ENTITY\b|<!\[CDATA\[|<!DOCTYPE\b[^>]*\[/i.test(xml))
   fail('REPEAT_XML_DTD_OR_ENTITY_UNSUPPORTED');
- if(!/<score-partwise\b/.test(xml)||/<score-timewise\b/.test(xml))
+ if(!/<score-partwise\b/.test(xml)||!/<\/score-partwise\s*>/.test(xml)||
+    /<score-timewise\b/.test(xml))
   fail('REPEAT_PARTWISE_REQUIRED');
- const clean=xml.replace(/<!--[\s\S]*?-->/g,'');
+ // An external MusicXML DTD declaration is inert here; never resolve it.
+ const clean=xml.replace(/<!DOCTYPE\b[^<>]*>/gi,'')
+  .replace(/<!--[\s\S]*?-->/g,'');
  if(/<!--|-->/.test(clean))fail('REPEAT_MALFORMED_XML_COMMENT');
  if(/<\s*(?:segno|coda|dalsegno|dacapo|fine|to-coda)\b|<sound\b[^>]*\b(?:dacapo|dalsegno|tocoda|fine|segno|coda)\s*=|\bD\s*\.\s*[CS]\s*\./i.test(clean))
   fail('REPEAT_SCORE_NAVIGATION_UNSUPPORTED');
@@ -68,6 +71,8 @@ export function parseMusicXmlRepeatControls(xml){
     for(const marker of bar[2].matchAll(/<repeat\b([^<>]*?)\/?>/g)){
      recognized++;
      const a=attrs(marker[1]);
+     if(a['after-jump']!==undefined)
+      fail('REPEAT_AFTER_JUMP_UNSUPPORTED');
      if(a.direction==='forward'){
       if(location!=='left'||a.times!==undefined)
        fail('REPEAT_FORWARD_POSITION_UNSUPPORTED');
