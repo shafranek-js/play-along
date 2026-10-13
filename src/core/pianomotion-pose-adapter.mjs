@@ -73,6 +73,11 @@ export function samplePianoMotionVerifiedPose({target,hand,frames,viewport,trans
  if(transport.mode==='wait')return result('markers','wait-unfinished-target');
  if(!transport.playing||transport.repositioned===true)
   return result('static','paused-or-repositioned');
+ if(!Array.isArray(transport.heldNoteIds)||transport.heldNoteIds.length>MAX_NOTES||
+  transport.heldNoteIds.some(id=>typeof id!=='string'||!id.trim()))
+  return result('markers','held-key-state-unverified');
+ if(transport.heldNoteIds.length)return result('markers','physical-keys-held');
+ if(transport.oppositeHandClear!==true)return result('markers','crossing-unverified');
  let delta=target.onset-transport.now;
  if(transport.loop?.enabled){
   const loop=transport.loop;
