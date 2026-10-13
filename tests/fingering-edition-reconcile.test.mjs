@@ -91,6 +91,13 @@ test('target original author fingering conflict stays in manual review',()=>{
  assert.equal(r.conflicts[0].reason,'target-author-finger-conflict');
  assert.equal(r.conflicts[0].authorFinger,5);
 });
+test('verified target author RH hand conflicts with imported user LH even if finger number matches',()=>{
+ const a=score([[60],[62]]),b=score([[60],[64],[62]],{fingers:{'xml:P1:0:2:3':3}});
+ b.song.tracks[0].notes[2].hand='RH';
+ const r=updates(a,{[a.noteIds[1]]:edit(3,'LH')},b);
+ assert.equal(r.proposals.length,0);
+ assert.equal(r.conflicts[0].reason,'target-author-hand-conflict');
+});
 test('same author digit requires no override conflict for hand correction',()=>{
  const a=score([[60],[62]]),b=score([[60],[64],[62]],{fingers:{'xml:P1:0:2:3':3}});
  const r=updates(a,{[a.noteIds[1]]:edit(3,'LH')},b);
