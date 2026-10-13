@@ -58,7 +58,7 @@ test('FG-04C2b source repaired or note identity loss cannot produce assignments'
 test('FG-04C2b source event ordinal must match original provenance exactly',()=>{
  const p=build();p.document.notes[0].sourceEvent.noteOffOrdinal=8;
  assert.equal(importRun(p).reason,'PIANOMOTION_DOCUMENT_UNVERIFIED');
- const q=build();q.rawBaseline.identityMappings[0].rawEvents[0].noteOnOrdinal=4;
+ const q=build();q.rawBaseline.identityMappings[0].rawEvents[0].noteOffOrdinal=2;
  assert.equal(importRun(q).reason,'PIANOMOTION_SOURCE_EVENT_UNVERIFIED');
 });
 test('FG-04C2b pianoMotion cannot change pitch, onset, release or candidate hand',()=>{
