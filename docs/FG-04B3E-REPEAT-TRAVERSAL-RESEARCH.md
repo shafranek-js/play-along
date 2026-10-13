@@ -154,3 +154,8 @@ and per-note tie/grace timing for real works, followed by actual
 onset/release verification against each original MIDI source and a musician's
 review of any successful, non-ambiguous alignments. Current automatic learner
 fingering remains **NO-GO**.
+
+
+## Lead Architect integration v0.10.71
+
+This original research document preserves its earlier GitHub README-gate observation as historical context. That conflict was resolved on main by PR #63 before integration. The Lead now includes this original source module, tests, research probe and documentation in a full versioned v0.10.71 release branch, **registering all 28 repeat-traversal tests in standard `npm test`** and updating the shared README/roadmap/package. Only a fully green PR CI (including real Chromium, both 128-program SoundFont banks and MAESTRO) permits merge. Original source score/MIDI remains byte-identical. The four externally licensed ASAP repeat works remain 4 refused / 0 new full alignments due to unresolved grace/ornament timing. No production-player repeat execution or automatic learner-facing fingering is enabled.
