@@ -1,4 +1,12 @@
-# Play Along — Piano Practice App (v0.10.80)
+# Play Along — Piano Practice App (v0.10.81)
+
+## FG-04B4-R2 — Explain where the independent hand splitter refuses or mislabels (v0.10.81)
+
+Following the source-pinned real PianoVAM v1.1 comparison (11 original recordings, 242 fully ground-truth-covered same-hand polyphonic islands), the existing FG-04B4-R1 **0-anchor MIDI-only** and **source/oracle-seeded** algorithms now have a read-only, **pre-declared diagnostic error stratification**. It bins **only held-out notes** by source attack texture, island size, number of disclosed original hand anchors, pitch distance to the closest *exposed* anchor, and concurrent identical-key overlaps. Per-bin metrics show heldout/proposed/correct/incorrect/abstained; prediction-direction mistakes are aggregated **across all eleven recordings only**. Five independently validated marginal axes must each reconcile to the original immutable denominators; refused islands remain abstained, not silently removed. The research code never receives withheld GT hands or fingers as predictor input. No raw notes, score event data, individual hand labels, source finger streams or per-recording small-cell diagnostics are exported.
+
+The original unmodified algorithm baseline remains **0/1,467** autonomous hand proposals (100% abstained). With **404 source-provided oracle hand seeds**, **325/1,063** heldout hand proposals (30.57% coverage), **272 right / 53 wrong** (83.69% among proposals ONLY) and **738 abstained**. This is a diagnostic of existing mistakes, **not** improved hand separation or independent piano-teacher approval; GT is CC BY-NC-SA 4.0 research only. **No tuning to external GT was performed**, learner-facing hand/finger guidance and all source MIDI/audio, SoundFonts, MAESTRO, original 14 PNGs and transport remain untouched. Automatic learner use is **NO-GO**. [FG-04B4-R2 measured diagnostic contract](docs/FG-04B4-R2-FAILURE-STRATIFICATION.md). Hand-thesia progress remains **35%**.
+
+
 
 ## FG-04B4-R1 — Independent REAL performer RH/LH ground-truth benchmark (v0.10.80)
 
