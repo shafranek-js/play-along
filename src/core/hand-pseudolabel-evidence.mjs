@@ -25,7 +25,7 @@ export function comparePseudoHandLabels(source,pseudo,manual){
  const counts=new Map(),exact=new Map();
  for(let i=0;i<source.length;i++){
   const k=key(source[i]);
-  bump(counts,k);
+  counts.set(k,(counts.get(k)||0)+1);
   if(!exact.has(k))exact.set(k,i);
   if(key(pseudo[i])!==k)fail('PSEUDOLABEL_MIDI_ROW_IDENTITY_MISMATCH');
  }
