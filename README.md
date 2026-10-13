@@ -1,4 +1,10 @@
-# Play Along — Piano Practice App (v0.10.74)
+# Play Along — Piano Practice App (v0.10.75)
+
+## FG-03C2B6 — Explicit review of ambiguous cross-edition fingering (v0.10.75)
+
+**✍ Аппликатура → 🔁 Перенос ручной аппликатуры** now offers a separate, deliberately opt-in **manual reconciliation** path for repeated or modified MusicXML measures and author/user label conflicts. For each eligible old user correction, select the *exact* corresponding target note from a bounded list filtered by original part/pitch/voice/staff, tick a separate per-note confirmation, and independently acknowledge any author fingering or saved user override that would be overwritten. Nothing is preselected. No probabilities, nearest-time mapping or algorithmic finger guesses are treated as proof; score authorship must still be checked by the person resolving the notes. Ties, unsupported score navigation and excessive/ambiguous result sets refuse. Each approved batch is validated and persisted as one atomic Undo/Redo action; source XML, MIDI timing, author annotations and the 14 original hand PNGs stay untouched. CI includes adversarial conflict gates and real Chromium ambiguous-repetition/Undo regression. [Manual review contract](docs/FG-03C2B6-MANUAL-REVIEW.md).
+
+
 
 ## FG-03C2B5 — User-approved MusicXML edition reconciliation (v0.10.74)
 
