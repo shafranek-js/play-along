@@ -73,7 +73,7 @@ export function fingerEditionSnapshot(song,{parse}={}){
     doc.getElementsByTagName('parsererror').length)return fail('invalid-musicxml');
  const parts=feChildren(doc.documentElement,'part');
  if(!parts.length||parts.length>32)return fail('unsupported-part-count');
- const sourceSegments=new Map(),originalNotes=new Map();
+ const sourceSegments=new Map(),originalNotes=new Map(),tieSegments=new Map();
  let total=0;
  for(const track of song.tracks)for(const n of track.notes||[]){
   if(++total>25000||!n||typeof n.noteId!=='string'||originalNotes.has(n.noteId)||
@@ -131,6 +131,14 @@ export function fingerEditionSnapshot(song,{parse}={}){
         found.partIndex!==partIndex||found.measureIndex!==measureIndex||
         !originalNotes.has(found.note.noteId))
       return fail('xml-playback-identity-mismatch');
+     // The importer merges only <tie> start/stop, never visual <tied>.
+     // Preserve the exact written segment's non-finger XML identity.
+     const types=feChildren(el,'tie').map(t=>t.getAttribute('type'));
+     if(types.some(t=>t!=='start'&&t!=='stop')||
+        new Set(types).size!==types.length)return fail('invalid-tie-annotation');
+     tieSegments.set(id,{id,noteId:found.note.noteId,pitch:value,
+      staff:found.note.staff,voice:found.note.voice,partIndex,
+      types,signature:feSignature(el)});
      keys.push({
       noteId:found.note.noteId,sourceId:id,
       pitch:value,voice:found.note.voice,staff:found.note.staff,
@@ -146,7 +154,45 @@ export function fingerEditionSnapshot(song,{parse}={}){
    result.push({partIndex,partId,measures:output});
   }
  }catch(error){return fail('unsupported-xml-structure: '+(error?.message||String(error)))}
- const mapped=new Set();
+ // A musical tie is one sustained imported note with multiple written
+ // MusicXML segments. Verify COMPLETE start / stop(+start) / stop topology,
+ // original source order and all pitches/voices/staves before offering it
+ // for any manual edition transfer. Malformed/orphan ties fail closed.
+ const tieChains=new Map();
+ for(const [noteId,n] of originalNotes){
+  const ids=n.sourceNoteIds,segments=ids.map(id=>tieSegments.get(id));
+  if(segments.some(x=>!x))return fail('incomplete-tie-source');
+  if(ids[0]!==noteId||new Set(ids).size!==ids.length)
+   return fail('invalid-chain-leader');
+  if(ids.length===1){
+   if(segments[0].types.length)return fail('orphan-tie-annotation');
+   continue;
+  }
+  if(ids.length>16)return fail('tie-chain-too-long');
+  for(let i=0;i<segments.length;i++){
+   const seg=segments[i];
+   const expected=i===0?['start']:i===segments.length-1?['stop']:['start','stop'];
+   if(seg.noteId!==noteId||seg.pitch!==n.pitch||
+      seg.voice!==n.voice||seg.staff!==n.staff||
+      seg.partIndex!==feIdParts(noteId).partIndex||
+      seg.types.length!==expected.length||
+      !expected.every(t=>seg.types.includes(t)))
+    return fail('inconsistent-tie-chain');
+  }
+  // Full per-written-segment source markup: rhythm, pitch, voice, staff,
+  // explicit tie positions and notation all remain exactly documented.
+  const profile=JSON.stringify(segments.map(x=>x.signature));
+  tieChains.set(noteId,{ids:ids.slice(),profile,count:ids.length});
+ }
+ for(const p of result)for(const m of p.measures)for(const n of m.notes){
+  const chain=tieChains.get(n.noteId);
+  if(chain){
+   n.tieProfile=chain.profile;
+   n.tieCount=chain.count;
+   n.tieLeader=chain.ids[0]===n.sourceId;
+  }
+ }
+  const mapped=new Set();
  for(const p of result)for(const m of p.measures)for(const n of m.notes){
   if(mapped.has(n.sourceId))return fail('duplicate-reconstructed-source');
   mapped.add(n.sourceId);
@@ -232,7 +278,9 @@ export function fingerEditionReconcile(oldEdition,newEdition,oldCorrections,curr
  * FG-03C2B6: expert-directed review of ambiguous/edited passages.
  * Matching pitch/voice/staff is ONLY a discovery FILTER, never evidence of
  * equivalent source identity. No destinations or overwrite flags are selected.
- * Tied sources/targets remain ineligible; no automatic mapping occurs.
+ * Tied notes require an independently validated complete tie chain and
+ * identical original per-segment source XML on both sides. A human chooses
+ * the corresponding destination; no automatic tie mapping occurs.
  */
 export function fingerEditionManualReview(oldEdition,newEdition,oldCorrections,currentCorrections={}){
  const prior=fingerEditionReconcile(oldEdition,newEdition,oldCorrections,currentCorrections);
@@ -243,8 +291,12 @@ export function fingerEditionManualReview(oldEdition,newEdition,oldCorrections,c
  }
  for(const part of newEdition.parts){
   const notes=[];
-  for(const measure of part.measures)for(const note of measure.notes)
+  const seen=new Set();
+  for(const measure of part.measures)for(const note of measure.notes){
+   if(seen.has(note.noteId))continue; // never offer tied continuation as a new MIDI note
+   seen.add(note.noteId);
    notes.push({measure,note});
+  }
   targetByPart.set(part.partIndex,notes);
  }
  const reasons=new Map();
@@ -253,13 +305,18 @@ export function fingerEditionManualReview(oldEdition,newEdition,oldCorrections,c
  for(const from of Object.keys(oldCorrections).sort()){
   if(!reasons.has(from))continue; // safe candidates use the existing workflow
   const located=source.get(from),change=oldCorrections[from],reason=reasons.get(from);
-  if(!located||located.note.tied||reason==='already-identical'){
+  if(!located||reason==='already-identical'||
+     (located.note.tied&&(!located.note.tieLeader||!located.note.tieProfile))){
    excluded.push({from,reason:!located?'source-note-missing':
-    located.note.tied?'tied-source-note':'already-identical'});continue;
+    reason==='already-identical'?'already-identical':'unverified-tie-source'});continue;
   }
   const matching=(targetByPart.get(located.part.partIndex)||[]).filter(({note})=>
-   !note.tied&&note.pitch===located.note.pitch&&
-   note.voice===located.note.voice&&note.staff===located.note.staff);
+   note.pitch===located.note.pitch&&note.voice===located.note.voice&&
+   note.staff===located.note.staff&&(
+    located.note.tied?
+     note.tied&&note.tieLeader&&note.tieProfile===located.note.tieProfile&&
+      note.tieCount===located.note.tieCount:
+     !note.tied));
   if(matching.length>24){
    excluded.push({from,reason:'too-many-candidates',count:matching.length});continue;
   }
@@ -277,6 +334,7 @@ export function fingerEditionManualReview(oldEdition,newEdition,oldCorrections,c
    return {
     to:note.noteId,measure:measure.number,
     pitch:note.pitch,staff:note.staff,voice:note.voice,
+    tieCount:note.tieCount||0,
     authorFinger:note.authorFinger,authorHand:note.authorHand,
     existing:existing?{finger:existing.finger,hand:existing.hand}:null,
     authorConflict:(change.finger!==null&&note.authorFinger!==null&&
@@ -289,6 +347,7 @@ export function fingerEditionManualReview(oldEdition,newEdition,oldCorrections,c
   rows.push({
    from,reason,fromMeasure:located.measure.number,
    pitch:located.note.pitch,voice:located.note.voice,staff:located.note.staff,
+   tieCount:located.note.tieCount||0,
    finger:change.finger,hand:change.hand,options
   });
  }
