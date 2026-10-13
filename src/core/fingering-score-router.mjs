@@ -81,9 +81,9 @@ function segment(notes){
  flush();
  return segments;
 }
-function auditAnchored(notes,hand,handSize){
+function auditAnchored(notes,hand,handSize,spanModel='legacy'){
  const out=notes.map(n=>sourceFields(n,hand,n.finger,true));
- const audit=auditFingeringAssignments(notes,out,{handSize});
+ const audit=auditFingeringAssignments(notes,out,{handSize,spanModel});
  return audit.valid?{ok:true,items:out,method:'fg02i-verified-anchor-integrity',
   diagnostics:{warnings:[],boundaryCount:0}}:
   err('AUTHOR_PHYSICAL_CONFLICT',{violations:audit.violations});
@@ -102,11 +102,11 @@ function slidingWarnings(items){
  }
  return warnings;
 }
-function oneHand(notes,hand,handSize,beamWidth){
+function oneHand(notes,hand,handSize,beamWidth,costModel){
  if(!notes.length)return {ok:true,items:[],methods:[],warnings:[],segments:[]};
  const allAnchored=notes.every(ownsFinger);
  if(allAnchored){
-  const a=auditAnchored(notes,hand,handSize);
+  const a=auditAnchored(notes,hand,handSize,costModel);
   if(!a.ok)return {...a,hand};
   return {ok:true,items:a.items,methods:['author-validated'],warnings:slidingWarnings(a.items),
    segments:[{kind:'author-validated',notes:notes.length,sourceAnchors:notes.length}]};
@@ -119,9 +119,9 @@ function oneHand(notes,hand,handSize,beamWidth){
   const input=sorted.map(({index,...n})=>n);
   const fullyPinned=input.every(ownsFinger);
   let r;
-  if(fullyPinned)r=auditAnchored(input,hand,handSize);
+  if(fullyPinned)r=auditAnchored(input,hand,handSize,costModel);
   else if(group.kind==='polyphonic')
-   r=proposePolyphonicFingering(input,{hand,handSize,beamWidth});
+   r=proposePolyphonicFingering(input,{hand,handSize,beamWidth,costModel});
   else r=proposeContextualMonophonicFingering(input,{hand,handSize});
   if(!r.ok)return err(r.reason,{hand,segmentKind:group.kind,
    segmentNoteIds:input.map(idOf),...(r.violations?{violations:r.violations}:{})});
@@ -147,7 +147,7 @@ function oneHand(notes,hand,handSize,beamWidth){
   previous={note:sorted.at(-1)};
  }
  if(items.some(x=>!x))return err('INTERNAL_ASSIGNMENT_GAP',{hand});
- const independent=auditFingeringAssignments(notes,items,{handSize});
+ const independent=auditFingeringAssignments(notes,items,{handSize,spanModel:costModel});
  if(!independent.valid)return err('COMBINED_PHYSICAL_CONFLICT',{hand,violations:independent.violations});
  return {ok:true,items,methods,warnings,segments:segmentReport};
 }
@@ -156,15 +156,17 @@ function oneHand(notes,hand,handSize,beamWidth){
  * Fully-author-annotated scores are checked for integrity without using a
  * heuristic solver; musical ergonomics still require pianist review.
  */
-export function proposeHybridScoreFingering(parts,{handSize='M',beamWidth=40}={}){
+export function proposeHybridScoreFingering(parts,{handSize='M',beamWidth=40,costModel='legacy'}={}){
  const inputError=validate(parts,handSize);
  if(inputError)return inputError;
  if(!Number.isInteger(beamWidth)||beamWidth<1||beamWidth>128)return err('INVALID_BEAM_WIDTH');
- const rh=oneHand(parts.RH,'RH',handSize,beamWidth);
+ if(!['legacy','anatomical'].includes(costModel))return err('INVALID_COST_MODEL');
+ const rh=oneHand(parts.RH,'RH',handSize,beamWidth,costModel);
  if(!rh.ok)return rh;
- const lh=oneHand(parts.LH,'LH',handSize,beamWidth);
+ const lh=oneHand(parts.LH,'LH',handSize,beamWidth,costModel);
  if(!lh.ok)return lh;
  return {ok:true,method:'fg02i-experimental-score-router',
+  ...(costModel==='anatomical'?{costModel:'anatomical'}:{}),
   hands:{RH:rh.items,LH:lh.items},handSize,
   methods:{RH:rh.methods,LH:lh.methods},
   segments:{RH:rh.segments,LH:lh.segments},
