@@ -42,7 +42,7 @@ test('R4: no pseudo-label ever becomes manual GT, with distinct hand/finger deno
  assert.ok(!JSON.stringify(r).includes('"onset":'));
 });
 test('R4: automatic missing hand is abstention, never a guessed RH/LH label',()=>{
- const a=sample();a.pseudo=a.pseudo.map((n,i)=>i===3?n:labeled(n,'Noinfo','Noinfo'));
+ const a=sample();a.pseudo=a.pseudo.map((n,i)=>i===3?labeled(n,'Noinfo','Noinfo'):n);
  const r=comparePseudoHandLabels(a.source,a.pseudo,a.manual);
  assert.equal(r.autoHandProposed,2);
  assert.equal(r.autoHandUnknown,1);
