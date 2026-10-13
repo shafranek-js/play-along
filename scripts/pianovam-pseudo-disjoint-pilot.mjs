@@ -15,7 +15,7 @@ import {partitionSourcePseudolabelRecordings,
 const API='https://huggingface.co/api/datasets/PianoVAM/PianoVAM_v1/tree/';
 const DIRS=['TSV','Fingering','Fingering_GT'];
 const error=s=>{throw Error('R5_'+s)};
-async function treeAtPin(directory,fetcher){
+export async function treeAtPin(directory,fetcher){
  const uri=API+PINNED_REVISION+'/'+directory+'?recursive=false&limit=1000';
  const res=await fetcher(uri,{signal:AbortSignal.timeout(25000),
   headers:{accept:'application/json'}});
