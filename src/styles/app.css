@@ -188,3 +188,10 @@ body.onlyLibrary #leftPanel .sidebody>.panelSection:first-child{
 #fingerEditionManualCandidates select{display:block;width:100%;max-width:100%;min-width:0;color:inherit;background:#192331;border:1px solid #536174;border-radius:5px;padding:5px;margin:5px 0}
 #fingerEditionManualCandidates label{font-size:12px;line-height:1.4}
 #fingerEditionManualCandidates label input{margin-right:5px}
+
+/* FG-04C4: bounded, readable preview of research-only proposed fingers. */
+.fingerBrowserMetrics{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.fingerBrowserCandidates{max-height:156px;overflow:auto;color:var(--sub);font-size:12px}
+.fingerBrowserCandidates strong{color:var(--txt);font-weight:650}
+.fingerBrowserCandidates ol{margin:6px 0 0;padding-left:22px}
+.fingerBrowserCandidates li{padding:2px 0;overflow-wrap:anywhere}
