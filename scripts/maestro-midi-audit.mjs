@@ -131,6 +131,56 @@ function midiDecoder(raw){
  check(offset===b.length,'MIDI_TRAILING_BYTES');
  return {format,division,trackCount,events,tempos,lastTick};
 }
+/**
+ * MAE-03A: independent reference of the ORIGINAL MIDI key and pedal timeline.
+ * No synthesized sound, UI state, MusicXML, source fingering, or redistribution.
+ * Pair same pitch by track+channel FIFO, matching SMF identity semantics.
+ * Preserve the exact original key-up interval (no teaching/display minima).
+ */
+export function maestroReferenceEvents(raw){
+ const {division,trackCount,events,tempos}=midiDecoder(raw);
+ const ordered=[...tempos].sort((a,b)=>a.tick-b.tick);
+ const tempoMap=[{tick:0,micros:500000,sec:0}];
+ for(const t of ordered){
+  const last=tempoMap.at(-1);
+  if(last.tick===t.tick){last.micros=t.micros;continue}
+  tempoMap.push({tick:t.tick,micros:t.micros,sec:last.sec+
+   (t.tick-last.tick)/division*last.micros/1000000});
+ }
+ const secs=tick=>{
+  let a=0,b=tempoMap.length-1;
+  while(a<b){const mid=Math.ceil((a+b)/2);if(tempoMap[mid].tick<=tick)a=mid;else b=mid-1}
+  const t=tempoMap[a];return t.sec+(tick-t.tick)/division*t.micros/1000000;
+ };
+ const tracks=new Map(),held=new Map(),cc=[],dangling=[];
+ for(const e of events.sort((a,b)=>a.tick-b.tick||a.serial-b.serial)){
+  if(e.type==='cc'){cc.push({time:secs(e.tick),track:e.track,channel:e.channel,
+   controller:e.cc,value:e.value});continue}
+  const key=e.track+':'+e.channel+':'+e.pitch;
+  if(e.type==='on'){
+   const queue=held.get(key)||[];queue.push(e);held.set(key,queue);
+  }else{
+   const queue=held.get(key);
+   if(!queue?.length)continue;
+   const on=queue.shift();
+   if(!queue.length)held.delete(key);
+   const list=tracks.get(e.track)||[];
+   list.push({sourceTrack:e.track,channel:e.channel,pitch:e.pitch,
+    start:secs(on.tick),duration:secs(on.tick+Math.max(1,e.tick-on.tick))-secs(on.tick),
+    velocity:on.velocity});
+   tracks.set(e.track,list);
+  }
+ }
+ for(const queue of held.values())dangling.push(...queue);
+ const sourceTrackOrder=[...tracks.keys()].sort((a,b)=>a-b);
+ const trackIndexBySource=new Map(sourceTrackOrder.map((v,i)=>[v,i]));
+ const notes=sourceTrackOrder.flatMap(track=>tracks.get(track).map(n=>({...n,track:trackIndexBySource.get(track)})));
+ notes.sort((a,b)=>a.track-b.track||a.start-b.start||a.pitch-b.pitch||a.channel-b.channel||a.duration-b.duration||a.velocity-b.velocity);
+ cc.sort((a,b)=>a.time-b.time||a.track-b.track||a.channel-b.channel||a.controller-b.controller||a.value-b.value);
+ return {ppq:division,sourceTrackCount:trackCount,notes,cc,dangling_noteon_count:dangling.length,
+  tempoPoints:tempoMap.map(({tick,micros,sec})=>({tick,micros,sec}))};
+}
+
 export function profileMidi(raw,metadataDuration=null){
  const {division,trackCount,events,tempos,lastTick}=midiDecoder(raw);
  const tempoMap=[{tick:0,micros:500000}];
