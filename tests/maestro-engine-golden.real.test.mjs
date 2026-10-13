@@ -95,7 +95,7 @@ const server=http.createServer((req,res)=>{
 });
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 let browser;
-const report={schema:'play-along-maestro-mae03a-golden/1',source:real?'official-maestro-v3-sha256':'synthetic',checked:0,totalNotes:0,totalPedalCC:0,
+const report={schema:'play-along-maestro-mae03a-golden/1',source:real?'official-maestro-v3-sha256':'synthetic',checked:0,totalNotes:0,totalDangling:0,totalPedalCC:0,
  shortNotesBelow25ms:0,works:[]};
 try{
  browser=await chromium.launch({headless:true,args:['--no-sandbox']});
@@ -125,7 +125,7 @@ try{
    return {notes:song.tracks.flatMap(t=>t.notes),cc:song.audioEvents.filter(e=>e.type==='cc')};
   },[...item.bytes]);
   const compare=strictMatch(original,actual,item.id);
-  report.checked++;report.totalNotes+=compare.source_note_count;
+  report.checked++;report.totalNotes+=compare.source_note_count;report.totalDangling+=original.dangling_noteon_count;
   report.totalPedalCC+=compare.source_cc_events;report.shortNotesBelow25ms+=compare.short_source_notes;
   report.works.push({source:item.id,notes:compare.source_note_count,pedal_cc:compare.source_cc_events,
    tempo_changes:compare.source_active_tempos,short_notes:compare.short_source_notes,
@@ -134,14 +134,14 @@ try{
  assert.deepEqual(errors,[]);
  if(real){
   assert.equal(report.checked,24,'All 24 SHA-pinned real files must be compared');
-  assert.equal(report.totalNotes,143923,'Frozen official corpus note count unexpectedly changed');
+  assert.equal(report.totalNotes+report.totalDangling,143923,'Frozen official source NoteOn count unexpectedly changed');
  }
  if(process.env.MAESTRO_ENGINE_REPORT){
   fs.mkdirSync(path.dirname(process.env.MAESTRO_ENGINE_REPORT),{recursive:true});
   fs.writeFileSync(process.env.MAESTRO_ENGINE_REPORT,JSON.stringify(report,null,2)+'\n');
  }
  console.log('MAESTRO_ENGINE_GOLDEN_OK '+JSON.stringify({checked:report.checked,
-  sourceNotes:report.totalNotes,pedalCC:report.totalPedalCC,notesUnder25ms:report.shortNotesBelow25ms,real}));
+  sourceNotes:report.totalNotes,dangling:report.totalDangling,pedalCC:report.totalPedalCC,notesUnder25ms:report.shortNotesBelow25ms,real}));
 }finally{
  await browser?.close();await new Promise(resolve=>server.close(resolve));
 }
