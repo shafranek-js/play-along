@@ -89,6 +89,8 @@ jobs:
         run: FG04B1A_REPORT=artifacts/fg04b1a-technical-corpus.json npm run research:fingering:corpus:technical
       - name: FG-04B1b immutable ASAP real score pair integrity (NC research)
         run: FG04B1B_REPORT=artifacts/fg04b1b-asap-scores.json npm run research:fingering:corpus:asap
+      - name: FG-03D2 source-hashed real Play Along Chromium hand-motion screening (NC research)
+        run: FG03D2_REPORT=artifacts/fg03d2-real-hand-motion-evidence.json npm run research:hand-motion:real
       - name: FG-04B3d pinned MIDI zero-duration and MusicXML ornament inventory (no note edits)
         run: FG04B3D_REPORT=artifacts/fg04b3d-asap-source-diagnostics.json npm run research:fingering:asap:xml-midi
       - name: Browser regressions
@@ -181,6 +183,13 @@ jobs:
           name: fg04b1a-mit-musicxml-technical-corpus
           path: artifacts/fg04b1a-technical-corpus.json
           if-no-files-found: error
+      - name: Upload FG-03D2 real score eligibility and abstention summary (no note data)
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: fg03d2-real-score-motion-source-evidence
+          path: artifacts/fg03d2-real-hand-motion-evidence.json
+          if-no-files-found: warn
       - name: Upload FG-04B1b real score-pair source verification
         if: always() && github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
