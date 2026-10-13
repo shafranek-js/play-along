@@ -28,7 +28,7 @@ export function disqualifyAmbiguousExternalGT(sourceRows,bound){
  if(!Array.isArray(sourceRows)||!Array.isArray(bound)||
   sourceRows.length!==bound.length)throw Error('HAND_GT_SOURCE_COUNT_MISMATCH');
  const counts=new Map();
- for(const r of sourceRows)count(counts,rawKey(r));
+ for(const r of sourceRows){const k=rawKey(r);counts.set(k,(counts.get(k)||0)+1)}
  const ambiguous=new Set([...counts].filter(([,n])=>n>1).map(([k])=>k));
  let masked=0;
  const notes=bound.map((n,i)=>{
