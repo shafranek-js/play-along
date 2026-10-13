@@ -50,7 +50,22 @@ export function partitionSourcePseudolabelRecordings({
  const excluded=new Set(gt);
  const unreviewed=pseudo.filter(name=>!excluded.has(name));
  if(unreviewed.length<pilotSize)error('NOT_ENOUGH_DISJOINT_PSEUDO_CASES');
- const ranked=unreviewed.map(name=>({name,digest:hash('FG04B4R5-PILOT-V1\n'+name)}))
+ // The inherited FG-02J source fetcher/parser enforces a strict 350,000-
+ // character TSV boundary. Do not weaken the common guard or cherry-pick
+ // based on prediction labels. Bound pilot size ONLY by original metadata.
+ const MAX_SOURCE_BYTES=350000;
+ const fileSizes=(files,dir)=>new Map(files.filter(f=>f.type==='file'&&
+  typeof f.path==='string'&&f.path.startsWith(dir+'/')&&
+  f.path.endsWith('.tsv')).map(f=>[f.path.slice(dir.length+1,-4),f.size]));
+ const originalSize=fileSizes(sourceTree,'TSV');
+ const pseudoSize=fileSizes(pseudoTree,'Fingering');
+ const bounded=unreviewed.filter(name=>{
+  const a=originalSize.get(name),b=pseudoSize.get(name);
+  return Number.isInteger(a)&&a>0&&a<=MAX_SOURCE_BYTES&&
+   Number.isInteger(b)&&b>0&&b<=MAX_SOURCE_BYTES;
+ });
+ if(bounded.length<pilotSize)error('INSUFFICIENT_BOUNDED_PILOT_CASES');
+ const ranked=bounded.map(name=>({name,digest:hash('FG04B4R5-PILOT-V1\n'+name)}))
   .sort((a,b)=>a.digest.localeCompare(b.digest)||a.name.localeCompare(b.name));
  const pilot=ranked.slice(0,pilotSize).map(x=>x.name);
  if(pilot.some(x=>excluded.has(x)))error('HUMAN_GT_LEAKED_IN_PILOT');
@@ -63,6 +78,9 @@ export function partitionSourcePseudolabelRecordings({
    upstreamAutomaticRecords:pseudo.length,
    priorHumanGTRecordings:gt.length,
    pseudolabelOnlyRecordings:unreviewed.length,
+   boundedPilotEligibleRecordings:bounded.length,
+   sourceSizeLimitedOrUnknownPilotExclusions:unreviewed.length-bounded.length,
+   boundedTSVSourceByteLimit:MAX_SOURCE_BYTES,
    pilotRecords:pilotSize,
    splitIdentitySha256:{
     fullSource:hash(source.join('\n')),
