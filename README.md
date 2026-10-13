@@ -1,4 +1,4 @@
-# Play Along — Piano Practice App (v0.10.63)
+# Play Along — Piano Practice App (v0.10.64)
 
 Play Along is an independently hosted browser piano practice application with Web MIDI, Piano Roll, OpenSheetMusicDisplay (OSMD), MusicXML/MXL and MIDI import, optional online music catalogs, and Wait/Tempo/Listen practice modes.
 
@@ -68,6 +68,8 @@ FG-02H flags **11 quick same-finger changes** requiring musician review. Preserv
 **FG-04B3b v0.10.61 (research only):** Added independently parsed **raw MusicXML 3.x score-partwise → normalized musical note events → MIDI-score pitch/onset/release alignment**. Handles divisions, rests, chords, multiple voices via backup/forward, staff/part/voice identities and explicit connected ties. Unsupported repeats, grace-note realizations, ambiguous unisons, unrelated XML/MIDI note times and unsupported scores refuse rather than fabricate note identities. Research CI checks all **16 immutable CC BY-NC-SA ASAP real-score pairs** and reports exact aligned/refused counts and reasons, with **no original XML/MIDI bytes, notes or fingerings in the report**. Uses the original score MIDI tempo clock; independent MusicXML tempo, repeat/ornament semantics and pianist fingering remain unverified. No changes to player, 14 owner PNG hands, Wait/Tempo, original XML or manual corrections. [FG-04B3b contract](docs/FG-04B3B-ASAP-XML-MIDI-AUDIT.md).
 
 **MAE-02C research v0.10.62:** The independent offline MAESTRO pipeline now checks all 1,276 original MIDI files, computes reproducible performance complexity metrics and selects 24 recordings for coverage of polyphony, note density, repeated attacks, velocity spread and CC64/66/67 variation. Train/validation/test remain separate (16/4/4). Original metadata-only sampling is retained in any split where it covers more predefined feature categories. The result is **QA diversity, not representative statistics, musical difficulty or verified fingering**. The research-only GitHub Action archives only derived metadata; original MIDI/audio and 14 approved hand PNGs remain untouched. See [MAESTRO MAE-02C](docs/MAESTRO-INTEGRATION.md).
+
+**MAE-04A Online Library v0.10.64:** MAESTRO v3.0.0 is now a selectable source in **Библиотека → Онлайн-библиотеки**. Search the 1,276 officially indexed piano performances by title/composer. On selecting one MIDI, Play Along downloads the official ~56 MB MIDI-only ZIP once per tab (or accepts the exact official local ZIP), validates its SHA256 and extracts only the requested MIDI with CRC checks. The performance opens in Piano Roll / Wait / Tempo and can be saved into the local collection with Google LLC CC BY-NC-SA 4.0 attribution. No third-party MIDI data is bundled on GitHub Pages, and no MusicXML score, difficulty classification or reliable anatomical fingering is inferred. The full ZIP does not go to IndexedDB/backups. [MAESTRO Online Catalog](docs/MAESTRO-ONLINE-CATALOG.md).
 
 ### Release documentation rule
 
@@ -155,6 +157,13 @@ Real physical MIDI device behavior, sustain pedal/CC64, live service availabilit
 
 ---
 ### Release history
+
+## MAESTRO v3 Online Library (v0.10.64)
+
+- Added **♩ MAESTRO · 1 276 MIDI** as a separate Online Libraries source and select filter. The catalog loads only on request, shows canonical composer/title/year, supports the existing search, sorting, pagination and favorites, and can be refreshed without resetting the user's collection.
+- Opening a performance lazily downloads Google's pinned official MIDI-only ZIP (~56 MB), verifies SHA256, safely checks ZIP entries and CRC32, and imports the selected MIDI through the normal player/persistence path. Use **Подключить ZIP с компьютера** if browser network/CORS blocks remote download. The full ZIP is not bundled or persisted, avoiding storage quota/backups; reuse is in-tab only.
+- Google LLC MAESTRO v3.0.0 **CC BY-NC-SA 4.0**: attribution and license are visible and retained with saved recordings. These are real pianist performances and MIDI events, not source-verified MusicXML score/fingering or teaching difficulty. All existing Wait/Tempo, author score provenance and 14 user-provided PNG hand assets are unchanged.
+- Added offline/synthetic Chromium catalog smoke test and full official-archive Chromium opening gate in the dedicated MAESTRO research CI. See [MAESTRO Online Catalog](docs/MAESTRO-ONLINE-CATALOG.md).
 
 ## Full MAESTRO performance profiling and diversity selection (v0.10.62)
 
