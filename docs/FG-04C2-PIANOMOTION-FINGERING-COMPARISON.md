@@ -53,10 +53,10 @@ Important limitation: the two applications' note IDs are not semantically identi
 The owner can run an **installed, authorized local PianoMotion Python checkout directly** with no copying of its core into Play Along. This launcher takes the unchanged MIDI, computes the actual PianoMotion finger plan (with motion sampling disabled for speed) and writes a private local JSON file:
 
 ```bash
-python scripts/fg04c2-run-pianomotion.py /path/to/pianomotion-studio/python-core original.mid pianomotion-analysis.json
+node scripts/fg04c2-run-pianomotion.mjs /path/to/pianomotion-studio/python-core original.mid pianomotion-analysis.json
 node scripts/fingering-engine-comparison.mjs canonical-source.json original.mid pianomotion-analysis.json
 ```
 
-Here `canonical-source.json` contains `{"source":[...]}` normalized independently from the **same original MusicXML score** using Play Along score-note IDs/part/staff/voice and the original playback MIDI; optionally `truth` as independently withheld annotation is supplied **only** to the second scoring step, never to the PianoMotion engine. The Python environment must already have the PianoMotion core dependencies available. The `pianomotion-analysis.json` is created with no-overwrite semantics, permission mode 0600 on POSIX, and stays on the user's computer. The last command reports anonymous aggregate counters, not source notes.
+Here `canonical-source.json` contains `{"source":[...]}` normalized independently from the **same original MusicXML score** using Play Along score-note IDs/part/staff/voice and the original playback MIDI; optionally `truth` as independently withheld annotation is supplied **only** to the second scoring step, never to the PianoMotion engine. Set PYTHON to a local interpreter with the PianoMotion core dependencies available. The Node launcher invokes that interpreter with a short Python command, without copying the owner's core. The `pianomotion-analysis.json` is created with no-overwrite semantics, permission mode 0600 on POSIX, and stays on the user's computer. The last command reports anonymous aggregate counters, not source notes.
 
 The private PianoMotion repository may contain third-party adapted code. Local authorized invocation does not mean its Python files or dependencies are authorized for public redistribution in Play Along. Actual CI-confirmed accuracy results can be reported only from a real source MIDI + canonically normalized same-score pair.
