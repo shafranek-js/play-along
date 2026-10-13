@@ -59,14 +59,26 @@ try{
     for(const preset of presets){
      await engine.cancelGroup('live');
      await engine.preparePatches([{bankMSB:0,bankLSB:0,program:preset.program,isDrum:false,notes:[{pitch:60,velocity:100}]}]);
-     const capture=engine.capturePcm({durationSeconds:0.24});
-     await new Promise(resolve=>setTimeout(resolve,15));
-     const at=context.currentTime+0.045;
-     engine.scheduleEvent({group:'live',channel:0,type:'programChange',bankMSB:0,bankLSB:0,program:preset.program,isDrum:false,at});
-     engine.scheduleEvent({group:'live',channel:0,type:'noteOn',pitch:60,velocity:100,noteId:'gm-'+preset.program,at});
-     engine.scheduleEvent({group:'live',channel:0,type:'noteOff',pitch:60,noteId:'gm-'+preset.program,at:at+0.14});
-     const pcm=await capture;
-     if(pcm.startedAt>at||pcm.endedAt<at+0.14)throw Error('Capture does not cover note: '+bank.id+'/'+preset.program);
+     // The first GM preset may synchronously initialize a DSP program after
+     // AudioWorklet capture has already started. Under a busy CI runner the
+     // original 240-ms sample sometimes ended BEFORE the note-off. A missed
+     // capture window is test-harness timing, not proof of silence. Re-arm up
+     // to three times but NEVER accept a program without actual finite,
+     // nonzero samples covering its complete note-on/off interval.
+     let pcm,at,covered=false,coverageDetails=null;
+     for(let attempt=1;attempt<=3;attempt++){
+      await engine.cancelGroup('live');
+      const capture=engine.capturePcm({durationSeconds:0.36});
+      await new Promise(resolve=>setTimeout(resolve,20));
+      at=context.currentTime+0.045;
+      engine.scheduleEvent({group:'live',channel:0,type:'programChange',bankMSB:0,bankLSB:0,program:preset.program,isDrum:false,at});
+      engine.scheduleEvent({group:'live',channel:0,type:'noteOn',pitch:60,velocity:100,noteId:'gm-'+preset.program,at});
+      engine.scheduleEvent({group:'live',channel:0,type:'noteOff',pitch:60,noteId:'gm-'+preset.program,at:at+0.14});
+      pcm=await capture;
+      if(pcm.startedAt<=at&&pcm.endedAt>=at+0.14){covered=true;break;}
+      coverageDetails={attempt,startedAt:pcm.startedAt,endedAt:pcm.endedAt,at};
+     }
+     if(!covered)throw Error('Capture does not cover note after three attempts: '+bank.id+'/'+preset.program+' '+JSON.stringify(coverageDetails));
      const begin=Math.max(0,Math.floor((at-pcm.startedAt)*pcm.sampleRate));
      const end=Math.min(pcm.frames,Math.ceil((at+0.14-pcm.startedAt)*pcm.sampleRate));
      let nonzero=0,sum=0,peak=0;

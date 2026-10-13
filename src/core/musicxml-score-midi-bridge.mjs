@@ -148,23 +148,37 @@ export function normalizeMusicXmlBeats(xml){
  raw.sort((a,b)=>a.start-b.start||a.partIndex-b.partIndex||
   a.measureIndex-b.measureIndex||a.noteId.localeCompare(b.noteId));
  const open=new Map(),notes=[];
+ let crossVoiceTieSegments=0;
  for(const event of raw){
   const key=[event.partIndex,event.voice,event.pitch].join('|');
   if(event.tieStop){
-   const prev=open.get(key);
-   if(!prev)die('MUSICXML_UNPAIRED_TIE_STOP');
-   if(Math.abs(prev.start+prev.duration-event.start)>EPS)
-    die('MUSICXML_NONCONTIGUOUS_TIE');
-   prev.duration+=event.duration;
-   prev.sourceNoteIds.push(event.noteId);
-   if(!event.tieStart)open.delete(key);
+   // MusicXML ties occasionally switch notational voices at a barline.
+   // Accept ONLY if there is exactly one physically continuous, same-staff
+   // source-origin candidate. Never guess from MIDI or an arbitrary voice.
+   const matching=[...open.entries()].filter(([,state])=>
+    state.partIndex===event.partIndex && state.staff===event.staff &&
+    state.pitch===event.pitch &&
+    Math.abs(state.note.start+state.note.duration-event.start)<=EPS);
+   if(!matching.length)
+    die(open.has(key)?'MUSICXML_NONCONTIGUOUS_TIE':'MUSICXML_UNPAIRED_TIE_STOP');
+   if(matching.length!==1)die('MUSICXML_AMBIGUOUS_TIE_STOP');
+   const [fromKey,state]=matching[0];
+   if(fromKey!==key)crossVoiceTieSegments++;
+   state.note.duration+=event.duration;
+   state.note.sourceNoteIds.push(event.noteId);
+   open.delete(fromKey);
+   if(event.tieStart){
+    if(open.has(key))die('MUSICXML_AMBIGUOUS_TIE_CONTINUATION');
+    open.set(key,{...state,voice:event.voice});
+   }
   }else{
    if(open.has(key))die('MUSICXML_UNFINISHED_TIE');
    const note={noteId:event.noteId,sourceNoteIds:[event.noteId],
     partId:event.partId,staff:event.staff,voice:event.voice,
     pitch:event.pitch,start:event.start,duration:event.duration};
    notes.push(note);
-   if(event.tieStart)open.set(key,note);
+   if(event.tieStart)open.set(key,{note,partIndex:event.partIndex,
+    staff:event.staff,pitch:event.pitch,voice:event.voice});
   }
  }
  if(open.size)die('MUSICXML_UNFINISHED_TIE');
@@ -173,7 +187,7 @@ export function normalizeMusicXmlBeats(xml){
  return {notes,stats:{parts:parts.length,measures:measuresTotal,
    rawNotes:raw.length,playableNotes:notes.length,
    mergedTieSegments:raw.length-notes.length,
-   tempoDirections,repeatExpansion:'not-required-detected'}};
+   crossVoiceTieSegments,tempoDirections,repeatExpansion:'not-required-detected'}};
 }
 
 function secondsAt(midi){

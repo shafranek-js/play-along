@@ -1,4 +1,4 @@
-# Play Along — Piano Practice App (v0.10.64)
+# Play Along — Piano Practice App (v0.10.65)
 
 Play Along is an independently hosted browser piano practice application with Web MIDI, Piano Roll, OpenSheetMusicDisplay (OSMD), MusicXML/MXL and MIDI import, optional online music catalogs, and Wait/Tempo/Listen practice modes.
 
@@ -70,6 +70,10 @@ FG-02H flags **11 quick same-finger changes** requiring musician review. Preserv
 **MAE-02C research v0.10.62:** The independent offline MAESTRO pipeline now checks all 1,276 original MIDI files, computes reproducible performance complexity metrics and selects 24 recordings for coverage of polyphony, note density, repeated attacks, velocity spread and CC64/66/67 variation. Train/validation/test remain separate (16/4/4). Original metadata-only sampling is retained in any split where it covers more predefined feature categories. The result is **QA diversity, not representative statistics, musical difficulty or verified fingering**. The research-only GitHub Action archives only derived metadata; original MIDI/audio and 14 approved hand PNGs remain untouched. See [MAESTRO MAE-02C](docs/MAESTRO-INTEGRATION.md).
 
 **MAE-04A Online Library v0.10.64:** MAESTRO v3.0.0 is now a selectable source in **Библиотека → Онлайн-библиотеки**. Search the 1,276 officially indexed piano performances by title/composer. On selecting one MIDI, Play Along downloads the official ~56 MB MIDI-only ZIP once per tab (or accepts the exact official local ZIP), validates its SHA256 and extracts only the requested MIDI with CRC checks. The performance opens in Piano Roll / Wait / Tempo and can be saved into the local collection with Google LLC CC BY-NC-SA 4.0 attribution. No third-party MIDI data is bundled on GitHub Pages, and no MusicXML score, difficulty classification or reliable anatomical fingering is inferred. The full ZIP does not go to IndexedDB/backups. [MAESTRO Online Catalog](docs/MAESTRO-ONLINE-CATALOG.md).
+
+**FG-04B3c v0.10.65 — pinned ASAP refusal triage (research only):** Previous pinned 16-score MusicXML/MIDI audit measured **1 aligned (Bach Prelude BWV 846), 15 refused**: 7 grace-note realizations, 4 repeat/navigation cases, 1 ambiguous cross-voice tie provenance, 1 unmatched event, 1 backing-up voice timeline and 1 MIDI zero-length note. Freeze exact per-score outcomes in a separate research manifest and add a fail-closed classifier/CI regression gate: previously aligned scores must not silently become rejected; changed rejection codes do not count as improvements. Independently inspect the Bach Fugue and accept cross-voice continuation of an explicitly tied note **only when the same part, staff, pitch and adjacent beat give exactly one candidate**; otherwise refuse. Add 11 new unit checks. **SoundFont SF05 CI stability:** The SoundFont-enabled browser suite intermittently failed at GeneralUser GS program 0 because an asynchronous PCM capture window did not fully contain the scheduled note. The SF05 GM regression test now provides a longer capture window and at most three **coverage-only** attempts. It still requires finite, nonzero PCM for **all 128 programs in each of both banks** and rejects any program without a complete note-on/off capture. **No SoundFont files, DSP code, audio timing or instrument behavior were modified.**
+
+**Actual FG-04B3c CI result:** still **1/16 fully aligned**, **15/16 rejected**; Bach Fugue now reaches a separate `ZERO_LENGTH_MIDI_NOTE` refusal instead of the earlier orphan tie. No newly aligned scores and no previously aligned regressions. **Player playback, GeneralUser GS/MuseScore General SoundFont banks, original XML, original 14 hand PNGs and finger guidance remain unchanged.** Automatic fingering remains NO-GO. [FG-04B3c audit](docs/FG-04B3C-ASAP-REFUSAL-TRIAGE.md).
 
 ### Release documentation rule
 
@@ -157,6 +161,15 @@ Real physical MIDI device behavior, sustain pedal/CC64, live service availabilit
 
 ---
 ### Release history
+
+## ASAP music alignment provenance and SoundFont-safe triage (v0.10.65)
+
+- Research audit baseline anchored to the **actual** v0.10.61 GitHub Actions artifact: **1/16** source-aligned piano scores, **15** explicit refusals, classified by musical cause and individually traceable without exporting copyright-protected pitches or notes.
+- A genuine Bach BWV 846 Fugue notational voice change can now form a continuous tie only with an unambiguous exact-beat part/staff/pitch source match. Competing starts, cross-staff and gaps still reject. Previous-aligned score regression now fails CI, and a new refusal reason is not misreported as an accuracy improvement.
+- Added source-finger-neutral research triage tests and updated CI report; kept full SoundFont-enabled v0.10.63 package dependencies, audio bank assets, instrument routing, Wait/Tempo behavior and 14 user-owned hand PNGs completely unchanged. No production automatic fingering. [FG-04B3c](docs/FG-04B3C-ASAP-REFUSAL-TRIAGE.md).
+
+
+
 
 ## MAESTRO v3 Online Library (v0.10.64)
 
