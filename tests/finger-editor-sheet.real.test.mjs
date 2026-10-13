@@ -92,7 +92,8 @@ try{
    sourceIds:source.tracks.flatMap(t=>t.notes.map(n=>n.noteId)),
    notes:imported.tracks.flatMap(t=>t.notes.map(n=>[n.pitch,n.start,n.duration])),
    original:source.tracks.flatMap(t=>t.notes.map(n=>[n.pitch,n.start,n.duration])),
-   exportWarning:imported.warnings.some(w=>w.includes('пользовательских правках'))
+   exportWarning:imported.warnings.some(w=>w.includes('пользовательских правках')),
+   importedSources:imported.tracks.flatMap(t=>t.notes.map(n=>({source:n.fingeringSource??null,finger:n.finger??null})))
   };
  },exportedXML);
  assert.equal(sourceCheck.sameSourceXML,original.xml);
@@ -100,6 +101,10 @@ try{
  assert.deepEqual(sourceCheck.notes,sourceCheck.original);
  assert.equal(sourceCheck.exportWarning,true,
   'Imported exported MusicXML must warn that the fingering is user-edited');
+ assert.equal(sourceCheck.importedSources.filter(n=>n.finger!==null).length,2);
+ assert.ok(sourceCheck.importedSources.filter(n=>n.finger!==null)
+  .every(n=>n.source==='musicxml-user-export-unverified'),
+  'Reimported user-edited XML must NEVER promote any original or edited digits to source-author');
   await page.locator('#fingerEditorZoom').selectOption('120');
  await page.locator('#fingerEditorScroller').evaluate(el=>{el.scrollLeft=el.scrollWidth-el.clientWidth});
  await page.waitForFunction(()=>window.__scoreTest.editor.scroll>100);
