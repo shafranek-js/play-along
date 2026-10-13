@@ -1,4 +1,12 @@
-# Play Along — Piano Practice App (v0.10.77)
+# Play Along — Piano Practice App (v0.10.78)
+
+## FG-03D2 — Actual pinned real-score hand motion eligibility audit (v0.10.78)
+
+The original **Play Along Chromium MusicXML importer** now feeds a separate, **research-only** feasibility audit across four revision-pinned, rights-reviewed *real* ASAP piano works (Bach prelude/fugue, Chopin etude, Mozart sonata). Source bytes are verified against exact Git hashes and sizes, and are never included in reports or shipped to Pages (ASAP **CC BY-NC-SA 4.0, research only**). The evaluator verifies original source note/tie IDs and MIDI note-on/off identity, counts only fully original author-provided hand **and** finger pairs, refuses duplicate/held physical keys, submillisecond collisions and incomplete simultaneous groups, then invokes FG-03D1 motion *only* on consecutive original onsets. The output is aggregate numbers of eligible/refused/moving/static decisions, never exported note/finger data. **No inferred finger, hand identity or pianist-approved motion is invented.** Real scores may have *zero* usable author labels; ground-truth musician accuracy remains **unmeasured**, not 100% or 0%. Detailed source and acceptance contract: [FG-03D2](docs/FG-03D2-REAL-SCORE-MOTION-EVIDENCE.md).
+
+All player behavior, original 14 PNG hands, Source MusicXML, MIDI/Wait/Tempo/Ghost, SoundFonts, MAESTRO and the no-go research/learner boundary remain untouched. Hand-thesia progress stays at **35%**.
+
+
 
 ## FG-04D1 — Correct author/user provenance before hand-motion research (v0.10.77)
 
