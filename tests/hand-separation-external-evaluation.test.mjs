@@ -131,10 +131,10 @@ test('R1: fixed human hand markers must not get misreported as discovered hand p
  assert.equal(r.correct+r.incorrect,r.proposed);
 });
 const TSV='onset\tkey_offset\tframe_offset\tnote\tvelocity\n'+
- '0\t0.4\t0.4\t48\t75\n0\t0.4\t0.4\t72\t75\n'+
+ '0\t0.9\t0.9\t48\t75\n0\t0.9\t0.9\t72\t75\n'+
  '0.5\t0.9\t0.9\t50\t80\n0.5\t0.9\t0.9\t74\t80\n';
 const GT='onset\tkey_offset\tframe_offset\tnote\tvelocity\thand\tfinger\n'+
- '0\t0.4\t0.4\t48\t75\tL\t5\n0\t0.4\t0.4\t72\t75\tR\t1\n'+
+ '0\t0.9\t0.9\t48\t75\tL\t5\n0\t0.9\t0.9\t72\t75\tR\t1\n'+
  '0.5\t0.9\t0.9\t50\t80\tL\t4\n0.5\t0.9\t0.9\t74\t80\tR\t2\n';
 const fetchMock=async(url)=>{
  const isGT=url.includes('/Fingering_GT/');
