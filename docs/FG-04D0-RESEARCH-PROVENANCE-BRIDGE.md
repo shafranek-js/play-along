@@ -20,7 +20,7 @@ The adapter does not read or rewrite the player's existing score or display syst
 
 ## Test and acceptance
 
-- `node --test tests/finger-motion-research-bridge.test.mjs` — 21 deterministic positive/negative tests covering known author fingers, paired user overrides, refusal of generated/incomplete annotations, unplayed-onset gaps, partial chords, physically held notes, non-forward travel, two-hand verification, too-late travel, invalid identities and input immutability.
+- `node --test tests/finger-motion-research-bridge.test.mjs` — 22 deterministic positive/negative tests covering known author fingers, paired user overrides, refusal of generated/incomplete annotations, unplayed-onset gaps, partial chords, physically held notes, non-forward travel, two-hand verification, too-late travel, invalid identities and input immutability.
 - `npm test`, `npm run build`, `npm run test:browser` and PR CI including original pinned ASAP/MAESTRO + both GM SoundFont banks must pass.
 - External musician-labelled RH/LH ground truth, independent finger adjudication, authentic transport/completion adapters, browser GPU/frame timing and real keyboard validation **remain unverified**. Learner auto-guidance must remain **NO-GO**, even on a green CI.
 
