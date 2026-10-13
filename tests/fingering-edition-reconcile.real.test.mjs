@@ -56,6 +56,7 @@ try{
  },newXml);
  assert.equal(currentSource.ids.length,3);
  await page.locator('#viewFingerEditor').click();
+ await page.locator('#fingerEditionPanel summary').click();
  await page.locator('#fingerEditionOldFile').setInputFiles({
   name:'previous-edition.musicxml',mimeType:'application/xml',buffer:Buffer.from(oldXml)
  });
