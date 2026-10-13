@@ -106,6 +106,13 @@ test('FG-04C2b local runner executes both actual-engine envelopes without export
   assert.equal(result.pianoMotion.status,'evaluated');
   assert.equal(result.pianoMotionImport.status,'verified');
   assert.equal(result.pianoMotionImport.noteCount,1);
+  const separated=join(dir,'actual-pianomotion-analysis.json');
+  const sourceOnly=join(dir,'source-only.json');
+  await writeFile(separated,JSON.stringify(build()),'utf8');
+  await writeFile(sourceOnly,JSON.stringify({source}),'utf8');
+  const direct=await runLocalComparison(sourceOnly,music,separated);
+  assert.equal(direct.ok,true,JSON.stringify(direct));
+  assert.deepEqual(direct.pianoMotion.summary,result.pianoMotion.summary);
   assert.equal(result.playAlong.status,'evaluated');
   assert.equal(result.productionEligible,false);
   assert.equal((await runLocalComparison(json)).reason,'ORIGINAL_MIDI_PATH_REQUIRED');
