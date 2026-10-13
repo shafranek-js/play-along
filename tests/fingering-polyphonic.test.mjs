@@ -179,3 +179,6 @@ test('Bounded search performance for 400-note chord/arpeggio phrase',()=>{
  console.log('FG-02B 400-note mixed-chord sample: '+ms.toFixed(2)+'ms (exploratory CI)');
  assert(ms<5000,'Search took longer than conservative CI safety bound: '+ms);
 });
+
+// FG-04C3: opt-in pair-specific reach constraints (legacy model unchanged).
+import './fingering-anatomical-spans.test.mjs';

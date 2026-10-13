@@ -5,13 +5,16 @@
  * Heuristic key spacing is NOT a substitute for a pianist's assessment.
  */
 const BLACK_X=[0,.5,1,1.5,2,3,3.5,4,4.5,5,5.5,6];
-const MAX=[0,2.25,4.4,6.2,7.65];
+const MAX=[0,2.25,4.4,6.2,7.65]; // baseline regression values
+const PAIR_CAPS=Object.freeze({'1-2':5.5,'1-3':6.5,'1-4':7.2,'1-5':8.3,
+ '2-3':2.7,'2-4':4.6,'2-5':6.0,'3-4':2.4,'3-5':4.3,'4-5':2.6});
 const SIZES={XXS:.68,XS:.78,S:.88,M:1,L:1.10,XL:1.20,XXL:1.30};
 const xpos=p=>Math.floor(p/12)*7+BLACK_X[p%12];
-export function auditFingeringAssignments(input,output,{handSize='M'}={}){
+export function auditFingeringAssignments(input,output,{handSize='M',spanModel='legacy'}={}){
  if(!Array.isArray(input)||!Array.isArray(output)||input.length!==output.length)
   return {valid:false,violations:[{code:'OUTPUT_LENGTH_MISMATCH'}]};
  if(!Object.hasOwn(SIZES,handSize))return {valid:false,violations:[{code:'INVALID_HAND_SIZE'}]};
+ if(!['legacy','anatomical'].includes(spanModel))return {valid:false,violations:[{code:'INVALID_SPAN_MODEL'}]};
  const problems=[],report=(code,index,other=null)=>problems.push({code,index,...(other===null?{}:{other})});
  const eps=.002;
  for(let i=0;i<input.length;i++){
@@ -39,7 +42,10 @@ export function auditFingeringAssignments(input,output,{handSize='M'}={}){
   const diff=(hi[1].finger-lo[1].finger)*(p.hand==='RH'?1:-1);
   if(diff<=0){report('CROSSING_HELD_FINGERS',i,j);continue}
   const span=xpos(hi[0].pitch)-xpos(lo[0].pitch);
-  if(span>MAX[diff]*SIZES[handSize]+.00001)report('STRETCH_EXCEEDS_MODEL',i,j);
+  const reach=spanModel==='anatomical'?
+    PAIR_CAPS[Math.min(p.finger,q.finger)+'-'+Math.max(p.finger,q.finger)]:
+    MAX[diff];
+  if(!reach||span>reach*SIZES[handSize]+.00001)report('STRETCH_EXCEEDS_MODEL',i,j);
  }
  return {valid:problems.length===0,violations:problems};
 }
