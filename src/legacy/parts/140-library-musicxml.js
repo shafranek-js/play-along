@@ -471,7 +471,7 @@ function readMusicXML(xmlString,filename){
  const segments=[],tempos=[{tick:0,tempo:500000}],ppq=10080;let warnings=new Set();
  const userExportMarker=xmlList(xmlDirect(xmlDirect(root,'identification'),'miscellaneous'),'miscellaneous-field')
   .some(x=>x.getAttribute('name')==='play-along-user-fingering');
- if(userExportMarker)warnings.add('Этот MusicXML сообщает о пользовательских правках аппликатуры Play Along. Номера пальцев не следует считать исходными обозначениями композитора.');
+ if(userExportMarker)warnings.add('В MusicXML есть отметка о пользовательских правках Play Along. Все номера пальцев из файла считаются неподтверждёнными: они НЕ используются как авторские подсказки. Чтобы включить подсказку, проверь и назначь палец и руку вручную в редакторе.');
  // MusicXML fingerings are optional authorial annotations (not inferred).
  // Preserve only a single unambiguous finger 1..5; never invent one.
  const authorFinger=(el)=>{
@@ -667,14 +667,14 @@ function readMusicXML(xmlString,filename){
     const noteId=musicXmlSourceNoteId(partId,partIndex,measureIndex,++sourceOrdinal);
     const note={pitch:pitchNumber,tick:absolute+onset,len:Math.max(1,noteDur),velocity:85,channel:config.channel,isDrum:config.isDrum,
      noteId,sourceNoteIds:[noteId],partId,staff,voice,sourceTrack:partIndex,instrumentId:config.id};
-    if(finger!==null){note.finger=finger;note.fingeringSource='musicxml';if(hand)note.hand=hand;}
+    if(finger!==null){note.finger=finger;note.fingeringSource=userExportMarker?'musicxml-user-export-unverified':'musicxml';if(hand)note.hand=hand;}
     const tieKey=fullKey+'|'+config.id+'|'+pitchNumber;const last=ties.get(tieKey);
     if(tied.includes('stop')&&last&&Math.abs(last.tick+last.len-note.tick)<=2){
      last.len+=note.len;
      // The unified held note keeps each written tie segment's identity.
      last.sourceNoteIds.push(note.noteId);
      if(finger!==null){
-      if(last.finger==null){last.finger=finger;last.fingeringSource='musicxml';if(hand)last.hand=hand;}
+      if(last.finger==null){last.finger=finger;last.fingeringSource=userExportMarker?'musicxml-user-export-unverified':'musicxml';if(hand)last.hand=hand;}
       else if(last.finger!==finger)warnings.add('Связанные лигой ноты содержат разные номера пальцев: первое обозначение сохранено, возможная замена пальца не воспроизводится.');
      }
      if(!tied.includes('start'))ties.delete(tieKey);
