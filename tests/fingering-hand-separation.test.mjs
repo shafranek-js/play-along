@@ -154,3 +154,6 @@ test('Source anchors still permit unique two-hand trajectories without automatic
  assert.deepEqual(labels(r),['LH','RH','LH','RH']);
  assert.equal(r.productionEligible,false);
 });
+
+// Register isolated FG-04C research regressions in the existing npm test suite.
+import './fingering-cost-research.test.mjs';
