@@ -8,7 +8,15 @@
 const HAND_SIZES=Object.freeze({XXS:.68,XS:.78,S:.88,M:1,L:1.10,XL:1.20,XXL:1.30});
 const WHITE_X=[0,.5,1,1.5,2,3,3.5,4,4.5,5,5.5,6];
 const OFFSETS=[-2,-1,0,1,2];
-const SPAN=[0,2.25,4.4,6.2,7.65];
+const SPAN=[0,2.25,4.4,6.2,7.65]; // accepted legacy model: unchanged
+// FG-04C3 opt-in biomechanical reach by ACTUAL finger pair, not index gap.
+// Independent thresholds in white-key distances; conservative heuristics,
+// NOT pianist-validated bounds or an inferred student's hand geometry.
+const ANATOMICAL_PAIR_SPANS=Object.freeze({
+ '1-2':5.5,'1-3':6.5,'1-4':7.2,'1-5':8.3,
+ '2-3':2.7,'2-4':4.6,'2-5':6.0,
+ '3-4':2.4,'3-5':4.3,'4-5':2.6
+});
 const BLACK=new Set([1,3,6,8,10]);
 const START_EPS=.012,END_EPS=.002;
 const failure=(reason)=>({ok:false,reason});
@@ -20,10 +28,11 @@ const fixed=(note)=>note.finger??null;
 // Monophonic notes, chords and independently sustaining polyphonic voices.
 // All notes in ONE invocation belong to an EXPLICIT hand.
 // Results remain tentative and MUST NOT be surfaced as authoritative hints.
-export function proposePolyphonicFingering(notes,{hand,handSize='M',beamWidth=40}={}){
+export function proposePolyphonicFingering(notes,{hand,handSize='M',beamWidth=40,costModel='legacy'}={}){
  if(!validHand(hand))return failure('HAND_REQUIRED');
  if(!Object.hasOwn(HAND_SIZES,handSize))return failure('INVALID_HAND_SIZE');
  if(!Number.isInteger(beamWidth)||beamWidth<1||beamWidth>128)return failure('INVALID_BEAM_WIDTH');
+ if(!['legacy','anatomical'].includes(costModel))return failure('INVALID_COST_MODEL');
  if(!Array.isArray(notes)||!notes.length||notes.length>2500)return failure('INVALID_LENGTH');
  const sorted=notes.map((n,index)=>({...n,index,anchor:fixed(n)}))
   .sort((a,b)=>a.start-b.start||a.pitch-b.pitch||a.index-b.index);
@@ -82,8 +91,11 @@ export function proposePolyphonicFingering(notes,{hand,handSize='M',beamWidth=40
      const dist=xpos(b.pitch)-xpos(a.pitch);
      // A low-to-high pitch must use distinct ordered fingers; no crossings
      // of simultaneously held voices are represented in this first model.
-     if(fd<=0||fd>4||dist>SPAN[fd]*width+.00001){feasible=false;break}
-     stretchPenalty+=.35*(dist/(SPAN[fd]*width))**4;
+     const reach=costModel==='anatomical'?
+       ANATOMICAL_PAIR_SPANS[Math.min(a.finger,b.finger)+'-'+Math.max(a.finger,b.finger)]:
+       SPAN[fd];
+     if(fd<=0||fd>4||!reach||dist>reach*width+.00001){feasible=false;break}
+     stretchPenalty+=.35*(dist/(reach*width))**4;
     }
     if(!feasible)continue;
     const centers=soundingNow.map(n=>xpos(n.pitch)-dir*OFFSETS[n.finger-1]*width);
@@ -138,7 +150,7 @@ export function proposePolyphonicFingering(notes,{hand,handSize='M',beamWidth=40
   source:fixed(n)===null?'proposed':'anchor',
   ...(n.noteId!=null?{noteId:n.noteId}:{})
  }));
- return {ok:true,method:'fg02b-experimental-beam-polyphonic',hand,handSize,
+ return {ok:true,method:costModel==='anatomical'? 'fg02b-anatomical-pair-beam':'fg02b-experimental-beam-polyphonic',hand,handSize,
   totalCost:+best.score.toFixed(5),items};
 }
 
@@ -147,7 +159,7 @@ export function proposePolyphonicFingering(notes,{hand,handSize='M',beamWidth=40
  * Cross-hand, same-key overlapping attacks are rejected as physically
  * ambiguous (MIDI cannot disambiguate them).
  */
-export function proposeTwoHandFingering(parts,{handSize='M',beamWidth=40}={}){
+export function proposeTwoHandFingering(parts,{handSize='M',beamWidth=40,costModel='legacy'}={}){
  if(!parts||typeof parts!=='object'||Array.isArray(parts))return failure('HAND_PARTS_REQUIRED');
  if(!Array.isArray(parts.RH)||!Array.isArray(parts.LH)||(!parts.RH.length&&!parts.LH.length))
   return failure('HAND_PARTS_REQUIRED');
@@ -157,7 +169,7 @@ export function proposeTwoHandFingering(parts,{handSize='M',beamWidth=40}={}){
  const results={};
  for(const hand of ['RH','LH']){
   if(!parts[hand].length){results[hand]=[];continue}
-  const r=proposePolyphonicFingering(parts[hand],{hand,handSize,beamWidth});
+  const r=proposePolyphonicFingering(parts[hand],{hand,handSize,beamWidth,costModel});
   if(!r.ok)return {...r,hand};
   results[hand]=r.items;
  }
