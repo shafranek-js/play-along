@@ -13,7 +13,8 @@ import {comparePseudoHandLabels,summarizePseudoHandEvidence}
  from '../src/core/hand-pseudolabel-evidence.mjs';
 
 export async function auditPianoVAMAutoHandPseudoLabels({
- fetcher=globalThis.fetch,names=EXPECTED_NAMES
+ fetcher=globalThis.fetch,names=EXPECTED_NAMES,
+ expectedSourceNotes=32525,expectedHumanGTNotes=1800
 }={}){
  if(!Array.isArray(names)||names.length!==11||
   new Set(names).size!==11||
@@ -40,7 +41,7 @@ export async function auditPianoVAMAutoHandPseudoLabels({
   });
  }
  const totals=summarizePseudoHandEvidence(metrics);
- if(totals.manualGTNotes!==1800||totals.sourceNotes!==32525)
+ if(totals.manualGTNotes!==expectedHumanGTNotes||totals.sourceNotes!==expectedSourceNotes)
   throw Error('R4_PINNED_SOURCE_POPULATION_CHANGED');
  return {
   schema:'fg04b4-r4-automatic-vs-human-hand-label-evidence-v1',
