@@ -160,3 +160,21 @@ test('R5: missing human GT / unexpected fake cohort cannot be called disjoint',(
  const c=inputs();
  assert.throws(()=>partition(c,{pilotSize:100}),/R5_INVALID_PILOT_SIZE/);
 });
+
+test('R5: oversized source or automatic pseudo metadata excludes pilot ONLY, never the full disjoint cohort',()=>{
+ const x=inputs();
+ x.sourceTree.find(f=>f.path.includes(newNames[0])).size=500000;
+ x.pseudoTree.find(f=>f.path.includes(newNames[1])).size=420000;
+ const r=partition(x);
+ assert.equal(r.report.pseudolabelOnlyRecordings,95);
+ assert.equal(r.report.boundedPilotEligibleRecordings,93);
+ assert.equal(r.report.sourceSizeLimitedOrUnknownPilotExclusions,2);
+ assert.equal(r.report.boundedTSVSourceByteLimit,350000);
+ assert.ok(!r.pilotNames.includes(newNames[0]));
+ assert.ok(!r.pilotNames.includes(newNames[1]));
+});
+test('R5: no pilot allowed when every unreviewed recording exceeds safety size or lacks metadata',()=>{
+ const x=inputs();
+ x.sourceTree.forEach(f=>{if(!EXPECTED_NAMES.some(n=>f.path.includes(n)))f.size=600000});
+ assert.throws(()=>partition(x),/R5_INSUFFICIENT_BOUNDED_PILOT_CASES/);
+});
