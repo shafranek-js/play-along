@@ -181,3 +181,10 @@ body.onlyLibrary #leftPanel .sidebody>.panelSection:first-child{
 .fingerResearchControls button:disabled{opacity:.45}
 #fingerResearchDetails{display:flex;gap:6px;flex-wrap:wrap}
 .fingerResearchMetric{display:inline-flex;padding:3px 7px;border:1px solid #54637b;border-radius:5px;color:#d0dcea;font-size:11px}
+
+/* FG-03C2B6: keep explicit destination selectors usable on narrow screens. */
+#fingerEditionManualWrap{max-width:100%;min-width:0}
+#fingerEditionManualCandidates .fingerEditionManualRow{overflow-wrap:anywhere}
+#fingerEditionManualCandidates select{display:block;width:100%;max-width:100%;min-width:0;color:inherit;background:#192331;border:1px solid #536174;border-radius:5px;padding:5px;margin:5px 0}
+#fingerEditionManualCandidates label{font-size:12px;line-height:1.4}
+#fingerEditionManualCandidates label input{margin-right:5px}
