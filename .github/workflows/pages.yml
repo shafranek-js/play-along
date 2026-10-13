@@ -17,6 +17,7 @@ concurrency:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -29,25 +30,27 @@ jobs:
           node-version: '22'
       - name: Install locked dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: Install Chromium for browser tests
-        run: npx playwright install --with-deps chromium
       - name: Build
         run: npm run build
-      - name: Test
+      - name: Unit tests
         run: npm test
-      - name: Real OpenSheetMusicDisplay browser tests
-        run: npm run test:browser
-      - name: Upload SoundFont acceptance reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: soundfont-acceptance
-          path: |
-            artifacts/audio-sf01/runs/*.json
-            artifacts/audio-sf03/**/*.json
-            artifacts/audio-sf04/**/*.json
-            artifacts/audio-sf05/**/*.json
-          if-no-files-found: warn
+      # Full Chromium and research regressions run in pr-tests.yml before merge.
+      # Do not repeat the entire browser suite ahead of production publication:
+      # a newly merged release otherwise remains invisible on Pages for minutes.
+      - name: Verify version-stamped publish assets
+        run: |
+          node --input-type=module <<'NODE'
+          import {readFileSync} from "node:fs";
+          import assert from "node:assert/strict";
+          const {version} = JSON.parse(readFileSync("package.json", "utf8"));
+          const html = readFileSync("dist/index.html", "utf8");
+          const js = readFileSync("dist/assets/app.js", "utf8");
+          assert.ok(html.includes("Standalone · v" + version), "Published HTML version does not match package.json");
+          assert.ok(html.includes("app.js?v=" + version), "Published JS cache-bust does not match package.json");
+          assert.ok(html.includes("app.css?v=" + version), "Published CSS cache-bust does not match package.json");
+          assert.ok(js.includes("window.__playAlongVersion='" + version + "'"), "Published JS version does not match package.json");
+          console.log("PAGES_ASSET_VERSION_VERIFIED " + version);
+          NODE
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
       - name: Upload static site
@@ -57,3 +60,27 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+      - name: Confirm GitHub Pages serves this exact release
+        env:
+          PUBLISHED_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          set -euo pipefail
+          version="$(node -p "require('./package.json').version")"
+          base="${PUBLISHED_URL%/}"
+          for attempt in $(seq 1 30); do
+            if curl --fail --location --silent --show-error --max-time 20 \
+                 --header "Cache-Control: no-cache" \
+                 "$base/?publish=$GITHUB_SHA-$attempt" -o /tmp/play-along-index.html && \
+               grep -Fq "Standalone · v$version" /tmp/play-along-index.html && \
+               curl --fail --location --silent --show-error --max-time 20 \
+                 --header "Cache-Control: no-cache" \
+                 "$base/assets/app.js?v=$version&publish=$GITHUB_SHA-$attempt" -o /tmp/play-along-app.js && \
+               grep -Fq "window.__playAlongVersion='$version'" /tmp/play-along-app.js; then
+              echo "PAGES_LIVE_VERSION_VERIFIED $version $base/ (SHA $GITHUB_SHA)"
+              exit 0
+            fi
+            echo "Pages still serving an earlier release (attempt $attempt / 30)"
+            sleep 5
+          done
+          echo "::error::Deployment action finished but the public Pages origin did not serve version $version"
+          exit 1
