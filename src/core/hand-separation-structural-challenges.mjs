@@ -109,7 +109,10 @@ export function inspectHandSeparationSyntheticCase(testCase){
  const noPath=ordinary==='NO_FEASIBLE_HAND_PATH';
  return {id:testCase.id,family:testCase.family,
   notes:notes.length,anchors:anchors.size,scored,
-  witness,witnessedStructuralConflict:witness.codes.length>0,
+  heldout:scored.heldout,proposed:scored.proposed,
+  correct:scored.correct,incorrect:scored.incorrect,abstained:scored.abstained,
+  witness,sourceStructuralFlags:witness.codes,
+  witnessedStructuralConflict:witness.codes.length>0,
   solverVerdict:ordinary,modelNoFeasible:noPath,
   modelNoFeasibleWithoutStructuralCertificate:noPath&&witness.codes.length===0,
   widerBeamChangedVerdict:outcome(wider)!==ordinary,
