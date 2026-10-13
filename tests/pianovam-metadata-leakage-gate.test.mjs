@@ -153,3 +153,32 @@ test('R6: metadata fetch errors or unbounded payload block research rather than 
    text:async()=>JSON.stringify(sample().metadata)}:fake(url)
  }),/R6_OVERSIZED_PUBLISHER_METADATA/);
 });
+
+test('R7: apparently reference-disjoint candidate performances may repeat the same pianist and work internally',()=>{
+ const s=sample();
+ // Entries 20/21/22 have no reference collision, but share a performer;
+ // 20 and 22 also share the same work in different publisher splits.
+ s.metadata[21].P1_name=s.metadata[20].P1_name;
+ s.metadata[22].P1_name=s.metadata[20].P1_name;
+ s.metadata[22].composer=s.metadata[20].composer;
+ s.metadata[22].piece=s.metadata[20].piece;
+ const r=audit(s),g=r.internalCandidateCollisions;
+ assert.equal(g.candidates,88);
+ assert.equal(g.comparedPairs,88*87/2);
+ assert.equal(g.samePerformerPairs,3);
+ assert.equal(g.sameWorkPairs,1);
+ assert.equal(g.bothPairs,1);
+ assert.equal(g.candidatesWithAnyInternalCollision,3);
+ assert.equal(g.candidatesWithoutDetectedInternalCollision,85);
+ assert.ok(g.crossSplitPairs>=1);
+ assert.equal(g.verifiedIndependentPerformers,0);
+ assert.equal(g.eligibleForLearnerUse,false);
+ assert.ok(!JSON.stringify(g).includes('UNSEEN SOURCE'));
+});
+test('R7: incomplete reference metadata never yields a falsely clean internal candidate pool',()=>{
+ const s=sample();s.metadata[0].P1_name=null;
+ const g=audit(s).internalCandidateCollisions;
+ assert.equal(g.candidates,0);
+ assert.equal(g.comparedPairs,0);
+ assert.equal(g.verifiedIndependentPerformers,0);
+});
