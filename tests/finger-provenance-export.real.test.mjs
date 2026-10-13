@@ -30,9 +30,9 @@ const xml=(marker)=>'<score-partwise version="4.0">'+
  '<note><pitch><step>D</step><octave>4</octave></pitch><duration>480</duration>'+
  '<voice>1</voice><staff>1</staff><notations><technical><fingering>2</fingering></technical></notations></note>'+
  '</measure><measure number="2">'+
- '<note><pitch><step>F</step><octave>4</octave></pitch><duration>480</duration><tie type="start"/>'+
+ '<note><pitch><step>F</step><octave>4</octave></pitch><duration>1920</duration><tie type="start"/>'+
  '<voice>1</voice><staff>1</staff></note></measure><measure number="3">'+
- '<note><pitch><step>F</step><octave>4</octave></pitch><duration>480</duration><tie type="stop"/>'+
+ '<note><pitch><step>F</step><octave>4</octave></pitch><duration>1920</duration><tie type="stop"/>'+
  '<voice>1</voice><staff>1</staff><notations><technical><fingering>4</fingering></technical>'+
  '<tied type="stop"/></notations></note></measure></part></score-partwise>';
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
