@@ -183,7 +183,8 @@ test('Pause and Seek recalculate statelessly without stale trajectory',()=>{
  const sought=result({transport:{...transport,repositioned:true,now:.55}});
  assert.equal(paused.kind,'static');assert.equal(sought.kind,'static');
  assert.deepEqual(result(),a);
- const newFrame=result({transport:{...transport,now:.45}});
+ const newFrame=result({transport:{...transport,now:.45,
+  motionContinuation:a.motionContinuation}});
  assert.ok(newFrame.phase>a.phase);assert.equal(newFrame.toX,a.toX);
 });
 test('Loop wrap requires explicit nextCycle and forward remaining time',()=>{
