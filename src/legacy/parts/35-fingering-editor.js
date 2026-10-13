@@ -276,7 +276,8 @@ $('fingerEditionCompare').onclick=async()=>{
     const intro=document.createElement('div');
     intro.textContent='Старая нота · такт '+(row.fromMeasure||'?')+
      ' · MIDI '+row.pitch+' · голос '+row.voice+' · стан '+row.staff+
-     ' · палец '+(row.finger===null?'нет':row.finger)+' · '+(row.hand||'рука неизвестна')+
+     ' · '+(row.tieCount>1?'лига '+row.tieCount+' фрагментов · ':'')+
+     'палец '+(row.finger===null?'нет':row.finger)+' · '+(row.hand||'рука неизвестна')+
      ' · причина: '+row.reason;
     const select=document.createElement('select');
     select.setAttribute('aria-label','Выбери соответствующую ноту для '+row.from);
@@ -286,6 +287,7 @@ $('fingerEditionCompare').onclick=async()=>{
      const el=document.createElement('option');el.value=option.to;
      el.textContent='Такт '+(option.measure||'?')+' · MIDI '+option.pitch+
       ' · голос '+option.voice+' · стан '+option.staff+
+      (option.tieCount>1?' · лига '+option.tieCount+' фрагментов':'')+
       (option.authorFinger!==null?' · авторский палец '+option.authorFinger:'')+
       (option.existing?' · уже исправлено':'')+
       ' · '+option.to;
