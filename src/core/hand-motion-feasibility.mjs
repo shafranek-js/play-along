@@ -119,6 +119,13 @@ export function planAnticipatoryHandMotion({hand,target,origin,geometry,viewport
  if(previous.selected.some(({key})=>!visible(key)))return staticHint('origin-clipped');
  if(opposite!==undefined&&opposite!==null){
   const otherHand=hand==='RH'?'LH':'RH';
+  // A matching pitch/finger is not sufficient: the target must be the
+  // very same verified score onset, including the same loop iteration.
+  if(!opposite.target||Math.abs(opposite.target.onset-target.onset)>EPS||
+     opposite.target.isNextUnfinished!==true||
+     (opposite.target.iteration??null)!==(target.iteration??null)||
+     (opposite.target.loopCycle??null)!==(target.loopCycle??null))
+    return markers('crossing-unknown');
   const otherFrom=examine(opposite.origin,otherHand,geometry,{requireRelease:true});
   const otherTo=examine(opposite.target,otherHand,geometry);
   if(otherFrom.error||otherTo.error)return markers('crossing-unknown');
@@ -143,11 +150,28 @@ export function planAnticipatoryHandMotion({hand,target,origin,geometry,viewport
  if(requiredMs+ARRIVAL_BUFFER_MS>availableLeadMs+EPS)return markers('movement-infeasible');
  const deltaX=next.center-previous.center;
  if(Math.abs(deltaX)<.2*(geometry.whites?.[0]?.w||1))return staticHint('no-relocation-needed');
+ // A late first call cannot reclaim elapsed travel time. A continuing
+ // motion needs the exact identity-bound token from an earlier moving result.
+ const motionKey=JSON.stringify([hand,origin.onset,target.onset,
+  effectiveTargetOnset,transport.speedPercent,transport.leadMs,
+  viewport.left,viewport.right,previous.center,next.center,
+  previous.selected.map(x=>[x.note.noteId,x.note.pitch,x.note.finger,x.note.duration]),
+  next.selected.map(x=>[x.note.noteId,x.note.pitch,x.note.finger,x.note.completed===true])]);
+ const prior=transport.motionContinuation;
+ const continuing=prior?.motionKey===motionKey&&
+  validNumber(prior.startedAtScore)&&
+  prior.startedAtScore>=lastRelease-EPS&&
+  prior.startedAtScore<=transport.now+EPS&&
+  (effectiveTargetOnset-prior.startedAtScore)*1000/
+   (transport.speedPercent/100)+EPS>=requiredMs+ARRIVAL_BUFFER_MS;
+ if(remainingMs+EPS<requiredMs+ARRIVAL_BUFFER_MS&&!continuing)
+  return markers('movement-infeasible-now');
+ const startedAtScore=continuing?prior.startedAtScore:transport.now;
  const progress=bounded(1-remainingMs/availableLeadMs,0,1);
  const phase=progress*progress*(3-2*progress);
  return {kind:'moving',reason:'heuristic-feasible-not-validated',confidence:'screened-only',
   researchOnly:true,hand,keys:pendingKeys,
   fromX:previous.center,toX:next.center,x:previous.center+deltaX*phase,
   phase,remainingMs,requiredMs,availableLeadMs,distanceKeys,arrivalAtScore:target.onset,
-  timing:'visual-only'};
+  timing:'visual-only',motionContinuation:{motionKey,startedAtScore}};
 }
