@@ -9,6 +9,7 @@
  * This is NOT a source-to-MIDI alignment test. Grace, ornament or missing
  * independently validated note timing means explicit unsupported, not success.
  */
+import path from 'node:path';
 import {realCorpusManifest} from './fingering-asap-real-score-audit.mjs';
 import {loadVerifiedScorePair} from './fingering-asap-xml-midi-audit.mjs';
 import {parseMusicXmlRepeatControls} from '../src/core/musicxml-repeat-traversal.mjs';
@@ -50,7 +51,7 @@ export async function probePinnedRepeatControls({fetcher=globalThis.fetch}={}){
   productionAutoFingeringAllowed:false,cases};
 }
 
-if(process.argv[1]&&process.argv[1].endsWith('/fg04b3e-asap-repeat-probe.mjs')){
+if(process.argv[1]&&path.basename(process.argv[1])==='fg04b3e-asap-repeat-probe.mjs'){
  try{console.log(JSON.stringify(await probePinnedRepeatControls(),null,2));}
  catch(e){console.error('FG-04B3e pinned-source verification failed:',e.message);process.exitCode=1;}
 }
