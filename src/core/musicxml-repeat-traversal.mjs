@@ -43,14 +43,14 @@ export function parseMusicXmlRepeatControls(xml){
  if(/<!--|-->/.test(clean))fail('REPEAT_MALFORMED_XML_COMMENT');
  if(/<\s*(?:segno|coda|dalsegno|dacapo|fine|to-coda)\b|<sound\b[^>]*\b(?:dacapo|dalsegno|tocoda|fine|segno|coda)\s*=|\bD\s*\.\s*[CS]\s*\./i.test(clean))
   fail('REPEAT_SCORE_NAVIGATION_UNSUPPORTED');
- const parts=[...clean.matchAll(/<part\b([^<>]*)>([\s\S]*?)<\/part\s*>/g)];
+ const parts=[...clean.matchAll(/<part\s+([^<>]*)>([\s\S]*?)<\/part\s*>/g)];
  if(!parts.length||parts.length>32)fail('REPEAT_PARTS_UNSUPPORTED');
  const partIds=[],partsParsed=[];
  for(const part of parts){
   const id=attrs(part[1]).id;
   if(!id||id.length>256||partIds.includes(id))fail('REPEAT_INVALID_PART_ID');
   partIds.push(id);
-  const measures=[...part[2].matchAll(/<measure\b([^<>]*)>([\s\S]*?)<\/measure\s*>/g)];
+  const measures=[...part[2].matchAll(/<measure\s+([^<>]*)>([\s\S]*?)<\/measure\s*>/g)];
   if(!measures.length||measures.length>MAX_MEASURES)
    fail('REPEAT_MEASURES_UNSUPPORTED');
   const numbers=[],events=[];
