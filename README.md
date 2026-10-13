@@ -1,4 +1,4 @@
-# Play Along — Piano Practice App (v0.10.66)
+# Play Along — Piano Practice App (v0.10.67)
 
 Play Along is an independently hosted browser piano practice application with Web MIDI, Piano Roll, OpenSheetMusicDisplay (OSMD), MusicXML/MXL and MIDI import, optional online music catalogs, and Wait/Tempo/Listen practice modes.
 
@@ -74,6 +74,10 @@ FG-02H flags **11 quick same-finger changes** requiring musician review. Preserv
 **FG-04B3c v0.10.65 — pinned ASAP refusal triage (research only):** Previous pinned 16-score MusicXML/MIDI audit measured **1 aligned (Bach Prelude BWV 846), 15 refused**: 7 grace-note realizations, 4 repeat/navigation cases, 1 ambiguous cross-voice tie provenance, 1 unmatched event, 1 backing-up voice timeline and 1 MIDI zero-length note. Freeze exact per-score outcomes in a separate research manifest and add a fail-closed classifier/CI regression gate: previously aligned scores must not silently become rejected; changed rejection codes do not count as improvements. Independently inspect the Bach Fugue and accept cross-voice continuation of an explicitly tied note **only when the same part, staff, pitch and adjacent beat give exactly one candidate**; otherwise refuse. Add 11 new unit checks. **SoundFont SF05 CI stability:** The SoundFont-enabled browser suite intermittently failed at GeneralUser GS program 0 because an asynchronous PCM capture window did not fully contain the scheduled note. The SF05 GM regression test now provides a longer capture window and at most three **coverage-only** attempts. It still requires finite, nonzero PCM for **all 128 programs in each of both banks** and rejects any program without a complete note-on/off capture. **No SoundFont files, DSP code, audio timing or instrument behavior were modified.**
 
 **Actual FG-04B3c CI result:** still **1/16 fully aligned**, **15/16 rejected**; Bach Fugue now reaches a separate `ZERO_LENGTH_MIDI_NOTE` refusal instead of the earlier orphan tie. No newly aligned scores and no previously aligned regressions. **Player playback, GeneralUser GS/MuseScore General SoundFont banks, original XML, original 14 hand PNGs and finger guidance remain unchanged.** Automatic fingering remains NO-GO. [FG-04B3c audit](docs/FG-04B3C-ASAP-REFUSAL-TRIAGE.md).
+
+**FG-04B3d v0.10.67 (source diagnostics, research only):** The original ASAP MusicXML/MIDI comparison remains **1 fully aligned / 15 refused**. Added a separate strict MIDI 0/1 structural anomaly scanner which counts original zero-tick NoteOn/NoteOff pairs **without changing their duration, replaying them or treating them as valid teaching events**. A lexical MusicXML inventory counts grace/author timing attributes, repeats, endings and score-navigation markings without inventing the performed notes. The existing 16 immutable CC BY-NC-SA ASAP pairs now have a hash-verified per-score aggregate diagnostic report with no copied musical passages, pitches or generated fingers, while the FG-04B3c regression guard and main FG-04B2/FG-04B3b refusal behavior remain unchanged. Added 13 source-integrity/refusal tests. **SoundFont SF2/SF3 banks, 256-program audio checks, original MAESTRO catalog, Web MIDI/Wait/Tempo, 14 transparent hand images and original MusicXML remain unchanged.** [FG-04B3d evidence](docs/FG-04B3D-ZERO-EVENT-SCORE-DIAGNOSTICS.md).
+
+**Measured FG-04B3d original-data results (16 pinned ASAP scores):** 38,267 original MIDI note-on/off pairs were examined, including **1,060 zero-tick pairs in 14 scores** (about **2.77%**). The MusicXML files contain **340 lexical grace markers, 25 repeat markers and 12 ending markers**; none of the 340 grace markers contains an explicit MusicXML `steal-time-previous`, `steal-time-following` or `make-time` attribute. This establishes source-data inventory, **not** an algorithmic correction of grace-note timing. The full-score matching gate stays **1/16** with zero new matches and zero regressions. [Research method and per-work findings](docs/FG-04B3D-ZERO-EVENT-SCORE-DIAGNOSTICS.md).
 
 ### Release documentation rule
 
@@ -161,6 +165,21 @@ Real physical MIDI device behavior, sustain pedal/CC64, live service availabilit
 
 ---
 ### Release history
+
+## Original MIDI and notation anomaly inventory (v0.10.67)
+
+- FG-04B3d scans all 16 immutable ASAP score MIDI files for actual zero-tick note pair counts in a read-only diagnostic parser. These events remain fatal to real source-MIDI matching; no invented note durations, altered music or false passing repertoire metrics.
+- Introduces independent lexical inventory of MusicXML grace marks (including explicit time-steal or make-time attributes), repeats, first/second endings and score navigation; report only safe per-piece counts and clear musical uncertainty rather than modifying playback.
+- New 13-case offline suite plus online hash-verified audit; preserve previous ASAP **1/16** alignment baseline, player/piano, original hand PNGs, the MAESTRO 1,276-record catalog and the two installed SoundFont banks. See [method and next FG-04B3e gate](docs/FG-04B3D-ZERO-EVENT-SCORE-DIAGNOSTICS.md).
+
+
+### GitHub Pages release publication integrity (deployment hotfix)
+
+- Publishing from `main` now runs the production build and Node tests, then uploads and deploys the generated site without **repeating the full Chromium browser suite**. The full browser, research, and SoundFont acceptance suite still runs in PR CI before merging. Repeating a long/occasionally timing-sensitive audio test after merging had been delaying Pages publication, leaving the former `Standalone` version visible.
+- Deployment verifies the generated HTML, cache-busting asset URLs, and JavaScript version stamp match `package.json`. After `actions/deploy-pages` it also probes the **public GitHub Pages URL** (cache-busting query, with retries) and requires that both live HTML and JS report the expected version. Thus a successful deploy run provides **actual published-version evidence**, not just a successful Git merge.
+- If the GitHub Pages workflow reports success but the browser remains stale, refresh without cache (`Ctrl+Shift+R`) or open `https://shafranek-js.github.io/play-along/?release=latest`. This change does not modify the application's playback, MIDI source handling, SoundFonts, or the 14 approved PNG hand images.
+
+
 
 ## MAE-03A — original MIDI articulation and golden real-performance clock (v0.10.66)
 
