@@ -64,9 +64,73 @@ test('D2: incomplete preceding group cannot be filtered to fictitious clear orig
   N(2,64,.8,.06,A(3))]);
  assert.equal(audit(s).decisions.moving,0);
 });
-test('D2: physically overlapping same key with two original IDs refuses entire audit',()=>{
+test('D3: overlapping same key in different original voices is locally quarantined, not globally refused',()=>{
  const s=song([N(0,60,0,1,A(1)),N(1,60,.3,.06,A(2))]);
- assert.equal(audit(s).reason,'OVERLAPPING_IDENTICAL_PHYSICAL_KEY');
+ const r=audit(s);
+ assert.equal(r.status,'NO_ELIGIBLE_SOURCE_TRANSITIONS');
+ assert.equal(r.physicallyAmbiguousSamePitchClusters,1);
+ assert.equal(r.physicallyAmbiguousSourceNotes,2);
+ assert.equal(r.physicallyAmbiguousTimeWindows,1);
+ assert.equal(r.ineligibility['ambiguous-physical-key-interval'],1);
+ assert.equal(r.attemptedHandTransitions,0);
+ assert.equal(r.decisions.moving,0);
+ assert.equal(r.productionEligible,false);
+});
+test('D3: safe passage after unrelated overlapping polyphonic voice is still assessable',()=>{
+ const notes=[N(0,60,0,.06,A(1)),N(1,64,.8,.06,A(3)),
+  N(2,67,2,1,A(3)),N(3,67,2.3,.06,A(4)),
+  N(4,60,3.2,.06,A(1)),N(5,64,4,.06,A(3))];
+ const r=audit(song(notes));
+ assert.equal(r.status,'HEURISTIC_SCREENING_ONLY');
+ assert.equal(r.physicallyAmbiguousSamePitchClusters,1);
+ assert.equal(r.physicallyAmbiguousSourceNotes,2);
+ assert.equal(r.ineligibility['ambiguous-physical-key-interval'],3);
+ assert.equal(r.attemptedHandTransitions,2);
+ assert.equal(r.decisions.moving,2,JSON.stringify(r));
+ assert.equal(r.labeledGroundTruthAccuracy,null);
+});
+test('D3: transitive chain of same-key overlapping voices remains one quarantined window',()=>{
+ const notes=[N(0,60,0,.06,A(1)),N(1,64,.8,.06,A(3)),
+  N(2,67,2,1,A(2)),N(3,67,2.5,1,A(3)),
+  N(4,67,3.2,1,A(4)),N(5,60,5,.06,A(1)),
+  N(6,64,5.8,.06,A(3))];
+ const r=audit(song(notes));
+ assert.equal(r.physicallyAmbiguousSamePitchClusters,1);
+ assert.equal(r.physicallyAmbiguousSourceNotes,3);
+ assert.equal(r.physicallyAmbiguousTimeWindows,1);
+ assert.ok(r.ineligibility['ambiguous-physical-key-interval']>=2);
+ assert.equal(r.decisions.moving,2);
+});
+test('D3: sequential same-pitch notes that do not overlap must not be quarantined',()=>{
+ const notes=[N(0,60,0,.06,A(1)),N(1,60,.8,.06,A(2)),
+  N(2,64,1.6,.06,A(3))];
+ const r=audit(song(notes));
+ assert.equal(r.physicallyAmbiguousSamePitchClusters,0);
+ assert.equal(r.physicallyAmbiguousSourceNotes,0);
+ assert.equal(r.attemptedHandTransitions,2);
+ assert.equal(r.productionEligible,false);
+});
+test('D3: simultaneous duplicated physical pitch is locally unknowable even when different hands labelled',()=>{
+ const notes=[N(0,60,0,.06,A(1)),N(1,64,.8,.06,A(3)),
+  N(2,67,2,.06,A(1,'LH')),N(3,67,2,.06,A(4,'RH')),
+  N(4,60,3.2,.06,A(1)),N(5,64,4,.06,A(3))];
+ const r=audit(song(notes));
+ assert.equal(r.physicallyAmbiguousSamePitchClusters,1);
+ assert.equal(r.physicallyAmbiguousSourceNotes,2);
+ assert.equal(r.ineligibility['ambiguous-physical-key-interval'],2);
+ assert.equal(r.attemptedHandTransitions,2);
+ assert.equal(r.decisions.moving,2);
+});
+test('D3: localized overlap accounting is deterministic and report contains no per-note IDs or raw pitches',()=>{
+ const notes=[N(0,60,0,1,A(1)),N(1,60,.3,.06,A(2)),
+  N(2,64,3,.06,A(3)),N(3,67,3.8,.06,A(5))];
+ const input=song(notes),snapshot=structuredClone(input);
+ const a=audit(input),b=audit(input);
+ assert.deepEqual(a,b);
+ assert.deepEqual(input,snapshot);
+ assert.equal(a.physicallyAmbiguousSamePitchClusters,1);
+ assert.ok(!JSON.stringify(a).includes('xml:P1:'));
+ assert.equal(a.productionEligible,false);
 });
 test('D2: two differently encoded onsets rounding to same millisecond fail closed',()=>{
  const s=song([N(0,60,0,.06,A(1)),N(1,64,.8001,.06,A(3)),N(2,69,.8002,.06,A(5))]);

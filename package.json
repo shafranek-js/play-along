@@ -1,6 +1,6 @@
 {
   "name": "play-along",
-  "version": "0.10.78",
+  "version": "0.10.79",
   "private": true,
   "type": "module",
   "description": "Play Along — independent browser piano practice application",

@@ -1,4 +1,12 @@
-# Play Along — Piano Practice App (v0.10.78)
+# Play Along — Piano Practice App (v0.10.79)
+
+## FG-03D3 — Real piano polyphony does not mean the whole score is corrupt (v0.10.79)
+
+**Research-only refusal correction, not auto fingering:** The pinned four-score FG-03D2 Chromium benchmark imported all four real ASAP MusicXML sources, but three complete pieces were previously rejected because independently notated **same-pitch notes overlapped in multiple score voices**. One physical held key cannot be independently played by two fingers, yet an overlap in a real polyphonic manuscript is **not evidence that every other note in the composition is invalid**. FG-03D3 precisely quarantines *the ambiguous overlap windows* and abstains from **all** consecutive source-onset transitions crossing them, without inventing fingers, changing note times, deduplicating voices or touching MIDI data. Safe consecutive score intervals outside those windows remain eligible **only** with original composer-written hand+finger pairs. Reports now separate physically ambiguous note clusters, affected unique source notes, merged time windows and conservatively skipped transitions. Authentic note/MIDI event identity failures still reject the whole score.
+
+Original CI evidence: 4/4 sources imported; Bach prelude 549 source notes assessed but no author fingering; Bach fugue 752, Chopin etude 1,337 and Mozart sonata 1,201 notes previously globally refused as same-pitch overlaps. Across the original sample, **zero independent author hand+finger pairs and zero motion trials were available**. New code does not turn unverified fingers into evidence or claim musical/ergonomic accuracy. Test coverage includes clean movement islands on both sides of physically ambiguous repeated keys, simultaneous cross-hand unisons, chained note overlaps and source invariants. [FG-03D3 root-cause / contracts](docs/FG-03D3-OVERLAP-REFUSAL-TRIAGE.md). All research-only algorithms remain disconnected from learner guidance; Hand-thesia progress stays **35%**.
+
+
 
 ## FG-03D2 — Actual pinned real-score hand motion eligibility audit (v0.10.78)
 
