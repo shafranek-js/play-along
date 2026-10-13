@@ -1,4 +1,4 @@
-# Play Along — Piano Practice App (v0.10.70)
+# Play Along — Piano Practice App (v0.10.71)
 
 Play Along is an independently hosted browser piano practice application with Web MIDI, Piano Roll, OpenSheetMusicDisplay (OSMD), MusicXML/MXL and MIDI import, optional online music catalogs, and Wait/Tempo/Listen practice modes.
 
@@ -89,6 +89,8 @@ FG-02H flags **11 quick same-finger changes** requiring musician review. Preserv
 
 **FG-04B4 / QA-02 hardening (v0.10.70, research-only):** Independent QA demonstrated a hand-identity ambiguity: unannotated simultaneous pitches can be played by ordinary or crossed hands, even when a heuristic strongly prefers one. The standalone RH/LH splitter now returns **`unknown` with `UNANCHORED_HAND_IDENTITY`** for every unfixed note when the phrase has no independently pinned user/author/score hand. This sacrifices unverified suggestion coverage to avoid misleading certainty. Structural beam search now permits a feasible **10-note (5+5) chord** rather than rejecting it at the old nine-note cap, with a separate bounded **300,000 expansion** safeguard. Independent QA-02 synthetic tests are registered with full `npm test`; pre-fix 17/32 proposed including 2 hypothetical crossed-hand mislabels was **not** real pianist accuracy and must not be compared as such. No auto-fingering or generated RH/LH is enabled for teaching; neither source MIDI events, 14 owner PNGs, SoundFont assets nor MAESTRO changed. [QA-02 evidence](docs/QA-02-HAND-SEPARATION-VALIDATION.md) and [FG-04B4 research](docs/FG-HAND-SEPARATION-RESEARCH.md).
 
+**FG-04B3e v0.10.71 (MusicXML repeat traversal, RESEARCH ONLY):** Added a conservative, independently written control parser for finite forward/backward repeats and explicit first/second endings, producing canonical written-measure references plus repeat-iteration playback identities without rewriting source MusicXML note IDs. It takes separately supplied **original written-measure durations**, preserves note pitch/onset/release and refuses nested navigation, unsupported ornament/grace timing, unpaired endings and unbounded playback. A strict optional original MIDI comparison must verify all note onset/release events within 2 ms; the planner does **not** prove original XML tempo equivalence or enable repeat playback in the player. **28 dedicated Node tests** are registered with the full regression suite. In four licensed pinned ASAP repeat examples all still have unresolved grace/ornament timing; **0 newly aligned, 4 refused**, and the established ASAP 16-piece baseline remains **1 matched / 15 refused**. This does not enable automatic generated learner finger hints. Original MAESTRO, SoundFont, 14 PNG hand poses and musical transport remain untouched. [FG-04B3e research](docs/FG-04B3E-REPEAT-TRAVERSAL-RESEARCH.md).
+
 ### Release documentation rule
 
 **Every Play Along feature, fix and version update must update README.md in the same pull request**, with user-visible behavior, technical limitations, reproducible checks and links to supporting documentation. The unit test suite verifies that the README heading and a version-specific release-history section match package.json. This automated check is a minimum safeguard, not a replacement for meaningful release notes. Never mark a version as complete while its README is stale.
@@ -175,6 +177,13 @@ Real physical MIDI device behavior, sustain pedal/CC64, live service availabilit
 
 ---
 ### Release history
+
+## FG-04B3e Strict Repeat Traversal Research (v0.10.71)
+
+- Added a research-only finite MusicXML repeat and first/second ending expansion API which keeps original written source note IDs unchanged and assigns separate playback iteration identities. It refuses unsupported nested repeats, post-jump navigation, grace and unresolved ornament timing; original MusicXML/MIDI and physical note durations remain untouched.
+- Registered 28 independent synthetic regression scenarios with `npm test`; two fixtures require strict original MIDI **pitch, NoteOn and NoteOff** equivalence, not just matching repeat notation. Real ASAP repeat works: 0/4 now fully aligned due to unsolved grace timing; no fabricated improvements or learner fingering enabled.
+- Unchanged published SoundFont/MAESTRO catalogs, 14 original transparent hand PNG poses, Wait/Tempo/Listen and previously integrated experimental hand/motion safety gates.
+
 
 ## Conservative RH/LH Uncertainty and QA-02 Acceptance (v0.10.70)
 
