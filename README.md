@@ -1,4 +1,14 @@
-# Play Along — Piano Practice App (v0.10.84)
+# Play Along — Piano Practice App (v0.10.85)
+
+## FG-04B4-R6 — Real source performer and repertoire overlap audit (v0.10.85)
+
+**Measured real publisher source collision (2026-10-13):** 95 automatic-only filename-disjoint recordings were compared with all eleven previously studied human-GT original recordings using the same publisher's pinned canonical metadata. **79/95 share an original performer; 20/95 repeat an exact composer+work title; 19 share BOTH; altogether 80/95 have at least one known overlap, leaving only 15 with no exact metadata collision** (not verified independent or human-labeled). Of the unchanged 8-pilot recordings, **5** overlap on performer/work, only **3** do not. Original train/test labels do NOT establish pianist independence. **No independent real hand/finger accuracy or learner eligibility is inferred.** [Exact full measured counts](docs/FG-04B4-R6-PUBLISHER-METADATA-LEAKAGE.md).
+
+**Research data quality, not machine-learning accuracy:** FG-04B4-R5 established **95 filename-disjoint** automatic-pseudolabel recordings separate from the already examined 11 PianoVAM human-GT recordings. This is insufficient for a blind RH/LH test because the same pianists and compositions can appear under different timestamps. FG-04B4-R6 reads the **immutable publisher's canonical `metadata.json`** at the exact PianoVAM revision and compares original `record_time`, *both* participant fields `P1_name/P2_name` and each composer's work title with **all eleven old manually annotated reference recordings**. It detects known duplicate performers/repertoire separately in the 95-source pool and the unchanged eight-source pilot, and includes publisher train/valid/test split distributions as **descriptive metadata, not independent performer evidence**. Incomplete original or reference metadata blocks claims about a disjoint cohort.
+
+Metadata-derived results are anonymous aggregate counts and source SHA256, with **no raw performer names, music work titles, timestamps, metadata JSON, original notes, finger sequences or per-recording slices** in the published CI artifact. Even no exact metadata collisions would not establish verified individual identities or independently adjudicated piano fingering. No pseudo-hand labels are promoted to original MusicXML author notation or learner guidance; no beam-search weights, source MIDI, SoundFont, MAESTRO, original fourteen PNG hand assets or transport is changed. PianoVAM's license is **CC BY-NC-SA 4.0 noncommercial research only**; automatic RH/LH/finger hints remain **NO-GO** for the learner. Hand-thesia progress stays **35%**. [FG-04B4-R6 protocol](docs/FG-04B4-R6-PUBLISHER-METADATA-LEAKAGE.md).
+
+
 
 ## FG-04B4-R5 — Strictly separate previously evaluated PianoVAM GT from pseudo-only source records (v0.10.84)
 
