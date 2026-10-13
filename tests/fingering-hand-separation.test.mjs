@@ -4,10 +4,11 @@ import {separateHandsResearch as separate} from '../src/core/fingering-hand-sepa
 const n=(id,pitch,start=0,duration=.3,extra={})=>({noteId:id,pitch,start,duration,...extra});
 const labels=r=>r.items.map(x=>x.hand);
 
-test('Unanchored two-octave two-hand duet: relative order, not middle C',()=>{
+test('P1: unanchored two-hand duet does not assert physical hand ownership',()=>{
  const r=separate([n('low',72),n('high',96)]);
- assert.deepEqual(labels(r),['LH','RH']);
- assert.deepEqual(r.summary,{total:2,fixed:0,proposed:2,unknown:0});
+ assert.deepEqual(labels(r),[null,null]);
+ assert.deepEqual(r.summary,{total:2,fixed:0,proposed:0,unknown:2});
+ assert.ok(r.diagnostics.every(d=>d.code==='UNANCHORED_HAND_IDENTITY'));
 });
 test('Low-register RH can be fixed; no hard C4 threshold',()=>{
  const r=separate([n('rh',43,0,.4,{authorHand:'RH'}),n('lh',32,0,.4,{authorHand:'LH'})]);
@@ -132,4 +133,24 @@ test('Reference fixture benchmark: fixed references excluded from proposal denom
  assert.equal(fixtures.length,5);
  assert.equal(wrong,0);
  assert.ok(unknown>0);
+});
+
+test('P2: physically feasible 5+5 onset passes structure/search without fake hand labels',()=>{
+ const pitches=[48,50,52,53,55,72,74,76,77,79];
+ const r=separate(pitches.map((p,i)=>n('ten'+i,p,0,.2)));
+ assert.equal(r.ok,true);
+ assert.equal(r.summary.total,10);
+ assert.equal(r.summary.unknown,10);
+ assert.equal(r.summary.proposed,0);
+ assert.ok(r.diagnostics.every(d=>d.code==='UNANCHORED_HAND_IDENTITY'));
+ assert.ok(!r.diagnostics.some(d=>d.code==='ONSET_SEARCH_CAP'));
+});
+test('Source anchors still permit unique two-hand trajectories without automatic fingers',()=>{
+ const notes=[n('L0',48,0,.3,{authorHand:'LH',voice:'LH',partId:'P1'}),
+  n('R0',72,0,.3,{authorHand:'RH',voice:'RH',partId:'P1'}),
+  n('L1',50,.5,.2,{voice:'LH',partId:'P1'}),
+  n('R1',74,.5,.2,{voice:'RH',partId:'P1'})];
+ const r=separate(notes);
+ assert.deepEqual(labels(r),['LH','RH','LH','RH']);
+ assert.equal(r.productionEligible,false);
 });

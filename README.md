@@ -1,4 +1,4 @@
-# Play Along — Piano Practice App (v0.10.69)
+# Play Along — Piano Practice App (v0.10.70)
 
 Play Along is an independently hosted browser piano practice application with Web MIDI, Piano Roll, OpenSheetMusicDisplay (OSMD), MusicXML/MXL and MIDI import, optional online music catalogs, and Wait/Tempo/Listen practice modes.
 
@@ -87,6 +87,8 @@ FG-02H flags **11 quick same-finger changes** requiring musician review. Preserv
 
 **FG-03D1 / QA-01 research integration (v0.10.69):** Integrated an **unwired, research-only** hand-motion feasibility planner for source-author/user-verified *next unfinished* note groups; it checks held keys, hand crossings, reach/time and exact original piano geometry without modifying source note onsets/releases or all 14 original PNG poses. Lead review identified and fixed two P1 issues: late first calls now refuse infeasible movement instead of borrowing elapsed time, and other-hand target checks require matching score onset and repeat iteration. An identity-bound prior-motion token can continue an already authorized trajectory, but cannot alone prove physical correctness. Added 5 P1 regression cases to the original 35 synthetic motion tests; added independent QA-01 integrity/MIDI/fingering tests to the actual `npm test` list, covering immutable SoundFont bank checksums, PNG hashes, original MAESTRO files, note-event invariants and generated-hand NO-GO. **No animation or new auto-fingering is activated in the published player.** The planner's per-frame speed and biomechanics have **not** been professionally reviewed. See [FG-03D1 motion research](docs/FG-03D1-HAND-MOTION-FEASIBILITY.md) and [QA-01 checks](docs/QA-01-REGRESSION-BASELINE.md). No percentage change is claimed for overall Hand-thesia progress.
 
+**FG-04B4 / QA-02 hardening (v0.10.70, research-only):** Independent QA demonstrated a hand-identity ambiguity: unannotated simultaneous pitches can be played by ordinary or crossed hands, even when a heuristic strongly prefers one. The standalone RH/LH splitter now returns **`unknown` with `UNANCHORED_HAND_IDENTITY`** for every unfixed note when the phrase has no independently pinned user/author/score hand. This sacrifices unverified suggestion coverage to avoid misleading certainty. Structural beam search now permits a feasible **10-note (5+5) chord** rather than rejecting it at the old nine-note cap, with a separate bounded **300,000 expansion** safeguard. Independent QA-02 synthetic tests are registered with full `npm test`; pre-fix 17/32 proposed including 2 hypothetical crossed-hand mislabels was **not** real pianist accuracy and must not be compared as such. No auto-fingering or generated RH/LH is enabled for teaching; neither source MIDI events, 14 owner PNGs, SoundFont assets nor MAESTRO changed. [QA-02 evidence](docs/QA-02-HAND-SEPARATION-VALIDATION.md) and [FG-04B4 research](docs/FG-HAND-SEPARATION-RESEARCH.md).
+
 ### Release documentation rule
 
 **Every Play Along feature, fix and version update must update README.md in the same pull request**, with user-visible behavior, technical limitations, reproducible checks and links to supporting documentation. The unit test suite verifies that the README heading and a version-specific release-history section match package.json. This automated check is a minimum safeguard, not a replacement for meaningful release notes. Never mark a version as complete while its README is stale.
@@ -173,6 +175,13 @@ Real physical MIDI device behavior, sustain pedal/CC64, live service availabilit
 
 ---
 ### Release history
+
+## Conservative RH/LH Uncertainty and QA-02 Acceptance (v0.10.70)
+
+- Hardened research hand separation after independent QA-02 found that a preferred unanchored LH-low/RH-high duet need not be the player's actual physical hand arrangement. An unanchored whole phrase now abstains instead of labelling that preference as reliable; author/user anchored paths remain research-only proposals.
+- Extended bounded search to 10-note two-hand chords and added a 300,000 mask-evaluation budget. Registered new hand-separation and independent QA-02 tests with standard `npm test`, preserving exact source notes, timing, user corrections and NO-GO learner status.
+- Development ownership has returned to **one Lead Architect chat**. Old parallel-thread coordination instructions remain only as archival background; existing older PRs are reviewed, integrated or closed here, not delegated to new chats.
+
 
 ## Research-only Motion Feasibility and QA Gates (v0.10.69)
 

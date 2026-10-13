@@ -8,6 +8,7 @@ const HANDS = ['LH', 'RH'];
 const SIZES = Object.freeze({XXS:.68, XS:.78, S:.88, M:1, L:1.10, XL:1.20, XXL:1.30});
 const KEY_X = [0,.5,1,1.5,2,3,3.5,4,4.5,5,5.5,6];
 const EPS = 0.000001;
+const MAX_SEARCH_EXPANSIONS = 300_000;
 const x = pitch => Math.floor(pitch/12)*7 + KEY_X[pitch%12];
 const fixedHand = n => n.userHand ?? n.authorHand ?? n.hand ?? null;
 const fixedSource = n => n.userHand != null ? 'user' : n.authorHand != null ? 'author' : n.hand != null ? 'score' : null;
@@ -86,17 +87,20 @@ export function separateHandsResearch(notes,{handSize='M',beamWidth=48,ambiguity
    noteIds:[a.noteId,b.noteId]});
  }
  const groups=eventGroup(ordered);
- if(groups.some(g=>g.notes.length>9))return unknownResult(notes,'ONSET_SEARCH_CAP');
+ if(groups.some(g=>g.notes.length>10))return unknownResult(notes,'ONSET_SEARCH_CAP');
  const size=SIZES[handSize];
  const initialHand=()=>({held:[],center:null,time:0});
  let beam=[{score:0,hands:{LH:initialHand(),RH:initialHand()},voices:new Map(),
   path:null}];
- let ambiguousPruning=false;
+ let ambiguousPruning=false,searchExpansions=0;
+ const hasSourceHandAnchor=ordered.some(n=>fixedHand(n)!==null);
  for(const group of groups){
   const next=[];
   const k=group.notes.length;
   for(const prev of beam){
    for(let mask=0;mask<2**k;mask++){
+    if(++searchExpansions>MAX_SEARCH_EXPANSIONS)
+     return unknownResult(notes,'SEARCH_BUDGET_EXCEEDED',{limit:MAX_SEARCH_EXPANSIONS});
     let rejected=false;
     const additions={LH:[],RH:[]};
     let voicePenalty=0;
@@ -156,11 +160,16 @@ export function separateHandsResearch(notes,{handSize='M',beamWidth=48,ambiguity
   if(fixed)return {noteId:n.noteId,hand:fixed,status:'fixed',
    source:fixedSource(n),reason:'FIXED_SOURCE',confidence:null};
   const alternatives=new Set(assignments.map(a=>a[index]));
-  const certain=alternatives.size===1&&!ambiguousPruning;
-  if(!certain)diagnostics.push({code:ambiguousPruning?'BEAM_TRUNCATED_AMBIGUOUS':'AMBIGUOUS_HAND',noteId:n.noteId});
+  // Without at least one independently fixed hand label, a crossed
+  // RH/LH performance can fit the *same* MIDI events as an ordinary duet.
+  // Ranking by low/high pitch is a preference, NOT hand-identity evidence.
+  const certain=hasSourceHandAnchor&&alternatives.size===1&&!ambiguousPruning;
+  const uncertainty=!hasSourceHandAnchor?'UNANCHORED_HAND_IDENTITY':
+   ambiguousPruning?'BEAM_TRUNCATED_AMBIGUOUS':'AMBIGUOUS_HAND';
+  if(!certain)diagnostics.push({code:uncertainty,noteId:n.noteId});
   return {noteId:n.noteId,hand:certain?assignments[0][index]:null,
    status:certain?'proposed':'unknown',source:certain?'research':'unknown',
-   reason:certain?'RESEARCH_ONLY':ambiguousPruning?'BEAM_TRUNCATED_AMBIGUOUS':'AMBIGUOUS_HAND',confidence:null};
+   reason:certain?'RESEARCH_ONLY':uncertainty,confidence:null};
  });
  const summary={total:items.length,fixed:items.filter(n=>n.status==='fixed').length,
   proposed:items.filter(n=>n.status==='proposed').length,
