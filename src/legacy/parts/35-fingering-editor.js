@@ -463,6 +463,11 @@ function fingerBrowserShow(report){
   candidates.append(list);
  }
 }
+$('fingerBrowserToggle').onclick=()=>{
+ const contents=$('fingerBrowserContents');
+ contents.hidden=!contents.hidden;
+ $('fingerBrowserToggle').setAttribute('aria-expanded',String(!contents.hidden));
+};
 $('fingerBrowserHandSize').onchange=()=>fingerBrowserAbort('Размер кисти изменён. Повторите расчёт.');
 $('fingerBrowserAssumeStaves').onchange=()=>fingerBrowserAbort('Предположение о руках изменено. Повторите расчёт.');
 $('fingerBrowserCalculate').onclick=()=>{
