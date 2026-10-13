@@ -4,6 +4,8 @@
 const fingerEditorCanvas=$('fingerEditorCanvas'),fingerEditorScroller=$('fingerEditorScroller'),
       fingerEditorSurface=$('fingerEditorSurface');
 let fingerEditionPlan=null,fingerEditionTarget=null,fingerEditionTargetKey=null,fingerEditionOverridesAtPlan=null;
+let fingerEditionFromSnapshot=null,fingerEditionToSnapshot=null,fingerEditionOldCorrections=null;
+let fingerEditionOldKey=null,fingerEditionOldCorrectionsAtPlan=null,fingerEditionManualControls=[];
 let fingerEditorBoxes=[],fingerEditorPointer=null,fingerEditorPaintScheduled=false,
     fingerEditorWidth=0,fingerEditorHeight=0;
 function fingerEditorAvailable(){
@@ -221,7 +223,12 @@ $('fingerEditorDownloadXML').onclick=()=>{
 function fingerEditionReset(){
  fingerEditionPlan=null;fingerEditionTarget=null;fingerEditionTargetKey=null;
  fingerEditionOverridesAtPlan=null;
+ fingerEditionFromSnapshot=null;fingerEditionToSnapshot=null;fingerEditionOldCorrections=null;
+ fingerEditionOldKey=null;fingerEditionOldCorrectionsAtPlan=null;fingerEditionManualControls=[];
  $('fingerEditionCandidates').replaceChildren();
+ $('fingerEditionManualCandidates').replaceChildren();
+ $('fingerEditionManualStatus').textContent='';
+ $('fingerEditionApplyManual').disabled=true;
  $('fingerEditionApply').disabled=true;
 }
 $('fingerEditionOldFile').addEventListener('change',()=>{
@@ -254,6 +261,56 @@ $('fingerEditionCompare').onclick=async()=>{
   }
   fingerEditionPlan=plan;fingerEditionTarget=target;fingerEditionTargetKey=targetKey;
   fingerEditionOverridesAtPlan=JSON.stringify(existing);
+  fingerEditionFromSnapshot=from;fingerEditionToSnapshot=to;fingerEditionOldCorrections=changes;
+  fingerEditionOldKey=oldKey;fingerEditionOldCorrectionsAtPlan=JSON.stringify(changes);
+  const manual=fingerEditionManualReview(from,to,changes,existing);
+  const manualHost=$('fingerEditionManualCandidates');
+  if(manual.status==='review'){
+   const activateManual=()=>{
+    $('fingerEditionApplyManual').disabled=!fingerEditionManualControls.some(c=>c.check.checked&&c.select.value);
+   };
+   for(const row of manual.rows){
+    const line=document.createElement('div');
+    line.className='fingerEditionManualRow';
+    line.style.cssText='padding:7px 0;border-bottom:1px solid #384251';
+    const intro=document.createElement('div');
+    intro.textContent='Старая нота · такт '+(row.fromMeasure||'?')+
+     ' · MIDI '+row.pitch+' · голос '+row.voice+' · стан '+row.staff+
+     ' · палец '+(row.finger===null?'нет':row.finger)+' · '+(row.hand||'рука неизвестна')+
+     ' · причина: '+row.reason;
+    const select=document.createElement('select');
+    select.setAttribute('aria-label','Выбери соответствующую ноту для '+row.from);
+    const empty=document.createElement('option');empty.value='';empty.textContent='— не переносить / выбрать новую ноту —';
+    select.append(empty);
+    for(const option of row.options){
+     const el=document.createElement('option');el.value=option.to;
+     el.textContent='Такт '+(option.measure||'?')+' · MIDI '+option.pitch+
+      ' · голос '+option.voice+' · стан '+option.staff+
+      (option.authorFinger!==null?' · авторский палец '+option.authorFinger:'')+
+      (option.existing?' · уже исправлено':'')+
+      ' · '+option.to;
+     select.append(el);
+    }
+    const checkLabel=document.createElement('label');
+    const check=document.createElement('input');check.type='checkbox';
+    checkLabel.append(check,document.createTextNode(' Я проверил соответствие именно этой ноты'));
+    const authorLabel=document.createElement('label');
+    const ackAuthor=document.createElement('input');ackAuthor.type='checkbox';
+    authorLabel.append(ackAuthor,document.createTextNode(' Подтверждаю замену авторских обозначений (при конфликте)'));
+    const userLabel=document.createElement('label');
+    const ackExisting=document.createElement('input');ackExisting.type='checkbox';
+    userLabel.append(ackExisting,document.createTextNode(' Подтверждаю замену существующей ручной правки (при конфликте)'));
+    for(const label of [checkLabel,authorLabel,userLabel])
+     label.style.cssText='display:block;margin:3px 0;';
+    select.onchange=()=>{check.checked=false;ackAuthor.checked=false;ackExisting.checked=false;activateManual()};
+    check.onchange=activateManual;
+    line.append(intro,select,checkLabel,authorLabel,userLabel);manualHost.append(line);
+    fingerEditionManualControls.push({row,select,check,ackAuthor,ackExisting});
+   }
+   $('fingerEditionManualStatus').textContent='Неоднозначных строк для ручного выбора: '+
+    manual.rows.length+' · Исключено без надёжных кандидатов: '+manual.excluded.length+
+    '. Ничего не выбрано и не применено.';
+  }
   const host=$('fingerEditionCandidates');
   for(const candidate of plan.proposals){
    const label=document.createElement('label');
@@ -275,6 +332,32 @@ $('fingerEditionCompare').onclick=async()=>{
    plan.unresolved.length+'. Ничего не применено. Конфликты исправляй вручную в редакторе.';
  }catch(err){status.textContent='Не удалось сравнить редакции: '+(err?.message||String(err))}
  finally{button.disabled=false}
+};
+$('fingerEditionApplyManual').onclick=()=>{
+ const status=$('fingerEditionManualStatus');
+ if(!fingerEditionPlan||current!==fingerEditionTarget||
+    fingerGuideWorkKey()!==fingerEditionTargetKey||
+    JSON.stringify(state.fingerOverrides?.[fingerEditionTargetKey]||{})!==fingerEditionOverridesAtPlan||
+    JSON.stringify(state.fingerOverrides?.[fingerEditionOldKey]||{})!==fingerEditionOldCorrectionsAtPlan){
+  fingerEditionReset();
+  status.textContent='Произведение или сохранённые исправления изменились. Сравни редакции заново.';return;
+ }
+ const choices=fingerEditionManualControls.filter(x=>x.check.checked&&x.select.value).map(x=>({
+  from:x.row.from,to:x.select.value,
+  acknowledgeAuthor:x.ackAuthor.checked,acknowledgeExisting:x.ackExisting.checked
+ }));
+ const plan=fingerEditionManualBatch(fingerEditionFromSnapshot,fingerEditionToSnapshot,
+  fingerEditionOldCorrections,state.fingerOverrides?.[fingerEditionTargetKey]||{},choices);
+ if(plan.status!=='ready'){
+  status.textContent='Ручной перенос отклонён: '+plan.reason+
+   '. Проверь целевую ноту и отдельные подтверждения конфликтов.';return;
+ }
+ if(!fingerOverrideCommit(null,null,{action:'batch',batch:plan.entries})){
+  status.textContent='Не удалось сохранить правки атомарно. Ничего не перенесено.';return;
+ }
+ fingerEditionReset();
+ status.textContent='Перенесено '+plan.accepted+
+  ' вручную подтверждённых нот. Один шаг Undo; исходный XML и MIDI без изменений.';
 };
 $('fingerEditionApply').onclick=()=>{
  if(!fingerEditionPlan||current!==fingerEditionTarget||
