@@ -31,6 +31,9 @@ function fingerEditorRender(){
    id==='fingerEditorUndo'?!fingerOverrideHistoryCurrent().past.length:
    id==='fingerEditorRedo'?!fingerOverrideHistoryCurrent().future.length:
    !selectedCount);
+ const userWork=fingerGuideWorkKey(),userEdits=userWork?state.fingerOverrides?.[userWork]||{}:{};
+ $('fingerEditorDownloadXML').disabled=!fingerEditorAvailable()||!!current?.originalNotationXML||
+  !Object.keys(userEdits).length;
  const doc=notes.length>0;
  if(!doc){
   fingerEditorBoxes=[];fingerEditorSurface.style.width=width+'px';
@@ -187,6 +190,29 @@ $('fingerEditorReset').onclick=()=>{
 };
 $('fingerEditorUndo').onclick=()=>{fingerOverrideCommit(null,null,{action:'undo'});fingerEditorRender()};
 $('fingerEditorRedo').onclick=()=>{fingerOverrideCommit(null,null,{action:'redo'});fingerEditorRender()};
+$('fingerEditorDownloadXML').onclick=()=>{
+ const status=$('fingerEditorExportStatus');
+ if(!fingerEditorAvailable()||!current)return;
+ const song=current,key=fingerGuideWorkKey(),corrections=key?state.fingerOverrides?.[key]:null;
+ const result=musicXmlCorrectedExport(song,corrections,{
+  parse:xml=>new DOMParser().parseFromString(xml,'application/xml'),
+  serialize:doc=>new XMLSerializer().serializeToString(doc),
+  reimport:readMusicXML,compareStructure:externalFingeringStructuralKey,
+  overlay:sheetFingeringOverlay
+ });
+ if(song!==current||key!==fingerGuideWorkKey())return;
+ if(result.status!=='ready'){
+  status.textContent='Экспорт отклонён: '+result.reason;
+  notify('MusicXML не экспортирован — '+result.reason);return;
+ }
+ const blob=new Blob([result.xml],{type:'application/vnd.recordare.musicxml+xml;charset=utf-8'});
+ const url=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=url;a.download=(String(song.title||'score').replace(/[\\/:*?"<>|\x00-\x1f]/g,'_').slice(0,80)||'score')+'-user-fingering.musicxml';
+ document.body.append(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),1000);
+ status.textContent='Экспортировано '+result.count+' ручных номеров. Только рука: '+
+  result.handOnly+' (без изменения). Оригинал не затронут; файл содержит отметку пользовательских правок.';
+};
 window.addEventListener('resize',fingerEditorPaintSoon);
 
 /** FG-04A: local, read-only comparison against an external generator's XML.

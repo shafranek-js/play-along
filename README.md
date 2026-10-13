@@ -1,4 +1,9 @@
-# Play Along — Piano Practice App (v0.10.72)
+# Play Along — Piano Practice App (v0.10.73)
+
+## FG-03C2B4 — Download corrected MusicXML (v0.10.73)
+
+In **✍ Аппликатура**, explicitly download a **separate** `.musicxml` copy containing manually corrected numeric fingering. Before download, the entire source score is matched to canonical note IDs; non-fingering XML structure, original notes/measure timing, and MIDI events must survive reimport unchanged. The resulting XML carries an explicit Play Along **user-edited fingering** metadata marker and triggers a provenance warning on reimport. Hand-only corrections are reported but **not serialized as fabricated fingers**. Expanded repeat scores and unverifiable edits refuse export. Existing source MusicXML, local user correction storage, all 14 original hand PNGs, playback and research-only/no-go auto-fingering remain unchanged. [Details and limits](docs/FG-03C2B4-CORRECTED-MUSICXML-EXPORT.md).
+
 
 Play Along is an independently hosted browser piano practice application with Web MIDI, Piano Roll, OpenSheetMusicDisplay (OSMD), MusicXML/MXL and MIDI import, optional online music catalogs, and Wait/Tempo/Listen practice modes.
 
@@ -10,7 +15,7 @@ Play Along is an independently hosted browser piano practice application with We
 
 **Parallel-PR CI policy (coordination update; no application release):** Research-only branches `research/fingering-ai-*`, `research/hand-motion-*`, `research/music-engine-*` and `qa/*` must provide dedicated `docs/FG-*.md` / `docs/QA-*.md` and are limited to research modules/tests/scripts/docs/data manifests; they cannot change production player, SoundFont/MAESTRO, shared README, package versions or CI. All **other** application/integration PRs still must update README and pass full existing tests. The Lead Architect merges compatible work, updates release docs/version and verifies deployment. This change does not itself increase Hand-thesia completion or enable auto-fingering.
 
-**Parallel development coordination:** Work on Fingering AI, Hand Animation, Music Engine and QA is organized into independent ChatGPT threads and isolated PR branches. Only the coordinating Lead Architect integrates and merges tested work, updates release versions and checks SoundFont/MAESTRO non-regression. See [parallel-chat development protocol](docs/PARALLEL-CHAT-DEV.md). This is a documentation/workflow change, not a new player version or automatic fingering feature.
+**Single-chat development coordination (since 2026-10-13):** The owner discontinued parallel ChatGPT workstreams. The Lead Architect independently handles implementation, review, QA integration, release versioning and merging in one conversation, with isolated Git branches and mandatory GitHub Actions gates. The former [parallel-chat protocol](docs/PARALLEL-CHAT-DEV.md) is archived for historical traceability only; **no new worker/subagent threads** are required. This workflow clarification does not enable unverified auto-fingering.
 
 
 ## SoundFont playback (v0.10.63)
