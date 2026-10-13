@@ -52,7 +52,7 @@ export async function auditPinnedPublisherMetadata({
   permittedUse:'NONCOMMERCIAL SOURCE RESEARCH ONLY',
   ...result,
   reportExcludesNamesTitlesFilesAndRawMetadata:true,
-  holdoutNoIndependentExpertFingering:false,
+  independentExpertFingerGroundTruthEstablished:false,
   automaticHandLabelsUsedAsHumanGroundTruth:false,
   action:'DO NOT PROMOTE pseudo-only recordings to independent source GT',
   productionEligible:false
