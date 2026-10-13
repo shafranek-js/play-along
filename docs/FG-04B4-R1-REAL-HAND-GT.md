@@ -17,6 +17,30 @@ The research `separateHandsResearch` routine receives new minimal arrays of `not
 
 Independently compare each proposed RH/LH to the original external performer GT. Never count fixed anchors as correct predictions. Report **coverage** (proposed/held-out), **conditional agreement** (correct/proposed), **false assignment rate** (incorrect/proposed), **abstention** (unknown/held-out) and conservative correct-among-all-held-out. Null rather than 0% is required when the denominator is zero. Keep individual refusal reasons and unresolved diagnoses as aggregate counts, not raw notes or per-performance fingering.
 
+
+## First measured independent-source result — 13 October 2026
+
+The full [PR #81 CI run](https://github.com/shafranek-js/play-along/actions/runs/38402084598) verified all eleven original PianoVAM source pairs and produced these counts, without tuning the candidate after seeing the answer labels:
+
+| Metric | Unanchored | Source/oracle seeded |
+| --- | ---: | ---: |
+| Source recordings | 11 | 11 |
+| Original source notes / GT-covered | 32,525 / 1,800 | 32,525 / 1,800 |
+| Complete same-hand polyphonic islands | 242 | 242 |
+| Original notes in evaluated islands | 1,467 | 1,467 |
+| Known GT anchors exposed to solver | 0 | **404** |
+| Held-out source notes scored | **1,467** | **1,063** |
+| RH/LH proposed | 0 | **325** |
+| Correct / incorrect among proposed | 0 / 0 | **272 / 53** |
+| Unresolved/abstained | 1,467 | **738** |
+| Prediction coverage of held-out notes | **0%** | **30.57%** |
+| Agreement among proposed notes | **undefined (no proposals)** | **83.69%** |
+| Incorrect among proposed notes | **undefined (no proposals)** | **16.31%** |
+| Correct among ALL held-out notes | **0%** | **25.59%** |
+| Independent pianist-reviewed finger/motion accuracy | Not evaluated | Not evaluated |
+
+No GT/source event record was assigned an invented hand or copied to the output artifact. In particular, the source-assisted **83.69%** conditional agreement does **not** represent the autonomous algorithm's accuracy: the MIDI-only case correctly refused 100% of the unanchored population. Even with known hand labels supplied for oracle anchors, nearly 70% of held-out notes remained without a proposed hand and 53 of the 325 proposals were wrong. This remains **NO-GO** for production teaching; an independently adjudicated musician evaluation and reliable source-authenticated hand anchors would be needed for any product use.
+
 ## Exclusions / quality limits
 
 - One person's externally labeled hands/fingers are **performance annotations**, not universal pianist-approved pedagogical solutions, not original MusicXML composer notation and not a wrist-joint motion recording.
