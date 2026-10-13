@@ -29,6 +29,16 @@ FG-04B3c now attempts a **strictly unique** continuation if a tie stop lacks the
 
 If two candidate ties qualify, reject `MUSICXML_AMBIGUOUS_TIE_STOP`; an impossible cross-staff or discontinuous tie remains rejected. Retain the original initial source ID and every linked note segment ID. The score MIDI matcher still requires all notes matched one to one, including exact note-off (fixed 2-ms export tolerance). Thus accepting a valid XML tie does **not** itself imply matching the MIDI file.
 
+## Verified FG-04B3c result on original real scores
+
+The [FG-04B3c PR CI run](https://github.com/shafranek-js/play-along/actions/runs/38357253297) passed the pinned network audit and all original baseline checks. The new audit still finds **1 aligned score (Bach Prelude BWV 846) and 15 refusals**, with **zero new full-score alignments**, **zero regressions**, and one changed refusal reason:
+
+- **Bach Fugue BWV 846:** `MUSICXML_UNPAIRED_TIE_STOP` → `ZERO_LENGTH_MIDI_NOTE`. This demonstrates the crossed-voice tie was parsed, but the original MIDI contains an event that the strict FG-04B2 parser refuses. It is **not** evidence of complete XML↔MIDI correspondence.
+- Other refusals unchanged: 7 grace-note timing, 4 repeat navigation, 1 score/MIDI event mismatch (Chopin Op. 10/1), 1 backup/voice timeline (Debussy), 1 original zero-duration MIDI note (Schubert Moment musical 3).
+- Post-change refusal groups: **7 grace**, **4 repeat**, **2 MIDI source zero-length**, **1 score/MIDI divergence**, **1 voice-timeline refusal**.
+
+Do not silently discard or extend a zero-duration note to raise the apparent success count. The next step is to inspect this source MIDI note's quantization and its source MusicXML event without rewriting either file.
+
 ## Baseline regression and actionable report
 
 `src/core/asap-audit-triage.mjs` compares the current complete 16-case results to the frozen v0.10.61 baseline:
