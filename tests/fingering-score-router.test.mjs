@@ -166,3 +166,6 @@ test('FG-02I unannotated proposals are marked research only, not presented as ce
  assert.equal(r.confidence,null);
  assert.ok(r.hands.RH.every(x=>x.source==='proposed-research'));
 });
+
+// FG-04C2 actual-router comparison controls; no simulated PianoMotion engine execution.
+import './fingering-engine-comparison.test.mjs';

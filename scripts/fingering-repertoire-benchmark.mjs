@@ -21,7 +21,7 @@ const BASE='https://huggingface.co/datasets/riyaranjan/piano-protege-curriculum/
 const ORIGIN='https://huggingface.co';
 const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 
-export async function loadRepertoireSource(entry,{download=globalThis.fetch}={}){
+export async function loadRepertoireSource(entry,{download=globalThis.fetch,sleep=delay}={}){
  // Reject arbitrary URLs even if a source manifest were modified. Only the
  // pinned revision, validated stage3 path and official domain are eligible.
  if(!/^[0-9a-f]{40}$/.test(corpus.revision)||
@@ -29,7 +29,7 @@ export async function loadRepertoireSource(entry,{download=globalThis.fetch}={})
   throw Error('SOURCE_MANIFEST_INVALID:'+entry.id);
  const link=BASE+corpus.revision+'/'+entry.path;
  let failure;
- for(let attempt=0;attempt<3;attempt++){
+ for(let attempt=0;attempt<6;attempt++){
   try{
    const response=await download(link,{
     redirect:'follow',signal:AbortSignal.timeout(20_000),
@@ -58,7 +58,12 @@ export async function loadRepertoireSource(entry,{download=globalThis.fetch}={})
    // note count are hard errors: never silently replace gold labels.
    if(/^(SOURCE_NOTE_COUNT_CHANGED|SOURCE_SHA256_MISMATCH|SOURCE_MANIFEST_INVALID_SHA256|INVALID_PIG|UNSUPPORTED_PIG|DUPLICATE_PIG|NON_MONOTONIC_PIG|EMPTY_PIG|INVALID_PITCH|PITCH_OUT_OF_RANGE|SOURCE_MANIFEST_INVALID)/.test(String(e.message)))
     break;
-   if(attempt<2)await delay(500*(attempt+1));
+   // Pinned source fingerprints and note-count rules NEVER relax. Retry only
+   // transient transport faults (429/5xx/network) with bounded backoff.
+   const m=String(e.message).match(/^SOURCE_FETCH_HTTP_([0-9]{3})$/);
+   if(m&&Number(m[1])!==429&&Number(m[1])<500)break;
+   if(String(e.message)==='UNEXPECTED_SOURCE_REDIRECT')break;
+   if(attempt<5)await sleep(500*2**attempt);
   }
  }
  throw Error('SOURCE_UNAVAILABLE:'+entry.id+':'+String(failure?.message));
