@@ -1,5 +1,9 @@
 # Play Along — Piano Practice App (v0.10.86)
 
+## PianoMotion Studio — owner-authorized integration assessment (no code import yet)
+
+The project owner has authorized reuse of their [PianoMotion Studio](https://github.com/shafranek-js/pianomotion-studio). Its procedural motion buffer, articulated hands/PixiJS renderer, validated plan contracts and Worker/Pyodide bridge are integration candidates for source-verified next-note motion. The separate Python numerical core contains adapted Hand-thesia lineage and still requires per-file source/right verification before copy or public redistribution. The current fourteen original PNG poses, playback, MusicXML/MIDI timing and verified author/user fingers remain unchanged. Optional renderer and cost-model integration are gated on browser QA and pianist validity; automatic fingering remains NO-GO. [Detailed interface and provenance plan](docs/PIANOMOTION-STUDIO-INTEGRATION.md). No application version bump for this assessment; Hand-thesia progress remains **35%**.
+
 ## FG-03A-P1 — Reject duplicate source-note IDs in live next-chord guidance (v0.10.86)
 
 When simultaneous score notes share the same nonempty canonical `noteId`, a hand position cannot be uniquely attributed to either source event. The original score onset and total note count are retained, but all duplicate-ID finger candidates at that onset are suppressed; independent unambiguous fingers may remain as numeric labels while the full chord is marked incomplete. An unannotated source note sharing an ID also invalidates the annotated candidate. Earlier/later separate onsets remain independent; original note-on/off, Wait/Tempo/Listen, SoundFont, MAESTRO and all 14 hand PNG assets are untouched. Two synthetic nonmutation/refusal regressions cover this safety behavior. This is a production guidance integrity fix, **not** inferred RH/LH or automated teaching fingering.
