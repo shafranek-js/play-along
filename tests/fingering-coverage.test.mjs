@@ -50,3 +50,14 @@ test('Coverage: invalid proposals and untrusted MIDI finger fields cannot raise 
  assert.equal(fingeringCoverageStatus(fingeringCoverageFromSong({id:'demo-scale',tracks:[{notes:[note(60,null),note(62,null)]}]})),'none');
  assert.equal(fingeringCoverageStatus(fingeringCoverageFromSong({id:'demo-finger-duet',tracks:[{notes:[note(60,null),note(62,null)]}]})),'full');
 });
+
+test('FG-04D1: downloaded user-edited XML digits count neither as author nor as verified user corrections',()=>{
+ const n=note(60,3,'RH','xml:P1:0:0:1');
+ n.fingeringSource='musicxml-user-export-unverified';
+ const s=score(n,note(62,null));
+ const unknown=fingeringCoverageFromSong(s);
+ assert.deepEqual(unknown,{total:2,marked:0,hands:0,author:0,user:0});
+ assert.equal(fingeringCoverageStatus(unknown),'none');
+ const manual=fingeringCoverageFromSong(s,{[n.noteId]:{finger:3,hand:'RH'}});
+ assert.deepEqual(manual,{total:2,marked:1,hands:1,author:0,user:1});
+});
