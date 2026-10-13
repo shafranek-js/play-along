@@ -4,6 +4,8 @@ Play Along is an independently hosted browser piano practice application with We
 
 **Live site:** https://shafranek-js.github.io/play-along/
 
+**Parallel development coordination:** Work on Fingering AI, Hand Animation, Music Engine and QA is organized into independent ChatGPT threads and isolated PR branches. Only the coordinating Lead Architect integrates and merges tested work, updates release versions and checks SoundFont/MAESTRO non-regression. See [parallel-chat development protocol](docs/PARALLEL-CHAT-DEV.md). This is a documentation/workflow change, not a new player version or automatic fingering feature.
+
 
 ## SoundFont playback (v0.10.63)
 
