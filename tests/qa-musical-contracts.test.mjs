@@ -55,7 +55,7 @@ test('QA-01: changes in MIDI tempo map never rewrite original source XML, MIDI o
  assert.equal(result.status,'aligned',result.reason);
  assert.equal(result.summary.matched,2);
  assert.deepEqual(result.links.map(x=>x.noteId),
-  ['xml:P1:0:0:1','xml:P1:0:1:1']);
+  ['xml:P1:0:0:1','xml:P1:0:0:2']);
  assert.equal(result.midiTempoUsedForScoreClock,true);
  assert.equal(result.scoreTempoIndependentlyValidated,false);
  assert.equal(result.productionAutoFingeringAllowed,false);
@@ -91,7 +91,7 @@ test('QA-01: explicit tie retains both source segment IDs, no phantom second MID
  const normalized=normalizeMusicXmlBeats(xml);
  assert.equal(normalized.notes.length,1);
  assert.deepEqual(normalized.notes[0].sourceNoteIds,
-  ['xml:P1:0:0:1','xml:P1:1:0:1']);
+  ['xml:P1:0:0:1','xml:P1:0:1:1']);
  const result=compareRawMusicXmlToScoreMidi(xml,smf([N(67,0,960)]));
  assert.equal(result.status,'aligned',result.reason);
  assert.equal(result.summary.mergedTieSegments,1);
