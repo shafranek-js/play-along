@@ -10,12 +10,12 @@ An entire canonical target group must have `isNextUnfinished:true`, original ons
 
 ## Transport and bounded pose policy
 - Listen/Tempo preview only in the selected 500–1000ms wall-clock lookahead; 50–200% playback speed is a **visual-time conversion**, not MIDI playback rewrite. Wait unfinished chords never receive animated secondary poses.
-- Pause/Seek/reposition → static; missing/truncated range, incorrect hand, conflicting topology, non-finite 3D coordinates, stale worker result, insufficient frame coverage, unknown loop iteration → markers or refusal. Avoid extrapolation beyond the provided buffer.
+- Pause/Seek/reposition → static; unknown/nonempty held-key state or unverified opposite-hand crossing clearance → markers; missing/truncated range, incorrect hand, conflicting topology, non-finite 3D coordinates, stale worker result, insufficient frame coverage, unknown loop iteration → markers or refusal. Avoid extrapolation beyond the provided buffer.
 - Max **128** frames, **10** source notes, **40** bones and **120** joints per frame, **4.01** seconds pose span; reject unbounded or malformed objects. Coordinate validation bounds each finite component to ±1000; no socket/network or storage access.
 - Only interpolate matched `boneId/kind` and joint `kind` pairs. Return an immutable-by-convention new pose object, never alter input frames, score notes, MIDI NoteOn/NoteOff or hand PNG assets.
 - The bridge **does not verify fingertip–key contact, anatomical joint realism, original pianist behaviour or score identity by itself**. It requires source-authenticated note inputs from Play Along before any proposed renderer activation.
 
 ## Verification
-`node --test tests/pianomotion-pose-adapter.test.mjs` passed **10/10** locally on an independently generated synthetic fixture (not musician performance evidence). Test suite is also registered in the existing `npm test` entry via `tests/hand-motion-feasibility.test.mjs`. Verify full Node/Chromium/MAESTRO/SoundFont CI on the PR before integration.
+`node --test tests/pianomotion-pose-adapter.test.mjs` passed **11/11** locally on an independently generated synthetic fixture (not musician performance evidence). Test suite is also registered in the existing `npm test` entry via `tests/hand-motion-feasibility.test.mjs`. Verify full Node/Chromium/MAESTRO/SoundFont CI on the PR before integration.
 
 **No production wiring in FG-03D4.** The default PNG renderer and all fourteen original hand assets stay intact. A later opt-in PixiJS experiment needs a separate source-safe renderer adapter, real browser performance/contact/Wait/Loop evidence, source rights approval and user acceptance. Automatic fingering remains **NO-GO**, and the 35% Hand-thesia goal completion estimate does not change.
