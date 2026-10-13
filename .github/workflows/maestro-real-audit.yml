@@ -8,6 +8,12 @@ on:
       - 'tests/maestro-midi-audit.test.mjs'
       - 'tests/maestro-diversity.test.mjs'
       - 'research/maestro-v3-measured-qa-pins.json'
+      - 'src/legacy/parts/135-maestro-catalog.js'
+      - 'src/legacy/parts/180-library-ui.js'
+      - 'src/legacy/parts/190-app-bootstrap.js'
+      - 'src/index.html'
+      - 'scripts/manifest.json'
+      - 'tests/maestro-online.real.test.mjs'
       - 'package.json'
       - '.github/workflows/maestro-real-audit.yml'
   workflow_dispatch:
@@ -38,6 +44,16 @@ jobs:
       - name: Official archive SHA256 verification
         run: |
           echo '70470ee253295c8d2c71e6d9d4a815189e35c89624b76d22fce5a019d5dde12c  '"$RUNNER_TEMP/maestro/maestro-v3.0.0-midi.zip" | sha256sum --check --status
+      - name: Prepare browser integration regression
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npx playwright install --with-deps chromium
+          npm run build
+      - name: Verify real MAESTRO catalog loads and opens selected original MIDI in Chromium
+        env:
+          MAESTRO_REAL_CSV: ${{ runner.temp }}/maestro/maestro-v3.0.0.csv
+          MAESTRO_REAL_ZIP: ${{ runner.temp }}/maestro/maestro-v3.0.0-midi.zip
+        run: npm run test:maestro:browser:real
       - name: Audit 1276 archive paths and profile 24 real MIDI performances
         run: |
           npm run research:maestro:audit -- \
