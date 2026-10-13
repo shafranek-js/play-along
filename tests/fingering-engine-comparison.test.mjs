@@ -127,3 +127,22 @@ test('FG-04C2 physical size audit remains research-only for small hands',()=>{
  assert.equal(report.status,'physical-conflicts');
  assert.ok(report.summary.physicalViolationCount>=1);
 });
+
+test('FG-04C2 local file runner uses actual Play Along notes, never exports the source score',async()=>{
+ const {mkdtemp,writeFile,rm}=await import('node:fs/promises');
+ const {tmpdir}=await import('node:os');
+ const {join}=await import('node:path');
+ const {runLocalComparison}=await import('../scripts/fingering-engine-comparison.mjs');
+ const dir=await mkdtemp(join(tmpdir(),'fg04c2-'));
+ try{
+  const file=join(dir,'local.json');
+  await writeFile(file,JSON.stringify({source,pianoMotion:rows()}),'utf8');
+  const result=await runLocalComparison(file);
+  assert.equal(result.ok,true,JSON.stringify(result));
+  assert.equal(result.pianoMotion.status,'evaluated');
+  assert.equal(result.playAlong.status,'evaluated');
+  assert.equal(result.playAlong.summary.total,source.length);
+  assert.ok(!JSON.stringify(result).includes('score:c'));
+  assert.equal((await runLocalComparison(join(dir,'absent'))).reason,'JSON_FILE_UNREADABLE');
+ }finally{await rm(dir,{recursive:true,force:true});}
+});
