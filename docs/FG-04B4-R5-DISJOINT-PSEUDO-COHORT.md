@@ -21,6 +21,30 @@ The driver does not request audio, video, 3D handskeletons, or licensed raw labe
 - The **pilot's eight pairs** are fetched as bounded noncommercial research TSVs, every row checked against original MIDI-derived note `onset,key_offset,frame_offset,pitch,velocity` in **exact original order**. Unknown `Noinfo` is an abstention; invalid hands/finger codes and mismatched rows refuse. Original indistinguishable note-event duplicates are **counted as an identity ambiguity**, not hand/finger authority.
 - The report contains only the full-cohort counts, SHA256 manifest fingerprints, **aggregate** eight-record pilot numbers (exact events checked, hand-known, Noinfo, finger-known, hand-only and duplicate event groups) and eight source file content SHA256 pairs. No original notes, pitch/timing sequences, finger labels, timestamped filenames, individual recording coverage/errors, photos or performer identifiers are exported.
 
+## Actual measured source manifest and pilot (13 October 2026)
+
+From fully successful [PR #85 source and browser CI run](https://github.com/shafranek-js/play-along/actions/runs/38443291255), verified at exact PianoVAM revision `1f039ab9d6128626bff708faad6472d220b50eaa`:
+
+| Source-verifiable statistic | Result |
+| --- | ---: |
+| Original `TSV/` recording files | **107** |
+| Automatically generated `Fingering/` recordings | **106** |
+| Exactly matched existing `Fingering_GT/` human records | **11** |
+| Pseudo-only records after excluding ALL human-GT recordings | **95** |
+| Bounded two-file pseudo/original records eligible for deterministic pilot | **73** |
+| Size-oversized/unknown pairs excluded only from lightweight pilot | **22** |
+| Eight frozen pilot recordings | **8** |
+| Original MIDI-derived notes exactly matched row-by-row to automatic annotations | **10,318** |
+| Automatic hand+finger pairs in pilot | **8,567** |
+| Pilot notes labelled `Noinfo` (unknown RH/LH) | **1,751** |
+| Automatic hand/finger coverage of this specific pilot | **83.03%** |
+| Automatic hand-only labels without a finger | **0** |
+| Conflicting indistinguishable original MIDI event identities observed in pilot | **0** |
+
+One original `TSV/` source lacks an automatic `Fingering/` companion; it is **not** included in the pseudo-only candidate pool. The eight pilot recordings were selected **solely by deterministic filename hash after source metadata size limiting**, not by label quality or resulting agreement, and their source file digests and population fingerprints are archived without raw note sequences. The other 22 source pairs remain in the 95-name pseudo-only full census and are **not** reported as invalid or unplayable.
+
+**Interpretation:** this is concrete evidence that the original MIDI notes of these eight recordings have exactly corresponding automatic annotations and that those annotations cover **83.03%** of their note events. **It provides NO measured truth-agreement percentage for the 8 pseudo-only performances**, cannot extrapolate manual-GT 99.24% agreement from R4 to these sources, and does not establish performer/composition-disjointness, valid licensing for commercial ML training, real finger motion, or teacher-approved advice. The production hand/finger release decision is unchanged: **NO-GO**; Hand-thesia benchmark stays **35%**.
+
 ## Very important scope distinctions
 
 1. Filename-level disjointness is necessary, but **does not establish pianist-level or musical composition-level independence**: identical pianists/compositions could be present in other source recordings. The dataset's metadata splits are not blindly trusted as independent participants. Therefore this pilot is **not a sealed external test set** and cannot certify anything about autonomous RH/LH accuracy.
