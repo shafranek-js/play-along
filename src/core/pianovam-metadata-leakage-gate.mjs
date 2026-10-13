@@ -158,7 +158,7 @@ export function auditPublisherMetadataDisjointness({
  }
  const internalCandidateCollisions={
   candidates:internallyClean.length,
-  comparedPairs:internallyClean.length*(internallyClean.length-1)/2,
+  comparedPairs:internallyClean.length<2?0:internallyClean.length*(internallyClean.length-1)/2,
   samePerformerPairs,sameWorkPairs,bothPairs,crossSplitPairs,
   candidatesWithAnyInternalCollision:involved.size,
   candidatesWithoutDetectedInternalCollision:internallyClean.length-involved.size,
