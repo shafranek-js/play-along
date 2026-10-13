@@ -1,4 +1,9 @@
-# Play Along — Piano Practice App (v0.10.72)
+# Play Along — Piano Practice App (v0.10.73)
+
+## FG-03C2B4 — Download corrected MusicXML (v0.10.73)
+
+In **✍ Аппликатура**, explicitly download a **separate** `.musicxml` copy containing manually corrected numeric fingering. Before download, the entire source score is matched to canonical note IDs; non-fingering XML structure, original notes/measure timing, and MIDI events must survive reimport unchanged. The resulting XML carries an explicit Play Along **user-edited fingering** metadata marker and triggers a provenance warning on reimport. Hand-only corrections are reported but **not serialized as fabricated fingers**. Expanded repeat scores and unverifiable edits refuse export. Existing source MusicXML, local user correction storage, all 14 original hand PNGs, playback and research-only/no-go auto-fingering remain unchanged. [Details and limits](docs/FG-03C2B4-CORRECTED-MUSICXML-EXPORT.md).
+
 
 Play Along is an independently hosted browser piano practice application with Web MIDI, Piano Roll, OpenSheetMusicDisplay (OSMD), MusicXML/MXL and MIDI import, optional online music catalogs, and Wait/Tempo/Listen practice modes.
 
