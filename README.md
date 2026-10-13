@@ -162,6 +162,12 @@ Real physical MIDI device behavior, sustain pedal/CC64, live service availabilit
 ---
 ### Release history
 
+### GitHub Pages release publication integrity (deployment hotfix)
+
+- Publishing from `main` now runs the production build and Node tests, then uploads and deploys the generated site without **repeating the full Chromium browser suite**. The full browser, research, and SoundFont acceptance suite still runs in PR CI before merging. Repeating a long/occasionally timing-sensitive audio test after merging had been delaying Pages publication, leaving the former `Standalone` version visible.
+- Deployment verifies the generated HTML, cache-busting asset URLs, and JavaScript version stamp match `package.json`. After `actions/deploy-pages` it also probes the **public GitHub Pages URL** (cache-busting query, with retries) and requires that both live HTML and JS report the expected version. Thus a successful deploy run provides **actual published-version evidence**, not just a successful Git merge.
+- If the GitHub Pages workflow reports success but the browser remains stale, refresh without cache (`Ctrl+Shift+R`) or open `https://shafranek-js.github.io/play-along/?release=latest`. This change does not modify the application's playback, MIDI source handling, SoundFonts, or the 14 approved PNG hand images.
+
 ## ASAP music alignment provenance and SoundFont-safe triage (v0.10.65)
 
 - Research audit baseline anchored to the **actual** v0.10.61 GitHub Actions artifact: **1/16** source-aligned piano scores, **15** explicit refusals, classified by musical cause and individually traceable without exporting copyright-protected pitches or notes.
