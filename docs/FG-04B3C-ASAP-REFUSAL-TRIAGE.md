@@ -57,6 +57,10 @@ FG04B3C_REPORT=artifacts/fg04b3c-asap-xml-midi.json npm run research:fingering:a
 
 The research-only regression test suite covers unique cross-voice continuation, multiple plausible tie starts (mandatory refusal), invalid cross-staff and noncontiguous ties, exact baseline composition, changed refusal reasons, prior success regressions, scope tampering and safe reporting.
 
+## SoundFont browser acceptance isolation
+
+The SoundFont-enabled mainline SF05 GM smoke test intermittently refused **GeneralUser GS program 0** when its 240-ms PCM window did not cover the complete scheduled note-on/off. Two repeated CI runs reproduced the same harness timing refusal while the actual SoundFont inventory and research checks passed. This release makes the **test harness** robust: 360-ms capture and up to three retries **only if the capture window did not enclose the intended note**. An attempt counts as success only if the complete note interval is captured and finite nonzero PCM exists. Every one of the **256 GM programs** across GeneralUser GS and MuseScore General must still pass. No sound patches or application audio code were modified.
+
 ## Invariants and next musical step
 
 - Keep the two original SoundFont banks (GeneralUser GS and MuseScore General), bank checksums, General MIDI routing, 14 transparent hand pose PNGs, source MusicXML, original tempo and note release semantics **unchanged**.
