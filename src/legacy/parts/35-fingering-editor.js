@@ -394,7 +394,11 @@ function fingerBrowserInput(){
  const key=fingerGuideWorkKey(),edits=key?state.fingerOverrides?.[key]||{}:{};
  const notes=fingerEditorNotes().map(n=>{
   const change=fingerOverrideEffective(n,edits[n.noteId]);
-  const h=change?change.hand:n.hand;
+  const userDeclaredStaff=$('fingerBrowserAssumeStaves').checked;
+  const writtenHand=change?change.hand:n.hand;
+  const h=(writtenHand==='RH'||writtenHand==='LH')?writtenHand:
+   (!change&&userDeclaredStaff&&String(n.staff)==='1'?'RH':
+    !change&&userDeclaredStaff&&String(n.staff)==='2'?'LH':null);
   const candidate={noteId:n.noteId,pitch:n.pitch,start:n.start,
    duration:n.duration,hand:h};
   if(change){
@@ -460,6 +464,7 @@ function fingerBrowserShow(report){
  }
 }
 $('fingerBrowserHandSize').onchange=()=>fingerBrowserAbort('Размер кисти изменён. Повторите расчёт.');
+$('fingerBrowserAssumeStaves').onchange=()=>fingerBrowserAbort('Предположение о руках изменено. Повторите расчёт.');
 $('fingerBrowserCalculate').onclick=()=>{
  fingerBrowserAbort();
  if(!fingerEditorAvailable()){
@@ -472,7 +477,7 @@ $('fingerBrowserCalculate').onclick=()=>{
   return;
  }
  if(!input.notes.every(n=>n.hand==='RH'||n.hand==='LH')){
-  $('fingerBrowserStatus').textContent='Рука некоторых нот не определена. Укажите руку вручную; по высоте алгоритм её не угадывает.';
+  $('fingerBrowserStatus').textContent='Рука некоторых нот не определена. Укажите руки вручную или явно подтвердите условное разделение по станам для эксперимента.';
   return;
  }
  if(!window.Worker){
