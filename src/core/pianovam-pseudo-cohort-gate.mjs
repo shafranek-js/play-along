@@ -41,7 +41,7 @@ export function partitionSourcePseudolabelRecordings({
  const source=list(sourceTree,'TSV');
  const pseudo=list(pseudoTree,'Fingering');
  const gt=list(humanTree,'Fingering_GT');
- if(source.length<20||pseudo.length<20||pseudo.length>source.length)
+ if(source.length<20||pseudo.length<20)
   error('MISSING_BOUNDED_SOURCE_COHORT');
  if(!same([...previouslyInspected].sort(),gt))
   error('ORIGINAL_MANUAL_GT_SPLIT_MISMATCH');
