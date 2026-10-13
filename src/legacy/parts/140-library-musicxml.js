@@ -469,6 +469,9 @@ function readMusicXML(xmlString,filename){
  const creator=[...root.getElementsByTagName('creator')].find(x=>x.getAttribute('type')==='composer');const author=creator?.textContent?.trim()||'MusicXML · импорт';
  const namesById={};for(const p of xmlList(xmlDirect(root,'part-list'),'score-part'))namesById[p.getAttribute('id')]=xmlText(p,'part-name','Партия');
  const segments=[],tempos=[{tick:0,tempo:500000}],ppq=10080;let warnings=new Set();
+ const userExportMarker=xmlList(xmlDirect(xmlDirect(root,'identification'),'miscellaneous'),'miscellaneous-field')
+  .some(x=>x.getAttribute('name')==='play-along-user-fingering');
+ if(userExportMarker)warnings.add('Этот MusicXML сообщает о пользовательских правках аппликатуры Play Along. Номера пальцев не следует считать исходными обозначениями композитора.');
  // MusicXML fingerings are optional authorial annotations (not inferred).
  // Preserve only a single unambiguous finger 1..5; never invent one.
  const authorFinger=(el)=>{
