@@ -25,13 +25,40 @@ jobs:
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
-      - name: Require README.md changes in every pull request
+      - name: Require release README or isolated worker research documentation
         if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_BRANCH: ${{ github.head_ref }}
+        shell: bash
         run: |
-          if ! git diff --name-only "${{ github.event.pull_request.base.sha }}" HEAD | grep -Fxq 'README.md'; then
-            echo "::error::Every Play Along pull request must update README.md with release notes, user impact and validation."
+          set -euo pipefail
+          git diff --name-only "$BASE_SHA" HEAD > /tmp/pr-changed-files.txt
+          if ! test -s /tmp/pr-changed-files.txt; then
+            echo "::error::PR must contain actual file changes."
             exit 1
           fi
+          case "$PR_BRANCH" in
+            research/fingering-ai-*|research/hand-motion-*|research/music-engine-*|qa/*)
+              # Experimental workers must submit FG/QA docs and stay isolated.
+              if ! grep -Eq '^docs/(FG-[A-Za-z0-9._-]+|QA-[A-Za-z0-9._-]+)\.md$' /tmp/pr-changed-files.txt; then
+                echo "::error::Worker PR needs docs/FG-*.md or docs/QA-*.md."
+                exit 1
+              fi
+              if grep -Ev '^(src/core/[A-Za-z0-9._-]+\.mjs|tests/[A-Za-z0-9._/-]+\.(mjs|js)|scripts/[A-Za-z0-9._/-]+\.mjs|research/[A-Za-z0-9._/-]+\.(json|md|mjs)|docs/(FG-[A-Za-z0-9._-]+|QA-[A-Za-z0-9._-]+)\.md)$' /tmp/pr-changed-files.txt > /tmp/pr-disallowed-files.txt; then
+                echo "::error::Worker PR changed files outside allowed research scope:"
+                cat /tmp/pr-disallowed-files.txt
+                exit 1
+              fi
+              echo "Scoped research PR verified; release README owned by Lead."
+              ;;
+            *)
+              if ! grep -Fxq 'README.md' /tmp/pr-changed-files.txt; then
+                echo "::error::Product and integration PRs must update README.md."
+                exit 1
+              fi
+              ;;
+          esac
       - name: Build
         run: npm run build
       - name: Unit tests

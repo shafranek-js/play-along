@@ -4,6 +4,8 @@ Play Along is an independently hosted browser piano practice application with We
 
 **Live site:** https://shafranek-js.github.io/play-along/
 
+**Parallel-PR CI policy (coordination update; no application release):** Research-only branches `research/fingering-ai-*`, `research/hand-motion-*`, `research/music-engine-*` and `qa/*` must provide dedicated `docs/FG-*.md` / `docs/QA-*.md` and are limited to research modules/tests/scripts/docs/data manifests; they cannot change production player, SoundFont/MAESTRO, shared README, package versions or CI. All **other** application/integration PRs still must update README and pass full existing tests. The Lead Architect merges compatible work, updates release docs/version and verifies deployment. This change does not itself increase Hand-thesia completion or enable auto-fingering.
+
 **Parallel development coordination:** Work on Fingering AI, Hand Animation, Music Engine and QA is organized into independent ChatGPT threads and isolated PR branches. Only the coordinating Lead Architect integrates and merges tested work, updates release versions and checks SoundFont/MAESTRO non-regression. See [parallel-chat development protocol](docs/PARALLEL-CHAT-DEV.md). This is a documentation/workflow change, not a new player version or automatic fingering feature.
 
 
