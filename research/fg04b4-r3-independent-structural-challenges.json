@@ -1,0 +1,626 @@
+{
+  "schema": "fg04b4-r3-independent-engineering-challenges-v1",
+  "source": "Original explicitly authored synthetic engineering challenges; NOT independent real performer or pianist ground truth",
+  "createdFor": "FG-04B4-R3 falsification of search refusal, one-sided source anchors, and physical-key contradiction without PianoVAM",
+  "rights": "CC0-1.0 for these original fictional event fixtures",
+  "externalSourceGTAllowed": false,
+  "scope": "15 authored test scenarios, not real experimental source performance, not biomechanically verified",
+  "cases": [
+    {
+      "id": "rh-single-anchor-phrase",
+      "description": "One exposed RH hand, all withheld notes same RH",
+      "family": "one-hand-anchor",
+      "events": [
+        {
+          "pitch": 60,
+          "start": 0,
+          "duration": 0.12,
+          "truthHand": "RH",
+          "anchor": true
+        },
+        {
+          "pitch": 62,
+          "start": 0.35,
+          "duration": 0.12,
+          "truthHand": "RH",
+          "anchor": false
+        },
+        {
+          "pitch": 64,
+          "start": 0.7,
+          "duration": 0.12,
+          "truthHand": "RH",
+          "anchor": false
+        },
+        {
+          "pitch": 65,
+          "start": 1.05,
+          "duration": 0.12,
+          "truthHand": "RH",
+          "anchor": false
+        },
+        {
+          "pitch": 67,
+          "start": 1.4,
+          "duration": 0.12,
+          "truthHand": "RH",
+          "anchor": false
+        }
+      ]
+    },
+    {
+      "id": "lh-single-anchor-phrase",
+      "description": "One exposed LH hand, slow legitimate descending bass",
+      "family": "one-hand-anchor",
+      "events": [
+        {
+          "pitch": 48,
+          "start": 0,
+          "duration": 0.12,
+          "truthHand": "LH",
+          "anchor": true
+        },
+        {
+          "pitch": 47,
+          "start": 0.35,
+          "duration": 0.12,
+          "truthHand": "LH",
+          "anchor": false
+        },
+        {
+          "pitch": 45,
+          "start": 0.7,
+          "duration": 0.12,
+          "truthHand": "LH",
+          "anchor": false
+        },
+        {
+          "pitch": 43,
+          "start": 1.05,
+          "duration": 0.12,
+          "truthHand": "LH",
+          "anchor": false
+        }
+      ]
+    },
+    {
+      "id": "rh-low-register-crossing",
+      "description": "An RH performer crosses into LH-typical register; pitch register is not identity",
+      "family": "one-hand-anchor",
+      "events": [
+        {
+          "pitch": 72,
+          "start": 0,
+          "duration": 0.12,
+          "truthHand": "RH",
+          "anchor": true
+        },
+        {
+          "pitch": 57,
+          "start": 0.55,
+          "duration": 0.12,
+          "truthHand": "RH",
+          "anchor": false
+        },
+        {
+          "pitch": 59,
+          "start": 1.1,
+          "duration": 0.12,
+          "truthHand": "RH",
+          "anchor": false
+        },
+        {
+          "pitch": 60,
+          "start": 1.65,
+          "duration": 0.12,
+          "truthHand": "RH",
+          "anchor": false
+        }
+      ]
+    },
+    {
+      "id": "rh-known-other-unseen",
+      "description": "Only RH source known; later low voice truly LH, no source proof",
+      "family": "one-hand-anchor",
+      "events": [
+        {
+          "pitch": 74,
+          "start": 0,
+          "duration": 0.13,
+          "truthHand": "RH",
+          "anchor": true
+        },
+        {
+          "pitch": 48,
+          "start": 0.45,
+          "duration": 0.13,
+          "truthHand": "LH",
+          "anchor": false
+        },
+        {
+          "pitch": 50,
+          "start": 0.9,
+          "duration": 0.13,
+          "truthHand": "LH",
+          "anchor": false
+        },
+        {
+          "pitch": 76,
+          "start": 1.35,
+          "duration": 0.13,
+          "truthHand": "RH",
+          "anchor": false
+        }
+      ]
+    },
+    {
+      "id": "two-source-hands-duet",
+      "description": "Explicit independent LH/RH source anchors and two later duet phrases",
+      "family": "two-hand-anchor",
+      "events": [
+        {
+          "pitch": 48,
+          "start": 0,
+          "duration": 0.12,
+          "truthHand": "LH",
+          "anchor": true
+        },
+        {
+          "pitch": 72,
+          "start": 0,
+          "duration": 0.12,
+          "truthHand": "RH",
+          "anchor": true
+        },
+        {
+          "pitch": 50,
+          "start": 0.45,
+          "duration": 0.12,
+          "truthHand": "LH",
+          "anchor": false
+        },
+        {
+          "pitch": 74,
+          "start": 0.45,
+          "duration": 0.12,
+          "truthHand": "RH",
+          "anchor": false
+        },
+        {
+          "pitch": 52,
+          "start": 0.9,
+          "duration": 0.12,
+          "truthHand": "LH",
+          "anchor": false
+        },
+        {
+          "pitch": 76,
+          "start": 0.9,
+          "duration": 0.12,
+          "truthHand": "RH",
+          "anchor": false
+        }
+      ]
+    },
+    {
+      "id": "one-hand-held-other-moves",
+      "description": "LH remains held while RH attacks sequential notes",
+      "family": "two-hand-anchor",
+      "events": [
+        {
+          "pitch": 40,
+          "start": 0,
+          "duration": 1.5,
+          "truthHand": "LH",
+          "anchor": true
+        },
+        {
+          "pitch": 72,
+          "start": 0,
+          "duration": 0.15,
+          "truthHand": "RH",
+          "anchor": true
+        },
+        {
+          "pitch": 74,
+          "start": 0.5,
+          "duration": 0.15,
+          "truthHand": "RH",
+          "anchor": false
+        },
+        {
+          "pitch": 76,
+          "start": 1,
+          "duration": 0.15,
+          "truthHand": "RH",
+          "anchor": false
+        }
+      ]
+    },
+    {
+      "id": "two-hands-crossed-registers",
+      "description": "Explicit crossed LH above RH; do not infer hands from pitch rank",
+      "family": "two-hand-anchor",
+      "events": [
+        {
+          "pitch": 76,
+          "start": 0,
+          "duration": 0.13,
+          "truthHand": "LH",
+          "anchor": true
+        },
+        {
+          "pitch": 52,
+          "start": 0,
+          "duration": 0.13,
+          "truthHand": "RH",
+          "anchor": true
+        },
+        {
+          "pitch": 77,
+          "start": 0.7,
+          "duration": 0.13,
+          "truthHand": "LH",
+          "anchor": false
+        },
+        {
+          "pitch": 53,
+          "start": 0.7,
+          "duration": 0.13,
+          "truthHand": "RH",
+          "anchor": false
+        }
+      ]
+    },
+    {
+      "id": "many-keys-two-hand-chord",
+      "description": "Ten simultaneously held distinct keys, two anchor sources",
+      "family": "two-hand-anchor",
+      "events": [
+        {
+          "pitch": 40,
+          "start": 0,
+          "duration": 0.3,
+          "truthHand": "LH",
+          "anchor": true
+        },
+        {
+          "pitch": 43,
+          "start": 0,
+          "duration": 0.3,
+          "truthHand": "LH",
+          "anchor": false
+        },
+        {
+          "pitch": 45,
+          "start": 0,
+          "duration": 0.3,
+          "truthHand": "LH",
+          "anchor": false
+        },
+        {
+          "pitch": 47,
+          "start": 0,
+          "duration": 0.3,
+          "truthHand": "LH",
+          "anchor": false
+        },
+        {
+          "pitch": 48,
+          "start": 0,
+          "duration": 0.3,
+          "truthHand": "LH",
+          "anchor": false
+        },
+        {
+          "pitch": 72,
+          "start": 0,
+          "duration": 0.3,
+          "truthHand": "RH",
+          "anchor": true
+        },
+        {
+          "pitch": 74,
+          "start": 0,
+          "duration": 0.3,
+          "truthHand": "RH",
+          "anchor": false
+        },
+        {
+          "pitch": 76,
+          "start": 0,
+          "duration": 0.3,
+          "truthHand": "RH",
+          "anchor": false
+        },
+        {
+          "pitch": 77,
+          "start": 0,
+          "duration": 0.3,
+          "truthHand": "RH",
+          "anchor": false
+        },
+        {
+          "pitch": 79,
+          "start": 0,
+          "duration": 0.3,
+          "truthHand": "RH",
+          "anchor": false
+        }
+      ]
+    },
+    {
+      "id": "extreme-rh-jump",
+      "description": "Not enough information to certify physical impossibility of rapid long jump",
+      "family": "one-hand-anchor",
+      "events": [
+        {
+          "pitch": 48,
+          "start": 0,
+          "duration": 0.02,
+          "truthHand": "RH",
+          "anchor": true
+        },
+        {
+          "pitch": 96,
+          "start": 0.05,
+          "duration": 0.02,
+          "truthHand": "RH",
+          "anchor": false
+        }
+      ]
+    },
+    {
+      "id": "same-key-overlap-voices",
+      "description": "Independent source voices overlap on same physical pitch; attribution unknowable",
+      "family": "source-conflict",
+      "events": [
+        {
+          "pitch": 60,
+          "start": 0,
+          "duration": 0.8,
+          "truthHand": "RH",
+          "anchor": true
+        },
+        {
+          "pitch": 60,
+          "start": 0.2,
+          "duration": 0.3,
+          "truthHand": "LH",
+          "anchor": false
+        },
+        {
+          "pitch": 72,
+          "start": 1.1,
+          "duration": 0.1,
+          "truthHand": "RH",
+          "anchor": false
+        }
+      ]
+    },
+    {
+      "id": "same-key-unison",
+      "description": "Two independently notated simultaneous events at one physical key",
+      "family": "source-conflict",
+      "events": [
+        {
+          "pitch": 60,
+          "start": 0,
+          "duration": 0.3,
+          "truthHand": "LH",
+          "anchor": true
+        },
+        {
+          "pitch": 60,
+          "start": 0,
+          "duration": 0.3,
+          "truthHand": "RH",
+          "anchor": true
+        },
+        {
+          "pitch": 64,
+          "start": 0.6,
+          "duration": 0.1,
+          "truthHand": "RH",
+          "anchor": false
+        }
+      ]
+    },
+    {
+      "id": "eleven-simultaneous-keys",
+      "description": "Eleven physical keys exceed elementary ten-finger model",
+      "family": "source-conflict",
+      "events": [
+        {
+          "pitch": 40,
+          "start": 0,
+          "duration": 0.4,
+          "truthHand": "LH",
+          "anchor": true
+        },
+        {
+          "pitch": 42,
+          "start": 0,
+          "duration": 0.4,
+          "truthHand": "LH",
+          "anchor": false
+        },
+        {
+          "pitch": 44,
+          "start": 0,
+          "duration": 0.4,
+          "truthHand": "LH",
+          "anchor": false
+        },
+        {
+          "pitch": 45,
+          "start": 0,
+          "duration": 0.4,
+          "truthHand": "LH",
+          "anchor": false
+        },
+        {
+          "pitch": 47,
+          "start": 0,
+          "duration": 0.4,
+          "truthHand": "LH",
+          "anchor": false
+        },
+        {
+          "pitch": 49,
+          "start": 0,
+          "duration": 0.4,
+          "truthHand": "LH",
+          "anchor": false
+        },
+        {
+          "pitch": 72,
+          "start": 0,
+          "duration": 0.4,
+          "truthHand": "RH",
+          "anchor": true
+        },
+        {
+          "pitch": 74,
+          "start": 0,
+          "duration": 0.4,
+          "truthHand": "RH",
+          "anchor": false
+        },
+        {
+          "pitch": 76,
+          "start": 0,
+          "duration": 0.4,
+          "truthHand": "RH",
+          "anchor": false
+        },
+        {
+          "pitch": 77,
+          "start": 0,
+          "duration": 0.4,
+          "truthHand": "RH",
+          "anchor": false
+        },
+        {
+          "pitch": 79,
+          "start": 0,
+          "duration": 0.4,
+          "truthHand": "RH",
+          "anchor": false
+        }
+      ]
+    },
+    {
+      "id": "six-anchored-lh-chord",
+      "description": "Six independently source-anchored LH keys exceed five fingers under model",
+      "family": "source-conflict",
+      "events": [
+        {
+          "pitch": 40,
+          "start": 0,
+          "duration": 0.3,
+          "truthHand": "LH",
+          "anchor": true
+        },
+        {
+          "pitch": 42,
+          "start": 0,
+          "duration": 0.3,
+          "truthHand": "LH",
+          "anchor": true
+        },
+        {
+          "pitch": 44,
+          "start": 0,
+          "duration": 0.3,
+          "truthHand": "LH",
+          "anchor": true
+        },
+        {
+          "pitch": 45,
+          "start": 0,
+          "duration": 0.3,
+          "truthHand": "LH",
+          "anchor": true
+        },
+        {
+          "pitch": 47,
+          "start": 0,
+          "duration": 0.3,
+          "truthHand": "LH",
+          "anchor": true
+        },
+        {
+          "pitch": 49,
+          "start": 0,
+          "duration": 0.3,
+          "truthHand": "LH",
+          "anchor": true
+        }
+      ]
+    },
+    {
+      "id": "fully-unanchored-rh-triad",
+      "description": "RH triad with zero independent source hand anchors is not a verified hand identity",
+      "family": "unanchored",
+      "events": [
+        {
+          "pitch": 60,
+          "start": 0,
+          "duration": 0.3,
+          "truthHand": "RH",
+          "anchor": false
+        },
+        {
+          "pitch": 64,
+          "start": 0,
+          "duration": 0.3,
+          "truthHand": "RH",
+          "anchor": false
+        },
+        {
+          "pitch": 67,
+          "start": 0,
+          "duration": 0.3,
+          "truthHand": "RH",
+          "anchor": false
+        }
+      ]
+    },
+    {
+      "id": "unanchored-both-hands",
+      "description": "Two normal register-separated hands, no source hand anchors",
+      "family": "unanchored",
+      "events": [
+        {
+          "pitch": 48,
+          "start": 0,
+          "duration": 0.25,
+          "truthHand": "LH",
+          "anchor": false
+        },
+        {
+          "pitch": 72,
+          "start": 0,
+          "duration": 0.25,
+          "truthHand": "RH",
+          "anchor": false
+        },
+        {
+          "pitch": 50,
+          "start": 0.6,
+          "duration": 0.25,
+          "truthHand": "LH",
+          "anchor": false
+        },
+        {
+          "pitch": 74,
+          "start": 0.6,
+          "duration": 0.25,
+          "truthHand": "RH",
+          "anchor": false
+        }
+      ]
+    }
+  ]
+}
