@@ -217,6 +217,9 @@ export function fingerEditionReconcile(oldEdition,newEdition,oldCorrections,curr
    change.finger!==target.authorFinger){
    conflicts.push({...entry,reason:'target-author-finger-conflict',
     authorFinger:target.authorFinger});
+  }else if(target.authorHand!==null&&change.hand!==target.authorHand){
+   conflicts.push({...entry,reason:'target-author-hand-conflict',
+    authorHand:target.authorHand});
   }else proposals.push(entry);
  }
  return {status:'review',sourceCorrections:Object.keys(oldCorrections).length,
