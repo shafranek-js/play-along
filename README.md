@@ -1,4 +1,10 @@
-# Play Along — Piano Practice App (v0.10.86)
+# Play Along — Piano Practice App (v0.10.87)
+
+## FG-04C4 — Browser-native fingering research (v0.10.87)
+
+**New visible capability:** in the MusicXML **Аппликатура** editor, expand **«Рассчитать аппликатуру в браузере · эксперимент»**, choose hand size and click **«Рассчитать и сравнить»**. A bundled **offline Web Worker** runs the real Play Along FG-02I Beam Search and its FG-04C3 opt-in anatomical finger-pair model side-by-side, returning counts, disagreement metrics and a bounded proposal list. Neither Python installation nor external PianoMotion checkout is required. For unannotated two-staff MusicXML, explicit one-time user opt-in may treat staff 1/2 as RH/LH *for this research only*; unknown ownership otherwise fails closed. Author and manually corrected fingers remain source anchors. Suggestions never overwrite user edits, MusicXML, MIDI events or learner-facing hand hints, and the fourteen original PNG hands remain unchanged.
+
+**Distinction:** this is **not** PianoMotion Studio's Python core running in the browser. The PianoMotion engine remains a source-provenance-locked offline comparator. The browser-native prototype delivers a first no-installation end-user research calculation and tests the integration boundary; a separately justified, license-cleared Python/WASM port may follow. [FG-04C4 implementation and QA gates](docs/FG-04C4-BROWSER-FINGERING-EXPERIMENT.md). No claimed musical accuracy gain or expert teaching approval; Hand-thesia progress remains **35%** pending verified integration.
 
 ## FG-04C2 — Verified PianoMotion fingering comparator (research integrated)
 
