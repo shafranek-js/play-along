@@ -102,6 +102,17 @@
      <p id="fingerResearchSummary" class="small" role="status" aria-live="polite">Нет загруженного предложения.</p>
      <div id="fingerResearchDetails" class="small"></div>
     </details>
+    <details id="fingerEditionPanel" class="fingerResearchPanel">
+      <summary>🔁 Перенос ручной аппликатуры из другой редакции</summary>
+      <p class="small">Выбери более ранний исходный MusicXML/MXL, для которого в этом браузере уже сохранены твои исправления. Сначала сравни ноты и отметь переносимые правки. Неоднозначные такты, лиги и конфликты не переносятся. Никакие пальцы автоматически не вычисляются.</p>
+      <div class="fingerResearchControls">
+       <label for="fingerEditionOldFile">Старая редакция</label><input id="fingerEditionOldFile" type="file" accept=".musicxml,.xml,.mxl" aria-label="Предыдущая редакция MusicXML">
+       <button id="fingerEditionCompare" class="btn tiny" type="button">Проверить перенос</button>
+       <button id="fingerEditionApply" class="btn tiny primary" type="button" disabled>Применить выбранные</button>
+      </div>
+      <p id="fingerEditionStatus" class="small" role="status" aria-live="polite">Правки не сравнивались.</p>
+      <div id="fingerEditionCandidates" class="small"></div>
+     </details>
     <div class="fingerEditorHelp">Прокрутка вправо — всё произведение · Ctrl+A — все · Shift+клик — диапазон · Ctrl+клик — произвольно · рамка мышью — область. <span class="fingerEditorLegend">RH правая · LH левая · <span class="fingerEditorAuthor">автор</span> · <span class="fingerEditorUser">правка пользователя</span> · ? без пальца</span></div>
    </div>
    <div class="fingerEditorScroller" id="fingerEditorScroller" tabindex="0" aria-label="Прокручиваемый список нот, выделение мышью">
