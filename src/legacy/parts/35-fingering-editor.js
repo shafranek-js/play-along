@@ -3,6 +3,7 @@
 // the Canvas always covers only the viewport, even for long MusicXML works.
 const fingerEditorCanvas=$('fingerEditorCanvas'),fingerEditorScroller=$('fingerEditorScroller'),
       fingerEditorSurface=$('fingerEditorSurface');
+let fingerEditionPlan=null,fingerEditionTarget=null,fingerEditionTargetKey=null,fingerEditionOverridesAtPlan=null;
 let fingerEditorBoxes=[],fingerEditorPointer=null,fingerEditorPaintScheduled=false,
     fingerEditorWidth=0,fingerEditorHeight=0;
 function fingerEditorAvailable(){
@@ -18,7 +19,8 @@ function fingerEditorNotes(){return fingerEditorAvailable()?fingerSelectionOrder
 function fingerEditorRender(){
  if(state.scoreView!=='editor'||state.page!=='practice')return;
  fingerResearchSync();
- const width=Math.max(0,Math.floor(fingerEditorScroller.clientWidth));
+ if(fingerEditionPlan&&fingerEditionTarget!==current)fingerEditionReset();
+  const width=Math.max(0,Math.floor(fingerEditorScroller.clientWidth));
  if(width<100)return;
  const notes=fingerEditorNotes();
  const count=$('fingerEditorCount'),footer=$('fingerEditorFooter');
@@ -212,6 +214,87 @@ $('fingerEditorDownloadXML').onclick=()=>{
  setTimeout(()=>URL.revokeObjectURL(url),1000);
  status.textContent='Экспортировано '+result.count+' ручных номеров. Только рука: '+
   result.handOnly+' (без изменения). Оригинал не затронут; файл содержит отметку пользовательских правок.';
+};
+// FG-03C2B5: user-confirmed transfer across uniquely matched XML measures.
+// The dry-run never applies its own results. All selected changes flow
+// through existing validated atomic batch Undo/Redo persistence.
+function fingerEditionReset(){
+ fingerEditionPlan=null;fingerEditionTarget=null;fingerEditionTargetKey=null;
+ fingerEditionOverridesAtPlan=null;
+ $('fingerEditionCandidates').replaceChildren();
+ $('fingerEditionApply').disabled=true;
+}
+$('fingerEditionOldFile').addEventListener('change',()=>{
+ fingerEditionReset();$('fingerEditionStatus').textContent='Файл выбран. Нажми «Проверить перенос».';
+});
+$('fingerEditionCompare').onclick=async()=>{
+ fingerEditionReset();
+ const file=$('fingerEditionOldFile').files?.[0];
+ const status=$('fingerEditionStatus'),button=$('fingerEditionCompare');
+ if(!fingerEditorAvailable()||!file||!(/\.(musicxml|xml|mxl)$/i).test(file.name)||file.size>16*1024*1024){
+  status.textContent='Нужны исходная MusicXML-партитура и предыдущий MusicXML/MXL до 16 МБ.';return;
+ }
+ const target=current,targetKey=fingerGuideWorkKey();
+ button.disabled=true;status.textContent='Сопоставляю исходные ноты и такты…';
+ try{
+  const old=await songFromBuffer(file.name,await file.arrayBuffer());
+  if(target!==current||targetKey!==fingerGuideWorkKey()){
+   status.textContent='Открытая партитура изменилась. Повтори сравнение.';return;
+  }
+  const oldKey=fingerOverrideWorkKey(old),changes=oldKey?state.fingerOverrides?.[oldKey]:null;
+  if(!changes||!Object.keys(changes).length){
+   status.textContent='Для этой точной старой редакции в браузере нет сохранённых ручных исправлений.';return;
+  }
+  const parse=xml=>new DOMParser().parseFromString(xml,'application/xml');
+  const from=fingerEditionSnapshot(old,{parse}),to=fingerEditionSnapshot(target,{parse});
+  const existing=state.fingerOverrides?.[targetKey]||{};
+  const plan=fingerEditionReconcile(from,to,changes,existing);
+  if(plan.status!=='review'){
+   status.textContent='Перенос отклонён: '+(plan.reason||from.reason||to.reason);return;
+  }
+  fingerEditionPlan=plan;fingerEditionTarget=target;fingerEditionTargetKey=targetKey;
+  fingerEditionOverridesAtPlan=JSON.stringify(existing);
+  const host=$('fingerEditionCandidates');
+  for(const candidate of plan.proposals){
+   const label=document.createElement('label');
+   label.style.cssText='display:block;padding:3px 0;cursor:pointer';
+   const check=document.createElement('input');check.type='checkbox';
+   check.value=candidate.to;check.dataset.from=candidate.from;
+   check.addEventListener('change',()=>{
+    $('fingerEditionApply').disabled=![...host.querySelectorAll('input[type="checkbox"]')].some(x=>x.checked);
+   });
+   const text=document.createElement('span');
+   text.textContent=' Такт '+(candidate.fromMeasure||'?')+' → '+(candidate.toMeasure||'?')+
+    ' · '+candidate.from+' → '+candidate.to+
+    ' · '+(candidate.finger===null?'без номера':('палец '+candidate.finger))+
+    ' · '+(candidate.hand||'рука неизвестна');
+   label.append(check,text);host.append(label);
+  }
+  status.textContent='Готовы к ручному выбору: '+plan.proposals.length+
+   ' · Конфликты: '+plan.conflicts.length+' · Неоднозначные/пропущенные: '+
+   plan.unresolved.length+'. Ничего не применено. Конфликты исправляй вручную в редакторе.';
+ }catch(err){status.textContent='Не удалось сравнить редакции: '+(err?.message||String(err))}
+ finally{button.disabled=false}
+};
+$('fingerEditionApply').onclick=()=>{
+ if(!fingerEditionPlan||current!==fingerEditionTarget||
+   fingerGuideWorkKey()!==fingerEditionTargetKey||
+   JSON.stringify(state.fingerOverrides?.[fingerEditionTargetKey]||{})!==fingerEditionOverridesAtPlan){
+  fingerEditionReset();
+  $('fingerEditionStatus').textContent='Изменилось произведение или сохранённые правки. Сравни редакции заново.';return;
+ }
+ const selected=new Set([...$('fingerEditionCandidates').querySelectorAll('input[type="checkbox"]')]
+  .filter(x=>x.checked).map(x=>x.value));
+ const chosen=fingerEditionPlan.proposals.filter(x=>selected.has(x.to));
+ if(!chosen.length)return;
+ const entries=chosen.map(x=>({id:x.to,before:null,after:{finger:x.finger,hand:x.hand}}));
+ if(!fingerOverrideCommit(null,null,{action:'batch',batch:entries})){
+  $('fingerEditionStatus').textContent='Не удалось безопасно сохранить исправления. Ничего не подтверждено.';return;
+ }
+ fingerEditionReset();
+ $('fingerEditionStatus').textContent='Вручную подтверждено и перенесено '+chosen.length+
+  ' правок. Все изменения — один шаг Undo. Исходные MusicXML не изменены.';
+ notify('Перенесено '+chosen.length+' подтверждённых правок · одно действие Undo');
 };
 window.addEventListener('resize',fingerEditorPaintSoon);
 
