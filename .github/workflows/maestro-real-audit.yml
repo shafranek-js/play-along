@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - 'scripts/maestro-midi-audit.mjs'
+      - 'src/legacy/parts/80-midi-devices.js'
+      - 'tests/maestro-engine-golden.real.test.mjs'
       - 'scripts/maestro-diversity.mjs'
       - 'tests/maestro-midi-audit.test.mjs'
       - 'tests/maestro-diversity.test.mjs'
@@ -54,6 +56,12 @@ jobs:
           MAESTRO_REAL_CSV: ${{ runner.temp }}/maestro/maestro-v3.0.0.csv
           MAESTRO_REAL_ZIP: ${{ runner.temp }}/maestro/maestro-v3.0.0-midi.zip
         run: npm run test:maestro:browser:real
+      - name: Compare 24 original source MIDI key and pedal timelines against real Play Along Chromium parser
+        env:
+          MAESTRO_REAL_CSV: ${{ runner.temp }}/maestro/maestro-v3.0.0.csv
+          MAESTRO_REAL_ZIP: ${{ runner.temp }}/maestro/maestro-v3.0.0-midi.zip
+          MAESTRO_ENGINE_REPORT: artifacts/maestro-v3-engine-golden.json
+        run: npm run test:maestro:engine:real
       - name: Audit 1276 archive paths and profile 24 real MIDI performances
         run: |
           npm run research:maestro:audit -- \
@@ -93,6 +101,14 @@ jobs:
             console.log("MAESTRO_PIN "+JSON.stringify({split:item.split,midi_filename:item.midi_filename,midi_sha256:item.midi_sha256}));
           }
           '
+      - name: Upload MAE-03A verified event-signature report (no MIDI content)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maestro-v3-engine-golden
+          path: artifacts/maestro-v3-engine-golden.json
+          if-no-files-found: warn
+          retention-days: 14
       - name: Upload measured-diversity corpus report (no source MIDI)
         if: always()
         uses: actions/upload-artifact@v4
