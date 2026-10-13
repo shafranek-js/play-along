@@ -67,6 +67,34 @@ try{
  await page.waitForTimeout(100);
  assert.ok(await page.locator('#songList .libv8-row').count()>0,'composer/title search must be functional');
  if(real){
+  // Verify an actual browser origin can read at least one public catalog endpoint
+  // without Playwright route interception; this is a real external CORS gate.
+  const probe=await browser.newPage({viewport:{width:1000,height:700}});
+  await probe.goto(origin,{waitUntil:'domcontentloaded'});
+  const liveSources=await probe.evaluate(async()=>{
+   const urls=[
+    'https://storage.googleapis.com/download/storage/v1/b/magentadata/o/datasets%2Fmaestro%2Fv3.0.0%2Fmaestro-v3.0.0.csv?alt=media',
+    'https://storage.googleapis.com/magentadata/datasets/maestro/v3.0.0/maestro-v3.0.0.csv',
+    'https://huggingface.co/datasets/projectlosangeles/maestro-v3.0.0/resolve/main/maestro-v3.0.0.csv'
+   ];
+   const failures=[];
+   for(const url of urls){
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
+    try{
+     const response=await fetch(url,{mode:'cors',signal:controller.signal});
+     if(response.ok){
+      const body=await response.text();
+      if(body.includes('canonical_composer')&&body.length>100000)return {status:'ok',catalog_origin:new URL(url).host,bytes:body.length};
+     }
+     failures.push('HTTP '+response.status+' '+url);
+    }catch(e){failures.push(e.message+' '+url)}
+    finally{clearTimeout(timer)}
+   }
+   return {status:'blocked',failures};
+  });
+  await probe.close();
+  console.log('MAESTRO_LIVE_METADATA_CORS '+JSON.stringify(liveSources));
+  assert.equal(liveSources.status,'ok','At least one external MAESTRO CSV source must allow browser cross-origin fetch');
   await page.locator('#librarySearch').fill('');
   const picker=page.locator('#maestroZipFile');
   await picker.setInputFiles(zipPath);
