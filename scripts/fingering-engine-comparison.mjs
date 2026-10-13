@@ -6,6 +6,7 @@
  */
 import {readFile,stat} from 'node:fs/promises';
 import {resolve} from 'node:path';
+import {pathToFileURL} from 'node:url';
 import {compareFingeringEnginesResearch as compare,
  runExistingPlayAlongFingeringResearch as runPlayAlong}
  from '../src/core/fingering-engine-comparison.mjs';
@@ -38,7 +39,7 @@ export async function runLocalComparison(path){
  }};
 }
 
-if(process.argv[1]&&import.meta.url===new URL('file://'+resolve(process.argv[1])).href){
+if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).href){
  const report=await runLocalComparison(process.argv[2]);
  process.stdout.write(JSON.stringify(report,null,2)+'\n');
  if(!report.ok)process.exitCode=1;
