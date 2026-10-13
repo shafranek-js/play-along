@@ -85,6 +85,8 @@ jobs:
         run: FG02J_ALIGNMENT_REPORT=artifacts/fg02j-gt-alignment.json npm run research:fingering:polyphony-align
       - name: FG-02J independent real polyphonic GT closed-island benchmark (noncommercial research only)
         run: FG02J_POLYPHONY_REPORT=artifacts/fg02j-real-polyphony.json npm run benchmark:fingering:independent-polyphony
+      - name: FG-04B4-R5 original pseudo-only recording split and eight source-paired NC pilot
+        run: FG04B4_R5_REPORT=artifacts/fg04b4-r5-disjoint-pseudo-pilot.json npm run research:fingering:pseudo-disjoint-pilot
       - name: FG-04B4-R4 source-matched automatic video pseudolabels vs human GT (NC research)
         run: FG04B4_R4_REPORT=artifacts/fg04b4-r4-video-pseudohand.json npm run research:fingering:pseudo-hand-audit
       - name: FG-04B4-R3 frozen solver and independent ORIGINAL SYNTHETIC hypothesis audit (not real GT)
@@ -182,6 +184,13 @@ jobs:
           name: fg02j-real-polyphony-closed-islands
           path: artifacts/fg02j-real-polyphony.json
           if-no-files-found: error
+      - name: Upload FG-04B4-R5 source-only pseudo pool and disjoint eight-source research totals
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: fg04b4-r5-pseudo-only-original-cohort
+          path: artifacts/fg04b4-r5-disjoint-pseudo-pilot.json
+          if-no-files-found: warn
       - name: Upload FG-04B4-R4 source-verified automatic pseudolabel reliability aggregates (NOT learner GT)
         if: always() && github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
