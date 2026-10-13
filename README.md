@@ -1,4 +1,14 @@
-# Play Along — Piano Practice App (v0.10.81)
+# Play Along — Piano Practice App (v0.10.82)
+
+## FG-04B4-R3 — Independent hypothesis falsification, without using real GT to tune the splitter (v0.10.82)
+
+The external PianoVAM comparison (v0.10.81) identified **53 incorrect oracle-seeded hand assignments** and **738 abstentions** (including **583 NO_FEASIBLE_HAND_PATH**), but these diagnoses alone cannot prove human physical impossibility or justify training on the same held-out answers. FG-04B4-R3 adds a **new 15-case original, project-authored, CC0-1.0 SYNTHETIC engineering challenge suite** that is distinct from the PianoVAM recordings and PIG/ThumbSet datasets. Fictional annotated hands are withheld from the *unchanged and exact-Git-blob-pinned* beam solver except for explicitly selected source anchor notes; candidate predictions are scored against withheld synthetic truth **only after inference**. These are engineering controls, **not independent real performer, pianist, or anatomical ground truth**.
+
+A separate source-only structural witness identifies elementary 10-simultaneous-key, 5-source-anchored-key-per-hand, and same-held-physical-key contradictions. If the beam search reports `NO_FEASIBLE_HAND_PATH` without such a witness, the output explicitly calls it a **model-path rejection with no structural certificate**, not physical inability. Fixed 128-beam and XXL-size counterfactual probes measure **sensitivity only**—they do not change the production/experimental solver parameters or decide correctness. The original source fixture and frozen solver must both match **exact Git blob pins** or research CI refuses. Synthetic scenario reports contain aggregate outcomes, not original note arrays. [FG-04B4-R3 falsification method and licence](docs/FG-04B4-R3-STRUCTURAL-HYPOTHESES.md).
+
+External PIG and ThumbSet sources were investigated as future independent real evaluation candidates, but the former is restricted to nonprofit academic research and the latter requires access approval; neither is imported without source rights and expert annotation review. Existing **PianoVAM results remain fixed**, unanchored accuracy still unmeasured, and no musical/physical accuracy improvement is claimed. All app behavior, original notes/MIDI/Wait/Tempo, SoundFont/MAESTRO, fourteen original PNG hands and learner hints remain unchanged. Production auto RH/LH and automatic fingering are **NO-GO**; Hand-thesia completion remains **35%**.
+
+
 
 ## FG-04B4-R2 — Explain where the independent hand splitter refuses or mislabels (v0.10.81)
 
