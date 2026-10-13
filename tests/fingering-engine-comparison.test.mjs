@@ -146,3 +146,6 @@ test('FG-04C2 local file runner uses actual Play Along notes, never exports the 
   assert.equal((await runLocalComparison(join(dir,'absent'))).reason,'JSON_FILE_UNREADABLE');
  }finally{await rm(dir,{recursive:true,force:true});}
 });
+
+// Run original-MIDI/PianoMotion identity bridge controls under existing npm test.
+import './pianomotion-fingering-import.test.mjs';
