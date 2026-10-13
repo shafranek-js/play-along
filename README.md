@@ -1,4 +1,10 @@
-# Play Along — Piano Practice App (v0.10.73)
+# Play Along — Piano Practice App (v0.10.74)
+
+## FG-03C2B5 — User-approved MusicXML edition reconciliation (v0.10.74)
+
+The **✍ Аппликатура** editor can now compare a *previous original* MusicXML/MXL file (with locally saved manual corrections) to a newer open edition. **🔁 Перенос ручной аппликатуры из другой редакции** shows only source-verified matching notes in **unique unchanged measures**, with every transfer checkbox **unchecked by default**. The user explicitly approves individual candidates; accepted corrections are one validated, atomic **Undo** step. Duplicate/repeated bars, changed notation, cross-measure ties, conflicting author/user labels, different works and unsupported score navigation are refused or reported without guessed mappings. Neither source XML nor original MIDI timing is changed. This is data portability—not automated fingering or pianist validation. [Reconciliation contract](docs/FG-03C2B5-CROSS-EDITION-RECONCILIATION.md).
+
+
 
 ## FG-03C2B4 — Download corrected MusicXML (v0.10.73)
 
