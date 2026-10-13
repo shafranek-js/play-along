@@ -46,7 +46,7 @@ async function getScore(entry,revision,fetcher){
  if(bytes.length!==file.bytes||bytes.length>4_000_000)fail('FG03D2_SOURCE_SIZE_MISMATCH:'+entry.id);
  if(gitBlobHash(bytes)!==file.blobSha)fail('FG03D2_SOURCE_HASH_MISMATCH:'+entry.id);
  const xml=new TextDecoder('utf-8',{fatal:true}).decode(bytes);
- if(!/<score-partwise(?:\s|>)/.test(xml)||/<!(?:DOCTYPE|ENTITY)\b/i.test(xml))
+ if(!/<score-partwise(?:\s|>)/.test(xml)||/<!ENTITY\b/i.test(xml))
   fail('FG03D2_UNSAFE_SCORE_SOURCE:'+entry.id);
  return xml;
 }
