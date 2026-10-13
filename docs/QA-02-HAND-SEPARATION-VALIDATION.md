@@ -91,3 +91,14 @@ Single measurements do not establish P95, frame budget, or meaningful production
 5. Run QA-01 pins, every proposed future research module, full 256 GM PCM and MAESTRO suites after changes. The current PR #64 is already merged: never silently change production as QA.
 
 **Files:** Only this dedicated report and tests/qa02-hand-separation.test.mjs. **No merge authority.**
+
+## Lead follow-up v0.10.70 — defect remediation (original QA baseline above preserved)
+
+The original QA-02 report above is a historical snapshot of **v0.10.68** and its measured synthetic errors. On v0.10.70, the two actionable categories are addressed as follows:
+
+- **P1 crossing identifiability:** an entirely unanchored phrase no longer returns confidently preferred LH/RH labels even if ordinary register separation is cheaper than plausible crossed-hands alternatives. Unknown `UNANCHORED_HAND_IDENTITY` replaces forced labels. The source/user-labelled anchored trajectories remain available as research proposals, not verified learner guidance.
+- **P2 ten-note onset refusal:** a 5+5 ten-key onset is within the bounded beam-search structural contract and is not incorrectly rejected as exceeding the nine-note onset cap. Eleven or more distinct note-on events at one onset still return `ONSET_SEARCH_CAP`. An explicit global search expansion budget caps costly 10-note sequences.
+- **P2 localized same-key overlap:** remains a conservative whole-passage refusal, not silently called fixed.
+- **P1 seconds/tempo provenance, physical reach, external hand GT:** unresolved and production remains **NO-GO**.
+
+The independent 17 QA-02 tests are now registered with `npm test` in the Lead integration branch, and the old defect-characterization assertions have been rewritten as **protective acceptance tests**. This appendix does not assert a revised metric until CI executes; the QA test prints full post-fix synthetic denominators. The resulting acceptance decision remains research PASS WITH LIMITATIONS, learner NO-GO until permitted and independently validated musician-labelled event identities.
