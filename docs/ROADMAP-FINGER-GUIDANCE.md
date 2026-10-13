@@ -1,5 +1,7 @@
 # Play Along — development roadmap: Finger Guidance and musical reliability
 
+**FG-04C2 accepted (2026-10-13):** [PR #93](https://github.com/shafranek-js/play-along/pull/93) added real local PianoMotion-core invocation, hash-proven MIDI / canonical MusicXML identity mapping, shared aggregate accuracy/coverage/conflict measurement against Play Along's existing FG-02I solver, and strictly rejected inconsistent source identities. Complete CI passed; research-only, no unverified teaching fingers. No real independent numerical accuracy improvement has yet been demonstrated. See [FG-04C2](FG-04C2-PIANOMOTION-FINGERING-COMPARISON.md). **FG-04C3** is evaluating opt-in actual-finger-pair anatomical span constraints; the legacy solver remains default until matched held-out and browser validation. Hand-thesia progress **35%** unchanged.
+
 ## Owner reprioritization — Fingering AI first, selectable IK hands second (2026-10-13)
 
 **P0-A:** Improve the fingering calculation by comparing [PianoMotion Studio](https://github.com/shafranek-js/pianomotion-studio)'s beam/figure/biomechanical engine against current FG-02 and FG-04C using identical immutable MusicXML note identities, verified hand/finger provenance, hard source/manual anchors and independently evaluated heldout cases. Implement only measured improvements. No learner-facing unverified auto-fingers.
