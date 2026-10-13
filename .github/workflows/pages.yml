@@ -37,6 +37,17 @@ jobs:
         run: npm test
       - name: Real OpenSheetMusicDisplay browser tests
         run: npm run test:browser
+      - name: Upload SoundFont acceptance reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: soundfont-acceptance
+          path: |
+            artifacts/audio-sf01/runs/*.json
+            artifacts/audio-sf03/**/*.json
+            artifacts/audio-sf04/**/*.json
+            artifacts/audio-sf05/**/*.json
+          if-no-files-found: warn
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
       - name: Upload static site

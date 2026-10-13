@@ -145,7 +145,45 @@
     <div class="panelSection"><div class="sectionLabel">Музыкальная диагностика аранжировки</div><div id="adaptQuality" class="metabox" style="margin-bottom:10px;font-size:12px">Данные появятся после анализа.</div></div>
     <div class="panelSection"><div class="sectionLabel">План адаптации</div><div id="adaptPhraseList" class="metabox"><strong>Нет данных</strong></div></div>
   </div>
-  <div id="tabMidi" class="hidden"><div class="panelSection"><div class="sectionLabel">Подключение</div><div class="notice" id="midiNotice">Play Along автоматически подключает разрешённое MIDI-устройство. При первом запуске браузер может запросить разрешение.</div><button id="connectMidi" class="btn primary" style="width:100%;margin-top:10px">Подключить MIDI</button><label class="switch" style="margin-top:10px">Автоматически подключать MIDI при запуске <input id="autoMidi" type="checkbox" checked></label><div class="setting" style="margin-top:13px"><label for="inputSelect">MIDI-вход</label><select id="inputSelect"><option value="">Не выбрано</option></select></div><button id="calibrateRight" class="btn" style="width:100%">Калибровать диапазон</button></div><div class="panelSection"><div class="sectionLabel">Профиль устройства</div><div id="profileInfo" class="metabox"><strong>Диапазон не задан</strong><p>После калибровки приложение запомнит нижнюю и верхнюю MIDI-ноты.</p></div></div><div class="panelSection"><div class="sectionLabel">Последние MIDI-события</div><div class="metabox" id="midiMonitor" style="font:12px/1.7 ui-monospace,monospace;color:#c6d4e4;min-height:70px">Нет событий</div></div></div>
+  <div id="tabMidi" class="hidden">
+    <div class="panelSection" id="audioSettingsPanel">
+      <div class="sectionLabel">Звук</div>
+      <div id="audioStatus" class="metabox audioStatus" role="status" aria-live="polite" aria-atomic="true">
+        <strong id="audioStatusTitle">Звук ещё не запущен</strong>
+        <p id="audioStatusDetail">Банк загрузится после запуска воспроизведения или выбора инструмента.</p>
+      </div>
+      <div class="setting audioBankSetting"><label for="audioBankSelect">Банк инструментов</label>
+        <select id="audioBankSelect" aria-describedby="audioBankHelp">
+          <option value="generaluser-gs-2.0.3-sf2">GeneralUser GS · 2.0.3</option>
+          <option value="musescore-general-0.2-sf3">MuseScore General · 0.2</option>
+        </select>
+        <p id="audioBankHelp" class="small">Будет загружен только выбранный банк.</p>
+      </div>
+      <div class="setting"><label for="audioLivePresetSearch">Инструмент MIDI-клавиатуры</label>
+        <input id="audioLivePresetSearch" class="search audioPresetSearch" type="search" placeholder="Поиск 128 инструментов GM" aria-controls="audioLivePresetSelect" autocomplete="off">
+        <select id="audioLivePresetSelect" aria-label="Инструмент для MIDI-клавиатуры" disabled>
+          <option value="">Сначала подготовь банк инструментов</option>
+        </select>
+      </div>
+      <details id="audioMorePresets" class="audioMorePresets" aria-label="Дополнительные тембры и ударные">
+        <summary>Другие тембры и наборы ударных</summary>
+        <label for="audioExtraPresetSelect" class="small">Дополнительные инструменты из выбранного банка</label>
+        <select id="audioExtraPresetSelect" aria-label="Дополнительный тембр или набор ударных" disabled>
+          <option value="">Сначала подготовь банк инструментов</option>
+        </select>
+      </details>
+      <label class="switch audioFilePrograms"><span>Использовать инструменты из файла</span><input id="audioUseFilePrograms" type="checkbox" checked></label>
+      <p class="small audioFileHelp">Если выключить, партии будут звучать как Acoustic Grand Piano.</p>
+      <div class="audioActionRow">
+        <button id="audioRetry" class="btn tiny" type="button" hidden>Повторить загрузку</button>
+        <button id="audioUseSimpleSound" class="btn tiny ghost" type="button" hidden>Использовать простой звук</button>
+        <button id="audioPanic" class="btn tiny ghost audioPanic" type="button" disabled>Остановить звук</button>
+      </div>
+    </div>
+    <div class="panelSection"><div class="sectionLabel">Подключение</div><div class="notice" id="midiNotice">Play Along автоматически подключает разрешённое MIDI-устройство. При первом запуске браузер может запросить разрешение.</div><button id="connectMidi" class="btn primary" style="width:100%;margin-top:10px">Подключить MIDI</button><label class="switch" style="margin-top:10px">Автоматически подключать MIDI при запуске <input id="autoMidi" type="checkbox" checked></label><div class="setting" style="margin-top:13px"><label for="inputSelect">MIDI-вход</label><select id="inputSelect"><option value="">Не выбрано</option></select></div><button id="calibrateRight" class="btn" style="width:100%">Калибровать диапазон</button></div>
+    <div class="panelSection"><div class="sectionLabel">Профиль устройства</div><div id="profileInfo" class="metabox"><strong>Диапазон не задан</strong><p>После калибровки приложение запомнит нижнюю и верхнюю MIDI-ноты.</p></div></div>
+    <div class="panelSection"><div class="sectionLabel">Последние MIDI-события</div><div class="metabox" id="midiMonitor" style="font:12px/1.7 ui-monospace,monospace;color:#c6d4e4;min-height:70px">Нет событий</div></div>
+  </div>
 
   <div id="tabReview" class="hidden">
     <div class="panelSection">

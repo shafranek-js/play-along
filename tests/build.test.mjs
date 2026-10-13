@@ -96,3 +96,96 @@ test('README current version and release history match package.json',()=>{
   'A new version requires substantive release notes in README.md');
  assert.match(readme,/Release documentation rule/);
 });
+
+test('audio sidecar ships the pinned bank, complete GM inventory, and notices bit-for-bit',()=>{
+ const sourceBase='src/assets/audio';
+ const distBase='dist/assets/audio';
+ const sourceManifest=JSON.parse(read(sourceBase+'/soundfont-manifest.json'));
+ const deployedManifest=JSON.parse(read(distBase+'/soundfont-manifest.json'));
+ assert.equal(sourceManifest.schemaVersion,1);
+ assert.deepEqual(deployedManifest,sourceManifest,'deployed manifest must match the reviewed source manifest');
+ const digest=bytes=>crypto.createHash('sha256').update(bytes).digest('hex');
+ assert.equal(sourceManifest.banks.length,2,'both supported banks must be selectable');
+ assert.equal(sourceManifest.defaultBankId,'generaluser-gs-2.0.3-sf2','GeneralUser is the provisional default');
+ assert.ok(sourceManifest.banks.reduce((total,bank)=>total+bank.bytes,0)<80*1024*1024,
+  'the two-bank delivery must remain inside the approved 80 MiB asset budget');
+ const expected={
+  'generaluser-gs-2.0.3-sf2':{format:'SF2',bytes:32319396,sha256:'9575028c7a1f589f5770fccc8cff2734566af40cd26ed836944e9a5152688cfe',active:287,instruments:261,drums:13,aliases:13,notices:{
+   'soundfonts/GeneralUser-GS-LICENSE.txt':[2317,'7b32efefdf95ce38a043799f0659853ddc00fbaa14d8c50f0aca16b9b8b405be'],
+   'soundfonts/GeneralUser-GS-README.md':[67719,'fb23217ca2a9cf199e04aed1b04a7e81e024330411941c3638302e081584c151'],
+  }},
+  'musescore-general-0.2-sf3':{format:'SF3',bytes:39900972,sha256:'5b85b6c2c61d10b2b91cddd41efcce7b25cd31c8271d511c73afafbef20b6fa3',active:309,instruments:272,drums:37,aliases:0,notices:{
+   'soundfonts/MuseScore_General_License.md':[3419,'5ad8d737e13c7f01f5b9674872a82a92b4ba253603e8ed14b9db12293550b4b9'],
+   'soundfonts/MuseScore_General_Readme.md':[5161,'e4ee85d097cda49a7926ea73e59ea8b7bb90d6ad715f82d20c6bfddf5dcfeb4c'],
+   'soundfonts/MuseScore_General_VERSION':[6,'1f930dd1f133c1f97a94fe3acb8db34372cf4c01ffdb2b3ff4ca72f9494121e9'],
+   'soundfonts/MuseScore_General_Sample_Sources.csv':[12817,'cbec757614fa47d2ba71a2f1276bf010918261d94987cfb678352e9755e9bdd4'],
+  }},
+ };
+ for(const bank of sourceManifest.banks){
+  const pin=expected[bank.id];
+  assert.ok(pin,'unexpected bank ID: '+bank.id);
+  assert.equal(bank.format,pin.format);
+  assert.equal(bank.bytes,pin.bytes);
+  assert.equal(bank.sha256,pin.sha256);
+  assert.ok(bank.source&&bank.license,'bank provenance and license identity are required');
+  assert.ok(Array.isArray(bank.noticeFiles)&&bank.noticeFiles.length>=2,'notice list is part of the packaged bank contract');
+  for(const relative of [bank.filename,bank.inventory.catalogPath,...bank.noticeFiles]){
+   assert.ok(relative.startsWith('soundfonts/'),'asset path must stay inside the bank directory: '+relative);
+   const sourceBytes=fs.readFileSync(path.join(root,sourceBase,relative));
+   const deployedBytes=fs.readFileSync(path.join(root,distBase,relative));
+   assert.ok(sourceBytes.length>0,'source asset must not be empty: '+relative);
+   assert.deepEqual(deployedBytes,sourceBytes,'production asset must be copied without mutation: '+relative);
+  }
+  const noticeMetadata=[bank.license,...bank.attributionFiles];
+  for(const notice of noticeMetadata){
+   assert.ok(bank.noticeFiles.includes(notice.path),'each license/provenance record must be included in noticeFiles');
+   const noticePin=pin.notices[notice.path];
+   assert.ok(noticePin,'unexpected notice file: '+notice.path);
+   assert.deepEqual([notice.bytes,notice.sha256],noticePin,'notice pin must remain exact: '+notice.path);
+   const noticeBytes=fs.readFileSync(path.join(root,sourceBase,notice.path));
+   assert.equal(noticeBytes.length,noticePin[0]);
+   assert.equal(digest(noticeBytes),noticePin[1]);
+  }
+  assert.ok(bank.deliveryNotice&&bank.noticeFiles.includes(bank.deliveryNotice.path),
+   'generated delivery notice must be listed among the packaged bank notices');
+  const deliveryNoticeBytes=fs.readFileSync(path.join(root,sourceBase,bank.deliveryNotice.path));
+  assert.equal(deliveryNoticeBytes.length,bank.deliveryNotice.bytes,'delivery notice byte count must match the manifest');
+  assert.equal(digest(deliveryNoticeBytes),bank.deliveryNotice.sha256,'delivery notice must match its current manifest hash');
+  const sourceBytes=fs.readFileSync(path.join(root,sourceBase,bank.filename));
+  assert.equal(sourceBytes.length,bank.bytes,'source byte count must match pinned manifest');
+  assert.equal(digest(sourceBytes),bank.sha256,'source bank must match its pinned SHA-256');
+  assert.equal(digest(fs.readFileSync(path.join(root,distBase,bank.filename))),bank.sha256,'deployed bank must retain its source pin');
+  assert.equal(sourceBytes.subarray(0,4).toString('ascii'),'RIFF');
+  assert.equal(sourceBytes.subarray(8,12).toString('ascii'),'sfbk');
+  assert.equal(bank.inventory.activePresetHeaders,pin.active);
+  assert.equal(bank.inventory.gmBank0Programs,128);
+  assert.equal(bank.inventory.drumKitPresetsBank128,pin.drums);
+  assert.equal(bank.inventory.drumKitAliasesBank120,pin.aliases);
+  const catalogPath=sourceBase+'/'+bank.inventory.catalogPath;
+  const catalogRecord=JSON.parse(read(catalogPath));
+  const deployedCatalogRecord=JSON.parse(read(distBase+'/'+bank.inventory.catalogPath));
+  assert.deepEqual(deployedCatalogRecord,catalogRecord,'deployed preset inventory must match the source catalog');
+  assert.equal(catalogRecord.schemaVersion,1,'preset catalog schema is versioned');
+  assert.equal(catalogRecord.bankId,bank.id,'preset catalog must identify its pinned bank');
+  assert.deepEqual(catalogRecord.counts,{activePresetHeaders:pin.active,gmBank0Programs:128,instrumentPresets:pin.instruments,drumKitPresetsBank128:pin.drums,drumKitAliasesBank120:pin.aliases},
+   'preset catalog summary must match the pinned inventory categories');
+  const inventory=catalogRecord.presets;
+  assert.ok(Array.isArray(inventory),'preset catalog contains the parsed active preset rows');
+  const catalogBytes=fs.readFileSync(path.join(root,catalogPath));
+  assert.equal(catalogBytes.length,bank.inventory.catalogBytes);
+  assert.equal(digest(catalogBytes),bank.inventory.catalogSha256);
+  assert.equal(inventory.length,pin.active,'terminal phdr records are excluded from the active preset catalog');
+  const gm=inventory.filter(p=>p.soundfontBank===0&&!p.isDrum&&p.program>=0&&p.program<=127);
+  assert.equal(gm.length,128,'all 128 melodic GM programs must be present');
+  assert.deepEqual([...new Set(gm.map(p=>p.program))].sort((a,b)=>a-b),Array.from({length:128},(_,i)=>i));
+  assert.ok(gm.every(p=>typeof p.name==='string'&&p.name.trim()),'GM inventory names must be nonempty');
+  assert.equal(inventory.filter(p=>p.soundfontBank===128&&p.isDrum).length,pin.drums,'all raw bank-128 kits must be classified');
+  assert.equal(inventory.filter(p=>p.soundfontBank===120&&p.isDrum&&p.aliasOf?.soundfontBank===128).length,pin.aliases,
+   'bank-120 aliases must remain classified as drums and link to their bank-128 preset');
+  const manifestUrl=new URL(bank.url,'https://example.test/play-along/assets/audio/soundfont-manifest.json');
+  assert.equal(manifestUrl.origin,'https://example.test','bank URL must be same-origin');
+  assert.ok(manifestUrl.pathname.startsWith('/play-along/assets/audio/soundfonts/'),
+   'bank URL must resolve under the deployable /play-along/ subpath');
+  assert.equal(path.posix.basename(manifestUrl.pathname),path.posix.basename(bank.filename));
+ }
+});

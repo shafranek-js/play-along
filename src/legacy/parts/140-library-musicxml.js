@@ -502,6 +502,37 @@ function readMusicXML(xmlString,filename){
   return {bpm,tempoTick};
  };
  const scoreParts=xmlList(root,'part');
+ const scorePartDefs=new Map(xmlList(xmlDirect(root,'part-list'),'score-part').map(p=>[p.getAttribute('id'),p]));
+ const usedAudioChannels=new Map(),reservedAudioChannels=new Set();let nextMelodicChannel=0;
+ for(const def of scorePartDefs.values()){
+  for(const instrument of [...xmlList(def,'midi-instrument'),...xmlList(def,'score-instrument').flatMap(x=>xmlList(x,'midi-instrument'))]){
+   const channel=Number(xmlText(instrument,'midi-channel',''));
+   if(Number.isInteger(channel)&&channel>=1&&channel<=16)reservedAudioChannels.add(channel-1);
+  }
+ }
+ const allocateMelodicChannel=()=>{
+  // Try a full MIDI channel cycle: automatic assignment skips channel 10, so
+  // the number of candidate melodic channels is fifteen, not the loop bound.
+  for(let tries=0;tries<16;tries++){
+   const ch=nextMelodicChannel++%16;if(ch===9)continue;
+   if(!usedAudioChannels.has(ch)&&!reservedAudioChannels.has(ch))return ch;
+  }
+  warnings.add('В партитуре больше 15 мелодических MIDI-инструментов: некоторые используют общий канал.');
+  return 0;
+ };
+ const musicXmlPanController=(raw)=>{
+  if(raw==='')return null;
+  const degrees=Number(raw);
+  if(!Number.isFinite(degrees)||degrees< -180||degrees>180){warnings.add('Недопустимый MusicXML pan пропущен.');return null;}
+  // MusicXML defines -90/+90 as hard left/right and 0 as ahead. For the
+  // rear half, fold the angle back toward center for stereo; this is a
+  // projection to CC10, not surround rendering.
+  if(Math.abs(degrees)>90)warnings.add('MusicXML pan позади слушателя спроецирован в стерео; объемное позиционирование не воспроизводится.');
+  const lateral=Math.abs(degrees)<=90?degrees/90:Math.sign(degrees)*(180-Math.abs(degrees))/90;
+  return Math.round((lateral+1)*63.5);
+ };
+ const audioEventTicks=[];let audioSequence=0;
+ const addAudioTick=event=>{if(audioEventTicks.length>=100000)throw Error('В MusicXML слишком много аудиособытий для прототипа');audioEventTicks.push({...event,sequence:audioSequence++})};
  const counts=scoreParts.map(p=>xmlList(p,'measure').length);
  // Only synchronize when the parts contain matching measure counts. Scores
  // with genuinely different structures remain on the previous safe path.
@@ -511,6 +542,63 @@ function readMusicXML(xmlString,filename){
  for(const [partIndex,part] of scoreParts.entries()){
   let absolute=0,divisions=1,transposition=0;let beats=4,beatType=4;
   const partId=part.getAttribute('id')||'part',partName=namesById[partId]||'Партия';
+  const partDef=scorePartDefs.get(partId),configs=new Map();
+  const midiInstruments=partDef?xmlList(partDef,'midi-instrument'):[];
+  const scoreInstruments=partDef?xmlList(partDef,'score-instrument'):[];
+  const makeConfig=(instrumentId,midi)=>{
+   const midiChannelRaw=xmlText(midi,'midi-channel',''),midiChannel=Number(midiChannelRaw);
+   let channel;
+   if(Number.isInteger(midiChannel)&&midiChannel>=1&&midiChannel<=16)channel=midiChannel-1;
+   else{
+   if(midiChannelRaw!=='')warnings.add('В MusicXML MIDI-канал должен быть от 1 до 16; назначен канал автоматически.');
+    channel=xmlDirect(midi,'midi-unpitched')?9:allocateMelodicChannel();
+   }
+   if(midiChannel===10&&!xmlDirect(midi,'midi-unpitched'))warnings.add('Мелодический инструмент MusicXML явно использует канал 10, обычно отведённый для ударных.');
+   const programRaw=xmlText(midi,'midi-program','1'),programNumber=Number(programRaw);
+   const program=Number.isInteger(programNumber)&&programNumber>=1&&programNumber<=128?programNumber-1:0;
+   if(programRaw!==''&&(!Number.isInteger(programNumber)||programNumber<1||programNumber>128))warnings.add('Недопустимый MusicXML midi-program: использована программа 0.');
+   const bankRaw=xmlText(midi,'midi-bank','1'),bankNumber=Number(bankRaw);
+   const bank=Number.isInteger(bankNumber)&&bankNumber>=1&&bankNumber<=16384?bankNumber-1:0;
+   if(bankRaw!==''&&(!Number.isInteger(bankNumber)||bankNumber<1||bankNumber>16384))warnings.add('Недопустимый MusicXML midi-bank: использован банк 0.');
+   const config={id:instrumentId,channel,program,bankMSB:(bank>>7)&127,bankLSB:bank&127,isDrum:!!xmlDirect(midi,'midi-unpitched'),midiUnpitched:xmlDirect(midi,'midi-unpitched')?Number(xmlText(midi,'midi-unpitched',''))-1:null};
+   if(config.midiUnpitched!=null&&(!Number.isInteger(config.midiUnpitched)||config.midiUnpitched<0||config.midiUnpitched>127)){warnings.add('Недопустимый MusicXML midi-unpitched: соответствующие ноты будут пропущены.');config.midiUnpitched=null;}
+   const signature=[config.program,config.bankMSB,config.bankLSB,config.isDrum,xmlText(midi,'volume',''),xmlText(midi,'pan','')].join('/');
+   if(usedAudioChannels.has(channel)&&usedAudioChannels.get(channel)!==signature)warnings.add('Несколько инструментов MusicXML используют канал '+(channel+1)+' с разными тембрами; для независимого звучания нужны дополнительные каналы.');
+   else usedAudioChannels.set(channel,signature);
+   addAudioTick({type:'programChange',tick:0,channel,track:null,sourceTrack:partIndex,program:config.program,bankMSB:config.bankMSB,bankLSB:config.bankLSB,isDrum:config.isDrum});
+   const volumeRaw=xmlText(midi,'volume',''),volume=Number(volumeRaw);if(volumeRaw!==''&&Number.isFinite(volume)&&volume>=0&&volume<=100)addAudioTick({type:'cc',tick:0,channel,track:null,sourceTrack:partIndex,controller:7,value:Math.round(volume*127/100)});
+   const panRaw=xmlText(midi,'pan',''),panValue=musicXmlPanController(panRaw);if(panValue!=null)addAudioTick({type:'cc',tick:0,channel,track:null,sourceTrack:partIndex,controller:10,value:panValue});
+   configs.set(instrumentId,config);
+  };
+  if(scoreInstruments.length){
+   for(const definition of scoreInstruments){
+    const instrumentId=definition.getAttribute('id')||partId;
+    const midi=midiInstruments.find(x=>x.getAttribute('id')===instrumentId)||xmlDirect(definition,'midi-instrument');
+    makeConfig(instrumentId,midi);
+   }
+  }else if(midiInstruments.length){
+   for(const midi of midiInstruments)makeConfig(midi.getAttribute('id')||partId,midi);
+  }
+  if(!configs.size)makeConfig(partId,null);
+  const defaultInstrumentId=configs.keys().next().value,defaultConfig=configs.get(defaultInstrumentId);
+  if(partDef&&xmlList(partDef,'midi-device').some(x=>x.hasAttribute('port')))warnings.add('Порты MusicXML midi-device не разделяются; инструменты с разными портами могут звучать вместе.');
+  const recordMidiSound=(sound,soundTick)=>{
+   if(!sound)return;
+   for(const device of xmlList(sound,'midi-device'))if(device.hasAttribute('port'))warnings.add('Смена порта MusicXML midi-device не применяется; соответствующие инструменты могут звучать вместе.');
+   if(xmlList(sound,'instrument-change').length)warnings.add('Смена виртуального инструмента MusicXML не применяется; сохраняется исходный тембр партии.');
+   for(const midi of xmlList(sound,'midi-instrument')){
+    const id=midi.getAttribute('id')||defaultInstrumentId,config=configs.get(id);
+    if(!config){warnings.add('Элемент MusicXML sound ссылается на неизвестный ID инструмента: '+id+'.');continue;}
+    const channelRaw=xmlText(midi,'midi-channel',''),channelValue=Number(channelRaw);
+    if(channelRaw!==''&&(!Number.isInteger(channelValue)||channelValue<1||channelValue>16||channelValue-1!==config.channel))warnings.add('Переназначение MIDI-канала в середине партитуры не применяется; используется исходный канал.');
+    const p=xmlText(midi,'midi-program',''),b=xmlText(midi,'midi-bank','');
+    if(p){const n=Number(p);if(Number.isInteger(n)&&n>=1&&n<=128)config.program=n-1;else warnings.add('Недопустимый mid-score midi-program пропущен.');}
+    if(b){const n=Number(b);if(Number.isInteger(n)&&n>=1&&n<=16384){const bank=n-1;config.bankMSB=(bank>>7)&127;config.bankLSB=bank&127;}else warnings.add('Недопустимый mid-score midi-bank пропущен.');}
+    if(p||b)addAudioTick({type:'programChange',tick:soundTick,channel:config.channel,track:null,sourceTrack:partIndex,program:config.program,bankMSB:config.bankMSB,bankLSB:config.bankLSB,isDrum:config.isDrum});
+    const volumeRaw=xmlText(midi,'volume',''),volume=Number(volumeRaw);if(volumeRaw!==''&&Number.isFinite(volume)&&volume>=0&&volume<=100)addAudioTick({type:'cc',tick:soundTick,channel:config.channel,track:null,sourceTrack:partIndex,controller:7,value:Math.round(volume*127/100)});
+    const panRaw=xmlText(midi,'pan',''),panValue=musicXmlPanController(panRaw);if(panValue!=null)addAudioTick({type:'cc',tick:soundTick,channel:config.channel,sourceTrack:partIndex,track:null,controller:10,value:panValue});
+   }
+  };
   const staffNumbers=new Set(xmlList(part,'measure').flatMap(m=>[...m.getElementsByTagName('staff')].map(x=>x.textContent.trim())));
   const declaredStaves=Math.max(1,...xmlList(part,'measure').flatMap(m=>[...m.getElementsByTagName('staves')].map(x=>Number(x.textContent)||1)));
   const hasGrandStaff=declaredStaves>1||staffNumbers.size>1;
@@ -532,12 +620,14 @@ function readMusicXML(xmlString,filename){
     if(tag==='backup'){at=Math.max(0,at-durationTicks(xmlText(el,'duration',0),divisions));continue}
     if(tag==='forward'){at+=durationTicks(xmlText(el,'duration',0),divisions);maxAt=Math.max(maxAt,at);continue}
     if(tag==='sound'){
-     recordSoundTempo(el,null,at,absolute,divisions,beats,beatType);
+     const {tempoTick}=recordSoundTempo(el,null,at,absolute,divisions,beats,beatType);
+     recordMidiSound(el,tempoTick);
      continue;
     }
     if(tag==='direction'){
      const sound=xmlDirect(el,'sound');
      const {bpm,tempoTick}=recordSoundTempo(sound,el,at,absolute,divisions,beats,beatType);
+     recordMidiSound(sound,tempoTick);
      const metr=xmlDirect(xmlDirect(el,'direction-type'),'metronome');const per=Number(xmlText(metr,'per-minute'));if(!bpm&&per>0){const unit=xmlText(metr,'beat-unit','quarter');const unitQuarter=({whole:4,half:2,quarter:1,eighth:.5,'16th':.25,'32nd':.125,'64th':.0625})[unit]||1;
       // MusicXML can specify a dotted beat unit, e.g. dotted quarter = 60
       // in 6/8. A dotted quarter occupies 1.5 ordinary quarter beats.
@@ -553,9 +643,17 @@ function readMusicXML(xmlString,filename){
     const onset=chord?lastOnset:at;
     if(!chord){lastOnset=at;at+=noteDur;maxAt=Math.max(at,maxAt)}
     if(rest||grace){if(grace)warnings.add('Форшлаги/украшения пропущены.');continue}
-    const pitch=xmlDirect(el,'pitch');if(!pitch){warnings.add('Есть ноты без определённой высоты — пропущены.');continue}
-    const step=xmlText(pitch,'step','C'),alter=Number(xmlText(pitch,'alter','0')),octave=Number(xmlText(pitch,'octave','4'));
-    const pitchNumber=({C:0,D:2,E:4,F:5,G:7,A:9,B:11})[step]+alter+(octave+1)*12+transposition;
+    const sourceInstruments=xmlList(el,'instrument');
+    if(sourceInstruments.length>1)warnings.add('Нота MusicXML назначена нескольким инструментам; воспроизводится первое назначение.');
+    else if(!sourceInstruments.length&&configs.size>1)warnings.add('Ноты MusicXML без instrument ID не различают несколько объявленных инструментов; использован первый.');
+    const instrumentId=sourceInstruments[0]?.getAttribute('id')||defaultInstrumentId;
+    const config=configs.get(instrumentId)||defaultConfig;
+    if(sourceInstruments.length&&!configs.has(instrumentId))warnings.add('Нота MusicXML ссылается на неизвестный instrument ID: '+instrumentId+'; использован инструмент по умолчанию.');
+    const pitch=xmlDirect(el,'pitch'),unpitched=xmlDirect(el,'unpitched');
+    if(!pitch&&!(unpitched&&config.isDrum&&Number.isInteger(config.midiUnpitched))){warnings.add('Есть ноты без определённой MIDI-высоты — пропущены.');continue}
+    const pitchNumber=pitch
+     ?({C:0,D:2,E:4,F:5,G:7,A:9,B:11})[xmlText(pitch,'step','C')]+Number(xmlText(pitch,'alter','0'))+(Number(xmlText(pitch,'octave','4'))+1)*12+transposition
+     :config.midiUnpitched;
     if(!Number.isFinite(pitchNumber)||pitchNumber<0||pitchNumber>127||Math.round(pitchNumber)!==pitchNumber)continue;
     const voice=xmlText(el,'voice','1'),staff=xmlText(el,'staff','1'),key=staff+'|'+voice;
     const finger=authorFinger(el);
@@ -563,11 +661,11 @@ function readMusicXML(xmlString,filename){
     const id=part.getAttribute('id')||'part',fullKey=id+'|'+key;
     let list=voices.get(key);if(!list){list=[];voices.set(key,list)}
     const tied=xmlList(el,'tie').map(t=>t.getAttribute('type'));
-    const note={pitch:pitchNumber,tick:absolute+onset,len:Math.max(1,noteDur),velocity:85,channel:0,
-     noteId:musicXmlSourceNoteId(partId,partIndex,measureIndex,++sourceOrdinal),partId,staff,voice};
-    note.sourceNoteIds=[note.noteId];
+    const noteId=musicXmlSourceNoteId(partId,partIndex,measureIndex,++sourceOrdinal);
+    const note={pitch:pitchNumber,tick:absolute+onset,len:Math.max(1,noteDur),velocity:85,channel:config.channel,isDrum:config.isDrum,
+     noteId,sourceNoteIds:[noteId],partId,staff,voice,sourceTrack:partIndex,instrumentId:config.id};
     if(finger!==null){note.finger=finger;note.fingeringSource='musicxml';if(hand)note.hand=hand;}
-    const tieKey=fullKey+'|'+pitchNumber;const last=ties.get(tieKey);
+    const tieKey=fullKey+'|'+config.id+'|'+pitchNumber;const last=ties.get(tieKey);
     if(tied.includes('stop')&&last&&Math.abs(last.tick+last.len-note.tick)<=2){
      last.len+=note.len;
      // The unified held note keeps each written tie segment's identity.
@@ -598,11 +696,16 @@ function readMusicXML(xmlString,filename){
  const tempoMap=musicCreateTempoTimeline(tempos,ppq);
  const toSeconds=tick=>musicTickToSeconds(tempoMap,ppq,tick);
  const tracks=segments.map((s,i)=>({name:s.name,notes:s.notes.map(n=>({
-  pitch:n.pitch,start:toSeconds(n.tick),duration:Math.max(.025,toSeconds(n.tick+n.len)-toSeconds(n.tick)),velocity:n.velocity,track:i,channel:0,
-  noteId:n.noteId,sourceNoteIds:n.sourceNoteIds.slice(),partId:n.partId,staff:n.staff,voice:n.voice,
+  pitch:n.pitch,start:toSeconds(n.tick),duration:Math.max(.025,toSeconds(n.tick+n.len)-toSeconds(n.tick)),velocity:n.velocity,track:i,channel:n.channel,
+  noteId:n.noteId,sourceNoteIds:n.sourceNoteIds.slice(),partId:n.partId,staff:n.staff,voice:n.voice,sourceTrack:n.sourceTrack,instrumentId:n.instrumentId,isDrum:n.isDrum,
   ...(n.finger!=null?{finger:n.finger,fingeringSource:n.fingeringSource,...(n.hand?{hand:n.hand}:{})}:{})
  }))}));
- return{id:'xml-'+Date.now(),title:title.slice(0,100),author:author.slice(0,110),type:'import',format:'MusicXML',tracks,warnings:[...warnings],notationXML:playbackXml,originalNotationXML:repeatExpansion.expanded?safeXml:undefined,scoreTempoMap:tempoMap.map(t=>({beat:t.tick/ppq,sec:t.sec,tempo:t.tempo}))};
+ for(let track=0;track<tracks.length;track++)for(const n of segments[track].notes){
+  addAudioTick({type:'noteOn',tick:n.tick,channel:n.channel,track,sourceTrack:n.sourceTrack,noteId:n.noteId,pitch:n.pitch,velocity:n.velocity});
+  addAudioTick({type:'noteOff',tick:n.tick+n.len,channel:n.channel,track,sourceTrack:n.sourceTrack,noteId:n.noteId,pitch:n.pitch});
+ }
+ const audioEvents=audioEventTicks.map(({tick,...event})=>({...event,time:toSeconds(tick)})).sort((a,b)=>a.time-b.time||a.sequence-b.sequence);
+ return{id:'xml-'+Date.now(),title:title.slice(0,100),author:author.slice(0,110),type:'import',format:'MusicXML',tracks,audioEvents,warnings:[...warnings],notationXML:playbackXml,originalNotationXML:repeatExpansion.expanded?safeXml:undefined,scoreTempoMap:tempoMap.map(t=>({beat:t.tick/ppq,sec:t.sec,tempo:t.tempo}))};
 }
 async function zipUnpackMXL(arrayBuffer){
  const a=new Uint8Array(arrayBuffer),d=new DataView(arrayBuffer);if(a.length>16*1024*1024)throw Error('MXL больше 16 МБ');let eocd=-1;

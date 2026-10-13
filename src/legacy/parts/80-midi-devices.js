@@ -46,7 +46,22 @@ function setInput(input,remember=true){
  if(midiInput){midiInput.onmidimessage=onMIDI;if(remember){state.preferredMidiName=midiInput.name||'';persist()}}
  updateDevice();
 }
-function onMIDI(e){if(!e.data)return;let [s,n,v=0]=e.data;let op=s&0xF0;if(op===0x90&&v>0)onNoteOn(n,v,'midi',e.timeStamp);else if(op===0x80||(op===0x90&&v===0))onNoteOff(n,'midi',e.timeStamp);}
+function onMIDI(e){
+ if(!e.data)return;
+ const [status,data1=0,data2=0]=e.data,op=status&0xF0;
+ if(op===0x90&&data2>0)onNoteOn(data1,data2,'midi',e.timeStamp);
+ else if(op===0x80||(op===0x90&&data2===0))onNoteOff(data1,'midi',e.timeStamp);
+ else if(typeof audioLiveControl==='function'){
+  let event=null;
+  if(op===0xB0)event={type:'cc',controller:data1,value:data2};
+  else if(op===0xE0)event={type:'pitchWheel',value:data1|(data2<<7)};
+  else if(op===0xD0)event={type:'channelPressure',value:data1};
+  else if(op===0xA0)event={type:'polyPressure',pitch:data1,value:data2};
+  // Program Change is intentionally ignored: the live instrument selector
+  // owns the keyboard sound, independent of MIDI file/source program events.
+  if(event)try{audioLiveControl(event)}catch(error){console.warn('Live MIDI control was not applied',error)}
+ }
+}
 function eventPosition(timestamp){const p=isPlaying?clockPos():pos;if(!isPlaying||!timestamp||!Number.isFinite(timestamp))return p;return p-Math.max(0,Math.min(120,performance.now()-timestamp))/1000*rate()}
 function addMonitor(t){monitor.unshift(t);monitor=monitor.slice(0,5);$('midiMonitor').textContent=monitor.join('\n');}
 function onNoteOn(note,velocity=85,from='midi',timestamp){
@@ -115,7 +130,107 @@ function renderCommands(){let q=$('commandSearch').value.toLowerCase(),list=$('c
 function toggleFocus(){let focused=document.body.classList.toggle('focus');$('focusBtn').classList.toggle('on',focused);requestAnimationFrame(resizeCanvas);if(focused)notify('Фокус: Esc или F для возврата');}
 function resetLayout(){state.leftWidth=286;state.rightWidth=318;state.page='practice';state.left=true;state.right=true;state.rightTab='practice';state.layout='learn';document.body.classList.remove('focus');applyPage();applyLayout('learn');updateUI();persist();}
 // Compact SMF parser used to make this UI prototype testable with users' own .mid files.
-// This preview parser handles SMF formats 0/1, running status, notes and tempo map.
-function parseMidi(bytes,title){const dv=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength);let i=0;const ensure=n=>{if(i+n>bytes.length)throw Error('MIDI-файл повреждён или обрезан')};const u8=()=>{ensure(1);return bytes[i++]},u16=()=>{ensure(2);let n=dv.getUint16(i);i+=2;return n},u32=()=>{ensure(4);let n=dv.getUint32(i);i+=4;return n},str=n=>{ensure(n);let s=String.fromCharCode(...bytes.subarray(i,i+n));i+=n;return s};const vlq=end=>{let n=0;for(let k=0;k<4;k++){if(i>=end)throw Error('Ошибка VLQ');let b=u8();n=(n<<7)|(b&127);if(!(b&128))return n}throw Error('Слишком длинный VLQ')};if(str(4)!=='MThd')throw Error('Это не Standard MIDI File');let hsize=u32();if(hsize<6)throw Error('Некорректный заголовок MIDI');let format=u16(),num=u16(),ppq=u16();i+=hsize-6;if(format>1)throw Error('MIDI Type 2 пока не поддерживается');if(ppq&0x8000)throw Error('SMPTE timing пока не поддерживается');if(!ppq||num>150)throw Error('Некорректный MIDI timing');let rawTracks=[],tempos=[{tick:0,tempo:500000}];for(let tr=0;tr<num;tr++){if(str(4)!=='MTrk')throw Error('Отсутствует дорожка MTrk');let trLen=u32(),end=i+trLen;if(end>bytes.length)throw Error('Обрезанная дорожка');let tick=0,status=0,active=new Map(),notes=[],trackName='Дорожка '+(tr+1);while(i<end){tick+=vlq(end);if(i>=end)break;let b=bytes[i],s=b&0x80?u8():status;if(s>=0x80&&s<0xf0)status=s;if(s===0xff){let meta=u8(),length=vlq(end),from=i;if(from+length>end)throw Error('Повреждённая MIDI мета-секция');if(meta===0x51&&length===3)tempos.push({tick,tempo:(bytes[i]<<16)|(bytes[i+1]<<8)|bytes[i+2]});if(meta===0x03&&length)trackName=new TextDecoder().decode(bytes.slice(from,from+length)).replace(/[\x00-\x1f]/g,'').slice(0,55)||trackName;i+=length;continue}if(s===0xf0||s===0xf7){let len=vlq(end);i+=len;continue}if(s>=0xf0)throw Error('Неизвестное системное MIDI-событие');let op=s&0xf0,ch=s&0x0f,n=u8(),vel=(op===0xc0||op===0xd0)?0:u8(),key=ch+':'+n;if(op===0x90&&vel>0){let a=active.get(key)||[];a.push({tick,vel});active.set(key,a)}else if(op===0x80||(op===0x90&&vel===0)){let a=active.get(key);if(a?.length){let on=a.shift();notes.push({pitch:n,tick:on.tick,len:Math.max(1,tick-on.tick),velocity:on.vel,track:tr,channel:ch})}}}i=end;rawTracks.push({name:trackName,notes})}const canonical=musicCreateTempoTimeline(tempos,ppq);const sec=tick=>musicTickToSeconds(canonical,ppq,tick);let tracks=rawTracks.map(t=>({name:t.name,notes:t.notes.map(n=>({pitch:n.pitch,start:sec(n.tick),duration:Math.max(.025,sec(n.tick+n.len)-sec(n.tick)),velocity:n.velocity,track:n.track,channel:n.channel,scoreBeat:n.tick/ppq,scoreBeatLength:n.len/ppq}))})).filter(t=>t.notes.length);if(!tracks.length)throw Error('MIDI не содержит нот');if(tracks.reduce((n,t)=>n+t.notes.length,0)>25000)throw Error('Слишком много MIDI-нот для прототипа');tracks.forEach((t,index)=>t.notes.forEach(n=>n.track=index));return{id:'import-'+Date.now(),title:title.replace(/\.(mid|midi)$/i,'').slice(0,90),author:'Импортированный файл · '+tracks.reduce((n,t)=>n+t.notes.length,0)+' нот',type:'import',format:'MIDI',tracks,scoreTempoMap:canonical.map(t=>({beat:t.tick/ppq,sec:t.sec,tempo:t.tempo}))};}
+// This parser handles SMF formats 0/1, running status, channel voice events and a tempo map.
+function parseMidi(bytes,title){
+ const dv=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength);
+ let i=0,sequence=0;
+ const ensure=n=>{if(i+n>bytes.length)throw Error('MIDI-файл повреждён или обрезан')};
+ const u8=()=>{ensure(1);return bytes[i++]};
+ const u16=()=>{ensure(2);let n=dv.getUint16(i);i+=2;return n};
+ const u32=()=>{ensure(4);let n=dv.getUint32(i);i+=4;return n};
+ const str=n=>{ensure(n);let s=String.fromCharCode(...bytes.subarray(i,i+n));i+=n;return s};
+ const vlq=end=>{let n=0;for(let k=0;k<4;k++){if(i>=end)throw Error('Ошибка VLQ');let b=u8();n=(n<<7)|(b&127);if(!(b&128))return n}throw Error('Слишком длинный VLQ')};
+ if(str(4)!=='MThd')throw Error('Это не Standard MIDI File');
+ let hsize=u32();if(hsize<6)throw Error('Некорректный заголовок MIDI');
+ let format=u16(),num=u16(),ppq=u16();i+=hsize-6;
+ if(format>1)throw Error('MIDI Type 2 пока не поддерживается');
+ if(ppq&0x8000)throw Error('SMPTE timing пока не поддерживается');
+ if(!ppq||num>150)throw Error('Некорректный MIDI timing');
+ let rawTracks=[],tempos=[{tick:0,tempo:500000}],warnings=new Set(),rawEventCount=0;
+ const MAX_AUDIO_EVENTS=100000;
+ for(let tr=0;tr<num;tr++){
+  if(str(4)!=='MTrk')throw Error('Отсутствует дорожка MTrk');
+  let trLen=u32(),end=i+trLen;
+  if(end>bytes.length)throw Error('Обрезанная дорожка');
+  const trackByte=()=>{if(i>=end)throw Error('Обрезанная MIDI-дорожка');return u8()};
+  let tick=0,status=0,active=new Map(),notes=[],events=[],trackName='Дорожка '+(tr+1),noteSerial=0;
+  while(i<end){
+   tick+=vlq(end);
+   if(i>=end)break;
+   let first=bytes[i],s;
+   if(first&0x80){s=u8();if(s>=0x80&&s<0xf0)status=s}
+   else{if(!status)throw Error('MIDI использует running status до первого channel event');s=status}
+   if(s===0xff){
+    let meta=trackByte(),length=vlq(end),from=i;
+    if(from+length>end)throw Error('Повреждённая MIDI meta-секция');
+    if(meta===0x51&&length===3)tempos.push({tick,tempo:(bytes[i]<<16)|(bytes[i+1]<<8)|bytes[i+2]});
+    if(meta===0x03&&length)trackName=new TextDecoder().decode(bytes.slice(from,from+length)).replace(/[\x00-\x1f]/g,'').slice(0,55)||trackName;
+    if(meta===0x21&&length)warnings.add('MIDI-события port/cable требуют несколько MIDI-портов и не воспроизводятся.');
+    if(meta===0x2f){i=from+length;break}
+    i=from+length;continue;
+   }
+   if(s===0xf0||s===0xf7){
+    let len=vlq(end);if(i+len>end)throw Error('Обрезанное MIDI SysEx-событие');
+    i+=len;status=0;warnings.add('MIDI SysEx-события не поддерживаются и пропущены; заданные ими тембровые настройки могут отличаться.');continue;
+   }
+   if(s>=0xf0)throw Error('Неизвестное системное MIDI-событие 0x'+s.toString(16));
+   let op=s&0xf0,ch=s&0x0f;
+   const readData=()=>{const v=trackByte();if(v&0x80)throw Error('Некорректный MIDI data byte');return v};
+   let a=readData(),b=(op===0xc0||op===0xd0)?0:readData(),seq=sequence++;
+   rawEventCount++;if(rawEventCount>MAX_AUDIO_EVENTS)throw Error('Слишком много MIDI events для прототипа');
+   if(op===0x90&&b>0){
+    let key=ch+':'+a,queue=active.get(key)||[];
+    queue.push({tick,velocity:b,channel:ch,sequence:seq,noteId:'midi:'+tr+':'+(++noteSerial)});
+    active.set(key,queue);
+   }else if(op===0x80||(op===0x90&&b===0)){
+    let key=ch+':'+a,queue=active.get(key);
+    if(queue?.length){
+     let on=queue.shift();if(!queue.length)active.delete(key);
+     let note={pitch:a,tick:on.tick,len:Math.max(1,tick-on.tick),velocity:on.velocity,track:tr,channel:ch,noteId:on.noteId,sourceTrack:tr};
+     notes.push(note);
+     events.push({type:'noteOn',tick:on.tick,channel:ch,track:tr,sourceTrack:tr,sequence:on.sequence,noteId:on.noteId,pitch:a,velocity:on.velocity});
+     events.push({type:'noteOff',tick,channel:ch,track:tr,sourceTrack:tr,sequence:seq,noteId:on.noteId,pitch:a,velocity:b});
+    }
+   }else if(op===0xa0){
+    events.push({type:'polyPressure',tick,channel:ch,track:tr,sourceTrack:tr,sequence:seq,pitch:a,value:b});
+   }else if(op===0xb0){
+    events.push({type:'cc',tick,channel:ch,track:tr,sourceTrack:tr,sequence:seq,controller:a,value:b});
+   }else if(op===0xc0){
+    events.push({type:'programChange',tick,channel:ch,track:tr,sourceTrack:tr,sequence:seq,program:a,isDrum:ch===9});
+   }else if(op===0xd0){
+    events.push({type:'channelPressure',tick,channel:ch,track:tr,sourceTrack:tr,sequence:seq,value:a});
+   }else if(op===0xe0){
+    events.push({type:'pitchWheel',tick,channel:ch,track:tr,sourceTrack:tr,sequence:seq,value:a|(b<<7)});
+   }else throw Error('Неизвестное MIDI channel event 0x'+op.toString(16));
+  }
+  if(i<end)i=end;
+  if([...active.values()].some(q=>q.length))warnings.add('Незавершённые MIDI NoteOn пропущены, чтобы не оставлять ноты активными.');
+  rawTracks.push({name:trackName,notes,events});
+ }
+ const canonical=musicCreateTempoTimeline(tempos,ppq);
+ const sec=tick=>musicTickToSeconds(canonical,ppq,tick);
+ const sourceToTrack=new Map(),tracks=[];
+ for(let sourceTrack=0;sourceTrack<rawTracks.length;sourceTrack++){
+  const source=rawTracks[sourceTrack];
+  if(!source.notes.length)continue;
+  let trackIndex=tracks.length;sourceToTrack.set(sourceTrack,trackIndex);
+  tracks.push({name:source.name,notes:source.notes.map(n=>({
+   pitch:n.pitch,start:sec(n.tick),duration:Math.max(.025,sec(n.tick+n.len)-sec(n.tick)),velocity:n.velocity,
+   track:trackIndex,channel:n.channel,noteId:n.noteId,sourceTrack:n.sourceTrack,
+   scoreBeat:n.tick/ppq,scoreBeatLength:n.len/ppq
+  }))});
+ }
+ if(!tracks.length)throw Error('MIDI не содержит нот');
+ if(tracks.reduce((n,t)=>n+t.notes.length,0)>25000)throw Error('Слишком много MIDI-нот для прототипа');
+ const audioEvents=rawTracks.flatMap(t=>t.events).map(e=>({
+  ...e,time:sec(e.tick),track:sourceToTrack.has(e.track)?sourceToTrack.get(e.track):null
+ })).map(({tick,...e})=>e).sort((a,b)=>a.time-b.time||a.sequence-b.sequence);
+ return{
+  id:'import-'+Date.now(),title:title.replace(/\.(mid|midi)$/i,'').slice(0,90),
+  author:'Импортированный файл · '+tracks.reduce((n,t)=>n+t.notes.length,0)+' нот',
+  type:'import',format:'MIDI',tracks,audioEvents,warnings:[...warnings],
+  scoreTempoMap:canonical.map(t=>({beat:t.tick/ppq,sec:t.sec,tempo:t.tempo}))
+ };
+}
 async function importMIDI(file){if(!file)return;try{if(file.size>12*1024*1024)throw Error('Размер MIDI больше 12 МБ — в этом прототипе файл слишком большой');let arr=new Uint8Array(await file.arrayBuffer());let s=parseMidi(arr,file.name);imports.push(s);loadSong(s);state.page='practice';applyPage();state.left=false;applyPanels();notify('Импортировано '+allNotes(s).length+' MIDI-нот');}catch(e){$('errorText').textContent=e.message||String(e);$('importErrorOverlay').classList.add('show')}finally{$('midiFile').value=''}}
 

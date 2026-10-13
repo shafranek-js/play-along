@@ -80,37 +80,46 @@ try{
   return window.__prototypeTest.virtualKeyAt({clientX:r.left+120,clientY:r.top+r.height-8});
  }),null,'wrist margin below keyboard is not an interactive piano key');
  // FG-03B2: same source-anchored phrase in desktop, seek and narrow view.
- // These are explicit test fingers, not automated inference.
+ // Keep a short pre-roll before its first onset: Listen guidance advances
+ // from the first group once playback's real clock leaves the song boundary.
+ // The 0.5 s interval and authored poses stay unchanged.
  await page.setViewportSize({width:1440,height:900});
  await page.evaluate(()=>window.__prototypeTest.loadSong({
   id:'fg03b2-shift',title:'FG-03B2 authored shift',author:'Test',type:'import',
   tracks:[{name:'Right hand',notes:[
-   {pitch:60,start:0,duration:.3,velocity:80,track:0,finger:1,hand:'RH',fingeringSource:'musicxml'},
-   {pitch:79,start:.5,duration:.3,velocity:80,track:0,finger:5,hand:'RH',fingeringSource:'musicxml'}
+   {pitch:60,start:1,duration:.3,velocity:80,track:0,finger:1,hand:'RH',fingeringSource:'musicxml'},
+   {pitch:79,start:1.5,duration:.3,velocity:80,track:0,finger:5,hand:'RH',fingeringSource:'musicxml'}
   ]}]
  }));
  await page.locator('#fingerGuideMode').selectOption('ghost');
  await page.locator('#fingerGuideLookahead').selectOption('750');
- await page.evaluate(()=>window.__prototypeTest.seek(0));
+ await page.evaluate(()=>window.__prototypeTest.seek(.8));
  const paused=await page.evaluate(()=>window.__fingerGuideTest.ghostMotion);
  assert.equal(paused.visible,true);
  assert.equal(paused.plans.RH.kind,'static','Paused preview pins the silhouette to its next key');
  assert.deepEqual(paused.targets.RH,[{pitch:79,finger:5}]);
  await page.screenshot({path:path.join(output,'fg03b2-shift-paused.png')});
- const moving=await page.evaluate(()=>{
-  window.__prototypeTest.play();
-  return window.__fingerGuideTest.ghostMotion;
- });
+ // Playback now waits for the selected SoundFont's asynchronous readiness.
+ // Start through the real trusted control, then read the animated guidance
+ // only after the transport has actually begun and its first frames render.
+ await page.locator('#playBtn').click();
+ await page.waitForFunction(()=>{
+  const app=window.__prototypeTest,audio=app?.audio?.getStatus?.();
+  return app?.isPlaying===true&&audio?.lifecycle==='ready'&&
+   audio?.transport?.isPlaying===true&&audio?.transport?.isStarting!==true;
+ },null,{timeout:60000});
+ await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+ const moving=await page.evaluate(()=>window.__fingerGuideTest.ghostMotion);
  assert.equal(moving.visible,true);
  assert.equal(moving.plans.RH.kind,'moving',
   'Playing should interpolate a safe wide jump rather than keeping a static ghost');
  assert.ok(moving.plans.RH.progress<1);
  await page.screenshot({path:path.join(output,'fg03b2-shift-moving.png')});
- await page.evaluate(()=>{window.__prototypeTest.pause();window.__prototypeTest.seek(.1)});
+ await page.evaluate(()=>{window.__prototypeTest.pause();window.__prototypeTest.seek(1.1)});
  assert.equal(await page.evaluate(()=>window.__fingerGuideTest.ghostMotion.visible),false,
   'Seek past one onset recalculates preview with no stale in-transit sprite');
  await page.setViewportSize({width:390,height:844});
- await page.evaluate(()=>window.__prototypeTest.seek(0));
+ await page.evaluate(()=>window.__prototypeTest.seek(.8));
  const narrow=await page.evaluate(()=>window.__fingerGuideTest.ghostMotion);
  assert.equal(narrow.visible,true);
  assert.ok(['markers','static'].includes(narrow.plans.RH.kind),

@@ -108,6 +108,17 @@ jobs:
           name: fg02h-contextual-repertoire-report
           path: artifacts/fg02h-contextual-repertoire.json
           if-no-files-found: error
+      - name: Upload SoundFont acceptance reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: soundfont-acceptance
+          path: |
+            artifacts/audio-sf01/runs/*.json
+            artifacts/audio-sf03/**/*.json
+            artifacts/audio-sf04/**/*.json
+            artifacts/audio-sf05/**/*.json
+          if-no-files-found: warn
       - name: Upload FG-02I two-hand score router report
         if: always() && github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4

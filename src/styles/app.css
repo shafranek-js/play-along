@@ -76,6 +76,21 @@
 .fingerGuideControls #fingerGuideStatus{font-size:10px;color:#b8c6da;max-width:210px;line-height:1.25}
 @media(max-width:660px){.keyboardInfo{flex-wrap:wrap;gap:5px}.fingerGuideControls{order:5;width:100%}.fingerGuideControls #fingerGuideStatus{max-width:none}}
 
+/* SF-04 — compact sound controls in the existing MIDI sidebar. */
+.audioStatus[data-tone="ready"]{border-color:#375d50;background:#1b322c}
+.audioStatus[data-tone="error"]{border-color:#75464a;background:#342327}
+.audioBankSetting{margin-top:12px}
+.audioBankSetting select,.setting select#audioLivePresetSelect,.audioMorePresets select{width:100%;background:#131923;border:1px solid #424b5a;border-radius:8px;color:#f4f5f7;padding:9px 10px}
+.audioPresetSearch{margin-bottom:7px}
+.audioMorePresets{border:1px solid #364050;background:#1c232e;border-radius:9px;padding:9px 10px;margin:0 0 13px;font-size:12px}
+.audioMorePresets summary{cursor:pointer;color:#d7dde8;font-weight:650}
+.audioMorePresets label{display:block;margin:9px 0 5px}
+.audioMorePresets select{margin-top:2px}
+.audioFilePrograms{margin-top:12px}
+.audioFileHelp{margin:-8px 0 12px}
+.audioActionRow{display:flex;gap:6px;flex-wrap:wrap}
+.audioActionRow .audioPanic{margin-left:auto}
+@media(max-width:820px){.audioActionRow button{min-height:36px}.audioBankSetting select,.audioMorePresets select,.setting select#audioLivePresetSelect{min-height:42px}}
 /* Library workspace v0.10.49: five user-arrangeable sections. The search
    filters remain outside the draggable stack, always accessible. */
 #leftPanel .librarySections{display:flex;flex-direction:column;gap:9px;min-width:0;width:100%}

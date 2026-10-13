@@ -35,11 +35,40 @@ function museRead(xmlString,filename){
   if(score.getElementsByTagName('Tremolo').length)warning.add('Тремоло не разворачиваются в отдельные ноты.');
   if(score.getElementsByTagName('Repeats').length||score.getElementsByTagName('Jump').length||score.getElementsByTagName('Marker').length||score.getElementsByTagName('Volta').length||[...score.getElementsByTagName('BarLine')].some(x=>/start-repeat|end-repeat/.test(xmlText(x,'subtype',''))))warning.add('Репризы/переходы не разворачиваются; звучит записанный порядок тактов.');
   const ppq=480;
+  const usedChannels=new Set(),channelSignatures=new Map(),channelByStaff=new Map();let nextMelodicChannel=0;
+  const audioEventTicks=[];let audioSequence=0;
+  const addAudioTick=event=>{if(audioEventTicks.length>=100000)throw Error('MSCX содержит слишком много событий для аудиопроигрывателя');audioEventTicks.push({...event,sequence:audioSequence++})};
+  const allocateChannel=()=>{
+    // Traverse all sixteen raw values; channel 9 is skipped, leaving fifteen
+    // usable melodic channels. A 15-try bound can miss the final free channel.
+    for(let tries=0;tries<16;tries++){const ch=nextMelodicChannel++%16;if(ch===9||usedChannels.has(ch))continue;usedChannels.add(ch);return ch}
+    warning.add('В партитуре больше 15 мелодических партий: некоторые используют общий MIDI-канал.');return 0;
+  };
   // The Part/Staff structures describe instruments. The Score/Staff structures contain notes.
-  const names=new Map();for(const part of xmlList(score,'Part')){
+  const names=new Map();for(const [partIndex,part] of xmlList(score,'Part').entries()){
     const instr=xmlDirect(part,'Instrument');const label=xmlText(part,'trackName',xmlText(instr,'trackName',xmlText(instr,'longName','Партия')));
-    const partStaves=xmlList(part,'Staff');partStaves.forEach((st,i)=>names.set(st.getAttribute('id'),partStaves.length===1?label:label+' · '+(i+1)));
+    const partStaves=xmlList(part,'Staff'),isDrum=xmlText(instr,'useDrumset','0')==='1';
+    const channels=xmlList(instr,'Channel');if(channels.length>1)warning.add('В MSCX найдены варианты Channel; без StaffText/артикуляции используется только первый вариант.');
+    const channelNode=channels[0]||null,channel=isDrum?9:allocateChannel(),instrumentId=instr?.getAttribute('id')||'part-'+(partIndex+1);
+    const programNode=xmlDirect(channelNode,'program'),programRaw=programNode?.getAttribute('value');
+    const program=programRaw==null?null:(programRaw.trim()===''?NaN:Number(programRaw));
+    if(programRaw!=null&&(!Number.isInteger(program)||program<0||program>127))warning.add('Значение program в MSCX Channel вне диапазона 0–127 и пропущено.');
+    const controllers=[];
+    for(const controller of xmlList(channelNode,'controller')){
+      const numberRaw=controller.getAttribute('ctrl'),valueRaw=controller.getAttribute('value'),number=Number(numberRaw),value=Number(valueRaw);
+      if(numberRaw!=null&&numberRaw.trim()!==''&&valueRaw!=null&&valueRaw.trim()!==''&&Number.isInteger(number)&&number>=0&&number<=127&&Number.isInteger(value)&&value>=0&&value<=127)controllers.push({controller:number,value});
+      else warning.add('В MSCX Channel найдено неподдерживаемое значение контроллера; оно пропущено.');
+    }
+    const signature=String(program)+'|'+controllers.map(c=>c.controller+':'+c.value).join(',')+'|'+isDrum;
+    if(channelSignatures.has(channel)&&channelSignatures.get(channel)!==signature)warning.add('Партии MSCX используют общий MIDI-канал с разными тембрами или контроллерами; они могут влиять друг на друга.');
+    else channelSignatures.set(channel,signature);
+    const config={channel,isDrum,program,instrumentId,sourceTrack:partIndex};
+    for(const c of controllers)addAudioTick({type:'cc',tick:0,channel,track:null,sourceTrack:partIndex,...c});
+    if(program!=null&&Number.isInteger(program)&&program>=0&&program<=127)addAudioTick({type:'programChange',tick:0,channel,track:null,sourceTrack:partIndex,program,isDrum});
+    partStaves.forEach((st,i)=>{const staffId=st.getAttribute('id');names.set(staffId,partStaves.length===1?label:label+' · '+(i+1));channelByStaff.set(staffId,config)});
   }
+  if(score.getElementsByTagName('InstrumentChange').length)warning.add('Смены инструмента MSCX не применяются; используется начальный тембр каждой партии.');
+  if(score.getElementsByTagName('MidiAction').length||score.getElementsByTagName('Articulation').length)warning.add('MIDI-действия и артикуляция MSCX не передаются в аудиопроигрыватель.');
   const staves=xmlList(score,'Staff').filter(st=>xmlList(st,'Measure').length);
   if(!staves.length)throw Error('MSCX: в партитуре нет музыкальных станов с тактами');
   let metreN=4,metreD=4;
@@ -59,7 +88,9 @@ function museRead(xmlString,filename){
   const midiNotes=[],tempos=[{tick:0,tempo:500000}];
   staves.forEach((staff,si)=>{
     const staffId=staff.getAttribute('id')||String(si+1),staffName=names.get(staffId)||'Стан '+staffId;
-    const notes=[];
+    const config=channelByStaff.get(staffId)||{channel:allocateChannel(),isDrum:false,instrumentId:'staff-'+staffId,sourceTrack:si};
+    if(!channelByStaff.has(staffId))warning.add('Для стана MSCX не найден Part/Instrument: назначен канал автоматически.');
+    const notes=[];let sourceOrdinal=0;
     const measures=xmlList(staff,'Measure');const activeTies=new Map();
     for(let m=0;m<measures.length;m++){
       const measure=measures[m];const start=barTicks[m]??tick;
@@ -95,7 +126,8 @@ function museRead(xmlString,filename){
                 last.len+=dur;
                 if(!hasTie)activeTies.delete(tieKey);
               }else{
-                const n={pitch,tick:start+local,len:dur,velocity:85,channel:0};
+                const n={pitch,tick:start+local,len:dur,velocity:85,channel:config.channel,isDrum:config.isDrum,
+                  noteId:'mscx:'+staffId+':'+m+':'+(++sourceOrdinal),sourceTrack:config.sourceTrack,instrumentId:config.instrumentId};
                 notes.push(n);
                 if(hasTie)activeTies.set(tieKey,n);
                 else activeTies.delete(tieKey);
@@ -116,10 +148,18 @@ function museRead(xmlString,filename){
   const map=[...grouped].sort((a,b)=>a[0]-b[0]).map(([tick,tempo])=>({tick,tempo}));
   let sec=0;map.forEach((t,i)=>{if(i)sec+=(t.tick-map[i-1].tick)/ppq*map[i-1].tempo/1e6;t.sec=sec});
   function toSeconds(v){let a=0,b=map.length;while(a+1<b){let m=(a+b)>>1;if(map[m].tick<=v)a=m;else b=m}let t=map[a];return t.sec+(v-t.tick)/ppq*t.tempo/1e6}
-  const tracks=midiNotes.map((t,i)=>({name:t.name,notes:t.notes.map(n=>({pitch:n.pitch,start:toSeconds(n.tick),duration:Math.max(.025,toSeconds(n.tick+n.len)-toSeconds(n.tick)),velocity:n.velocity,channel:0,track:i})).sort((a,b)=>a.start-b.start||a.pitch-b.pitch)}));
+  const tracks=midiNotes.map((t,i)=>({name:t.name,notes:t.notes.map(n=>({
+    pitch:n.pitch,start:toSeconds(n.tick),duration:Math.max(.025,toSeconds(n.tick+n.len)-toSeconds(n.tick)),velocity:n.velocity,
+    channel:n.channel,track:i,noteId:n.noteId,sourceTrack:n.sourceTrack,instrumentId:n.instrumentId,isDrum:n.isDrum
+  })).sort((a,b)=>a.start-b.start||a.pitch-b.pitch)}));
+  for(let track=0;track<midiNotes.length;track++)for(const n of midiNotes[track].notes){
+    addAudioTick({type:'noteOn',tick:n.tick,channel:n.channel,track,sourceTrack:n.sourceTrack,noteId:n.noteId,pitch:n.pitch,velocity:n.velocity});
+    addAudioTick({type:'noteOff',tick:n.tick+n.len,channel:n.channel,track,sourceTrack:n.sourceTrack,noteId:n.noteId,pitch:n.pitch});
+  }
+  const audioEvents=audioEventTicks.map(({tick,...event})=>({...event,time:toSeconds(tick)})).sort((a,b)=>a.time-b.time||a.sequence-b.sequence);
   if(tracks.reduce((a,t)=>a+t.notes.length,0)<2)warning.add('В партитуре обнаружено мало нот. Проверь результат импорта.');
   warning.add('MSCX/MSCZ импортируются как учебный MIDI: аппликатура, артикуляция, динамика и часть музыкальных обозначений могут не воспроизводиться. Для наиболее точного импорта сложных партитур используй MusicXML/MXL.');
-  return{id:'mscx-'+Date.now(),title,author,type:'import',format:'MuseScore MSCX',tracks,warnings:[...warning]};
+  return{id:'mscx-'+Date.now(),title,author,type:'import',format:'MuseScore MSCX',tracks,audioEvents,warnings:[...warning],scoreTempoMap:map.map(t=>({beat:t.tick/ppq,sec:t.sec,tempo:t.tempo}))};
 }
 async function zipUnpackMuseScore(buffer){
   // MuseScore MSCZ uses ZIP with an MSCX score and optional media resources.

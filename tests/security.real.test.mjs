@@ -22,6 +22,14 @@ try{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('http://127.0.0.1:'+server.address().port,{waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>window.__prototypeTest&&window.__libraryV08?.collection);
+ const playAndWait=async()=>{
+  await page.locator('#playBtn').click();
+  await page.waitForFunction(()=>{
+   const app=window.__prototypeTest,audio=app?.audio?.getStatus?.();
+   return app?.isPlaying===true&&audio?.lifecycle==='ready'&&
+    audio?.transport?.isPlaying===true&&audio?.transport?.isStarting!==true;
+  },null,{timeout:60000});
+ };
  page.on('dialog',dialog=>dialog.accept());
  const download=page.waitForEvent('download');
  await page.locator('#backupExport').click();
@@ -122,7 +130,9 @@ try{
   for(const key of Object.keys(localStorage))
    if(key.startsWith('audit-quota-filler-'))localStorage.removeItem(key);
   window.__prototypeTest.setMode('wait');
-  window.__prototypeTest.play();
+ });
+ await playAndWait();
+ await page.evaluate(()=>{
   window.__prototypeTest.receiveNoteOn(60);
   window.__prototypeTest.finishPerformance('manual');
   window.__prototypeTest.receiveNoteOff(60);

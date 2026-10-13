@@ -1,6 +1,7 @@
 const $=id=>document.getElementById(id);
 const STORE='playalong:smart-practice:v07';const V06_STORE='playalong:performance-analyzer:v06';const PREV_STORE='playalong:smart-phrasing:v05';const PREV2_OLD_STORE='playalong:real-piano:v04';const PREV2_STORE='playalong:keyboard-engine:v03';const OLD_STORE='playalong:music-engine:v02';const OLDER_STORE='playalong:ui-prototype:v1';
-const defaults={layout:'learn',page:'practice',left:true,right:true,leftWidth:286,rightWidth:318,rightTab:'practice',mode:'listen',accompany:true,accompanyExplicit:false,autoMidi:true,preferredMidiName:'',speed:100,displayRange:'song',labels:true,highlight:true,allTracks:true,volume:40,selected:'demo-scale',track:0,deviceProfiles:{},targetRange:'device',adaptMode:'original',adaptShift:0,auditionAdapted:false,showReviewMarkers:true,scoreView:'roll',sheetZoom:100,sheetFollow:true,fingerGuidanceMode:'off',fingerLookaheadMs:750,fingerOverrides:{},librarySections:librarySectionLayoutNormalize()};
+const defaultAudioSettings=()=>({backend:'soundfont',bankId:null,livePreset:{bankMSB:0,bankLSB:0,program:0,isDrum:false},useFilePrograms:true});
+const defaults={layout:'learn',page:'practice',left:true,right:true,leftWidth:286,rightWidth:318,rightTab:'practice',mode:'listen',accompany:true,accompanyExplicit:false,autoMidi:true,preferredMidiName:'',speed:100,displayRange:'song',labels:true,highlight:true,allTracks:true,volume:40,selected:'demo-scale',track:0,deviceProfiles:{},audioSettings:defaultAudioSettings(),targetRange:'device',adaptMode:'original',adaptShift:0,auditionAdapted:false,showReviewMarkers:true,scoreView:'roll',sheetZoom:100,sheetFollow:true,fingerGuidanceMode:'off',fingerLookaheadMs:750,fingerOverrides:{},librarySections:librarySectionLayoutNormalize()};
 // Treat backups AND older localStorage snapshots as untrusted input.
 // Invalid restored values are rejected in strict backup mode; legacy
 // localStorage uses safe defaults to preserve normal upgrades.
@@ -47,6 +48,35 @@ function settingSafeProfiles(value,strict){
  }
  return profiles;
 }
+function settingAudioSettings(value,strict){
+ if(!settingPlainObject(value)||Object.keys(value).length>6)return strict?undefined:defaultAudioSettings();
+ const allowed=new Set(['backend','bankId','livePreset','useFilePrograms']);
+ if(Object.keys(value).some(key=>!allowed.has(key)))return strict?undefined:defaultAudioSettings();
+ const safe=defaultAudioSettings();
+ if(Object.hasOwn(value,'backend')){
+  if(['soundfont','simple'].includes(value.backend))safe.backend=value.backend;
+  else if(strict)return undefined;
+ }
+ if(Object.hasOwn(value,'bankId')){
+  if(value.bankId===null)safe.bankId=null;
+  else if(typeof value.bankId==='string'&&/^[a-z0-9][a-z0-9._-]{0,99}$/i.test(value.bankId))safe.bankId=value.bankId;
+  else if(strict)return undefined;
+ }
+ if(Object.hasOwn(value,'useFilePrograms')){
+  if(typeof value.useFilePrograms==='boolean')safe.useFilePrograms=value.useFilePrograms;
+  else if(strict)return undefined;
+ }
+ if(Object.hasOwn(value,'livePreset')){
+  const preset=value.livePreset;
+  if(!settingPlainObject(preset)||Object.keys(preset).length!==4
+    ||Object.keys(preset).some(key=>!['bankMSB','bankLSB','program','isDrum'].includes(key))
+    ||!['bankMSB','bankLSB','program'].every(key=>Number.isInteger(preset[key])&&preset[key]>=0&&preset[key]<=127)
+    ||typeof preset.isDrum!=='boolean'){
+   if(strict)return undefined;
+  }else safe.livePreset={bankMSB:preset.bankMSB,bankLSB:preset.bankLSB,program:preset.program,isDrum:preset.isDrum};
+ }
+ return safe;
+}
 function settingSongPrefs(value,strict){
  if(!settingPlainObject(value))return strict?undefined:Object.create(null);
  const result=Object.create(null);
@@ -85,8 +115,9 @@ function settingSongPrefs(value,strict){
  return result;
 }
 function sanitizePlayAlongSettings(value,{strict=false}={}){
- if(!settingPlainObject(value)) {if(strict)throw Error('Повреждённые настройки');return {...defaults}}
+ if(!settingPlainObject(value)) {if(strict)throw Error('Повреждённые настройки');return {...defaults,audioSettings:defaultAudioSettings()}}
  const safe={...defaults};
+ safe.audioSettings=defaultAudioSettings();
  for(const [key,raw] of Object.entries(value)){
   if(key==='fingerOverrides'){
    try{safe.fingerOverrides=fingerOverrideValidate(raw,{strict})}
@@ -102,6 +133,10 @@ function sanitizePlayAlongSettings(value,{strict=false}={}){
    const parsed=settingSafeProfiles(raw,strict);
    if(parsed===undefined&&strict)throw Error('Некорректная калибровка MIDI');
    if(parsed!==undefined)safe.deviceProfiles=parsed;
+  }else if(key==='audioSettings'){
+   const parsed=settingAudioSettings(raw,strict);
+   if(parsed===undefined&&strict)throw Error('Некорректные настройки звука');
+   if(parsed!==undefined)safe.audioSettings=parsed;
   }else if(Object.hasOwn(defaults,key)||key==='adaptProfile'){
    const parsed=settingValidated(key,raw);
    if(parsed===undefined){if(strict)throw Error('Некорректное значение настройки: '+key)}

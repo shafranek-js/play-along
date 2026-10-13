@@ -31,6 +31,14 @@ try{
  const page=await browser.newPage({viewport:{width:1400,height:950}});
  const errors=[];
  page.on('pageerror',e=>errors.push(e.message));
+ const playAndWait=async()=>{
+  await page.locator('#playBtn').click();
+  await page.waitForFunction(()=>{
+   const app=window.__prototypeTest,audio=app?.audio?.getStatus?.();
+   return app?.isPlaying===true&&audio?.lifecycle==='ready'&&
+    audio?.transport?.isPlaying===true&&audio?.transport?.isStarting!==true;
+  },null,{timeout:60000});
+ };
  page.route('https://cdn.jsdelivr.net/**',r=>r.abort('blockedbyclient'));
  page.route('https://unpkg.com/**',r=>r.abort('blockedbyclient'));
  await page.goto(origin,{waitUntil:'domcontentloaded'});
@@ -101,7 +109,7 @@ try{
  await page.waitForTimeout(350);
  assert.equal(await page.locator('#sheetZoomLabel').innerText(),'110%');
  await page.evaluate(()=>window.__prototypeTest.setMode('wait'));
- await page.locator('#playBtn').click();
+ await playAndWait();
  await page.waitForFunction(()=>window.__prototypeTest.hold===true);
  const before=await page.evaluate(()=>window.__prototypeTest.stats.hits);
  await page.evaluate(()=>window.__prototypeTest.receiveNoteOn(60));
@@ -123,8 +131,9 @@ try{
    id:'legato-ci',title:'Legato CI',author:'CI',type:'demo',tempo:120,
    tracks:[{name:'Melody',notes}]
   });
-  window.__prototypeTest.setMode('wait');window.__prototypeTest.play();
+   window.__prototypeTest.setMode('wait');
  });
+  await playAndWait();
  await page.waitForFunction(()=>window.__prototypeTest.hold===true);
  const hits=()=>page.evaluate(()=>window.__prototypeTest.stats.hits);
  await page.evaluate(()=>window.__prototypeTest.receiveNoteOn(60));
@@ -154,8 +163,9 @@ try{
     {pitch:69,start:1,duration:.8,velocity:80,track:0}
    ]}]
   });
-  window.__prototypeTest.setMode('wait');window.__prototypeTest.play();
+   window.__prototypeTest.setMode('wait');
  });
+  await playAndWait();
  await page.waitForFunction(()=>window.__prototypeTest.hold===true);
  await page.evaluate(()=>window.__prototypeTest.receiveNoteOn(60));
  await page.evaluate(()=>window.__prototypeTest.receiveNoteOn(64));
@@ -177,8 +187,9 @@ try{
     {pitch:60,start:1.5,duration:.5,velocity:80,track:0}
    ]}]
   });
-  window.__prototypeTest.setMode('tempo');window.__prototypeTest.play();
+   window.__prototypeTest.setMode('tempo');
  });
+  await playAndWait();
  await page.evaluate(()=>window.__prototypeTest.receiveNoteOn(60));
  assert.equal(await hits(),2,'Tempo must credit both C4 voices from one physical press');
  assert.equal(await page.evaluate(()=>window.__prototypeTest.performedNoteRefs.length),2,
@@ -217,9 +228,9 @@ try{
  assert.equal(repeats.later,true);
  await page.evaluate(()=>{
   const song=window.__prototypeTest.song;
-  window.__prototypeTest.setMode('wait');
-  window.__prototypeTest.play();
+   window.__prototypeTest.setMode('wait');
  });
+  await playAndWait();
  await page.waitForFunction(()=>window.__prototypeTest.hold===true);
  await page.evaluate(()=>window.__prototypeTest.receiveNoteOn(60));
  assert.equal(await hits(),2,'Wait must credit both simultaneous C4 voices');
@@ -235,11 +246,10 @@ try{
     {pitch:60,start:2,duration:.5,velocity:80,track:0}
    ]}]
   });
-  window.__prototypeTest.setMode('tempo');
-  window.__prototypeTest.play();
-  window.__prototypeTest.receiveNoteOn(60);
-  window.__prototypeTest.pause();
+   window.__prototypeTest.setMode('tempo');
  });
+  await playAndWait();
+  await page.evaluate(()=>{window.__prototypeTest.receiveNoteOn(60);window.__prototypeTest.pause()});
  const closedAtPause=await page.evaluate(()=>({
   active:window.__prototypeTest.session.played.size,
   first:window.__prototypeTest.session.all[0].off
@@ -249,8 +259,8 @@ try{
  await page.evaluate(()=>window.__prototypeTest.receiveNoteOff(60));
  assert.equal(await page.evaluate(()=>window.__prototypeTest.session.played.size),0,
   'Key-up after pause must not leave stale measurements');
- await page.evaluate(()=>{
-  window.__prototypeTest.play();
+  await playAndWait();
+  await page.evaluate(()=>{
   window.__prototypeTest.receiveNoteOn(60);
   window.__prototypeTest.receiveNoteOff(60);
   window.__prototypeTest.pause();
@@ -274,9 +284,9 @@ try{
   });
   const box=document.querySelector('#accompany');
   box.checked=true;box.dispatchEvent(new Event('change',{bubbles:true}));
-  window.__prototypeTest.setMode('wait');
-  window.__prototypeTest.play();
+   window.__prototypeTest.setMode('wait');
  });
+  await playAndWait();
  await page.waitForFunction(()=>window.__prototypeTest.hold===true);
  await page.evaluate(()=>window.__prototypeTest.receiveNoteOn(60));
  await page.waitForTimeout(70);
@@ -308,9 +318,9 @@ try{
    ]}]
   });
   window.__prototypeTest.setMode('listen');
-  window.__prototypeTest.seek(5);
-  window.__prototypeTest.play();
+   window.__prototypeTest.seek(5);
  });
+  await playAndWait();
  await page.waitForTimeout(70);
  let sustain=await page.evaluate(()=>({
   keys:window.__prototypeTest.soundingKeys,
@@ -324,13 +334,14 @@ try{
  await page.evaluate(()=>window.__prototypeTest.pause());
  assert.ok(!(await page.evaluate(()=>window.__prototypeTest.soundingKeys)).includes(65),
   'Pausing must stop recovered voices');
- await page.evaluate(()=>window.__prototypeTest.play());
+  await playAndWait();
  await page.waitForTimeout(70);
  assert.ok((await page.evaluate(()=>window.__prototypeTest.soundingKeys)).includes(65),
   'Resume after pause must still sound the sustained note');
  await page.evaluate(()=>window.__prototypeTest.pause());
  // A note whose off-event already passed must not be restarted.
- await page.evaluate(()=>{window.__prototypeTest.seek(10.2);window.__prototypeTest.play()});
+  await page.evaluate(()=>window.__prototypeTest.seek(10.2));
+  await playAndWait();
  await page.waitForTimeout(70);
  assert.equal((await page.evaluate(()=>window.__prototypeTest.scheduledVoices)).filter(v=>v.pitch===65).length,0,
   'Fully finished note was incorrectly retriggered');
@@ -357,7 +368,7 @@ try{
  }));
  assert.deepEqual(shifted,{selected:12,ui:'12',feasible:true,plan:[48],actual:[48]},
   'Transpose must use one feasible +12 shift for UI, plan, and playback');
- await page.evaluate(()=>window.__prototypeTest.play());
+  await playAndWait();
  assert.equal(await page.evaluate(()=>window.__prototypeTest.isPlaying),true,
   'An incorrectly stale infeasible plan blocked Play');
  await page.evaluate(()=>window.__prototypeTest.pause());
@@ -387,10 +398,8 @@ try{
  assert.equal(beforeSeekPlay.completed,0,'Seeking cannot count any notes as played');
  assert.deepEqual(beforeSeekPlay.flags.map(n=>n.skip),[true,true,false]);
  assert.ok(beforeSeekPlay.flags.every(n=>!n.hit&&!n.miss));
- await page.evaluate(()=>{
-  window.__prototypeTest.play();
-  window.__prototypeTest.receiveNoteOn(64);
- });
+  await playAndWait();
+  await page.evaluate(()=>window.__prototypeTest.receiveNoteOn(64));
  const afterSeekPlay=await page.evaluate(()=>({
   hits:window.__prototypeTest.stats.hits,
   total:window.__prototypeTest.session.total,

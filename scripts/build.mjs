@@ -2,6 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
+import { build as esbuild } from 'esbuild';
+import { validateSoundfontManifest } from './audio-assets.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'scripts/manifest.json'), 'utf8'));
@@ -68,5 +70,86 @@ fs.copyFileSync(osmdBundle, path.join(dist, 'assets/vendor/opensheetmusicdisplay
 const osmdLicense = path.join(vendoredDir, 'LICENSE');
 if (fs.existsSync(osmdLicense)) fs.copyFileSync(osmdLicense, path.join(dist, 'assets/vendor/LICENSE-OSMD.txt'));
 fs.writeFileSync(path.join(dist, '.nojekyll'), '');
+
+// SF-01 browser audio is a separate ESM/worklet asset group. Keep the existing
+// classic app bundle above unchanged; URLs inside this group stay relative so
+// the deployment also works from the /play-along/ Pages project prefix.
+const audioSourceRoot = path.join(root, 'src/assets/audio');
+const audioDistRoot = path.join(dist, 'assets/audio');
+const audioManifestName = 'soundfont-manifest.json';
+const audioManifestPath = path.join(audioSourceRoot, audioManifestName);
+if (!fs.existsSync(audioManifestPath)) throw Error('SF-01 SoundFont manifest is missing: ' + audioManifestPath);
+const audioManifest = JSON.parse(fs.readFileSync(audioManifestPath, 'utf8'));
+if (audioManifest.schemaVersion !== 1 || !Array.isArray(audioManifest.banks) || audioManifest.banks.length < 1)
+  throw Error('Invalid SF-01 soundfont-manifest.json schema');
+if (typeof audioManifest.defaultBankId !== 'string' || !audioManifest.banks.some(bank => bank.id === audioManifest.defaultBankId))
+  throw Error('SF-01 defaultBankId must name a delivered SoundFont bank');
+
+function checkedAudioRelativePath(value, label) {
+  if (typeof value !== 'string' || !value || value.startsWith('/') || value.includes('\\') || /^[a-z]+:/i.test(value))
+    throw Error('Invalid relative SF-01 ' + label + ' path');
+  const parts = value.split('/');
+  if (parts.some(part => !part || part === '.' || part === '..')) throw Error('Unsafe SF-01 ' + label + ' path: ' + value);
+  const resolved = path.resolve(audioSourceRoot, ...parts);
+  const relative = path.relative(audioSourceRoot, resolved);
+  if (!relative || relative.startsWith('..') || path.isAbsolute(relative)) throw Error('SF-01 ' + label + ' path escapes asset root');
+  return { source: resolved, relative: parts.join('/') };
+}
+
+fs.mkdirSync(audioDistRoot, {recursive:true});
+for (const entry of ['index.js', 'synth-worklet.js', 'pcm-tap-worklet.js']) {
+  const outputName = entry === 'index.js' ? 'index.js' : entry === 'synth-worklet.js' ? 'sf01-synth-worklet.js' : 'sf01-pcm-tap.js';
+  const outfile = path.join(audioDistRoot, outputName);
+  await esbuild({
+    entryPoints: [path.join(root, 'src/audio', entry)],
+    outfile,
+    bundle: true,
+    format: entry === 'index.js' ? 'esm' : 'iife',
+    platform: 'browser',
+    target: ['es2022'],
+    legalComments: 'none',
+    minify: true,
+    sourcemap: false,
+    logLevel: 'silent',
+  });
+}
+
+const validatedAudio = validateSoundfontManifest(audioManifest, relative => {
+  const assetPath = checkedAudioRelativePath(relative, 'asset');
+  return fs.readFileSync(assetPath.source);
+});
+const copiedAudioPaths = new Set([audioManifestName, ...validatedAudio.copiedPaths]);
+
+for (const relative of copiedAudioPaths) {
+  const source = path.join(audioSourceRoot, ...relative.split('/'));
+  if (!fs.existsSync(source) || !fs.statSync(source).isFile()) throw Error('Missing SF-01 asset or notice: ' + relative);
+  const target = path.join(audioDistRoot, ...relative.split('/'));
+  fs.mkdirSync(path.dirname(target), {recursive:true});
+  fs.copyFileSync(source, target);
+}
+
+const thirdPartyNotices = [
+  ['spessasynth_core', 'node_modules/spessasynth_core/LICENSE'],
+  ['stb-vorbis', 'node_modules/stb-vorbis/LICENSE'],
+].map(([name, relative]) => {
+  const licensePath = path.join(root, relative);
+  if (!fs.existsSync(licensePath)) throw Error('Missing runtime dependency notice: ' + relative);
+  return `===== ${name} (${relative}) =====\n${fs.readFileSync(licensePath, 'utf8').trim()}`;
+});
+fs.writeFileSync(path.join(audioDistRoot, 'THIRD-PARTY-NOTICES.txt'), thirdPartyNotices.join('\n\n') + '\n');
+
+function totalBytes(directory) {
+  let total = 0;
+  for (const item of fs.readdirSync(directory, {withFileTypes:true})) {
+    const itemPath = path.join(directory, item.name);
+    total += item.isDirectory() ? totalBytes(itemPath) : fs.statSync(itemPath).size;
+  }
+  return total;
+}
+const audioBytes = totalBytes(audioDistRoot);
+const audioBudgetBytes = 80 * 1024 * 1024;
+if (audioBytes > audioBudgetBytes) throw Error(`SF-01 audio assets exceed the authorized 80 MiB budget (${audioBytes} bytes)`);
+
 execFileSync(process.execPath, ['--check', path.join(dist, 'assets/app.js')], {stdio:'inherit'});
-console.log(`Built Play Along v${version}: ${names.length} feature source files, CSS + HTML -> dist/`);
+execFileSync(process.execPath, ['--check', path.join(audioDistRoot, 'index.js')], {stdio:'inherit'});
+console.log(`Built Play Along v${version}: ${names.length} feature source files, CSS + HTML + ${audioBytes} audio bytes -> dist/`);

@@ -1,11 +1,13 @@
-# Play Along — Piano Practice App (v0.10.62)
+# Play Along — Piano Practice App (v0.10.63)
 
 Play Along is an independently hosted browser piano practice application with Web MIDI, Piano Roll, OpenSheetMusicDisplay (OSMD), MusicXML/MXL and MIDI import, optional online music catalogs, and Wait/Tempo/Listen practice modes.
 
 **Live site:** https://shafranek-js.github.io/play-along/
 
 
-## Current status — v0.10.62
+## SoundFont playback (v0.10.63)
+
+**SoundFont playback:** This release includes GeneralUser GS 2.0.3 (SF2) and MuseScore General 0.2.0 (SF3), each with all 128 General MIDI programs, original licenses and checksum-verified catalogs. GeneralUser is the default; the MIDI settings panel switches banks and live instruments. File programs, isolated live input, Wait/Tempo/Listen transport, retry/Panic and settings/backup restoration are integrated. The functional regression passed all 25 browser scripts and 395 unit tests; all 256 GM programs produced finite nonzero central-note PCM. Firefox loading and focused PCM checks also passed. Higher memory use and GeneralUser clipping in the dense 128-note fixture are explicitly deferred follow-up work. Physical MIDI and Safari/iOS acceptance remain separate; the tested Windows Playwright WebKit lacks Web Audio APIs. See [SoundFont execution and acceptance](docs/SOUNDFONT-ORCHESTRATION.md).
 
 **Finger Guidance in the published player:** Optional Off / Numbers / 2D Hands / Ghost modes use the **14 original transparent PNG images supplied by the project owner** (seven poses for each hand). Guidance targets the **next note to be played**, not a key that is already sounding. In **Wait**, it stays on an unfinished group and removes already accepted chord keys; after a complete chord it advances to the next target.
 
@@ -88,7 +90,7 @@ Open **http://localhost:4173/**. For browser MIDI permission on an external host
 | Command | Purpose |
 | --- | --- |
 | `npm ci` | Reproduce pinned dependencies from `package-lock.json` |
-| `npm run build` | Assemble 21 ordered source fragments into `dist/assets/app.js`, copy CSS, HTML and vendored OSMD 2.2.0 |
+| `npm run build` | Assemble 22 source fragments, bundle the audio ESM/worklets, verify and copy both SoundFonts and notices, CSS, HTML and OSMD 2.2.0 |
 | `npm run dev` | Serve the built `dist/` folder over HTTP |
 | `npm test` | Check deterministic output, syntax, DOM anchors and baseline integrity |
 | `npm run test:maestro` | Run MAESTRO metadata, ZIP integrity and MIDI-event regression tests |
@@ -96,6 +98,7 @@ Open **http://localhost:4173/**. For browser MIDI permission on an external host
 | `npm run research:maestro:audit -- --csv CSV --zip ZIP --out JSON` | Verify official ZIP, 1,276 file memberships and 24 MIDI event profiles (offline research) |
 | `npm run research:maestro:diversity -- --csv CSV --zip ZIP --out JSON` | Profile all 1,276 MIDI files and select 24 measured-diversity QA performances |
 | `npm run test:browser` | Run real Chromium scenarios (requires `npx playwright install chromium`) |
+| `npm run test:audio` | Check both production banks with actual AudioWorklet PCM and prefix-relative asset loading |
 | npm run benchmark:fingering:repertoire | Reproduce FG-02G on five pinned, checksum-verified licensed musical excerpts (requires network) |
 | npm run benchmark:fingering:contextual | Compare FG-02H with FG-02G, including author-anchor acceptance and movement warnings |
 | npm run benchmark:fingering:heldout | Reproduce FG-02E locked, 34-case educational scale evaluation |
@@ -109,6 +112,8 @@ Open **http://localhost:4173/**. For browser MIDI permission on an external host
 Pushes to `main` trigger `.github/workflows/pages.yml`. CI runs `npm ci`, compiles the site, executes Node tests and real Chromium regressions, and deploys `dist/` to GitHub Pages when all tests pass.
 
 OSMD **2.2.0 is bundled locally** from the pinned npm package and loaded on demand from `./assets/vendor/opensheetmusicdisplay.min.js`, with CDN fallback. Catalog synchronization still requires external network access. The original music files are not uploaded to GitHub; local repertoire and full performance history are kept in browser IndexedDB, global preferences in localStorage.
+
+The local SoundFont build uses pinned **spessasynth_core 4.3.22** through a separate AudioWorklet adapter. The two bank files total **68.87 MiB**; static audio delivery has an explicitly agreed **80 MiB** budget. Runtime fetches only the selected bank and caches it by content hash. GeneralUser's custom license and MuseScore's MIT/inherited contributor notices are preserved under `dist/assets/audio/`, alongside core/decoder licenses. The preliminary **160 MiB additional-memory target remains unmet**; synthetic PCM tests do not establish physical MIDI latency or listening quality. These limitations remain visible in the execution record.
 
 **Backup:** use Library → Export library and settings. The backup contains imported works, settings, favorites, Smart Practice state and saved performances. Restore validates typed preferences, checksum-verified musical data and record limits, stages settings, and commits all IndexedDB changes atomically. This backup is user-managed, not cloud sync.
 
@@ -129,9 +134,12 @@ src/legacy/parts/                 21 ordered JavaScript source fragments
   175-backup-recovery.js          Backup export and recovery
   190-app-bootstrap.js            Initialization
 scripts/build.mjs                 Deterministic bundler
+scripts/audio-assets.mjs          Binary SoundFont/catalog/license verification
+src/audio/                       Production ESM loader and AudioWorklet adapter
+src/assets/audio/                Pinned banks, preset catalogs and original notices
 scripts/manifest.json             Required source concatenation order
 tests/                            Browser and unit regressions
-package-lock.json                 Pinned 84-package install graph
+package-lock.json                 Pinned dependency graph
 .github/workflows/pages.yml       Build, tests and deployment
 ```
 

@@ -1,0 +1,2092 @@
+{
+  "schemaVersion": 1,
+  "bankId": "generaluser-gs-2.0.3-sf2",
+  "bankName": "GeneralUser GS",
+  "bankVersion": "2.0.3",
+  "sourceRevision": "684543d5e5efaef08d02be50dcda8d552478fa60",
+  "bankNumberMeaning": "soundfontBank is the raw SF2 preset-header bank number. It is inventory metadata only and does not assert MIDI bank MSB/LSB, CC0/CC32, or SpessaSynth runtime routing.",
+  "terminalRecordName": "EOP",
+  "counts": {
+    "activePresetHeaders": 287,
+    "gmBank0Programs": 128,
+    "instrumentPresets": 261,
+    "drumKitPresetsBank128": 13,
+    "drumKitAliasesBank120": 13
+  },
+  "presets": [
+    {
+      "soundfontBank": 0,
+      "program": 0,
+      "name": "Grand Piano",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 1,
+      "name": "Bright Grand Piano",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 2,
+      "name": "Electric Grand Piano",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 3,
+      "name": "Honky-Tonk Piano",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 4,
+      "name": "Tine Electric Piano",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 5,
+      "name": "FM Electric Piano",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 6,
+      "name": "Harpsichord",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 7,
+      "name": "Clavinet",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 8,
+      "name": "Celeste",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 9,
+      "name": "Glockenspiel",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 10,
+      "name": "Music Box",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 11,
+      "name": "Vibraphone",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 12,
+      "name": "Marimba",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 13,
+      "name": "Xylophone",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 14,
+      "name": "Tubular Bells",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 15,
+      "name": "Dulcimer",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 16,
+      "name": "Tonewheel Organ",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 17,
+      "name": "Percussive Organ",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 18,
+      "name": "Rock Organ",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 19,
+      "name": "Pipe Organ",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 20,
+      "name": "Reed Organ",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 21,
+      "name": "Accordion",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 22,
+      "name": "Harmonica",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 23,
+      "name": "Bandoneon",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 24,
+      "name": "Nylon Guitar",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 25,
+      "name": "Steel Guitar",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 26,
+      "name": "Jazz Guitar",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 27,
+      "name": "Clean Guitar",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 28,
+      "name": "Muted Guitar",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 29,
+      "name": "Overdrive Guitar",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 30,
+      "name": "Distortion Guitar",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 31,
+      "name": "Guitar Harmonics",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 32,
+      "name": "Acoustic Bass",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 33,
+      "name": "Finger Bass",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 34,
+      "name": "Pick Bass",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 35,
+      "name": "Fretless Bass",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 36,
+      "name": "Slap Bass 1",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 37,
+      "name": "Slap Bass 2",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 38,
+      "name": "Synth Bass 1",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 39,
+      "name": "Synth Bass 2",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 40,
+      "name": "Violin",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 41,
+      "name": "Viola",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 42,
+      "name": "Cello",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 43,
+      "name": "Double Bass",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 44,
+      "name": "Tremolo Strings",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 45,
+      "name": "Pizzicato Strings",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 46,
+      "name": "Orchestral Harp",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 47,
+      "name": "Timpani",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 48,
+      "name": "Fast Strings",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 49,
+      "name": "Slow Strings",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 50,
+      "name": "Synth Strings 1",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 51,
+      "name": "Synth Strings 2",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 52,
+      "name": "Concert Choir",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 53,
+      "name": "Voice Oohs",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 54,
+      "name": "Synth Voice",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 55,
+      "name": "Orchestra Hit",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 56,
+      "name": "Trumpet",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 57,
+      "name": "Trombone",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 58,
+      "name": "Tuba",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 59,
+      "name": "Muted Trumpet",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 60,
+      "name": "French Horns",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 61,
+      "name": "Brass Section",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 62,
+      "name": "Synth Brass 1",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 63,
+      "name": "Synth Brass 2",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 64,
+      "name": "Soprano Sax",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 65,
+      "name": "Alto Sax",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 66,
+      "name": "Tenor Sax",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 67,
+      "name": "Baritone Sax",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 68,
+      "name": "Oboe",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 69,
+      "name": "English Horn",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 70,
+      "name": "Bassoon",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 71,
+      "name": "Clarinet",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 72,
+      "name": "Piccolo",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 73,
+      "name": "Flute",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 74,
+      "name": "Recorder",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 75,
+      "name": "Pan Flute",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 76,
+      "name": "Bottle Blow",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 77,
+      "name": "Shakuhachi",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 78,
+      "name": "Whistle",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 79,
+      "name": "Ocarina",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 80,
+      "name": "Square Lead",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 81,
+      "name": "Saw Lead",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 82,
+      "name": "Synth Calliope",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 83,
+      "name": "Chiffer Lead",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 84,
+      "name": "Charang",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 85,
+      "name": "Solo Vox",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 86,
+      "name": "5th Saw Wave",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 87,
+      "name": "Bass & Lead",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 88,
+      "name": "Fantasia",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 89,
+      "name": "Warm Pad",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 90,
+      "name": "Polysynth",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 91,
+      "name": "Space Voice",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 92,
+      "name": "Bowed Glass",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 93,
+      "name": "Metal Pad",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 94,
+      "name": "Halo Pad",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 95,
+      "name": "Sweep Pad",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 96,
+      "name": "Ice Rain",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 97,
+      "name": "Soundtrack",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 98,
+      "name": "Crystal",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 99,
+      "name": "Atmosphere",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 100,
+      "name": "Brightness",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 101,
+      "name": "Goblin",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 102,
+      "name": "Echo Drops",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 103,
+      "name": "Star Theme",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 104,
+      "name": "Sitar",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 105,
+      "name": "Banjo",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 106,
+      "name": "Shamisen",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 107,
+      "name": "Koto",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 108,
+      "name": "Kalimba",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 109,
+      "name": "Bagpipes",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 110,
+      "name": "Fiddle",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 111,
+      "name": "Shenai",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 112,
+      "name": "Tinker Bell",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 113,
+      "name": "Agogo",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 114,
+      "name": "Steel Drums",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 115,
+      "name": "Wood Block",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 116,
+      "name": "Taiko Drum",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 117,
+      "name": "Melodic Tom",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 118,
+      "name": "Synth Drum",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 119,
+      "name": "Reverse Cymbal",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 120,
+      "name": "Fret Noise",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 121,
+      "name": "Breath Noise",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 122,
+      "name": "Seashore",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 123,
+      "name": "Birds",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 124,
+      "name": "Telephone 1",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 125,
+      "name": "Helicopter",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 126,
+      "name": "Applause",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 0,
+      "program": 127,
+      "name": "Gun Shot",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 1,
+      "program": 38,
+      "name": "Synth Bass 101",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 1,
+      "program": 44,
+      "name": "Tremolo Strings Mono",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 1,
+      "program": 48,
+      "name": "Fast Strings Mono",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 1,
+      "program": 49,
+      "name": "Slow Strings Mono",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 1,
+      "program": 52,
+      "name": "Concert Choir Mono",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 1,
+      "program": 56,
+      "name": "Trumpet 2",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 1,
+      "program": 57,
+      "name": "Trombone 2",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 1,
+      "program": 60,
+      "name": "Solo French Horn",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 1,
+      "program": 61,
+      "name": "Brass Section Mono",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 1,
+      "program": 80,
+      "name": "Square Wave",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 1,
+      "program": 81,
+      "name": "Saw Wave",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 1,
+      "program": 98,
+      "name": "Synth Mallet",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 1,
+      "program": 120,
+      "name": "Cut Noise",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 1,
+      "program": 121,
+      "name": "Fl. Key Click",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 1,
+      "program": 122,
+      "name": "Rain",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 1,
+      "program": 123,
+      "name": "Dog",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 1,
+      "program": 124,
+      "name": "Telephone 2",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 1,
+      "program": 125,
+      "name": "Car-Engine",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 1,
+      "program": 126,
+      "name": "Laughing",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 1,
+      "program": 127,
+      "name": "Machine Gun",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 2,
+      "program": 102,
+      "name": "Echo Pan",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 2,
+      "program": 120,
+      "name": "String Slap",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 2,
+      "program": 122,
+      "name": "Thunder",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 2,
+      "program": 123,
+      "name": "Horse Gallop",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 2,
+      "program": 124,
+      "name": "Door Creaking",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 2,
+      "program": 125,
+      "name": "Car-Stop",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 2,
+      "program": 126,
+      "name": "Scream",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 2,
+      "program": 127,
+      "name": "Lasergun",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 3,
+      "program": 122,
+      "name": "Wind",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 3,
+      "program": 123,
+      "name": "Bird 2",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 3,
+      "program": 124,
+      "name": "Door",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 3,
+      "program": 125,
+      "name": "Car-Pass",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 3,
+      "program": 126,
+      "name": "Punch",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 3,
+      "program": 127,
+      "name": "Explosion",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 4,
+      "program": 122,
+      "name": "Stream",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 4,
+      "program": 124,
+      "name": "Scratch",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 4,
+      "program": 125,
+      "name": "Car-Crash",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 4,
+      "program": 126,
+      "name": "Heart Beat",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 5,
+      "program": 122,
+      "name": "Bubbles",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 5,
+      "program": 124,
+      "name": "Windchime",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 5,
+      "program": 125,
+      "name": "Siren",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 5,
+      "program": 126,
+      "name": "Footsteps",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 6,
+      "program": 125,
+      "name": "Train",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 7,
+      "program": 125,
+      "name": "Jet Plane",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 8,
+      "program": 4,
+      "name": "Chorused Tine EP",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 8,
+      "program": 5,
+      "name": "Chorused FM EP",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 8,
+      "program": 6,
+      "name": "Coupled Harpsichord",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 8,
+      "program": 14,
+      "name": "Church Bells",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 8,
+      "program": 16,
+      "name": "Detuned Tnwl. Organ",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 8,
+      "program": 17,
+      "name": "Detuned Perc. Organ",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 8,
+      "program": 19,
+      "name": "Pipe Organ 2",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 8,
+      "program": 21,
+      "name": "Italian Accordion",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 8,
+      "program": 24,
+      "name": "Ukulele",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 8,
+      "program": 25,
+      "name": "12-String Guitar",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 8,
+      "program": 26,
+      "name": "Hawaiian Guitar",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 8,
+      "program": 27,
+      "name": "Chorused Clean Gt.",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 8,
+      "program": 28,
+      "name": "Funk Guitar",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 8,
+      "program": 30,
+      "name": "Feedback Guitar",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 8,
+      "program": 31,
+      "name": "Guitar Feedback",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 8,
+      "program": 38,
+      "name": "Acid Bass",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 8,
+      "program": 39,
+      "name": "Beef FM Bass",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 8,
+      "program": 48,
+      "name": "Orchestra Pad",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 8,
+      "program": 50,
+      "name": "Synth Strings 3",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 8,
+      "program": 61,
+      "name": "Brass Section 2",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 8,
+      "program": 62,
+      "name": "Synth Brass 3",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 8,
+      "program": 63,
+      "name": "Synth Brass 4",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 8,
+      "program": 80,
+      "name": "Sine Wave",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 8,
+      "program": 81,
+      "name": "Doctor Solo",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 8,
+      "program": 107,
+      "name": "Taisho Koto",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 8,
+      "program": 115,
+      "name": "Castanets",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 8,
+      "program": 116,
+      "name": "Concert Bass Drum",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 8,
+      "program": 117,
+      "name": "Melodic Tom 2",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 8,
+      "program": 118,
+      "name": "808 Tom",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 8,
+      "program": 125,
+      "name": "Starship",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 9,
+      "program": 14,
+      "name": "Carillon",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 9,
+      "program": 125,
+      "name": "Burst Noise",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 11,
+      "program": 0,
+      "name": "Piano & Str.-Fade",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 11,
+      "program": 1,
+      "name": "Piano & Str.-Sus",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 11,
+      "program": 4,
+      "name": "Tine & FM EPs",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 11,
+      "program": 5,
+      "name": "Piano & FM EP",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 11,
+      "program": 6,
+      "name": "Harpsichord noVel",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 11,
+      "program": 8,
+      "name": "Tinkling Bells",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 11,
+      "program": 11,
+      "name": "Vibraphone No Trem.",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 11,
+      "program": 14,
+      "name": "Bell Tower",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 11,
+      "program": 16,
+      "name": "Tonewheel Org noVel",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 11,
+      "program": 17,
+      "name": "Percussive Org noVel",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 11,
+      "program": 18,
+      "name": "Rock Organ noVel",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 11,
+      "program": 19,
+      "name": "Pipe Organ noVel",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 11,
+      "program": 20,
+      "name": "Reed Organ noVel",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 11,
+      "program": 29,
+      "name": "Wah Guitar (CC21)",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 11,
+      "program": 38,
+      "name": "Techno Bass",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 11,
+      "program": 39,
+      "name": "Pulse Bass",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 11,
+      "program": 49,
+      "name": "Velo Strings",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 11,
+      "program": 50,
+      "name": "Synth Strings 4",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 11,
+      "program": 51,
+      "name": "Synth Strings 5",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 11,
+      "program": 61,
+      "name": "Brass Section 3",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 11,
+      "program": 78,
+      "name": "Whistlin'",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 11,
+      "program": 81,
+      "name": "Sawtooth Stab",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 11,
+      "program": 88,
+      "name": "Harpsi Pad",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 11,
+      "program": 89,
+      "name": "Solar Wind",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 11,
+      "program": 96,
+      "name": "Mystery Pad",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 11,
+      "program": 98,
+      "name": "Synth Chime",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 11,
+      "program": 100,
+      "name": "Bright Saw Stack",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 11,
+      "program": 119,
+      "name": "Cymbal Crash",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 11,
+      "program": 121,
+      "name": "Filter Snap",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 11,
+      "program": 122,
+      "name": "Howling Winds",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 11,
+      "program": 127,
+      "name": "Interference",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 12,
+      "program": 0,
+      "name": "Bell Piano",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 12,
+      "program": 4,
+      "name": "Bell Tine EP",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 12,
+      "program": 6,
+      "name": "Coupled Harpsi noVel",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 12,
+      "program": 10,
+      "name": "Christmas Bells",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 12,
+      "program": 16,
+      "name": "Detun Tnwl Org noVel",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 12,
+      "program": 17,
+      "name": "Detun Perc Org noVel",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 12,
+      "program": 19,
+      "name": "Pipe Organ 2 noVel",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 12,
+      "program": 27,
+      "name": "Clean Guitar 2",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 12,
+      "program": 38,
+      "name": "Mean Saw Bass",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 12,
+      "program": 48,
+      "name": "Full Orchestra",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 12,
+      "program": 49,
+      "name": "Velo Strings Mono",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 12,
+      "program": 80,
+      "name": "Square Lead 2",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 12,
+      "program": 81,
+      "name": "Saw Lead 2",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 12,
+      "program": 88,
+      "name": "Fantasia 2",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 12,
+      "program": 89,
+      "name": "Solar Wind 2",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 12,
+      "program": 119,
+      "name": "Tambourine",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 12,
+      "program": 122,
+      "name": "White Noise Wave",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 12,
+      "program": 127,
+      "name": "Shooting Star",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 13,
+      "program": 48,
+      "name": "Woodwind Choir",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 13,
+      "program": 80,
+      "name": "Square Lead 3",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 13,
+      "program": 81,
+      "name": "Saw Lead 3",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 13,
+      "program": 88,
+      "name": "Night Vision",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 16,
+      "program": 25,
+      "name": "Mandolin",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 24,
+      "program": 75,
+      "name": "Tin Whistle",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 25,
+      "program": 75,
+      "name": "Tin Whistle Nm",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 26,
+      "program": 75,
+      "name": "Tin Whistle Or",
+      "presetType": "instrument",
+      "isDrum": false
+    },
+    {
+      "soundfontBank": 120,
+      "program": 0,
+      "name": "Standard 1 Kit",
+      "presetType": "drumKitAlias",
+      "isDrum": true,
+      "aliasKind": "drumKitAlias",
+      "aliasOf": {
+        "soundfontBank": 128,
+        "program": 0
+      }
+    },
+    {
+      "soundfontBank": 120,
+      "program": 1,
+      "name": "Standard 2 Kit",
+      "presetType": "drumKitAlias",
+      "isDrum": true,
+      "aliasKind": "drumKitAlias",
+      "aliasOf": {
+        "soundfontBank": 128,
+        "program": 1
+      }
+    },
+    {
+      "soundfontBank": 120,
+      "program": 2,
+      "name": "Standard 3 Kit",
+      "presetType": "drumKitAlias",
+      "isDrum": true,
+      "aliasKind": "drumKitAlias",
+      "aliasOf": {
+        "soundfontBank": 128,
+        "program": 2
+      }
+    },
+    {
+      "soundfontBank": 120,
+      "program": 8,
+      "name": "Room Kit",
+      "presetType": "drumKitAlias",
+      "isDrum": true,
+      "aliasKind": "drumKitAlias",
+      "aliasOf": {
+        "soundfontBank": 128,
+        "program": 8
+      }
+    },
+    {
+      "soundfontBank": 120,
+      "program": 16,
+      "name": "Power Kit",
+      "presetType": "drumKitAlias",
+      "isDrum": true,
+      "aliasKind": "drumKitAlias",
+      "aliasOf": {
+        "soundfontBank": 128,
+        "program": 16
+      }
+    },
+    {
+      "soundfontBank": 120,
+      "program": 24,
+      "name": "Electronic Kit",
+      "presetType": "drumKitAlias",
+      "isDrum": true,
+      "aliasKind": "drumKitAlias",
+      "aliasOf": {
+        "soundfontBank": 128,
+        "program": 24
+      }
+    },
+    {
+      "soundfontBank": 120,
+      "program": 25,
+      "name": "808/909 Kit",
+      "presetType": "drumKitAlias",
+      "isDrum": true,
+      "aliasKind": "drumKitAlias",
+      "aliasOf": {
+        "soundfontBank": 128,
+        "program": 25
+      }
+    },
+    {
+      "soundfontBank": 120,
+      "program": 26,
+      "name": "Dance Kit",
+      "presetType": "drumKitAlias",
+      "isDrum": true,
+      "aliasKind": "drumKitAlias",
+      "aliasOf": {
+        "soundfontBank": 128,
+        "program": 26
+      }
+    },
+    {
+      "soundfontBank": 120,
+      "program": 32,
+      "name": "Jazz Kit",
+      "presetType": "drumKitAlias",
+      "isDrum": true,
+      "aliasKind": "drumKitAlias",
+      "aliasOf": {
+        "soundfontBank": 128,
+        "program": 32
+      }
+    },
+    {
+      "soundfontBank": 120,
+      "program": 40,
+      "name": "Brush Kit",
+      "presetType": "drumKitAlias",
+      "isDrum": true,
+      "aliasKind": "drumKitAlias",
+      "aliasOf": {
+        "soundfontBank": 128,
+        "program": 40
+      }
+    },
+    {
+      "soundfontBank": 120,
+      "program": 48,
+      "name": "Orchestral Kit",
+      "presetType": "drumKitAlias",
+      "isDrum": true,
+      "aliasKind": "drumKitAlias",
+      "aliasOf": {
+        "soundfontBank": 128,
+        "program": 48
+      }
+    },
+    {
+      "soundfontBank": 120,
+      "program": 56,
+      "name": "SFX Kit",
+      "presetType": "drumKitAlias",
+      "isDrum": true,
+      "aliasKind": "drumKitAlias",
+      "aliasOf": {
+        "soundfontBank": 128,
+        "program": 56
+      }
+    },
+    {
+      "soundfontBank": 120,
+      "program": 127,
+      "name": "CM-64/32L Kit",
+      "presetType": "drumKitAlias",
+      "isDrum": true,
+      "aliasKind": "drumKitAlias",
+      "aliasOf": {
+        "soundfontBank": 128,
+        "program": 127
+      }
+    },
+    {
+      "soundfontBank": 128,
+      "program": 0,
+      "name": "Standard 1",
+      "presetType": "drumKit",
+      "isDrum": true
+    },
+    {
+      "soundfontBank": 128,
+      "program": 1,
+      "name": "Standard 2",
+      "presetType": "drumKit",
+      "isDrum": true
+    },
+    {
+      "soundfontBank": 128,
+      "program": 2,
+      "name": "Standard 3",
+      "presetType": "drumKit",
+      "isDrum": true
+    },
+    {
+      "soundfontBank": 128,
+      "program": 8,
+      "name": "Room",
+      "presetType": "drumKit",
+      "isDrum": true
+    },
+    {
+      "soundfontBank": 128,
+      "program": 16,
+      "name": "Power",
+      "presetType": "drumKit",
+      "isDrum": true
+    },
+    {
+      "soundfontBank": 128,
+      "program": 24,
+      "name": "Electronic",
+      "presetType": "drumKit",
+      "isDrum": true
+    },
+    {
+      "soundfontBank": 128,
+      "program": 25,
+      "name": "808/909",
+      "presetType": "drumKit",
+      "isDrum": true
+    },
+    {
+      "soundfontBank": 128,
+      "program": 26,
+      "name": "Dance",
+      "presetType": "drumKit",
+      "isDrum": true
+    },
+    {
+      "soundfontBank": 128,
+      "program": 32,
+      "name": "Jazz",
+      "presetType": "drumKit",
+      "isDrum": true
+    },
+    {
+      "soundfontBank": 128,
+      "program": 40,
+      "name": "Brush",
+      "presetType": "drumKit",
+      "isDrum": true
+    },
+    {
+      "soundfontBank": 128,
+      "program": 48,
+      "name": "Orchestral",
+      "presetType": "drumKit",
+      "isDrum": true
+    },
+    {
+      "soundfontBank": 128,
+      "program": 56,
+      "name": "SFX",
+      "presetType": "drumKit",
+      "isDrum": true
+    },
+    {
+      "soundfontBank": 128,
+      "program": 127,
+      "name": "CM-64/32L",
+      "presetType": "drumKit",
+      "isDrum": true
+    }
+  ]
+}

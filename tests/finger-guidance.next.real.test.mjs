@@ -19,6 +19,14 @@ try{
  browser=await chromium.launch({headless:true,args:['--no-sandbox']});
  const page=await browser.newPage({viewport:{width:1440,height:900}});
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ const playAndWait=async()=>{
+  await page.locator('#playBtn').click();
+  await page.waitForFunction(()=>{
+   const app=window.__prototypeTest,audio=app?.audio?.getStatus?.();
+   return app?.isPlaying===true&&audio?.lifecycle==='ready'&&
+    audio?.transport?.isPlaying===true&&audio?.transport?.isStarting!==true;
+  },null,{timeout:60000});
+ };
  await page.goto('http://127.0.0.1:'+server.address().port);
  await page.waitForFunction(()=>window.__fingerGuideTest&&window.__prototypeTest);
  await page.locator('#fingerGuideMode').selectOption('hands');
@@ -55,9 +63,8 @@ try{
  await page.evaluate(()=>{
   window.__prototypeTest.loadSong(window.__fingerGuideTest.demoDuet);
   window.__prototypeTest.setMode('wait');
-  window.__prototypeTest.play();
  });
- await page.waitForFunction(()=>window.__prototypeTest.isPlaying);
+ await playAndWait();
  assert.equal((await frame()).current,0);
  assert.equal(await page.evaluate(()=>window.__fingerGuideTest.ghostWindow.visible),false,
   'Wait must not pre-display a second hand target before finishing the chord');

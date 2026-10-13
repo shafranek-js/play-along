@@ -38,6 +38,14 @@ try{
  const origin='http://127.0.0.1:'+server.address().port;
  await page.goto(origin);
  await page.waitForFunction(()=>window.__libraryV08&&window.__prototypeTest&&window.__scoreTest);
+ const playAndWait=async()=>{
+  await page.locator('#playBtn').click();
+  await page.waitForFunction(()=>{
+   const app=window.__prototypeTest,audio=app?.audio?.getStatus?.();
+   return app?.isPlaying===true&&audio?.lifecycle==='ready'&&
+    audio?.transport?.isPlaying===true&&audio?.transport?.isStarting!==true;
+  },null,{timeout:60000});
+ };
  await page.locator('#importMusicInput').setInputFiles({name:'persistent.musicxml',mimeType:'application/xml',buffer:Buffer.from(xml)});
  await page.waitForFunction(()=>window.__libraryV08.collection.length===1&&window.__prototypeTest.song?.title==='Persistent Piano Piece');
  const initial=await page.evaluate(()=>({id:window.__prototypeTest.song.id,tracks:window.__prototypeTest.song.tracks.length}));
@@ -158,16 +166,16 @@ try{
  await page.locator('#sheetBarBack').evaluate(el=>el.click());
  assert.ok(await page.evaluate(()=>window.__prototypeTest.pos)<0.01,'Previous bar should return to first bar');
  // More than thirty attempts must survive reload in IndexedDB.
- await page.evaluate(()=>{
-  for(let i=0;i<35;i++){
-   window.__prototypeTest.setMode('wait');
-   window.__prototypeTest.play();
+ for(let i=0;i<35;i++){
+  await page.evaluate(()=>window.__prototypeTest.setMode('wait'));
+  await playAndWait();
+  await page.evaluate(()=>{
    window.__prototypeTest.receiveNoteOn(60);
    window.__prototypeTest.receiveNoteOff(60);
    window.__prototypeTest.finishPerformance('manual');
-   window.__prototypeTest.pause();
-  }
- });
+  });
+  await page.locator('#playBtn').click();
+ }
  const countHistory=async()=>page.evaluate(async()=>{
   const request=indexedDB.open('playalong-library-v08');
   const db=await new Promise((resolve,reject)=>{request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error)});

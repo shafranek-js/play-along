@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-10-12",
+  "selectionStatus": "selected-banks",
+  "selectionNote": "Both pinned banks are supplied as switchable candidates; GeneralUser GS is the default. Human A/B listening and release acceptance remain pending, and the <=160 MiB browser-memory target was not met.",
+  "banks": [
+    {
+      "id": "generaluser-gs-2.0.3-sf2",
+      "stableId": "sha256:9575028c7a1f589f5770fccc8cff2734566af40cd26ed836944e9a5152688cfe",
+      "name": "GeneralUser GS",
+      "version": "2.0.3",
+      "format": "SF2",
+      "filename": "soundfonts/GeneralUser-GS-2.0.3.sf2",
+      "url": "soundfonts/GeneralUser-GS-2.0.3.sf2",
+      "bytes": 32319396,
+      "sha256": "9575028c7a1f589f5770fccc8cff2734566af40cd26ed836944e9a5152688cfe",
+      "source": {
+        "project": "GeneralUser GS",
+        "author": "S. Christian Collins",
+        "version": "2.0.3",
+        "revision": "684543d5e5efaef08d02be50dcda8d552478fa60",
+        "repositoryUrl": "https://github.com/mrbumpy409/GeneralUser-GS/tree/684543d5e5efaef08d02be50dcda8d552478fa60",
+        "fileUrl": "https://raw.githubusercontent.com/mrbumpy409/GeneralUser-GS/684543d5e5efaef08d02be50dcda8d552478fa60/GeneralUser-GS.sf2"
+      },
+      "license": {
+        "name": "GeneralUser GS License v2.0",
+        "path": "soundfonts/GeneralUser-GS-LICENSE.txt",
+        "sourceUrl": "https://raw.githubusercontent.com/mrbumpy409/GeneralUser-GS/684543d5e5efaef08d02be50dcda8d552478fa60/documentation/LICENSE.txt",
+        "bytes": 2317,
+        "sha256": "7b32efefdf95ce38a043799f0659853ddc00fbaa14d8c50f0aca16b9b8b405be"
+      },
+      "attributionFiles": [
+        {
+          "path": "soundfonts/GeneralUser-GS-README.md",
+          "sourceUrl": "https://raw.githubusercontent.com/mrbumpy409/GeneralUser-GS/684543d5e5efaef08d02be50dcda8d552478fa60/documentation/README.md",
+          "bytes": 67719,
+          "sha256": "fb23217ca2a9cf199e04aed1b04a7e81e024330411941c3638302e081584c151"
+        }
+      ],
+      "noticeFiles": [
+        "soundfonts/GeneralUser-GS-LICENSE.txt",
+        "soundfonts/GeneralUser-GS-README.md",
+        "soundfonts/README.md"
+      ],
+      "inventory": {
+        "catalogPath": "soundfonts/GeneralUser-GS-2.0.3-presets.json",
+        "activePresetHeaders": 287,
+        "gmBank0Programs": 128,
+        "instrumentPresets": 261,
+        "drumKitPresetsBank128": 13,
+        "drumKitAliasesBank120": 13,
+        "terminalRecordName": "EOP",
+        "catalogBytes": 43845,
+        "catalogSha256": "6f1fd7f2d82546852311ac6c5e26794904f3fcb04e367af050ea5c5c1c9e360d"
+      },
+      "conversion": {
+        "derived": false,
+        "sourceFormat": "SF2",
+        "notes": "Original pinned upstream SF2 bytes; no SF3 conversion or alternate lossy settings are claimed."
+      },
+      "deliveryNotice": {
+        "path": "soundfonts/README.md",
+        "bytes": 2503,
+        "sha256": "2e0fa52c329c8b6fb7ec7b01f0798e4c76f9844203a78daa03c6afdb15a46df4"
+      }
+    },
+    {
+      "id": "musescore-general-0.2-sf3",
+      "stableId": "sha256:5b85b6c2c61d10b2b91cddd41efcce7b25cd31c8271d511c73afafbef20b6fa3",
+      "name": "MuseScore General",
+      "version": "0.2.0",
+      "format": "SF3",
+      "filename": "soundfonts/MuseScore_General.sf3",
+      "url": "soundfonts/MuseScore_General.sf3",
+      "bytes": 39900972,
+      "sha256": "5b85b6c2c61d10b2b91cddd41efcce7b25cd31c8271d511c73afafbef20b6fa3",
+      "source": {
+        "project": "MuseScore General",
+        "author": "S. Christian Collins adaptation of FluidR3Mono/FluidR3, with additional credited contributors",
+        "version": "0.2.0",
+        "distributionDirectory": "https://ftp.osuosl.org/pub/musescore/soundfont/MuseScore_General/",
+        "fileUrl": "https://ftp.osuosl.org/pub/musescore/soundfont/MuseScore_General/MuseScore_General.sf3",
+        "pin": "sha256:5b85b6c2c61d10b2b91cddd41efcce7b25cd31c8271d511c73afafbef20b6fa3"
+      },
+      "license": {
+        "name": "MIT with inherited FluidR3 / FluidR3Mono and contributor attribution notices",
+        "path": "soundfonts/MuseScore_General_License.md",
+        "sourceUrl": "https://ftp.osuosl.org/pub/musescore/soundfont/MuseScore_General/MuseScore_General_License.md",
+        "bytes": 3419,
+        "sha256": "5ad8d737e13c7f01f5b9674872a82a92b4ba253603e8ed14b9db12293550b4b9"
+      },
+      "attributionFiles": [
+        {
+          "path": "soundfonts/MuseScore_General_Readme.md",
+          "sourceUrl": "https://ftp.osuosl.org/pub/musescore/soundfont/MuseScore_General/MuseScore_General_Readme.md",
+          "bytes": 5161,
+          "sha256": "e4ee85d097cda49a7926ea73e59ea8b7bb90d6ad715f82d20c6bfddf5dcfeb4c"
+        },
+        {
+          "path": "soundfonts/MuseScore_General_VERSION",
+          "sourceUrl": "https://ftp.osuosl.org/pub/musescore/soundfont/MuseScore_General/VERSION",
+          "bytes": 6,
+          "sha256": "1f930dd1f133c1f97a94fe3acb8db34372cf4c01ffdb2b3ff4ca72f9494121e9"
+        },
+        {
+          "path": "soundfonts/MuseScore_General_Sample_Sources.csv",
+          "sourceUrl": "https://ftp.osuosl.org/pub/musescore/soundfont/MuseScore_General/MuseScore_General_Sample_Sources.csv",
+          "bytes": 12817,
+          "sha256": "cbec757614fa47d2ba71a2f1276bf010918261d94987cfb678352e9755e9bdd4"
+        }
+      ],
+      "noticeFiles": [
+        "soundfonts/MuseScore_General_License.md",
+        "soundfonts/MuseScore_General_Readme.md",
+        "soundfonts/MuseScore_General_VERSION",
+        "soundfonts/MuseScore_General_Sample_Sources.csv",
+        "soundfonts/MuseScore_General_NOTICE.md"
+      ],
+      "deliveryNotice": {
+        "path": "soundfonts/MuseScore_General_NOTICE.md",
+        "bytes": 1788,
+        "sha256": "c3948e5fc671d8106b8b0a8316a971c79ac486d904d70b748c3b04c4436a23cd"
+      },
+      "inventory": {
+        "catalogPath": "soundfonts/MuseScore_General-0.2-presets.json",
+        "catalogBytes": 45891,
+        "catalogSha256": "6892fa0478cbb506e5cac3a089c8f9d356fb4a84c55fe1a4752165862fb519e6",
+        "activePresetHeaders": 309,
+        "phdrTableEntryCountIncludingTerminal": 310,
+        "gmBank0Programs": 128,
+        "instrumentPresets": 272,
+        "drumKitPresetsBank128": 37,
+        "drumKitAliasesBank120": 0,
+        "terminalRecordBlank": true
+      },
+      "conversion": {
+        "derived": false,
+        "sourceFormat": "SF3",
+        "notes": "Original official MuseScore General SF3 distribution bytes."
+      }
+    }
+  ],
+  "defaultBankId": "generaluser-gs-2.0.3-sf2"
+}
