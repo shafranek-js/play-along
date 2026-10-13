@@ -107,6 +107,11 @@ export function inspectGuidanceResearchBridge({
   ...(n.voice!=null?{voice:n.voice}:{})
  })),{handSize});
  const handResearch=summaryOnly(h);
+ if(!h.ok)return forbidden('hand-analysis-refused',{handResearch});
+ // Authored duplicate voices may name the same piano key, but they do not
+ // establish two distinct physical key presses or safe simultaneous hands.
+ if(h.diagnostics?.some(d=>d.code==='SAME_KEY_OVERLAP'))
+  return forbidden('ambiguous-physical-key',{handResearch});
  // Finger-solver predictions are computed only for independently fixed hands,
  // then summarized and discarded. Their note/finger values cannot escape.
  const hands={RH:[],LH:[]};
