@@ -185,3 +185,24 @@ test('unknown simultaneous note in prior chord cannot be removed from origin cle
  assert.equal(result.motion.kind,'static');
  assert.equal(result.motion.reason,'origin-unknown');
 });
+
+test('simultaneous author labels on the identical physical piano key cannot authorize dual motion',()=>{
+ const notes=[
+  note('old',60,0,.06,A('RH',1)),
+  note('next',64,.8,.06,A('RH',3)),
+  note('voice2',64,.8,.06,A('LH',2))
+ ];
+ const r=run({notes});
+ assert.equal(r.ok,false);
+ assert.equal(r.reason,'ambiguous-physical-key');
+ assert.equal(r.productionEligible,false);
+});
+test('overlapping same-key voices at distinct onsets refuse motion despite verified metadata',()=>{
+ const notes=[
+  note('old',60,0,.06,A('RH',1)),
+  note('next',64,.8,.9,A('RH',3)),
+  note('later-overlap',64,1.0,.1,A('LH',2))
+ ];
+ const r=run({notes});
+ assert.equal(r.reason,'ambiguous-physical-key');
+});
