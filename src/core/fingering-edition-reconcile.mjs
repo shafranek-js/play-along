@@ -226,3 +226,106 @@ export function fingerEditionReconcile(oldEdition,newEdition,oldCorrections,curr
   proposals,conflicts,unresolved,
   productionEligible:false,automaticApply:false};
 }
+
+
+/**
+ * FG-03C2B6: expert-directed review of ambiguous/edited passages.
+ * Matching pitch/voice/staff is ONLY a discovery FILTER, never evidence of
+ * equivalent source identity. No destinations or overwrite flags are selected.
+ * Tied sources/targets remain ineligible; no automatic mapping occurs.
+ */
+export function fingerEditionManualReview(oldEdition,newEdition,oldCorrections,currentCorrections={}){
+ const prior=fingerEditionReconcile(oldEdition,newEdition,oldCorrections,currentCorrections);
+ if(prior.status!=='review')return {status:'rejected',reason:prior.reason,rows:[],excluded:[]};
+ const source=new Map(),targetByPart=new Map();
+ for(const part of oldEdition.parts)for(const measure of part.measures)for(const note of measure.notes){
+  if(!source.has(note.noteId))source.set(note.noteId,{part,measure,note});
+ }
+ for(const part of newEdition.parts){
+  const notes=[];
+  for(const measure of part.measures)for(const note of measure.notes)
+   notes.push({measure,note});
+  targetByPart.set(part.partIndex,notes);
+ }
+ const reasons=new Map();
+ for(const entry of [...prior.conflicts,...prior.unresolved])reasons.set(entry.from,entry.reason);
+ const rows=[],excluded=[];
+ for(const from of Object.keys(oldCorrections).sort()){
+  if(!reasons.has(from))continue; // safe candidates use the existing workflow
+  const located=source.get(from),change=oldCorrections[from],reason=reasons.get(from);
+  if(!located||located.note.tied||reason==='already-identical'){
+   excluded.push({from,reason:!located?'source-note-missing':
+    located.note.tied?'tied-source-note':'already-identical'});continue;
+  }
+  const matching=(targetByPart.get(located.part.partIndex)||[]).filter(({note})=>
+   !note.tied&&note.pitch===located.note.pitch&&
+   note.voice===located.note.voice&&note.staff===located.note.staff);
+  if(matching.length>24){
+   excluded.push({from,reason:'too-many-candidates',count:matching.length});continue;
+  }
+  if(!matching.length){
+   excluded.push({from,reason:'no-compatible-note'});continue;
+  }
+  if(rows.length>=150){
+   excluded.push({from,reason:'review-limit'});continue;
+  }
+  const options=matching.filter(({note})=>{
+   const present=currentCorrections[note.noteId];
+   return !present||present.finger!==change.finger||present.hand!==change.hand;
+  }).map(({measure,note})=>{
+   const existing=feOwn(currentCorrections,note.noteId)?currentCorrections[note.noteId]:null;
+   return {
+    to:note.noteId,measure:measure.number,
+    pitch:note.pitch,staff:note.staff,voice:note.voice,
+    authorFinger:note.authorFinger,authorHand:note.authorHand,
+    existing:existing?{finger:existing.finger,hand:existing.hand}:null,
+    authorConflict:(change.finger!==null&&note.authorFinger!==null&&
+      note.authorFinger!==change.finger)||
+      (note.authorHand!==null&&note.authorHand!==change.hand),
+    existingConflict:existing!==null
+   };
+  });
+  if(!options.length){excluded.push({from,reason:'already-identical'});continue}
+  rows.push({
+   from,reason,fromMeasure:located.measure.number,
+   pitch:located.note.pitch,voice:located.note.voice,staff:located.note.staff,
+   finger:change.finger,hand:change.hand,options
+  });
+ }
+ return {status:'review',rows,excluded,needsManualConfirmation:true,automaticApply:false};
+}
+
+/** Build ONE batch after explicit per-source target choice and per-option
+ * author/previous-user override acknowledgement. Rebuild candidate inventory
+ * from immutable song snapshots rather than trusting client-supplied options.
+ */
+export function fingerEditionManualBatch(oldEdition,newEdition,oldCorrections,currentCorrections,choices){
+ const fail=reason=>({status:'rejected',reason,entries:[]});
+ if(!Array.isArray(choices)||!choices.length||choices.length>150)
+  return fail('invalid-manual-selection');
+ const review=fingerEditionManualReview(oldEdition,newEdition,oldCorrections,currentCorrections);
+ if(review.status!=='review')return fail(review.reason||'invalid-source');
+ const rows=new Map(review.rows.map(x=>[x.from,x]));
+ const usedSources=new Set(),usedTargets=new Set(),entries=[];
+ for(const choice of choices){
+  if(!choice||typeof choice!=='object'||Array.isArray(choice)||
+     Object.keys(choice).some(k=>!['from','to','acknowledgeAuthor','acknowledgeExisting'].includes(k))||
+     typeof choice.from!=='string'||typeof choice.to!=='string'||
+     typeof choice.acknowledgeAuthor!=='boolean'||
+     typeof choice.acknowledgeExisting!=='boolean')
+   return fail('invalid-manual-choice');
+  if(usedSources.has(choice.from)||usedTargets.has(choice.to))return fail('duplicate-manual-mapping');
+  usedSources.add(choice.from);usedTargets.add(choice.to);
+  const row=rows.get(choice.from);
+  const target=row?.options.find(o=>o.to===choice.to);
+  if(!target)return fail('unverified-manual-destination');
+  if((target.authorConflict&&!choice.acknowledgeAuthor)||
+     (target.existingConflict&&!choice.acknowledgeExisting))
+   return fail('manual-overwrite-not-acknowledged');
+  entries.push({
+   id:target.to,before:target.existing?{...target.existing}:null,
+   after:{finger:row.finger,hand:row.hand}
+  });
+ }
+ return {status:'ready',entries,accepted:entries.length,automaticApply:false};
+}
