@@ -1,5 +1,7 @@
 # Play Along — parallel development across ChatGPT chats
 
+> **Archived coordination protocol (2026-10-13):** The project owner ended multi-chat delegation because coordination was too complex. **All active Play Along development, PR review, QA integration and releases now run directly in the single Lead Architect chat.** This document preserves the previous multi-chat branch/file contracts for historical traceability only; do not open or delegate new subagent threads. The Lead can independently integrate work from existing GitHub PRs into fresh versioned branches and run CI before merge. The original research safety, SoundFont, MAESTRO, 14 PNG, source MusicXML/MIDI and README-per-release rules remain binding.
+
 **Owner:** project user. **Coordination chat:** Lead Architect.  
 **Canonical source of truth:** [GitHub repository](https://github.com/shafranek-js/play-along), current **main** plus merged PRs, not a chat's memory or a copied ZIP.  
 **Created:** 2026-10-13. **Current main at creation:** `8f4946987de1eaa74b99ea71a59df2b923adbdb5` (v0.10.67). Always re-read the actual current main before a new task.
