@@ -1,4 +1,4 @@
-# Play Along — Piano Practice App (v0.10.65)
+# Play Along — Piano Practice App (v0.10.66)
 
 Play Along is an independently hosted browser piano practice application with Web MIDI, Piano Roll, OpenSheetMusicDisplay (OSMD), MusicXML/MXL and MIDI import, optional online music catalogs, and Wait/Tempo/Listen practice modes.
 
@@ -161,6 +161,13 @@ Real physical MIDI device behavior, sustain pedal/CC64, live service availabilit
 
 ---
 ### Release history
+
+## MAE-03A — original MIDI articulation and golden real-performance clock (v0.10.66)
+
+- Removed the importer’s artificial **25 ms minimum MIDI note duration**: genuine sub-25-ms NoteOn→NoteOff intervals now remain intact in Piano Roll/Wait/Tempo note models, preserving fast staccato and repeated-key articulation. Playback backends can retain independent sound-safety minima; this change does not alter SoundFonts, tempo mapping, original user scores or fingering hands.
+- Added a fully separate offline SMF note+tempo+pedal oracle and reproducible **Chromium comparison** against the Play Along browser parser. Synthetic tests cover a 1-tick staccato, tempo switch, same-pitch repeated attacks, cross-track unison and CC64/66/67.
+- Dedicated official MAESTRO CI verifies the original MIDI-only ZIP and each of the **24 permanent sample SHA256 identities**, then compares exact note pitch/onset/release/channel/velocity and sustain-controller timing in the actual app; outputs derived source signatures only, without publishing original MIDI or note events. Passing CI evidence is required before stating real-corpus compatibility. The audible pedal/seek and learner scoring workflows remain separate MAE-03B follow-up checks.
+- See [MAE-03A musical time contract](docs/MAESTRO-MIDI-ENGINE-GOLDEN.md). The MAESTRO online catalog and its CC BY-NC-SA 4.0 attribution remain unchanged.
 
 ### GitHub Pages release publication integrity (deployment hotfix)
 
