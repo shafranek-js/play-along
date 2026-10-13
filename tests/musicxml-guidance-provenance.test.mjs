@@ -66,7 +66,9 @@ test('D1: explicit saved local edits on exact source fingerprint can provide sam
  assert.equal(r.ok,true);
  assert.equal(r.motion.kind,'moving');
  assert.equal(r.motion.keys[0].finger,3);
- assert.equal(r.motion.keys[0].source,'user');
+ assert.equal(r.provenanceSummary.manualPairs,2);
+ assert.equal(r.provenanceSummary.authorPairs,0);
+ assert.equal(r.provenanceSummary.unverifiedExportNumbers,2);
  assert.equal(r.productionEligible,false);
 });
 test('D1: partial stored manual changes cannot borrow author other field',()=>{
@@ -115,7 +117,8 @@ test('D1: local correction from a different original XML work is not accepted',(
  const result=review(cfg);
  assert.equal(result.ok,true,'Unknown other-work override cannot be imported');
  assert.equal(result.motion.keys[0].finger,3);
- assert.equal(result.motion.keys[0].source,'musicxml');
+ assert.equal(result.provenanceSummary.authorPairs,2);
+ assert.equal(result.provenanceSummary.manualPairs,0);
 });
 test('D1: malformed/unrecognized local edits refuse without partial mutation',()=>{
  const score=original(),key=fingerOverrideWorkKey(score);
