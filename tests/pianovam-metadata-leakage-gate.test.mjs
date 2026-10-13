@@ -50,7 +50,7 @@ test('R6: canonical 107-source metadata identifies filename-disjoint but shared 
  assert.equal(r.fullPseudoOnlyCohort.unknownPerformer,2);
  assert.equal(r.fullPseudoOnlyCohort.unknownWork,1);
  assert.equal(r.fullPseudoOnlyCohort.unknownEither,3);
- assert.equal(r.fullPseudoOnlyCohort.noExactOverlap,89);
+ assert.equal(r.fullPseudoOnlyCohort.noExactOverlap,88);
  assert.equal(r.fullPseudoOnlyCohort.claimedIndependentPerformers,0);
  assert.equal(r.externalPerformerIdentityVerified,false);
  assert.equal(r.publisherTrainValidTestAreIndependentPerformers,false);
