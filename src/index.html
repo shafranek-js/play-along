@@ -112,6 +112,13 @@
       </div>
       <p id="fingerEditionStatus" class="small" role="status" aria-live="polite">Правки не сравнивались.</p>
       <div id="fingerEditionCandidates" class="small"></div>
+      <div id="fingerEditionManualWrap" class="small" aria-label="Ручное согласование неоднозначных нот">
+       <strong>Ручное сопоставление</strong>
+       <p class="small">Каждая строка требует явного выбора ноты из новой редакции и подтверждения. Совпадение высоты, голоса и стана — только фильтр поиска, а не доказательство, что ноты эквивалентны. Отдельно подтверди перезапись авторской или ранее исправленной аппликатуры.</p>
+       <div id="fingerEditionManualCandidates"></div>
+       <button id="fingerEditionApplyManual" type="button" class="btn tiny ghost" disabled>Применить вручную выбранные ноты</button>
+       <p id="fingerEditionManualStatus" class="small" role="status" aria-live="polite"></p>
+      </div>
      </details>
     <div class="fingerEditorHelp">Прокрутка вправо — всё произведение · Ctrl+A — все · Shift+клик — диапазон · Ctrl+клик — произвольно · рамка мышью — область. <span class="fingerEditorLegend">RH правая · LH левая · <span class="fingerEditorAuthor">автор</span> · <span class="fingerEditorUser">правка пользователя</span> · ? без пальца</span></div>
    </div>
