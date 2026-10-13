@@ -215,7 +215,9 @@ function parseMidi(bytes,title){
   if(!source.notes.length)continue;
   let trackIndex=tracks.length;sourceToTrack.set(sourceTrack,trackIndex);
   tracks.push({name:source.name,notes:source.notes.map(n=>({
-   pitch:n.pitch,start:sec(n.tick),duration:Math.max(.025,sec(n.tick+n.len)-sec(n.tick)),velocity:n.velocity,
+   // Original MIDI key-release timing must not be coerced to a 25 ms duration.
+   // Audio backends may apply a *sound-rendering* minimum independently.
+   pitch:n.pitch,start:sec(n.tick),duration:sec(n.tick+n.len)-sec(n.tick),velocity:n.velocity,
    track:trackIndex,channel:n.channel,noteId:n.noteId,sourceTrack:n.sourceTrack,
    scoreBeat:n.tick/ppq,scoreBeatLength:n.len/ppq
   }))});
