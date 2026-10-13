@@ -15,6 +15,7 @@
     "110-mutopia-catalog.js",
     "120-musetrainer-catalog.js",
     "130-asap-catalog.js",
+    "135-maestro-catalog.js",
     "140-library-musicxml.js",
     "150-musescore-reader.js",
     "160-library-import.js",
