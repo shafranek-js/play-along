@@ -12,6 +12,8 @@ import {realCorpusManifest,validateRealCorpusManifest,gitBlobHash}
  from './fingering-asap-real-score-audit.mjs';
 import {compareRawMusicXmlToScoreMidi} from '../src/core/musicxml-score-midi-bridge.mjs';
 import {compareAsapAuditBaseline} from '../src/core/asap-audit-triage.mjs';
+import {inspectSourceMidiAnomalies,inspectMusicXmlNotationMarkers,
+ summarizeSourceDiagnostics} from '../src/core/asap-score-construct-diagnostics.mjs';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const REPO='fosfrancesco/asap-dataset';
@@ -89,13 +91,21 @@ export async function auditAsapRawScoreMidi({manifest=realCorpusManifest(),
    // Network/content-integrity errors are fatal. Parsing refusals are
    // accurately recorded with reasons and never treated as validation.
    const source=await loadVerifiedScorePair(manifest,entry,{fetcher});
+   // Independent non-editing diagnostic accepts ZERO LENGTH source MIDI
+   // events for counting; the real FG-04B3b matching gate remains STRICT.
+   const midiDiagnostic=inspectSourceMidiAnomalies(source.midi);
+   const xmlDiagnostic=inspectMusicXmlNotationMarkers(source.xml);
    const comparison=compareRawMusicXmlToScoreMidi(source.xml,source.midi);
    results[idx]={id:entry.id,status:comparison.status,
     reason:comparison.reason,summary:comparison.summary,
+    midiDiagnostic,xmlDiagnostic,
     productionAutoFingeringAllowed:comparison.productionAutoFingeringAllowed};
   }
  }));
  const summary=publicAuditSummary(results);
+ const sourceConstructs=summarizeSourceDiagnostics(results.map(row=>({
+  id:row.id,midi:row.midiDiagnostic,musicxml:row.xmlDiagnostic
+ })));
  const baseline=JSON.parse(fs.readFileSync(
   path.join(root,'research/fg04b3c-asap-audit-baseline.json'),'utf8'));
  const triage=compareAsapAuditBaseline(baseline,summary,
@@ -106,13 +116,13 @@ export async function auditAsapRawScoreMidi({manifest=realCorpusManifest(),
  return {...summary,sourceRevision:manifest.source.revision,
   license:manifest.source.license,usage:manifest.source.usage,
   provenance:'ASAP 2020 original MusicXML and score MIDI; no third-party finger data',
-  fg04b3cTriage:triage};
+  fg04b3cTriage:triage,fg04b3dSourceConstructs:sourceConstructs};
 }
 const invoked=process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url);
 if(invoked){
  try{
   const result=await auditAsapRawScoreMidi();
-  const reportFile=process.env.FG04B3C_REPORT||process.env.FG04B3B_REPORT;
+  const reportFile=process.env.FG04B3D_REPORT||process.env.FG04B3C_REPORT||process.env.FG04B3B_REPORT;
   if(reportFile){
    const location=path.resolve(reportFile);
    fs.mkdirSync(path.dirname(location),{recursive:true});
@@ -125,6 +135,12 @@ if(invoked){
    newlyAligned:result.fg04b3cTriage.newlyAligned,
    priorAlignmentRegressions:result.fg04b3cTriage.regressions,
    refusalsByFamily:result.fg04b3cTriage.refusalsByFamily,
+   midiZeroLengthNotes:result.fg04b3dSourceConstructs.totals.zeroLengthNotes,
+   sourceMidiNotes:result.fg04b3dSourceConstructs.totals.sourceMidiNotes,
+   midiZeroLengthAffected:result.fg04b3dSourceConstructs.piecesWithZeroMidiNotes,
+   musicXmlGraceMarkers:result.fg04b3dSourceConstructs.totals.graceMarkers,
+   musicXmlRepeatMarkers:result.fg04b3dSourceConstructs.totals.repeatMarkers,
+   musicXmlEndingMarkers:result.fg04b3dSourceConstructs.totals.endingMarkers,
    // These are approved score identifiers and refusal categories only:
    cases:result.cases.map(({id,status,reason})=>({id,status,reason})),
    learnerAutoFingeringAllowed:false},null,2));
