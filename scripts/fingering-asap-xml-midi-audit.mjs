@@ -11,6 +11,7 @@ import {fileURLToPath} from 'node:url';
 import {realCorpusManifest,validateRealCorpusManifest,gitBlobHash}
  from './fingering-asap-real-score-audit.mjs';
 import {compareRawMusicXmlToScoreMidi} from '../src/core/musicxml-score-midi-bridge.mjs';
+import {compareAsapAuditBaseline} from '../src/core/asap-audit-triage.mjs';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const REPO='fosfrancesco/asap-dataset';
@@ -94,9 +95,18 @@ export async function auditAsapRawScoreMidi({manifest=realCorpusManifest(),
     productionAutoFingeringAllowed:comparison.productionAutoFingeringAllowed};
   }
  }));
- return {...publicAuditSummary(results),sourceRevision:manifest.source.revision,
+ const summary=publicAuditSummary(results);
+ const baseline=JSON.parse(fs.readFileSync(
+  path.join(root,'research/fg04b3c-asap-audit-baseline.json'),'utf8'));
+ const triage=compareAsapAuditBaseline(baseline,summary,
+  {sourceRevision:manifest.source.revision});
+ // Prior successful score cannot disappear quietly under a "green" CI build.
+ if(triage.regressions.length)
+  fail('ASAP_MUSICAL_ALIGNMENT_REGRESSION:'+triage.regressions.join(','));
+ return {...summary,sourceRevision:manifest.source.revision,
   license:manifest.source.license,usage:manifest.source.usage,
-  provenance:'ASAP 2020 original MusicXML and score MIDI; no third-party finger data'};
+  provenance:'ASAP 2020 original MusicXML and score MIDI; no third-party finger data',
+  fg04b3cTriage:triage};
 }
 const invoked=process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url);
 if(invoked){
@@ -109,7 +119,14 @@ if(invoked){
   }
   console.log('FG-04B3b real ASAP XML-MIDI study',JSON.stringify({
    total:result.total,aligned:result.aligned,rejected:result.rejected,
-   refusalsByReason:result.reasons,learnerAutoFingeringAllowed:false},null,2));
+   refusalsByReason:result.reasons,
+   baselineAligned:result.fg04b3cTriage.baselineAligned,
+   newlyAligned:result.fg04b3cTriage.newlyAligned,
+   priorAlignmentRegressions:result.fg04b3cTriage.regressions,
+   refusalsByFamily:result.fg04b3cTriage.refusalsByFamily,
+   // These are approved score identifiers and refusal categories only:
+   cases:result.cases.map(({id,status,reason})=>({id,status,reason})),
+   learnerAutoFingeringAllowed:false},null,2));
  }catch(e){
   console.error('FG-04B3b SOURCE INTEGRITY FAILURE:',e.message);
   process.exitCode=1;
