@@ -1,4 +1,12 @@
-# Play Along — Piano Practice App (v0.10.83)
+# Play Along — Piano Practice App (v0.10.84)
+
+## FG-04B4-R5 — Strictly separate previously evaluated PianoVAM GT from pseudo-only source records (v0.10.84)
+
+After independent original-video-pseudolabel verification in FG-04B4-R4, the next research gate constructs a **strict recording-disjoint original-source manifest** from three version-pinned PianoVAM directories: original MIDI-derived `TSV/`, video-generated `Fingering/` and human-reviewed `Fingering_GT/`. The **eleven manual-GT recordings already inspected repeatedly in FG-02J/FG-04B4-R1/R2/R4 are excluded from the entire pseudo-only candidate pool**, not merely hidden in the published sample. The `Fingering_GT/` filenames must exactly match the separately frozen eleven names, and every automatic pseudolabel file must have a corresponding original source TSV. Unexpected GT entries, missing original partners, changed revision, malformed metadata or partial directory listings **fail the research run**.
+
+From the remaining pseudo-only recordings, a fixed hash-ranked eight-record pilot undergoes **exact original note event identity verification** across MIDI pitch, onset, key release, sound/frame release and velocity; `Noinfo` is counted as unknown, never forced to RH/LH. An aggregate-only report records source-note counts, pseudo-label coverage and source identity anomalies, with no licensed note records, finger sequences, original timestamps or performer filenames. **Pseudo-label coverage is NOT accuracy**: this sample has no independently manually verified truth, and disjoint filenames alone do not establish different pianists or different pieces. No model training, solver tuning, production learner hands, user fingers, original fourteen hand PNGs, MIDI/Wait/Tempo/pedal, SoundFont or MAESTRO changes occur. PianoVAM is CC BY-NC-SA 4.0 for **noncommercial research only**. [FG-04B4-R5 method and rights](docs/FG-04B4-R5-DISJOINT-PSEUDO-COHORT.md). Hand-thesia stays **35%**; all automatic teaching remains **NO-GO**.
+
+
 
 ## FG-04B4-R4 — Independently audit video-derived automatic hand pseudolabels (v0.10.83)
 
