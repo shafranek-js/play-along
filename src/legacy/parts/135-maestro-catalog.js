@@ -3,10 +3,14 @@
 const MAESTRO_SOURCE='MAESTRO v3.0.0';
 const MAESTRO_HOME='https://magenta.tensorflow.org/datasets/maestro';
 const MAESTRO_CSV=[
+ 'https://storage.googleapis.com/download/storage/v1/b/magentadata/o/datasets%2Fmaestro%2Fv3.0.0%2Fmaestro-v3.0.0.csv?alt=media',
  'https://storage.googleapis.com/magentadata/datasets/maestro/v3.0.0/maestro-v3.0.0.csv',
  'https://huggingface.co/datasets/projectlosangeles/maestro-v3.0.0/resolve/main/maestro-v3.0.0.csv'
 ];
-const MAESTRO_MIDI_ZIP='https://storage.googleapis.com/magentadata/datasets/maestro/v3.0.0/maestro-v3.0.0-midi.zip';
+const MAESTRO_MIDI_ZIP_URLS=[
+ 'https://storage.googleapis.com/download/storage/v1/b/magentadata/o/datasets%2Fmaestro%2Fv3.0.0%2Fmaestro-v3.0.0-midi.zip?alt=media',
+ 'https://storage.googleapis.com/magentadata/datasets/maestro/v3.0.0/maestro-v3.0.0-midi.zip'
+];
 const MAESTRO_SHA256='70470ee253295c8d2c71e6d9d4a815189e35c89624b76d22fce5a019d5dde12c';
 const MAESTRO_ZIP_MAX=65*1024*1024,MAESTRO_ENTRY_MAX=5*1024*1024;
 const MAESTRO_CACHE_KEY='maestro-v3-official-metadata-v1';
@@ -129,10 +133,10 @@ async function maestroUseArchive(buffer){
  maestroArchive={buffer,entries};maestroStatus('Официальный архив MAESTRO проверен. Можно открывать исполнения.');
  return maestroArchive;
 }
-async function maestroFetchArchive(){
+async function maestroFetchArchive(url){
  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),240000);
  try{
-  const response=await fetch(MAESTRO_MIDI_ZIP,{mode:'cors',cache:'force-cache',signal:controller.signal});
+  const response=await fetch(url,{mode:'cors',cache:'force-cache',signal:controller.signal});
   if(!response.ok)throw Error('HTTP '+response.status);
   if(Number(response.headers.get('content-length')||0)>MAESTRO_ZIP_MAX)throw Error('Слишком большой ответ архива');
   if(!response.body)return maestroUseArchive(await response.arrayBuffer());
@@ -154,7 +158,14 @@ async function maestroEnsureArchive(){
  if(maestroArchive)return maestroArchive;
  if(maestroArchiveLoading)return maestroArchiveLoading;
  maestroStatus('Первое открытие: загружаю 56-МБ официальный MIDI ZIP Google. Повторно в этой вкладке не понадобится.');
- maestroArchiveLoading=maestroFetchArchive();
+ maestroArchiveLoading=(async()=>{
+  const errors=[];
+  for(const url of MAESTRO_MIDI_ZIP_URLS){
+   try{return await maestroFetchArchive(url)}
+   catch(err){errors.push(err.message)}
+  }
+  throw Error(errors.join(' · ')||'Источники архива MAESTRO недоступны');
+ })();
  try{return await maestroArchiveLoading}finally{maestroArchiveLoading=null}
 }
 function maestroCRC32(bytes){
