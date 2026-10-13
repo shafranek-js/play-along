@@ -109,6 +109,8 @@ export function parseMusicXmlRepeatControls(xml){
  if(partsParsed.some(p=>!identical(p,partsParsed[0])))
   fail('REPEAT_PARTS_NOT_SYNCHRONIZED');
  return {measureNumbers:[...partsParsed[0].numbers],partIds,
+  hasUnresolvedGrace:/<grace\b/i.test(clean),
+  hasUnresolvedOrnament:/<(?:trill-mark|mordent|inverted-mordent|turn|inverted-turn|shake|tremolo)\b/i.test(clean),
   events:partsParsed[0].events.map(e=>({...e})),
   sourceControlFormat:'musicxml-barline-boundaries-v1'};
 }
@@ -127,6 +129,10 @@ export function planMusicXmlRepeatTraversal(control,{maxVisits=MAX_VISITS}={}){
     !Array.isArray(events)||events.length>MAX_MEASURES*4||
     !Number.isSafeInteger(maxVisits)||maxVisits<1||maxVisits>MAX_VISITS)
   fail('REPEAT_PLAN_INVALID_INPUT');
+ if(control.hasUnresolvedGrace===true)
+  fail('REPEAT_GRACE_TIMING_UNSUPPORTED');
+ if(control.hasUnresolvedOrnament===true)
+  fail('REPEAT_ORNAMENT_REALIZATION_UNSUPPORTED');
  const N=numbers.length;
  for(let i=0;i<N;i++){
   if(typeof numbers[i]!=='string'||!numbers[i].length||
@@ -239,7 +245,9 @@ export function expandMusicXmlRepeatNotes(plan,writtenNotes){
   fail('REPEAT_EXPANSION_INVALID_INPUT');
  const byMeasure=new Map(),sourceIds=new Set();
  for(const n of writtenNotes){
-  if(!n||typeof n.sourceNoteId!=='string'||!/^xml:.{1,180}$/.test(n.sourceNoteId)||
+  if(!n||n.grace===true||n.ornamentUnresolved===true)
+    fail('REPEAT_UNRESOLVED_NOTE_ORNAMENT');
+  if(typeof n.sourceNoteId!=='string'||!/^xml:.{1,180}$/.test(n.sourceNoteId)||
      sourceIds.has(n.sourceNoteId)||
      !Number.isInteger(n.measureIndex)||n.measureIndex<0||
      typeof n.partId!=='string'||!n.partId||
