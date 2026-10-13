@@ -43,7 +43,8 @@ try{
  assert.equal(before.length,4);
  assert.ok(before.every(n=>n.hand===null&&n.finger===null));
  await page.locator('#viewFingerEditor').click();
- await page.locator('#fingerBrowserPanel summary').click();
+ await page.locator('#fingerResearchPanel > summary').click();
+ await page.locator('#fingerBrowserPanel > summary').click();
  await page.locator('#fingerBrowserCalculate').click();
  await page.waitForFunction(()=>document.querySelector('#fingerBrowserStatus').textContent.includes('Рука некоторых нот'),null,{timeout:8000});
  await page.locator('#fingerBrowserAssumeStaves').check();
