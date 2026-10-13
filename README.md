@@ -1,4 +1,4 @@
-# Play Along — Piano Practice App (v0.10.65)
+# Play Along — Piano Practice App (v0.10.66)
 
 Play Along is an independently hosted browser piano practice application with Web MIDI, Piano Roll, OpenSheetMusicDisplay (OSMD), MusicXML/MXL and MIDI import, optional online music catalogs, and Wait/Tempo/Listen practice modes.
 
@@ -74,6 +74,8 @@ FG-02H flags **11 quick same-finger changes** requiring musician review. Preserv
 **FG-04B3c v0.10.65 — pinned ASAP refusal triage (research only):** Previous pinned 16-score MusicXML/MIDI audit measured **1 aligned (Bach Prelude BWV 846), 15 refused**: 7 grace-note realizations, 4 repeat/navigation cases, 1 ambiguous cross-voice tie provenance, 1 unmatched event, 1 backing-up voice timeline and 1 MIDI zero-length note. Freeze exact per-score outcomes in a separate research manifest and add a fail-closed classifier/CI regression gate: previously aligned scores must not silently become rejected; changed rejection codes do not count as improvements. Independently inspect the Bach Fugue and accept cross-voice continuation of an explicitly tied note **only when the same part, staff, pitch and adjacent beat give exactly one candidate**; otherwise refuse. Add 11 new unit checks. **SoundFont SF05 CI stability:** The SoundFont-enabled browser suite intermittently failed at GeneralUser GS program 0 because an asynchronous PCM capture window did not fully contain the scheduled note. The SF05 GM regression test now provides a longer capture window and at most three **coverage-only** attempts. It still requires finite, nonzero PCM for **all 128 programs in each of both banks** and rejects any program without a complete note-on/off capture. **No SoundFont files, DSP code, audio timing or instrument behavior were modified.**
 
 **Actual FG-04B3c CI result:** still **1/16 fully aligned**, **15/16 rejected**; Bach Fugue now reaches a separate `ZERO_LENGTH_MIDI_NOTE` refusal instead of the earlier orphan tie. No newly aligned scores and no previously aligned regressions. **Player playback, GeneralUser GS/MuseScore General SoundFont banks, original XML, original 14 hand PNGs and finger guidance remain unchanged.** Automatic fingering remains NO-GO. [FG-04B3c audit](docs/FG-04B3C-ASAP-REFUSAL-TRIAGE.md).
+
+**FG-04B3d v0.10.66 — real-source diagnostics (research only):** Independently read **all 16 commit-pinned ASAP MusicXML and original score-MIDI pairs** and produce strict per-score counts of zero-duration NoteOn/NoteOff events (by track), overlapping/unpaired/dangling MIDI events, pedal/tempo events, MusicXML grace notes, repeat signs, endings, ornaments and tempo directions. The previous real-score audit found **1/16 aligned**, with zero-duration MIDI as a real blocker in Bach Fugue BWV 846 and Schubert Moment musical 3. **Do not reinterpret detection as a musical fix or successful alignment.** No note duration is invented, MIDI events are not filtered, original score bytes and candidate finger numbers never enter the public app or report. The SHA-verified noncommercial ASAP research stays separate from player playback. **All SoundFont banks, 256-program GM test, MAESTRO catalogue, 14 original owner PNGs and Wait/Tempo remain unchanged.** [FG-04B3d methods](docs/FG-04B3D-SOURCE-ANOMALY-RESEARCH.md).
 
 ### Release documentation rule
 
@@ -161,6 +163,13 @@ Real physical MIDI device behavior, sustain pedal/CC64, live service availabilit
 
 ---
 ### Release history
+
+## Original MIDI zero-duration and MusicXML repeat/grace evidence (v0.10.66)
+
+- FG-04B3d runs an independent bounded, **read-only** source-event anomaly scanner for every original ASAP MIDI file, plus a separate MusicXML structural-feature inventory for grace notes, repetitions, alternate endings, ornament and tempo markings. The pinned source integrity checks and FG-04B3c musical alignment baseline remain authoritative.
+- Adds 10 offline research tests, aggregate per-score evidence and refusal-safe logging. No zero-duration note is removed or extended, and no grace/repeat timing is guessed; the score corpus remains **CC BY-NC-SA 4.0, research only**. The app does not acquire any source scores or note data.
+- All GeneralUser GS/MuseScore General SoundFont assets and synthesis behavior, MAESTRO online catalog, original 14 transparent hand poses, manual corrections and Wait/Tempo/Listen remain unmodified. [FG-04B3d](docs/FG-04B3D-SOURCE-ANOMALY-RESEARCH.md).
+
 
 ## ASAP music alignment provenance and SoundFont-safe triage (v0.10.65)
 
