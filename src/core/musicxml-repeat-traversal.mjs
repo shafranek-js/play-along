@@ -95,8 +95,10 @@ export function parseMusicXmlRepeatControls(xml){
        [...measure[2].matchAll(/<ending\b/g)].length)!==recognized)
     fail('REPEAT_MARKER_OUTSIDE_BARLINE');
   }
-  events.sort((a,b)=>a.boundary-b.boundary||a.kind.localeCompare(b.kind)||
-   String(a.number??'').localeCompare(String(b.number??'')));
+  events.sort((a,b)=>a.boundary-b.boundary||
+   (a.kind==='endingStop'?-1:a.kind==='endingStart'?1:0)-
+   (b.kind==='endingStop'?-1:b.kind==='endingStart'?1:0)||
+   a.kind.localeCompare(b.kind)||String(a.number??'').localeCompare(String(b.number??'')));
   partsParsed.push({numbers,events});
  }
  if(partsParsed.some(p=>!identical(p,partsParsed[0])))
