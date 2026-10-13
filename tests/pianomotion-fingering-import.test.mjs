@@ -90,3 +90,28 @@ test('FG-04C2b source-author hand overrides inferred PianoMotion hand via reject
  assert.equal(compare({source,pianoMotion:r.items}).pianoMotion.reason,
   'SCORE_EVENT_OR_HAND_CHANGED');
 });
+
+test('FG-04C2b local runner executes both actual-engine envelopes without exporting score',async()=>{
+ const {mkdtemp,writeFile,rm}=await import('node:fs/promises');
+ const {tmpdir}=await import('node:os');
+ const {join}=await import('node:path');
+ const {runLocalComparison}=await import('../scripts/fingering-engine-comparison.mjs');
+ const dir=await mkdtemp(join(tmpdir(),'pianomotion-source-bridge-'));
+ try{
+  const json=join(dir,'input.json'),music=join(dir,'source.mid');
+  await writeFile(json,JSON.stringify({source,pianoMotionAnalysis:build()}),'utf8');
+  await writeFile(music,midi);
+  const result=await runLocalComparison(json,music);
+  assert.equal(result.ok,true,JSON.stringify(result));
+  assert.equal(result.pianoMotion.status,'evaluated');
+  assert.equal(result.pianoMotionImport.status,'verified');
+  assert.equal(result.pianoMotionImport.noteCount,1);
+  assert.equal(result.playAlong.status,'evaluated');
+  assert.equal(result.productionEligible,false);
+  assert.equal((await runLocalComparison(json)).reason,'ORIGINAL_MIDI_PATH_REQUIRED');
+  const mixed=join(dir,'mixed.json');
+  await writeFile(mixed,JSON.stringify({source,pianoMotionAnalysis:build(),pianoMotion:[]}));
+  assert.equal((await runLocalComparison(mixed,music)).reason,'MIXED_PIANOMOTION_OUTPUT_MODES');
+  assert.ok(!JSON.stringify(result).includes('piano-1'),'Do not output external source note IDs');
+ }finally{await rm(dir,{recursive:true,force:true});}
+});
