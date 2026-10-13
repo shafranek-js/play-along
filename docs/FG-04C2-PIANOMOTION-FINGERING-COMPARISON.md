@@ -31,3 +31,19 @@ Use the independently implemented `auditFingeringAssignments` to screen actual r
 Tests: `node --test tests/fingering-engine-comparison.test.mjs`, also registered into full `npm test` through `tests/fingering-score-router.test.mjs`. Synthetic engineering controls cover actual Play Along solver invocation, two output aggregates, missed notes and denominators, no-data `not-run` status, exact source matching, author and user precedence, independently withheld annotations, same-held finger, cross-hand same-key contradiction, small hands and input immutability.
 
 **No production player integration; no PianoMotion Python engine execution and no measured real-source comparison yet.** No user PNG, MIDI, audio, SoundFont, MAESTRO, MusicXML author notes, store or renderer changes. FG-04C2 does not justify increasing the Hand-thesia completion estimate above **35%**.
+
+## FG-04C2b — actual PianoMotion analysis import (implemented)
+
+`src/core/pianomotion-fingering-import.mjs` accepts **real** PianoMotion Studio `{rawBaseline,document,fingeringPlan}` response plus the **original MIDI bytes passed to that exact PianoMotion run**. First it checks PianoMotion's `rawBaseline.inputSha256` against SHA-256 of those original bytes and refuses repaired/lossy/ambiguous note identity. It next reuses Play Along's independent `alignNormalizedScoreToMidi` source-to-original-MIDI bridge, requiring an aligned canonical MusicXML score (explicit `xml:` note IDs, part/staff/voice, physical note onset/release). Finally, PianoMotion notes must have exact raw `sourceEvent` locators and consistent `identityMappings`/`sourceNotes`; only a **unique** same-track/channel/pitch/onset/release candidate may be mapped. The input MIDI is not rewritten and neither engine receives held-out reference fingers.
+
+If PianoMotion omits provenance, repairs notes, cannot pair a same-pitch unison, rolls or changes source note time, uses a different MIDI SHA, or returns inconsistent plan/document assignments, conversion **abstains with a reason**. PianoMotion's computed hand and finger are **not** silently replaced by canonical Play Along information. The comparison rejects a changed score-author hand or any author/user anchor override. No PianoMotion source code, image assets, or Python WASM is copied into Play Along by this import.
+
+**Run locally after exporting a PianoMotion analysis JSON for the same original MIDI:**
+
+```bash
+node scripts/fingering-engine-comparison.mjs /path/to/comparison.json /path/to/original-score.mid
+```
+
+The JSON contains `{"source":[...], "pianoMotionAnalysis":{"rawBaseline":{...},"document":{...},"fingeringPlan":{...}}}` with the score's original canonical notes including `noteId,partId,staff,voice,pitch,start,duration,hand`. Without `pianoMotionAnalysis`, the original CLI supports separately supplied already-mapped candidate rows, and requires no MIDI path. Both modes return *aggregate-only* scores: no actual notes, fingerings, piano user files or performer IDs in stdout. The local JSON/MIDI remain local; **no automatic user export is added**.
+
+Important limitation: the two applications' note IDs are not semantically identical. Play Along's score-MIDI alignment is strictly unique ±2ms and already explicitly disclaims automatic repeat/tie/ornament validation. This bridge neither upgrades those claims nor aligns ambiguous raw MIDI. External real benchmark outcomes, performance gains and pianist acceptance remain unmeasured until a same-source PianoMotion analysis is provided and executed locally; synthetic JSON envelopes only test the implementation behavior.
