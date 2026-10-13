@@ -155,10 +155,7 @@ export function planMusicXmlRepeatTraversal(control,{maxVisits=MAX_VISITS}={}){
  if(active.size)fail('REPEAT_ENDING_UNCLOSED');
  const groups=[];let opened=null,implicit=false;
  for(let b=0;b<=N;b++){
-  if(starts.has(b)){
-   if(opened!==null)fail('REPEAT_NESTED_UNSUPPORTED');
-   opened=b;
-  }
+  // At a shared barline, close the previous repeat BEFORE opening the next.
   if(backs.has(b)){
    let from=opened;
    if(from===null){
@@ -168,6 +165,10 @@ export function planMusicXmlRepeatTraversal(control,{maxVisits=MAX_VISITS}={}){
    if(from>=b)fail('REPEAT_EMPTY_OR_INVALID_RANGE');
    groups.push({id:groups.length+1,start:from,end:b,implicit:opened===null});
    opened=null;
+  }
+  if(starts.has(b)){
+   if(opened!==null)fail('REPEAT_NESTED_UNSUPPORTED');
+   opened=b;
   }
  }
  if(opened!==null)fail('REPEAT_FORWARD_WITHOUT_BACKWARD');
