@@ -1,4 +1,4 @@
-# Play Along — Piano Practice App (v0.10.68)
+# Play Along — Piano Practice App (v0.10.69)
 
 Play Along is an independently hosted browser piano practice application with Web MIDI, Piano Roll, OpenSheetMusicDisplay (OSMD), MusicXML/MXL and MIDI import, optional online music catalogs, and Wait/Tempo/Listen practice modes.
 
@@ -84,6 +84,8 @@ FG-02H flags **11 quick same-finger changes** requiring musician review. Preserv
 **Measured FG-04B3d original-data results (16 pinned ASAP scores):** 38,267 original MIDI note-on/off pairs were examined, including **1,060 zero-tick pairs in 14 scores** (about **2.77%**). The MusicXML files contain **340 lexical grace markers, 25 repeat markers and 12 ending markers**; none of the 340 grace markers contains an explicit MusicXML `steal-time-previous`, `steal-time-following` or `make-time` attribute. This establishes source-data inventory, **not** an algorithmic correction of grace-note timing. The full-score matching gate stays **1/16** with zero new matches and zero regressions. [Research method and per-work findings](docs/FG-04B3D-ZERO-EVENT-SCORE-DIAGNOSTICS.md).
 
 **FG-04B4 v0.10.68 — source-aware RH/LH hand separation research (NO-GO for learner hints):** Added an independent pure candidate `separateHandsResearch` with a bounded onset-group beam search; evaluates simultaneous notes, held-key occupancy, reachable hand spans, movement, voice continuity and crossings **without a fixed middle-C split**. It accepts trusted source/author hand anchors and user overrides without changing them; ambiguous or impossible inference returns `unknown` or a diagnostic. This release **registers 17 new Node tests for full CI**, but the five reference patterns are synthetic: 6/12 unanchored predictions proposed, 6/6 match the synthetic labels, 6 unknown. **Independent real-repertoire hand attribution, pianist review and safe auto-fingering have NOT been established.** The research module is not imported into playback, lessons or hand hints; all 14 user PNGs, SoundFont banks, MAESTRO, user corrections and original MusicXML/MIDI timing remain unchanged. [FG-04B4 research](docs/FG-HAND-SEPARATION-RESEARCH.md). This research-only change does **not** raise the provisional 35% Hand-thesia completion estimate.
+
+**FG-03D1 / QA-01 research integration (v0.10.69):** Integrated an **unwired, research-only** hand-motion feasibility planner for source-author/user-verified *next unfinished* note groups; it checks held keys, hand crossings, reach/time and exact original piano geometry without modifying source note onsets/releases or all 14 original PNG poses. Lead review identified and fixed two P1 issues: late first calls now refuse infeasible movement instead of borrowing elapsed time, and other-hand target checks require matching score onset and repeat iteration. An identity-bound prior-motion token can continue an already authorized trajectory, but cannot alone prove physical correctness. Added 5 P1 regression cases to the original 35 synthetic motion tests; added independent QA-01 integrity/MIDI/fingering tests to the actual `npm test` list, covering immutable SoundFont bank checksums, PNG hashes, original MAESTRO files, note-event invariants and generated-hand NO-GO. **No animation or new auto-fingering is activated in the published player.** The planner's per-frame speed and biomechanics have **not** been professionally reviewed. See [FG-03D1 motion research](docs/FG-03D1-HAND-MOTION-FEASIBILITY.md) and [QA-01 checks](docs/QA-01-REGRESSION-BASELINE.md). No percentage change is claimed for overall Hand-thesia progress.
 
 ### Release documentation rule
 
@@ -171,6 +173,13 @@ Real physical MIDI device behavior, sustain pedal/CC64, live service availabilit
 
 ---
 ### Release history
+
+## Research-only Motion Feasibility and QA Gates (v0.10.69)
+
+- Added the independent `planAnticipatoryHandMotion` research API and 40 synthetic/refusal/immutability test cases (including five independent P1 regression cases). It does not import into production UI and never changes audio, MusicXML, MAESTRO or hand PNGs.
+- Added and **registered** new QA-01 checks for all 14 original transparent poses, the two SoundFont bank hashes and all 256 documented GM inventory programs, MAESTRO source pins, strict MIDI onset/release/tempo behavior, provenance and research candidate abstentions. Hashes alone do not prove audible PCM; real Chromium SoundFont/MAESTRO suites still run in full PR CI.
+- Preserved experimental fingering NO-GO and the existing 500–1000 ms Ghost preview. The new planner's 50–200% research transport envelope does not change the currently published Ghost selector/speed limits. [FG-03D1 technical contract](docs/FG-03D1-HAND-MOTION-FEASIBILITY.md).
+
 
 ## Experimental RH/LH Hand Separation (v0.10.68)
 
