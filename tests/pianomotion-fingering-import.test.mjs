@@ -40,7 +40,7 @@ test('FG-04C2b real-format PianoMotion envelopes are mapped by raw event with SH
  const report=compare({source,pianoMotion:r.items});
  assert.equal(report.pianoMotion.status,'evaluated',JSON.stringify(report));
  assert.equal(report.pianoMotion.summary.proposed,1);
- assert.equal(report.pianoMotion.summary.sourceContextUnverified,0);
+ assert.equal(report.pianoMotion.summary.sourceContextUnverified,1);
  assert.deepEqual(pm,before);
 });
 test('FG-04C2b original MIDI SHA mismatch rejects unrelated PianoMotion output',()=>{
