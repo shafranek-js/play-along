@@ -76,12 +76,12 @@ try{
  const downloadPending=page.waitForEvent('download');
  await page.locator('#fingerEditorDownloadXML').click();
  const download=await downloadPending;
- assert.match(download.suggestedFilename(),/-user-fingering\\.musicxml$/);
+ assert.ok(download.suggestedFilename().endsWith('-user-fingering.musicxml'));
  const exportedXML=fs.readFileSync(await download.path(),'utf8');
  assert.match(exportedXML,/play-along-user-fingering/);
  assert.match(exportedXML,/User-edited numeric fingering/);
  assert.doesNotMatch(exportedXML,/#C77D28/,'Display tint must not leak into exported MusicXML');
- assert.equal((exportedXML.match(/<fingering(?:\\s[^>]*)?>/g)||[]).length,2,
+ assert.equal(exportedXML.split('<fingering>').length-1,2,
   'Only two explicitly numbered author notes are rewritten, not sixty-two invented fingers');
  const sourceCheck=await page.evaluate(out=>{
   const imported=window.__libraryV08.readMusicXML(out,'play-along-user-fingering.musicxml');
