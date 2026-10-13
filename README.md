@@ -1,4 +1,12 @@
-# Play Along — Piano Practice App (v0.10.79)
+# Play Along — Piano Practice App (v0.10.80)
+
+## FG-04B4-R1 — Independent REAL performer RH/LH ground-truth benchmark (v0.10.80)
+
+Instead of interpreting the four unlabeled ASAP real scores as evidence of correct piano finger/hand placement, FG-04B4 now has a separate **noncommercial research-only** source-based benchmark on **11 immutable PianoVAM performances** (existing FG-02J original-source event alignment: 32,525 MIDI/TSV notes, 1,800 externally hand+finger annotated notes, 5.53% initial GT coverage). A strict **source-complete held-key polyphonic island** gate refuses any partial GT chord and any identical duplicate five-field source events which cannot unambiguously link an external hand label to a particular original note. Notes, MIDI or hand labels are not copied into reports or product builds (upstream **CC BY-NC-SA 4.0**, research only).
+
+Two independent test protocols are reported side by side: **MIDI-only** with every original hand withheld (the conservative splitter may abstain), and **source/oracle-seeded** with at most the earliest independently labeled note from each hand provided as fixed identity per score island. In the latter, the fixed anchors are excluded from prediction denominators and all other hands and **all finger numbers** remain hidden. Each report separates eligible versus fully held-out notes, algorithm coverage, true agreement, false-hand assignments, unknowns and rejected islands. Seeded/source-assisted agreement is **not** real MIDI-only autonomous hand discovery, pianist-approved technique, or certified motion. No production auto hand hints, automatic fingers, original 14 PNG changes, SoundFont/MAESTRO/music timing changes, or learner release gating is altered. [Method and licence](docs/FG-04B4-R1-REAL-HAND-GT.md). Hand-thesia progress stays **35%**.
+
+
 
 ## FG-03D3 — Real piano polyphony does not mean the whole score is corrupt (v0.10.79)
 
