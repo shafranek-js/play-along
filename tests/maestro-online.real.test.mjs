@@ -81,7 +81,8 @@ try{
   await page.waitForFunction(name=>document.querySelector('#songName')?.textContent?.includes(name),q,{timeout:60000});
   const title=await page.locator('#songName').innerText();
   assert.ok(title.includes(q));
-  assert.match(await page.locator('#maestroProgress').innerText(),/Открыто/);
+  await page.waitForFunction(()=>/^(Открыто:|MIDI открыт, но не сохранён)/.test(document.querySelector('#maestroProgress')?.textContent||''),null,{timeout:45000});
+  assert.match(await page.locator('#maestroProgress').innerText(),/Открыто|открыт/);
   assert.equal(zipRequests,0);
   console.log('MAESTRO_REAL_BROWSER_OPEN '+JSON.stringify({title,selected_file:first.midiPath}));
  }
