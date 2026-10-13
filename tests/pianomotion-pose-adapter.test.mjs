@@ -10,7 +10,7 @@ const pose=(time,x,hand='right')=>({hand,transportTimeSeconds:time,
 const frames=[{pose:pose(.2,0),binding:{sourceNoteIds:['P1-m1-n1'],iteration:0,generation:2}},
  {pose:pose(.5,6),binding:{sourceNoteIds:['P1-m1-n1'],iteration:0,generation:2}}];
 const cfg={target,hand:'RH',frames,viewport:{minPitch:21,maxPitch:108},
- transport:{mode:'listen',now:.35,leadMs:500,speedPercent:100,playing:true,generation:2}};
+ transport:{mode:'listen',now:.35,leadMs:500,speedPercent:100,playing:true,generation:2,heldNoteIds:[],oppositeHandClear:true}};
 const run=opts=>sample({...cfg,...opts});
 test('verified PianoMotion poses interpolate deterministically without input mutation',()=>{
  const original=structuredClone(cfg),one=run(),two=run();
@@ -73,4 +73,10 @@ test('loop wrapped target requires explicit next cycle and matching iteration',(
 test('bounds: no extrapolation beyond pose-buffer or unbounded frames',()=>{
  assert.equal(run({transport:{...cfg.transport,now:.19}}).reason,'pose-window-missing');
  assert.equal(run({frames:Array.from({length:129},(_,i)=>({...frames[0],pose:pose(.2+i*.001,i)}))}).reason,'unavailable-pose-buffer');
+});
+
+test('occupied or unverified held keys and potential crossings refuse animated pose',()=>{
+ assert.equal(run({transport:{...cfg.transport,heldNoteIds:undefined}}).reason,'held-key-state-unverified');
+ assert.equal(run({transport:{...cfg.transport,heldNoteIds:['other']}}).reason,'physical-keys-held');
+ assert.equal(run({transport:{...cfg.transport,oppositeHandClear:false}}).reason,'crossing-unverified');
 });
