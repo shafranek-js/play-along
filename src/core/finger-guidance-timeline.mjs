@@ -18,9 +18,13 @@ export function fingerGuidanceTimeline(events){
      !Number.isFinite(note.duration)||note.duration<=0)continue;
   // Match the practice UI's millisecond score-onset bucketing.
   const tick=Math.round(note.start*1000);
-  if(!groups.has(tick))groups.set(tick,{start:note.start,notes:[],totalNotes:0});
+  if(!groups.has(tick))groups.set(tick,{start:note.start,notes:[],totalNotes:0,idCounts:new Map()});
   const group=groups.get(tick);
   group.totalNotes++;
+  // Count IDs for ALL valid source events, including those without fingers.
+  // Otherwise a marked note can impersonate an unmarked simultaneous note.
+  if(typeof note.noteId==='string'&&note.noteId.trim())
+   group.idCounts.set(note.noteId,(group.idCounts.get(note.noteId)||0)+1);
   if(!Number.isInteger(note.finger)||note.finger<1||note.finger>5||
      (note.source!=='musicxml'&&note.source!=='demo'&&note.source!=='user')||
      (note.hand!=null&&note.hand!=='RH'&&note.hand!=='LH'))continue;
@@ -28,9 +32,13 @@ export function fingerGuidanceTimeline(events){
    hand:note.hand??null,finger:note.finger,track:note.track,
    source:note.source,...(note.noteId?{noteId:note.noteId}:{})});
  }
- return [...groups.entries()].sort((a,b)=>a[0]-b[0]).map(([,group])=>({
-  ...group,complete:group.notes.length===group.totalNotes
- }));
+ return [...groups.entries()].sort((a,b)=>a[0]-b[0]).map(([,group])=>{
+  // Never show source-ambiguous finger positions as a complete chord.
+  // Preserve the original onset and totalNotes; don't alter score playback.
+  const notes=group.notes.filter(n=>!n.noteId||group.idCounts.get(n.noteId)===1);
+  return {start:group.start,notes,totalNotes:group.totalNotes,
+   complete:notes.length===group.totalNotes};
+ });
 }
 
 /**

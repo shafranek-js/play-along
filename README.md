@@ -1,4 +1,8 @@
-# Play Along — Piano Practice App (v0.10.85)
+# Play Along — Piano Practice App (v0.10.86)
+
+## FG-03A-P1 — Reject duplicate source-note IDs in live next-chord guidance (v0.10.86)
+
+When simultaneous score notes share the same nonempty canonical `noteId`, a hand position cannot be uniquely attributed to either source event. The original score onset and total note count are retained, but all duplicate-ID finger candidates at that onset are suppressed; independent unambiguous fingers may remain as numeric labels while the full chord is marked incomplete. An unannotated source note sharing an ID also invalidates the annotated candidate. Earlier/later separate onsets remain independent; original note-on/off, Wait/Tempo/Listen, SoundFont, MAESTRO and all 14 hand PNG assets are untouched. Two synthetic nonmutation/refusal regressions cover this safety behavior. This is a production guidance integrity fix, **not** inferred RH/LH or automated teaching fingering.
 
 ## FG-04B4-R7 — Internal candidate-cohort collision gate (research only)
 

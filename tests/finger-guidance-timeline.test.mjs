@@ -40,6 +40,33 @@ test('FG-03A same-onset voices are counted individually, never deduplicated by p
  assert.equal(result[0].notes.length,2);
  assert.equal(result[0].complete,false);
 });
+test('FG-03A duplicated canonical note IDs are refused without deleting the score onset',()=>{
+ const events=[
+  note(60,0,1,{noteId:'same'}),
+  note(64,0,3,{noteId:'same'}),
+  note(67,0,5,{noteId:'distinct'}),
+  note(70,.5,5,{noteId:'same'})
+ ];
+ const original=structuredClone(events);
+ const frames=fingerGuidanceTimeline(events);
+ assert.deepEqual(events,original,'No mutation of note identity, timing or pitch');
+ assert.equal(frames[0].totalNotes,3);
+ assert.equal(frames[0].complete,false);
+ assert.deepEqual(frames[0].notes.map(n=>n.noteId),['distinct']);
+ assert.equal(frames[1].complete,true,
+  'The same canonical ID at a DIFFERENT onset is not an intra-chord collision');
+});
+test('FG-03A a source-unmarked duplicate also invalidates the marked finger candidate',()=>{
+ const frames=fingerGuidanceTimeline([
+  note(60,0,1,{noteId:'ambiguous'}),
+  note(60,0,null,{noteId:'ambiguous'}),
+  note(67,.4,5,{noteId:'independent'})
+ ]);
+ assert.equal(frames[0].totalNotes,2);
+ assert.equal(frames[0].notes.length,0);
+ assert.equal(frames[0].complete,false);
+ assert.equal(frames[1].complete,true);
+});
 test('FG-03A valid events are deterministically grouped at original ms precision',()=>{
  const result=fingerGuidanceTimeline([note(65,.5001,4),note(60,0,1),note(67,.5004,5)]);
  assert.deepEqual(result.map(g=>g.start),[0,.5001]);
