@@ -173,3 +173,15 @@ test('bounded song scope is explicit and does not mutate caller inputs',()=>{
  const oversize=Array.from({length:129},(_,i)=>note('note'+i,60,i,.06,A('RH',1)));
  assert.equal(run({notes:oversize}).reason,'invalid-scope');
 });
+
+test('unknown simultaneous note in prior chord cannot be removed from origin clearance',()=>{
+ const notes=[
+  note('old',60,0,.06,A('RH',1)),
+  note('unknown-origin',48,0,.06),
+  note('next',64,.8,.06,A('RH',3))
+ ];
+ const result=run({notes,completedNoteIds:['old','unknown-origin']});
+ assert.equal(result.ok,true);
+ assert.equal(result.motion.kind,'static');
+ assert.equal(result.motion.reason,'origin-unknown');
+});
