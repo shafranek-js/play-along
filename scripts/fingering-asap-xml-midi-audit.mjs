@@ -112,8 +112,9 @@ const invoked=process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(imp
 if(invoked){
  try{
   const result=await auditAsapRawScoreMidi();
-  if(process.env.FG04B3B_REPORT){
-   const location=path.resolve(process.env.FG04B3B_REPORT);
+  const reportFile=process.env.FG04B3C_REPORT||process.env.FG04B3B_REPORT;
+  if(reportFile){
+   const location=path.resolve(reportFile);
    fs.mkdirSync(path.dirname(location),{recursive:true});
    fs.writeFileSync(location,JSON.stringify(result,null,2)+'\n');
   }
