@@ -69,3 +69,6 @@ test('FG-04C7 missing or changed original MIDI is never silently matched',()=>{
 
 // FG-04C8 session isolates the exact original MIDI for a future browser engine.
 import './original-midi-session.test.mjs';
+
+// FG-04C9: original Python source checksum and all supported parsed-to-MIDI paths.
+import './pianomotion-browser-python.test.mjs';
