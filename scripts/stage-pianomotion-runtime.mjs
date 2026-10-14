@@ -30,7 +30,7 @@ export function validatePianoMotionStaging(core,assets){
   typeof core.files!=='object'||Array.isArray(core.files)||
   !core.files||Object.keys(core.files).length<8)
   return {ok:false,reason:'INVALID_CORE_MANIFEST'};
- const entries=Object.entries(core.files).sort(([a],[b])=>a.localeCompare(b,'en'));
+ const entries=Object.entries(core.files).sort(([a],[b])=>a<b?-1:a>b?1:0);
  for(const [file,hash] of entries)
   if(!HASHED_SOURCE.test(file)||!HEX.test(hash)||!sane(file))
    return {ok:false,reason:'UNSAFE_OR_UNHASHED_CORE_FILE'};
