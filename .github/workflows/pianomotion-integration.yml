@@ -43,3 +43,5 @@ jobs:
         run: node tests/launch01-real-score-smoke.real.test.mjs
       - name: LAUNCH-01 cancel and retry pending Python inference safely
         run: node tests/launch01-worker-cancel.real.test.mjs
+      - name: LAUNCH-01 MXL/MIDI malformed inputs and 1050-note multi-track stress
+        run: node tests/launch01-mxl-midi-boundaries.real.test.mjs
