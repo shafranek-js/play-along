@@ -42,7 +42,9 @@ async function initialize(id){
   throw Error('PIANOMOTION_ENGINE_DIGEST_MISMATCH');
  progress(id,'Загружаю Pyodide 314.0.7 для оригинального Python…');
  const runtimeUrl='https://cdn.jsdelivr.net/pyodide/v314.0.7/full/';
- const module=await import(runtimeUrl+'pyodide.mjs');
+ let module;
+ try{module=await import(runtimeUrl+'pyodide.mjs')}
+ catch{throw Error('PYODIDE_RUNTIME_DOWNLOAD_FAILED')}
  if(module.version!=='314.0.7')throw Error('PYODIDE_VERSION_MISMATCH');
  const py=await module.loadPyodide({indexURL:runtimeUrl});
  progress(id,'Устанавливаю Python-зависимости PianoMotion…');
