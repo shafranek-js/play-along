@@ -802,8 +802,12 @@ function pianoMotionStop(message){
  if($('pianoMotionApply'))$('pianoMotionApply').disabled=true;
  if($('pianoMotionExportXML'))$('pianoMotionExportXML').disabled=true;
  $('pianoMotionCalculate').disabled=false;
+ $('pianoMotionCancel').hidden=true;$('pianoMotionCancel').disabled=true;
  if(message)$('pianoMotionStatus').textContent=message;
 }
+$('pianoMotionCancel').onclick=()=>pianoMotionStop(
+ 'Расчёт PianoMotion отменён. Исходные ноты и ручные исправления сохранены.'
+);
 $('pianoMotionClear').onclick=()=>{
  if(pianoMotionLastApplied&&pianoMotionLastSong===current){
   $('pianoMotionReview').classList.add('collapsed');
@@ -849,6 +853,7 @@ $('pianoMotionCalculate').onclick=()=>{
   }
   pianoMotionRun=worker;
   $('pianoMotionCalculate').disabled=true;
+  $('pianoMotionCancel').hidden=false;$('pianoMotionCancel').disabled=false;
   const cancel=()=>{
    if(pianoMotionGeneration!==id)return false;
    if(current!==song){
@@ -864,6 +869,7 @@ $('pianoMotionCalculate').onclick=()=>{
    }
    worker.terminate();pianoMotionRun=null;
    $('pianoMotionCalculate').disabled=false;
+   $('pianoMotionCancel').hidden=true;$('pianoMotionCancel').disabled=true;
    if(data.type==='error'){
     if(exact&&pianoMotionCanRetry(data.reason)){
      console.warn('PianoMotion raw MIDI structure rejected: '+data.reason+'; retrying parsed notes.');
