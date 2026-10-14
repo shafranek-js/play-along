@@ -35,6 +35,8 @@ that the owner can license code contributed by unrelated rights holders.
 
 **Rights status as of October 14, 2026: Not established for public redistribution.**
 
+The [LAUNCH-01 source-rights audit](docs/LAUNCH-01-UPSTREAM-LICENSE-AUDIT.md) independently rechecked upstream GitHub metadata (`license: null`) and the pinned upstream commit tree (no LICENSE/COPYING/NOTICE grant identified). The original Python modules are present in the deployed bundle; this observation is **not permission** to redistribute them. Treat F0 as unresolved, regardless of the application's technical QA results.
+
 No `LICENSE` or `LICENSE.md` granting rights to reproduce, modify or
 redistribute the original upstream source was found in the inspected
 repository. Public access, forks, source code availability and this
