@@ -157,3 +157,6 @@ test('Source anchors still permit unique two-hand trajectories without automatic
 
 // Register isolated FG-04C research regressions in the existing npm test suite.
 import './fingering-cost-research.test.mjs';
+
+// FG-04C8: original SMF event ordinal identity before any PianoMotion finger acceptance.
+import './pianomotion-midi-source-map.test.mjs';
