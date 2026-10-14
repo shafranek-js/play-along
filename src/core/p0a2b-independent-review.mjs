@@ -149,7 +149,7 @@ export function evaluateP0A2bEngines(packet,adjudication,engines){
  if(adjudication.accepted.size>packet.notes.length||
     [...adjudication.accepted].some(([id,choices])=>
       !validSource.has(id)||!(choices instanceof Set)||!choices.size||
-      [...choices].some(choice=>!/^R[H]:[1-5]$|^L[H]:[1-5]$/.test(choice))))
+      [...choices].some(choice=>!/^(?:RH|LH):[1-5]$/.test(choice))))
   return fail('INVALID_ADJUDICATED_REFERENCE');
  const results={};
  for(const name of ['playAlong','pianoMotion']){
