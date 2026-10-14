@@ -13,7 +13,7 @@ const html=read('dist/index.html');
 const css=read('dist/assets/app.css');
 const manifest=JSON.parse(read('scripts/manifest.json'));
 const featureSource=manifest.features.map(name=>read('src/legacy/parts/'+name)).join('');
-const musicPrelude=['music-time.mjs','music-bars.mjs','finger-guidance-timeline.mjs','musicxml-note-identity.mjs','finger-overrides.mjs','finger-override-history.mjs','finger-note-selection.mjs','sheet-fingering-overlay.mjs','external-fingering-evaluation.mjs','musicxml-fingering-export.mjs','fingering-edition-reconcile.mjs','finger-editor-geometry.mjs','fingering-coverage.mjs','pianomotion-song-to-midi.mjs','pianomotion-review.mjs','original-midi-session.mjs','hand-span-calibration.mjs','library-section-layout.mjs'].map(f=>read('src/core/'+f).replace(/^export /gm,'')).join('\n');
+const musicPrelude=['music-time.mjs','music-bars.mjs','finger-guidance-timeline.mjs','musicxml-note-identity.mjs','finger-overrides.mjs','finger-override-history.mjs','finger-note-selection.mjs','sheet-fingering-overlay.mjs','external-fingering-evaluation.mjs','musicxml-fingering-export.mjs','fingering-edition-reconcile.mjs','finger-editor-geometry.mjs','fingering-coverage.mjs','pianomotion-song-to-midi.mjs','pianomotion-review.mjs','pianomotion-physical-audit.mjs','original-midi-session.mjs','hand-span-calibration.mjs','library-section-layout.mjs'].map(f=>read('src/core/'+f).replace(/^export /gm,'')).join('\n');
 
 test('all feature parts form exactly one valid JavaScript bundle',()=>{
  assert.equal(manifest.features.length,23);
