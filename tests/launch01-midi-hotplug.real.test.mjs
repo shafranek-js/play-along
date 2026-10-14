@@ -110,10 +110,77 @@ try{
    &&!app.session.played.has(64)&&app.waitRelease===null;
  },null,{timeout:10000});
  assert.equal(await page.evaluate(()=>window.__prototypeTest.isPlaying),true);
+ // Simultaneous virtual and USB owners of the same pitch must coexist.
+ // A physical NoteOff and controller All Notes Off belong to USB only.
+ await page.evaluate(()=>{
+  const app=window.__prototypeTest;
+  app.pause();app.setMode('listen');
+  app.receiveVirtualNoteOn(65);
+  window.__midiHotplug.send('second-midi',[0x90,65,90]);
+  window.__midiHotplug.send('second-midi',[0x90,69,90]);
+ });
+ assert.deepEqual((await page.evaluate(()=>window.__prototypeTest.midiHeld)).sort((a,b)=>a-b),[65,69],
+  'virtual and MIDI keys must share the pressed-key display without duplicate pitch entries');
+ await page.evaluate(()=>window.__midiHotplug.send('second-midi',[0x80,65,0]));
+ assert.deepEqual((await page.evaluate(()=>window.__prototypeTest.midiHeld)).sort((a,b)=>a-b),[65,69],
+  'physical NoteOff must not release a virtual key of the same pitch');
+ await page.evaluate(()=>window.__midiHotplug.send('second-midi',[0xB0,123,0]));
+ assert.deepEqual(await page.evaluate(()=>window.__prototypeTest.midiHeld),[65],
+  'MIDI All Notes Off must release MIDI ownership but preserve the virtual press');
+ await page.evaluate(()=>{
+  const app=window.__prototypeTest;
+  app.setMode('tempo');app.setMode('listen');
+ });
+ assert.deepEqual(await page.evaluate(()=>window.__prototypeTest.midiHeld),[65],
+  'switching practice modes must not cancel a still-held virtual input');
+ const detachedWithVirtualHeld=await page.evaluate(()=>window.__midiHotplug.unplug('second-midi'));
+ assert.equal(detachedWithVirtualHeld,true);
+ assert.deepEqual(await page.evaluate(()=>window.__prototypeTest.midiHeld),[65],
+  'USB unplug must preserve the independently held virtual key');
+ await page.evaluate(()=>window.__prototypeTest.receiveVirtualNoteOff(65));
+ assert.deepEqual(await page.evaluate(()=>window.__prototypeTest.midiHeld),[],
+  'virtual NoteOff must finally release its own live key');
+
+ // Keyboard CC123 may arrive with no per-key NoteOff. In Wait this must
+ // resolve the released group and let the player continue after reconnect.
+ await page.evaluate(()=>window.__midiHotplug.attach('cc123-midi'));
+ // A different keyboard is already connected; explicitly select the new
+ // port instead of expecting auto-connect to override the current choice.
+ await page.locator('#inputSelect').selectOption('cc123-midi');
+ await page.waitForFunction(()=>window.__prototypeTest.midiInfo.name==='MicroLab mock cc123-midi');
+ await page.evaluate(()=>{
+  const app=window.__prototypeTest;
+  app.pause();
+  app.loadSong({id:'launch01-midi-cc123',title:'All Notes Off Wait',author:'Synthetic',type:'import',tracks:[
+   {name:'Piano',notes:[
+    {pitch:72,start:0,duration:.25,velocity:85,track:0,channel:0},
+    {pitch:74,start:2,duration:.25,velocity:85,track:0,channel:0},
+   ]},
+  ]});
+  app.setMode('wait');app.seek(0);
+ });
+ await page.locator('#playBtn').click();
+ await page.waitForFunction(()=>window.__prototypeTest.isPlaying,null,{timeout:15000});
+ await page.evaluate(()=>window.__midiHotplug.send('cc123-midi',[0x90,72,90]));
+ await page.waitForFunction(()=>window.__prototypeTest.waitRelease?.pitches.includes(72),null,{timeout:10000});
+ await page.evaluate(()=>window.__midiHotplug.send('cc123-midi',[0xB0,123,0]));
+ await page.waitForFunction(()=>{
+  const app=window.__prototypeTest;
+  return app.stats.hits===1&&app.midiHeld.length===0&&app.waitRelease===null
+   &&!app.session.played.has(72)&&app.pos>.04&&app.isPlaying;
+ },null,{timeout:10000});
+ // Repeated same-pitch NoteOn is no longer suppressed by the phantom key.
+ await page.evaluate(()=>window.__midiHotplug.send('cc123-midi',[0x90,74,90]));
+ await page.waitForFunction(()=>{
+  const app=window.__prototypeTest;return app.stats.hits===2&&app.midiHeld.includes(74);
+ },null,{timeout:10000});
+ await page.evaluate(()=>window.__midiHotplug.send('cc123-midi',[0x80,74,0]));
+ await page.evaluate(()=>window.__prototypeTest.pause());
+
  assert.deepEqual(errors,[],'uncaught browser exceptions');
  console.log('LAUNCH01 F2 MIDI HOTPLUG BROWSER:',JSON.stringify({
   disconnectReleasesPractice:true,reconnectAcceptsWait:true,manualSwitchReleasesPractice:true,
-  physicalControllerTested:false,sourceNotesModified:false,pageErrors:errors.length,
+  physicalControllerTested:false,sourceNotesModified:false,sourceOwnership:true,allNotesOffReleasesWait:true,pageErrors:errors.length,
  }));
 }finally{
  if(browser)await browser.close();

@@ -75,6 +75,13 @@ async function audioPanic({group='all'}={}) {
  await resetPromise;audioEmit();if(group==='all')updateUI();
 }
 function audioLiveControl(event){if(!event||typeof event.type!=='string')return false;const key=event.type==='cc'?`cc:${event.controller}`:event.type==='pitchWheel'?'pitchWheel':event.type==='channelPressure'?'channelPressure':event.type==='polyPressure'?`polyPressure:${event.pitch}`:null;if(!key)return false;const normalized={...event,group:'live',channel:0};audioLiveControlState.set(key,normalized);if(!audioEngine||audioLifecycle!=='ready')return true;try{audioEngine.scheduleEvent({...normalized,at:audioEngine.context.currentTime+.002});return true}catch(error){audioError=String(error?.message||error);audioEmit();return false}}
+// A disconnected MIDI controller's sustain/sostenuto/pitch-wheel should not
+// remain latched. Unlike audioPanic('live'), preserve any virtual-key voice.
+function audioResetLiveInputControls(){
+ audioLiveControlState.clear();
+ for(const controller of [64,66,121])audioLiveControl({type:'cc',controller,value:0});
+ audioLiveControl({type:'pitchWheel',value:8192});
+}
 function rate(){return state.speed/100}
 function clockPos(){
  if(!isPlaying||!ctx)return pos;
