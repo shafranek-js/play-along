@@ -20,6 +20,9 @@ test('all feature parts form exactly one valid JavaScript bundle',()=>{
  const expected="\n(()=>{'use strict';\n"+musicPrelude+'\n'+featureSource.replace("window.__playAlongVersion='0.9.1'","window.__playAlongVersion='"+JSON.parse(read('package.json')).version+"'")+"})();\n";
  assert.equal(js,expected);
  execFileSync(process.execPath,['--check',path.join(root,'dist/assets/app.js')]);
+ // Compile browser smoke scripts during unit CI so syntax mistakes fail fast,
+ // before the much slower sequential real-Chromium regression run.
+ execFileSync(process.execPath,['--check',path.join(root,'tests/launch02-hand-crossfade.real.test.mjs')]);
 });
 test('public beta fingering has explicit no-expert warning and does not gate user Apply',()=>{
  const original=read('src/index.html');
