@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - 'tests/launch01-pyodide-real-browser.real.test.mjs'
+      - 'tests/launch01-pyodide-offline.real.test.mjs'
+      - 'package.json'
       - 'src/workers/pianomotion-engine.worker.mjs'
       - 'src/pianomotion-python/python-core/**'
       - 'src/core/pianomotion-source-identity.mjs'
@@ -36,5 +38,7 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Build production worker, source and UI
         run: npm run build
+      - name: Real production Worker with deliberately unavailable Pyodide CDN
+        run: node tests/launch01-pyodide-offline.real.test.mjs
       - name: Real Pyodide v314.0.7 + real pinned Python MIDI -> Apply -> download -> MusicXML reimport
         run: node tests/launch01-pyodide-real-browser.real.test.mjs
