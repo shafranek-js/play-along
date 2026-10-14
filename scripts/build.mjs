@@ -31,6 +31,30 @@ if (!js.includes(`window.__playAlongVersion='${version}'`)) throw Error('Failed 
 const dist = path.join(root, 'dist');
 fs.mkdirSync(path.join(dist, 'assets'), {recursive:true});
 fs.writeFileSync(path.join(dist, 'assets/app.js'), js);
+// FG-04C9: ship the owner's unchanged, manifest-pinned Python engine as
+// static source assets. The interpreter/wheels are lazy-fetched by the Worker.
+// Every source SHA must match PianoMotion Studio's original source_manifest.
+const pmRoot=path.join(root,'src/pianomotion');
+const pmStatic=path.join(dist,'assets/pianomotion');
+const pmSource=JSON.parse(fs.readFileSync(path.join(pmRoot,'python-core/handthesia_core/source_manifest.json'),'utf8'));
+const {createHash}=await import('node:crypto');
+for(const [relative,expected] of Object.entries(pmSource.files)){
+ if(!/^handthesia_core\\/[a-z_]+\\.py$/.test(relative)||!/^[a-f0-9]{64}$/.test(expected))
+  throw Error('Invalid PianoMotion source path/hash: '+relative);
+ const from=path.join(pmRoot,'python-core',relative),target=path.join(pmStatic,'python-core',relative);
+ const bytes=fs.readFileSync(from);
+ if(createHash('sha256').update(bytes).digest('hex')!==expected)
+  throw Error('Modified original PianoMotion Python file: '+relative);
+ fs.mkdirSync(path.dirname(target),{recursive:true});fs.copyFileSync(from,target);
+}
+const versionDigest=createHash('sha256').update(JSON.stringify({files:Object.fromEntries(
+ Object.entries(pmSource.files).sort(([a],[b])=>a.localeCompare(b,'en'))
+)})).digest('hex');
+if(versionDigest!==pmSource.engineVersion)throw Error('PianoMotion version digest mismatch');
+fs.mkdirSync(path.join(pmStatic,'python-core/handthesia_core'),{recursive:true});
+fs.copyFileSync(path.join(pmRoot,'python-core/handthesia_core/source_manifest.json'),
+ path.join(pmStatic,'python-core/handthesia_core/source_manifest.json'));
+fs.copyFileSync(path.join(pmRoot,'pyodide-runtime-manifest.json'),path.join(pmStatic,'pyodide-runtime-manifest.json'));
 // FG-04C7: executable original-PianoMotion Python worker only when a developer
 // explicitly stages the private, SHA-pinned runtime into dist (local research).
 // No PianoMotion Python, wheel or SoundFont source is shipped by npm build.
