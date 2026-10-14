@@ -161,3 +161,79 @@ export function summarizeP0A2(cases){
   researchOnly:true,expertValidated:false,productionEligible:false,
   independentPianistConsensus:false};
 }
+
+/** Agreement/disagreement decomposition for exactly the same original notes. */
+export function compareP0A2Paired({source,reference,playAlong,pianoMotion}={}){
+ if(!Array.isArray(source)||!Array.isArray(reference)||source.length!==reference.length||
+  !source.length)return failure('INVALID_PAIRED_SOURCE');
+ const empty={eligible:source.length,bothProposed:0,same:0,differ:0,
+  onlyPlayAlongCorrect:0,onlyPianoMotionCorrect:0,bothCorrect:0,bothWrong:0,
+  eitherAbstained:source.length,playAlongOnlyProposed:0,pianoMotionOnlyProposed:0};
+ if(!Array.isArray(playAlong)||!Array.isArray(pianoMotion))
+  return {ok:true,status:'not-run',...empty,researchOnly:true,expertValidated:false};
+ const gold=new Map(),byId=new Map();
+ for(const r of reference){
+  if(typeof r?.noteId!=='string'||gold.has(r.noteId)||!validFinger(r.finger)||
+    !['RH','LH'].includes(r.hand))return failure('INVALID_PAIR_REFERENCE');
+  gold.set(r.noteId,r);
+ }
+ const index=(list)=>{
+  const result=new Map();
+  for(const n of list){
+   if(!gold.has(n?.noteId)||result.has(n.noteId)||
+      !['RH','LH'].includes(n.hand)||!(n.finger===null||validFinger(n.finger)))
+    return null;
+   result.set(n.noteId,n);
+  }
+  return result;
+ };
+ const pa=index(playAlong),pm=index(pianoMotion);
+ if(!pa||!pm||pa.size>source.length||pm.size>source.length)
+  return failure('INVALID_PAIRED_PROPOSALS');
+ const result={...empty,eitherAbstained:0};
+ const seen=new Set();
+ for(const s of source){
+  if(typeof s?.noteId!=='string'||seen.has(s.noteId)||!gold.has(s.noteId)||
+     gold.get(s.noteId).hand!==s.hand)return failure('INVALID_SOURCE_TO_REFERENCE');
+  seen.add(s.noteId);
+  const a=pa.get(s.noteId),b=pm.get(s.noteId),hasA=validFinger(a?.finger),hasB=validFinger(b?.finger);
+  if(!hasA||!hasB){
+   result.eitherAbstained++;
+   if(hasA)result.playAlongOnlyProposed++;
+   if(hasB)result.pianoMotionOnlyProposed++;
+   continue;
+  }
+  result.bothProposed++;
+  const agree=a.hand===b.hand&&a.finger===b.finger;
+  if(agree)result.same++;else result.differ++;
+  const g=gold.get(s.noteId),ca=a.hand===g.hand&&a.finger===g.finger,
+   cb=b.hand===g.hand&&b.finger===g.finger;
+  if(ca&&cb)result.bothCorrect++;
+  else if(ca)result.onlyPlayAlongCorrect++;
+  else if(cb)result.onlyPianoMotionCorrect++;
+  else result.bothWrong++;
+ }
+ if(seen.size!==source.length||gold.size!==source.length||
+  result.same+result.differ!==result.bothProposed||
+  result.bothCorrect+result.onlyPlayAlongCorrect+result.onlyPianoMotionCorrect+
+   result.bothWrong!==result.bothProposed)
+  return failure('PAIRED_DENOMINATOR_MISMATCH');
+ return {ok:true,status:'evaluated',...result,
+  samePercent:nice(result.same,result.bothProposed),
+  differentPercent:nice(result.differ,result.bothProposed),
+  researchOnly:true,expertValidated:false};
+}
+export function summarizeP0A2Paired(cases){
+ if(!Array.isArray(cases)||!cases.length||
+  cases.some(c=>!c?.paired?.ok))return failure('INVALID_PAIRED_CASES');
+ const keys=['eligible','bothProposed','same','differ','onlyPlayAlongCorrect',
+  'onlyPianoMotionCorrect','bothCorrect','bothWrong','eitherAbstained',
+  'playAlongOnlyProposed','pianoMotionOnlyProposed'];
+ const totals=Object.fromEntries(keys.map(key=>
+  [key,cases.reduce((sum,c)=>sum+c.paired[key],0)]));
+ return {ok:true,...totals,
+  casesEvaluated:cases.filter(c=>c.paired.status==='evaluated').length,
+  casesNotRun:cases.filter(c=>c.paired.status!=='evaluated').length,
+  agreementPercent:nice(totals.same,totals.bothProposed),
+  researchOnly:true,expertValidated:false};
+}
