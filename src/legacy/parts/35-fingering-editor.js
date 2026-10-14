@@ -681,17 +681,30 @@ function pianoMotionReviewCountApplied(){
  return pianoMotionLastAlignment?.matches.filter(x=>x.note.fingeringSource==='pianomotion'&&
   Number.isInteger(x.note.finger)&&x.note.finger>=1&&x.note.finger<=5).length||0;
 }
+function pianoMotionReviewAvailable(){
+ if(!pianoMotionLastAlignment?.ok||pianoMotionLastSong!==current)return null;
+ const key=fingerOverrideWorkKey(current),edits=key?state.fingerOverrides?.[key]||{}:{};
+ const summary=pianoMotionReviewSummary(pianoMotionLastAlignment,edits,pianoMotionReviewAudit);
+ return summary.ok?summary:null;
+}
 function pianoMotionReviewSync(){
- const count=pianoMotionLastAlignment?.matches.length||0;
- const active=!!count&&pianoMotionLastSong===current;
- const selected=[...pianoMotionReviewSelected].filter(i=>i>=0&&i<count).length;
+ const count=pianoMotionLastAlignment?.matches.length||0,active=!!count&&pianoMotionLastSong===current;
+ const summary=active?pianoMotionReviewAvailable():null;
+ // Always re-evaluate before offering Apply: author/user edits and Undo may
+ // have changed eligibility since the note was selected.
+ for(const i of pianoMotionReviewSelected)
+  if(summary?.eligibility[i]!=='eligible')pianoMotionReviewSelected.delete(i);
+ const selected=pianoMotionReviewSelected.size,collapsed=$('pianoMotionReview').classList.contains('collapsed');
  $('pianoMotionReviewCount').textContent=active?'Выбрано '+selected+' из '+count+' нот':'Предложения отсутствуют';
- $('pianoMotionApplySelected').disabled=!active||!pianoMotionReviewAudit?.ok||!selected||
-  $('pianoMotionReview').classList.contains('collapsed');
- $('pianoMotionSelectAll').disabled=!active||
-  $('pianoMotionReview').classList.contains('collapsed');
- $('pianoMotionSelectNone').disabled=!active||!selected||
-  $('pianoMotionReview').classList.contains('collapsed');
+ $('pianoMotionReviewStats').textContent=summary?
+  'Применимо: '+summary.counts.eligible+' · защищено: '+summary.counts.protected+
+  ' · конфликты: '+summary.counts.conflict+' · без пальца: '+summary.counts.unresolved+
+  ' · уже применено: '+summary.counts.applied:
+  'После расчёта здесь появятся применимые и пропущенные предложения.';
+ $('pianoMotionApplySelected').disabled=!summary||!selected||collapsed;
+ $('pianoMotionSelectAll').disabled=!summary?.counts.eligible||collapsed;
+ $('pianoMotionSelectNone').disabled=!selected||collapsed;
+ $('pianoMotionApply').disabled=!summary?.counts.eligible||collapsed;
  $('pianoMotionUndo').disabled=!active||!pianoMotionReviewHistory.past.length;
  $('pianoMotionRedo').disabled=!active||!pianoMotionReviewHistory.future.length;
  $('pianoMotionExportXML').disabled=!pianoMotionLastApplied||!pianoMotionReviewCountApplied();
@@ -703,36 +716,44 @@ function pianoMotionReviewRender(){
  pianoMotionReviewOffset=Math.max(0,Math.min(Math.floor(pianoMotionReviewOffset/limit)*limit,
   Math.floor((n-1)/limit)*limit));
  const windowNotes=pianoMotionWindow(alignment,pianoMotionReviewOffset,limit);
+ const summary=pianoMotionReviewAvailable();
+ if(!summary)return;
+ for(const i of pianoMotionReviewSelected)
+  if(summary.eligibility[i]!=='eligible')pianoMotionReviewSelected.delete(i);
  $('pianoMotionRollRange').textContent=(pianoMotionReviewOffset+1)+'–'+
   (pianoMotionReviewOffset+windowNotes.length)+' / '+n;
  $('pianoMotionPrev').disabled=pianoMotionReviewOffset===0;
  $('pianoMotionNext').disabled=pianoMotionReviewOffset+limit>=n;
  const list=$('pianoMotionReviewList');list.replaceChildren();
- const userKey=fingerOverrideWorkKey(current);
- const edits=userKey?state.fingerOverrides?.[userKey]||{}:{};
- for(const {note,suggestion:s,index} of windowNotes){
+ for(const {suggestion:s,index} of windowNotes){
+  const reason=summary.eligibility[index],selectable=reason==='eligible';
   const label=document.createElement('label');label.className='pianoMotionReviewRow';
-  const input=document.createElement('input');input.type='checkbox';input.checked=pianoMotionReviewSelected.has(index);
-  const protectedSource=!!fingerOverrideEffective(note,edits[note.noteId])||
-   (note.fingeringSource!=='pianomotion'&&
-    (note.finger!=null||note.fingeringSource==='musicxml'||note.fingeringSource==='user'));
-  if(protectedSource)label.classList.add('protected');
-  const physicalConflict=pianoMotionReviewAudit?.issues.find(x=>x.index===index);
-  if(physicalConflict){
-   label.classList.add('physicalConflict');
-   label.title='Нельзя применить автоматически: '+physicalConflict.codes.join(', ');
-  }
-  if(s.finger===null)label.classList.add('unresolved');
+  label.dataset.reviewStatus=reason;
+  if(reason==='protected')label.classList.add('protected');
+  if(reason==='conflict')label.classList.add('physicalConflict');
+  if(reason==='unresolved')label.classList.add('unresolved');
+  if(!selectable)label.classList.add('unavailable');
+  const input=document.createElement('input');input.type='checkbox';
+  input.checked=selectable&&pianoMotionReviewSelected.has(index);
+  input.disabled=!selectable;
+  input.setAttribute('aria-label',nameOf(s.pitch)+' · '+s.start.toFixed(2)+' с · '+(selectable?s.hand+' палец '+s.finger:reason));
+  const conflict=reason==='conflict'?pianoMotionReviewAudit?.issues.find(x=>x.index===index):null;
+  label.title=reason==='protected'?'Сохранена авторская или ручная аппликатура':
+   reason==='unresolved'?'Алгоритм не определил палец':
+   reason==='applied'?'Уже применено':
+   reason==='conflict'?'Физический конфликт: '+(conflict?.codes.join(', ')||'см. аудит'):
+   'Непроверенное предложение — можно выбрать';
   input.addEventListener('change',()=>{
    if(input.checked)pianoMotionReviewSelected.add(index);else pianoMotionReviewSelected.delete(index);
    pianoMotionReviewSync();pianoMotionReviewDraw();
   });
   const p=document.createElement('span');p.className='pianoMotionReviewPitch';p.textContent=nameOf(s.pitch);
-  const t=document.createElement('span');t.className='pianoMotionReviewTime';t.textContent=s.start.toFixed(2)+' c';
+  const t=document.createElement('span');t.className='pianoMotionReviewTime';t.textContent=s.start.toFixed(2)+' с';
   const v=document.createElement('span');v.className='pianoMotionReviewFinger';
-  v.textContent=protectedSource?'Автор/ручная':
-   physicalConflict?'⚠ конфликт · '+s.hand+' '+s.finger:
-   s.finger===null?'Без пальца':s.hand+' · '+s.finger;
+  v.textContent=reason==='protected'?'Защищено: автор/ручная':
+   reason==='conflict'?'⚠ Физический конфликт':
+   reason==='unresolved'?'Палец не определён':
+   reason==='applied'?'✓ Уже применено':s.hand+' · '+s.finger;
   label.append(input,p,t,v);list.append(label);
  }
  pianoMotionReviewDraw();pianoMotionReviewSync();
