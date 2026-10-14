@@ -34,13 +34,19 @@ Test: `tests/launch01-worker-cancel.real.test.mjs`, also in [Chromium QA](https:
 
 Earlier regression gates stay in place: the 547-note mixed guitar/flute MIDI user-controlled Apply/Undo/Redo and MusicXML reimport, source-time identity restoring the short-note release, structural conflict screen, and the Python research pipeline. Those simulations are **not equivalent to end-to-end live Pyodide network execution**.
 
+## Additional true Pyodide acceptance — v0.10.103
+
+A **separate** [genuine Python browser run](https://github.com/shafranek-js/play-along/actions/runs/38617719233) has now closed the previously open "Pyodide was only simulated" subcase for one real piece. It invoked the original Python algorithm through the shipped Chromium module Worker and external official Pyodide runtime, **applied all 22 valid predictions with original physical note timing unchanged**, downloaded MusicXML and reimported all 22 user-applied fingers without promoting them to author provenance. The same workflow demonstrated safe behavior under a real blocked Python CDN request. Reproducible scripts, aggregates and limitations: [live Python UAT](LAUNCH-01-PYODIDE-LIVE-UAT.md).
+
+This **does not invalidate the limitations of earlier mocked failure tests** and is not representative of all MIDI sizes, hand sizes or musical genres. The full browser-complete, live Python criterion is passed for this 22-note sample, while end-to-end testing on the user's own specific uploaded MIDI and other complex material remains outstanding. Third-party redistribution permission is still unresolved.
+
 ## Unverified or blocked before a production-grade launch
 
 | Gate | Present status | Owner action / criterion |
 |---|---|---|
 | F0 · Third-party code and assets rights | **OPEN / POTENTIAL RELEASE BLOCKER** | Verify original/adapted PianoMotion/Hand-thesia source redistribution permission, dependency licenses, sound fonts and generated/public music rights. Attribution by itself cannot grant rights. Commercial use additionally requires separate review of noncommercial datasets and artwork |
 | F1 · Real source XML/MIDI parsing | **PARTIALLY VERIFIED** | 2 actual works, 1,607 browser note imports each format, independent raw-MIDI tick parity and 2 false port warnings fixed. Source MIDI/score nominal release differences remain, with 3 ambiguous same-pitch contacts; broader repeat/tuplet/pedal/corruption fixtures still open |
-| F1 · MIDI → finger → exported MusicXML roundtrip | **PARTIALLY VERIFIED** | Prior real-browser file imports with simulated Python result pass; an actual real piece must be run through genuine Pyodide and result/export/reimport checked |
+| F1 · MIDI → finger → exported MusicXML roundtrip | **REAL SAMPLE VERIFIED; BROADER COVERAGE OPEN** | Actual 22-note finger-free `Au clair de la lune` ran in browser Python and imported/exported successfully without source changes. Other user MIDI types, complex polyphony and large files not yet verified |
 | F2 · Transport/audio hardware | **NOT VERIFIED HERE** | Audible speaker output, physical MicroLab mk3 (or other) MIDI input, connect/disconnect recovery, Wait/Seek/Loop/pedal interactions, mobile Safari/Android and offline handling need device tests |
 | F3 · Fingering suggestions safety/control | **ENGINEERING TESTS PASS** | Suggestions are opt-in and marked unverified, detected hard physical contradictions withheld, author/manual finger protection and session Undo/Redo verified; does not establish pianist accuracy |
 | F4 · Browser regression | **PASS on this checked commit** | Real Chromium tests include Worker cancellation and two real score imports. Re-run on final release commit and verify Pages version/SHA |
@@ -59,5 +65,7 @@ node tests/launch01-worker-cancel.real.test.mjs
 ```
 
 The real-score test requires internet access to the exact pinned, SHA-verified ASAP GitHub source revision and tests it privately. The cancel test works without a real MIDI device and simulates only the asynchronous PianoMotion Worker response. The browser test does not automatically record or capture audio from speakers.
+
+A new independent live Python workflow is documented above and separately tests actual Pyodide, unlike these earlier simulated failure scenarios.
 
 **Next:** LAUNCH-01 follow-up should run the actual browser Python/Pyodide inference on imported real sources (including failure/offline recovery), test corrupt/long MIDI and MXL, transport Wait/Seek/Loop and locally verify audible output and physical MIDI keyboard. The third-party rights review remains a release gate, independent pianist recruitment does not.
