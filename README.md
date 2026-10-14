@@ -1,6 +1,6 @@
 # Play Along — Piano Practice App (v0.10.90)
 
-## FG-04C9 — ORIGINAL PianoMotion Python fingering in the browser (v0.10.90 release candidate)
+## FG-04C9 — ORIGINAL PianoMotion Python fingering in the browser (v0.10.90)
 
 The owner's unmodified original `handthesia_core` Python algorithm is now included in source (manifest SHA-256 verified) and called through `analyze_midi` inside a Pyodide browser Web Worker. In the **Практика** sidebar, the user may press **«Рассчитать пальцы текущей мелодии»** on the *already selected song*. The exact source .mid/.midi is reused without any second upload; MusicXML/.mxl and MuseScore/.mscz/.mscx (already parsed by Play Along) are converted to an ephemeral fingering-analysis MIDI preserving pitch and elapsed note-on/off times with millisecond quantization. The original music, author/user corrections, audio engine and fourteen owner PNG hands remain unchanged. The result is shown as read-only RH/LH finger suggestions, with unresolved notes explicitly shown.
 
