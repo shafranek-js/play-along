@@ -94,6 +94,25 @@ try{
   const apply=document.getElementById('pianoMotionApply');
   const exportButton=document.getElementById('pianoMotionExportXML');
   const applyEnabled=!apply.disabled,exportInitiallyDisabled=exportButton.disabled;
+  const review=document.getElementById('pianoMotionReview');
+  const reviewInitiallyVisible=!review.hidden;
+  const initialRows=document.querySelectorAll('#pianoMotionReviewList input[type="checkbox"]').length;
+  document.getElementById('pianoMotionNext').click();
+  const nextPageRange=document.getElementById('pianoMotionRollRange').textContent;
+  const checkbox=document.querySelector('#pianoMotionReviewList input[type="checkbox"]');
+  checkbox.checked=true;checkbox.dispatchEvent(new Event('change',{bubbles:true}));
+  const selectCount=document.getElementById('pianoMotionReviewCount').textContent;
+  document.getElementById('pianoMotionApplySelected').click();
+  const selectiveOne= song.tracks[0].notes.filter(n=>Number.isInteger(n.finger)).length;
+  const undoEnabled=!document.getElementById('pianoMotionUndo').disabled;
+  document.getElementById('pianoMotionUndo').click();
+  const afterUndo=song.tracks[0].notes.filter(n=>Number.isInteger(n.finger)).length;
+  document.getElementById('pianoMotionRedo').click();
+  const afterRedo=song.tracks[0].notes.filter(n=>Number.isInteger(n.finger)).length;
+  document.getElementById('pianoMotionUndo').click();
+  const afterSecondUndo=song.tracks[0].notes.filter(n=>Number.isInteger(n.finger)).length;
+  document.getElementById('pianoMotionSelectAll').click();
+  const selectedAll=document.getElementById('pianoMotionReviewCount').textContent;
   apply.click();
   const appliedCount=song.tracks[0].notes.filter(n=>Number.isInteger(n.finger)).length;
   const didNotAssignFlute=song.tracks[1].notes.every(n=>n.finger==null);
@@ -117,6 +136,8 @@ try{
   return {
    tracksBefore,analysisRequests,derivedBytes,statusBefore,applyEnabled,
    exportInitiallyDisabled,appliedCount,didNotAssignFlute,exportEnabled,
+   reviewInitiallyVisible,initialRows,nextPageRange,selectCount,
+   selectiveOne,undoEnabled,afterUndo,afterRedo,afterSecondUndo,selectedAll,
    sourceUnchanged,xmlHasMarker:!!xml?.includes('name="play-along-user-fingering"'),
    xmlHasGeneratedDigits:!!xml?.includes('<fingering>'),
    scoreNoteCount:reimportNotes.length,
@@ -135,6 +156,16 @@ try{
  assert.ok(result.derivedBytes>20,'guitar is processed as one temporary piano MIDI');
  assert.match(result.statusBefore,/547 нот/);
  assert.equal(result.applyEnabled,true,'all 547 source notes must align');
+ assert.equal(result.reviewInitiallyVisible,true);
+ assert.equal(result.initialRows,24,'page renders a bounded source-anchored list');
+ assert.match(result.nextPageRange,/25–48 \/ 547/);
+ assert.match(result.selectCount,/Выбрано 1 из 547/);
+ assert.equal(result.selectiveOne,1,'only selected source note changes');
+ assert.equal(result.undoEnabled,true);
+ assert.equal(result.afterUndo,0,'Undo restores source note to no finger');
+ assert.equal(result.afterRedo,1,'Redo restores exactly selected assignment');
+ assert.equal(result.afterSecondUndo,0);
+ assert.match(result.selectedAll,/Выбрано 547 из 547/);
  assert.equal(result.exportInitiallyDisabled,true,'export needs Apply');
  assert.equal(result.appliedCount,547,'all source guitar notes assigned');
  assert.equal(result.didNotAssignFlute,true,'other instrument remains unchanged');
