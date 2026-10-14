@@ -16,6 +16,7 @@ import {fileURLToPath} from 'node:url';
 import {chromium} from 'playwright';
 import {realCorpusManifest,validateRealCorpusManifest,gitBlobHash}
  from '../scripts/fingering-asap-real-score-audit.mjs';
+import {auditScoreMidiParity} from '../src/core/launch01-midi-xml-parity.mjs';
 
 const root=resolve(fileURLToPath(new URL('..',import.meta.url)));
 const dist=join(root,'dist');
@@ -119,7 +120,12 @@ try{
     const after=JSON.stringify(midi.tracks.map(t=>t.notes.map(n=>
      [n.pitch,n.start,n.duration,n.velocity,n.channel,n.finger??null])));
     window.Worker=OriginalWorker;
-    return {first,second,alignmentDiagnostics,warnings:score.warnings,
+    return {first,second,
+      alignmentNotes:{
+       score:notesXml.map(n=>({pitch:n.pitch,start:n.start,duration:n.duration})),
+       midi:notesMidi.map(n=>({pitch:n.pitch,start:n.start,duration:n.duration}))
+      },
+      alignmentDiagnostics,warnings:score.warnings,
       launches,status,disabledApply,disabledExport,
       calculateAgainEnabled,sourceUnchanged:before===after,
       betaWarning:document.getElementById('pianoMotionBetaNotice')?.textContent||''};
@@ -139,9 +145,15 @@ try{
    assert.equal(observed.sourceUnchanged,true,'failure must not rewrite original score notes');
    assert.match(observed.betaWarning,/не проверена профессиональным пианистом/);
    assert.deepEqual(pageErrors,[],'no browser JavaScript errors');
+   const parity=auditScoreMidiParity(observed.alignmentNotes.score,
+    observed.alignmentNotes.midi,{toleranceSeconds:.02});
+   assert.equal(parity.ok,true);
+   assert.equal(parity.noteCountScore,observed.first.notes);
+   assert.equal(parity.noteCountMidi,observed.second.notes);
    cases.push({caseId:id,musicXmlNotes:observed.first.notes,midiNotes:observed.second.notes,
     musicXmlWarnings:observed.first.warnings,
     warningReasons:observed.warnings,alignmentDiagnostics:observed.alignmentDiagnostics,
+    noteTimeParity:parity,
     midiSourceProtected:true,workerRetryAfterError:true});
   }finally{await page.close()}
  }
