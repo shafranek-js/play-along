@@ -176,10 +176,11 @@
      <div id="pianoMotionReview" class="pianoMotionReview" hidden>
       <div class="pianoMotionReviewToolbar">
        <strong id="pianoMotionReviewCount">Проверка предложений</strong>
-       <button type="button" id="pianoMotionSelectAll" class="btn tiny">Выбрать все</button>
+       <button type="button" id="pianoMotionSelectAll" class="btn tiny" title="Отметить только ноты с новым пальцем без конфликтов и защищённых правок">Выбрать применимые</button>
        <button type="button" id="pianoMotionSelectNone" class="btn tiny ghost">Снять выбор</button>
       </div>
-      <p class="small">Нажми на нотный блок или отметь строку в списке. Цвет показывает предложенную руку. Выбор не изменяет мелодию до применения.</p>
+      <p class="small" id="pianoMotionReviewStats" role="status" aria-live="polite">После расчёта здесь появятся применимые и пропущенные предложения.</p>
+      <p class="small">Нажми на доступный нотный блок или отметь строку. Серые ноты защищены, уже применены либо не имеют пальца; красные отмечены аудитом. Только выбранные применимые предложения можно подтвердить. Изменения сохраняются как отдельное действие с Undo.</p>
       <div class="pianoMotionRollHead">
        <button type="button" id="pianoMotionPrev" class="btn tiny ghost" disabled aria-label="Предыдущие 24 ноты">←</button>
        <span id="pianoMotionRollRange" aria-live="polite"></span>
@@ -195,7 +196,7 @@
      </div>
      <div id="pianoMotionResult" class="fingerBrowserCandidates hidden" aria-label="Технические предложения оригинального алгоритма PianoMotion"></div>
      <div style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0">
-      <button type="button" class="btn tiny primary" id="pianoMotionApply" disabled title="Подтвердить предложенные пальцы самому; ошибки алгоритма возможны. Авторская и ручная аппликатура защищена">✋ Применить к текущей мелодии</button>
+      <button type="button" class="btn tiny primary" id="pianoMotionApply" disabled title="Подтвердить предложенные пальцы самому; ошибки алгоритма возможны. Авторская и ручная аппликатура защищена">✋ Применить все доступные</button>
       <button type="button" class="btn tiny" id="pianoMotionExportXML" disabled title="Экспортировать ноты с аппликатурой в файл MusicXML">↓ Экспорт в MusicXML</button>
       <button type="button" class="btn tiny ghost" id="pianoMotionClear" disabled>Скрыть предложения</button>
      </div>
