@@ -239,3 +239,8 @@ body.onlyLibrary #leftPanel .sidebody>.panelSection:first-child{
 .pianoMotionReviewRow.physicalConflict{border-left:3px solid #d46f6f;background:#34232a}
 .pianoMotionReviewRow.physicalConflict .pianoMotionReviewFinger{color:#ffc2bd;font-size:11px;white-space:normal;text-align:right}
 .pianoMotionReviewRow.physicalConflict:has(input:checked){background:#4a2c35}
+.pianoMotionReviewRow.unavailable{cursor:default;opacity:.78}
+.pianoMotionReviewRow.unavailable:hover{background:inherit}
+.pianoMotionReviewRow.unavailable input{cursor:not-allowed}
+.pianoMotionReviewRow[data-review-status="applied"] .pianoMotionReviewFinger{color:#9acbad}
+#pianoMotionReviewStats{border-left:2px solid #758fac;padding-left:8px;font-variant-numeric:tabular-nums;line-height:1.6}
