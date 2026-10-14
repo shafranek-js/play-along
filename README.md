@@ -1,6 +1,6 @@
 # Play Along — Piano Practice App (v0.10.91)
 
-## FG-04D0 — PianoMotion MIDI compatibility and safe apply/export (14 October 2026)
+## FG-04D0 — PianoMotion MIDI compatibility and safe apply/export (v0.10.91)
 
 **Scope: one playable piano part, NOT an orchestral arranger.** “Calculate fingers” inspects track names, GM Program Change events, drum channel 10 and track/channel membership. Clearly piano-only MIDI uses exact original bytes when available. MIDI with foreign instruments or drums (e.g. guitar solo) creates a temporary piano-note MIDI from **one selected playable track** (and the densest melodic channel for multi-channel SMF type 0). The currently selected track is preferred; otherwise the first playable track is used. Original song and timing are unchanged. No orchestral reduction is claimed.
 
