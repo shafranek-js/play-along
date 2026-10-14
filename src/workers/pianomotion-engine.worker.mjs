@@ -23,56 +23,60 @@ async function get(path,expected){
  if(await sha(b)!==expected)throw Error('ASSET_SHA_MISMATCH');
  return b;
 }
+const PYODIDE_URL='https://cdn.jsdelivr.net/pyodide/v314.0.7/full/';
 async function initialize(id){
- const response=await fetch(new URL('staged-manifest.json',base),{cache:'no-store'});
- if(!response.ok)throw Error('PIANOMOTION_LOCAL_RUNTIME_NOT_STAGED');
- const pinned=await response.json();
- if(pinned.schemaVersion!==1||pinned.runtimeVersion!=='314.0.7'||
-  pinned.localOnly!==true||pinned.publicRedistributionApproved!==false)
-  throw Error('LOCAL_DEVELOPMENT_BUNDLE_ONLY');
- const core=pinned.sourceManifest,assets=pinned.assetManifest;
+ progress(id,'Проверяю оригинальное Python-ядро PianoMotion…');
+ const [coreReply,pinsReply]=await Promise.all([
+  fetch(new URL('python-core/handthesia_core/source_manifest.json',base)),
+  fetch(new URL('pyodide-runtime-manifest.json',base))
+ ]);
+ if(!coreReply.ok||!pinsReply.ok)throw Error('PIANOMOTION_SOURCE_ASSETS_MISSING');
+ const core=await coreReply.json(),pins=await pinsReply.json();
  if(core?.schemaVersion!==1||!hashed(core.engineVersion)||
-  !core.files||typeof core.files!=='object'||Array.isArray(core.files))
-  throw Error('INVALID_PIANOMOTION_SOURCE');
+    !core.files||typeof core.files!=='object'||Array.isArray(core.files))
+  throw Error('PIANOMOTION_SOURCE_MANIFEST_INVALID');
  const entries=Object.entries(core.files).sort(([a],[b])=>a<b?-1:a>b?1:0);
- if(entries.length<8||entries.some(([name,hash])=>
+ if(entries.length!==12||entries.some(([name,hash])=>
    !/^handthesia_core\/[a-z_]+\.py$/.test(name)||!hashed(hash)))
-  throw Error('INVALID_PYTHON_SOURCE');
+  throw Error('ORIGINAL_PIANOMOTION_SOURCE_INCOMPLETE');
  if(await sha(new TextEncoder().encode(JSON.stringify({files:Object.fromEntries(entries)})))!==
-   core.engineVersion||pinned.engineVersion!==core.engineVersion)
-  throw Error('PIANOMOTION_ENGINE_DIGEST_MISMATCH');
- if(assets?.runtime?.version!=='314.0.7'||!Array.isArray(assets.files)||
-    !Array.isArray(assets.purePythonWheels))
-  throw Error('INVALID_PYODIDE_CATALOG');
- const byPath=new Map(assets.files.map(f=>[f.path,f]));
- const entry=byPath.get('pyodide/pyodide.mjs');
- if(!entry||!hashed(entry.sha256))throw Error('PYODIDE_MODULE_UNVERIFIED');
- await get(entry.path,entry.sha256);
- progress(id,'Загружаю оригинальную среду Pyodide…');
- const module=await import(new URL('pyodide/pyodide.mjs',base).href);
- if(module.version!=='314.0.7')throw Error('PYODIDE_VERSION_MISMATCH');
- const py=await module.loadPyodide({indexURL:new URL('pyodide/',base).href});
- progress(id,'Загружаю исходные зависимости Python…');
- await py.loadPackage(['micropip','numpy','packaging','six'],{checkIntegrity:true});
- const wheels=[],allowed=['pretty-midi','mido','importlib-resources'];
+    core.engineVersion)throw Error('PIANOMOTION_SOURCE_VERSION_MISMATCH');
+ if(pins.runtime?.version!=='314.0.7'||pins.schemaVersion!==1||
+    !Array.isArray(pins.purePythonWheels)||
+    !Array.isArray(pins.catalogPackages))
+  throw Error('PYODIDE_VERSION_PIN_MISMATCH');
+ progress(id,'Загружаю Python 3.14 (Pyodide/WebAssembly) в браузере…');
+ const module=await import(/* @vite-ignore */ PYODIDE_URL+'pyodide.mjs');
+ if(module.version!=='314.0.7')throw Error('PYODIDE_RUNTIME_VERSION_MISMATCH');
+ const py=await module.loadPyodide({indexURL:PYODIDE_URL});
+ const packages=['micropip','numpy','packaging','six'];
+ const pinsByName=new Map(pins.catalogPackages.map(p=>[p.name,p]));
+ if(packages.some(n=>!pinsByName.has(n)))throw Error('PYODIDE_DEPENDENCY_MANIFEST_INCOMPLETE');
+ progress(id,'Устанавливаю проверенные MIDI/Python-зависимости…');
+ await py.loadPackage(packages,{checkIntegrity:true});
  py.FS.mkdirTree('/pm-wheels');
- for(const name of allowed){
-  const wheel=assets.purePythonWheels.find(x=>x.name===name);
-  if(!wheel||!sane(wheel.file)||wheel.file.includes('/')||!hashed(wheel.sha256))
-   throw Error('PINNED_PYTHON_WHEEL_MISSING');
-  const destination='/pm-wheels/'+wheel.file;
-  py.FS.writeFile(destination,new Uint8Array(await get('pyodide/wheels/'+wheel.file,wheel.sha256)));
-  wheels.push('emfs:'+destination);
+ const wheels=[];
+ for(const name of ['pretty-midi','mido','importlib-resources']){
+  const wheel=pins.purePythonWheels.find(w=>w.name===name);
+  if(!wheel||!/^https:\/\/files\.pythonhosted\.org\//.test(wheel.url)||
+     !hashed(wheel.sha256)||!sane(wheel.file)||wheel.file.includes('/'))
+   throw Error('PIANOMOTION_WHEEL_PIN_MISSING');
+  const reply=await fetch(wheel.url,{cache:'force-cache'});
+  if(!reply.ok)throw Error('PYTHON_DEPENDENCY_UNAVAILABLE');
+  const bytes=await reply.arrayBuffer();
+  if(await sha(bytes)!==wheel.sha256)throw Error('PYTHON_DEPENDENCY_HASH_MISMATCH');
+  const dst='/pm-wheels/'+wheel.file;
+  py.FS.writeFile(dst,new Uint8Array(bytes));
+  wheels.push('emfs:'+dst);
  }
  py.globals.set('__pm_wheels',JSON.stringify(wheels));
- try{
-  await py.runPythonAsync('import json\nimport micropip\nawait micropip.install(json.loads(__pm_wheels),deps=False)');
- }finally{py.globals.delete('__pm_wheels')}
- progress(id,'Проверяю оригинальный код PianoMotion…');
- py.FS.mkdirTree('/python-core');
+ try{await py.runPythonAsync('import json\nimport micropip\nawait micropip.install(json.loads(__pm_wheels),deps=False)')}
+ finally{py.globals.delete('__pm_wheels')}
+ progress(id,'Загружаю 12 оригинальных Python-модулей PianoMotion…');
  py.FS.mkdirTree('/python-core/handthesia_core');
- for(const [path,hash] of entries){
-  py.FS.writeFile('/python-core/'+path,new Uint8Array(await get('python-core/'+path,hash)));
+ for(const [relative,expected] of entries){
+  const src=await get('python-core/'+relative,expected);
+  py.FS.writeFile('/python-core/'+relative,new Uint8Array(src));
  }
  py.FS.writeFile('/python-core/handthesia_core/source_manifest.json',
   new TextEncoder().encode(JSON.stringify(core)));
