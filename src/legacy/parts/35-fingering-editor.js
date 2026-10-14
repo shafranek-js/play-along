@@ -894,6 +894,8 @@ $('pianoMotionCalculate').onclick=()=>{
      audit&&!audit.ok?' Аудит отказал: '+audit.reason+'.':
      audit?.blocked.length?' Физические противоречия: '+audit.blocked.length+
       ' нот. Эти предложения не будут применены.':'')+
+    (audit?.techniqueExceptions?' Парных контактов большим пальцем/мизинцем: '+
+      audit.techniqueExceptions+' (требуют проверки техники).':'')+
     ' Физическая проверка не подтверждает педагогическую правильность.';
    if(result.suggestions.some(n=>!Number.isInteger(n.pitch)||!Number.isFinite(n.start)||
      !['RH','LH'].includes(n.hand)||n.finger!=null&&
