@@ -876,7 +876,9 @@ $('pianoMotionCalculate').onclick=()=>{
      startRun(false);
      return;
     }
-    const hint=data.reason==='PIANOMOTION_RUNTIME_FAILED'
+    const hint=data.reason==='PYODIDE_RUNTIME_DOWNLOAD_FAILED'
+     ?'. Не удалось загрузить Python с CDN. Проверь подключение к интернету и повтори расчёт.'
+     :data.reason==='PIANOMOTION_RUNTIME_FAILED'
      ?'. Проверь подключение к сети и консоль браузера (F12).'
      :' (подробности в консоли F12).';
     $('pianoMotionStatus').textContent='PianoMotion: '+data.reason+hint;return;
