@@ -64,6 +64,13 @@ await esbuild({
  bundle:true,format:'esm',platform:'browser',target:['es2022'],
  minify:true,legalComments:'none',sourcemap:false,logLevel:'silent'
 });
+// Browser-compatible SHA/source event validation of actual PianoMotion output.
+await esbuild({
+ entryPoints:[path.join(root,'src/core/browser-pianomotion-analysis.mjs')],
+ outfile:path.join(dist,'assets/browser-pianomotion-analysis.js'),
+ bundle:true,format:'esm',platform:'browser',target:['es2022'],
+ minify:true,legalComments:'none',sourcemap:false,logLevel:'silent'
+});
 // FG-04C4: classic dedicated research Worker, bundled for offline use.
 // This is independent of the player's music/audio transport and loads on demand.
 await esbuild({
