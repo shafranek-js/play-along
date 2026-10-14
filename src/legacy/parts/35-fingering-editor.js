@@ -482,6 +482,15 @@ $('fingerSpanToggle').onclick=()=>{
  contents.hidden=!contents.hidden;
  $('fingerSpanToggle').setAttribute('aria-expanded',String(!contents.hidden));
 };
+$('fingerSpanEditorOpen').onclick=()=>{
+ state.right=true;
+ applyPanels();
+ switchRightTab('practice');
+ if($('fingerSpanContents').hidden)$('fingerSpanToggle').click();
+ $('fingerSpanToggle').scrollIntoView({block:'nearest'});
+ $('fingerSpanToggle').focus({preventScroll:true});
+};
+
 for(const hand of ['RH','LH']){
  $('fingerSpan'+hand).onchange=fingerSpanInvalidate;
  $('fingerSpan'+hand+'Comfort').onchange=fingerSpanInvalidate;
