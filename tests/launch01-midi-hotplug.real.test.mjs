@@ -53,6 +53,9 @@ try{
  });
  await page.goto('http://127.0.0.1:'+server.address().port+'/',{waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>window.__prototypeTest?.loadSong,{timeout:15000});
+ // The Connect button lives in the initially hidden MIDI settings panel.
+ // Open it through the visible device badge like a real user would.
+ await page.locator('#deviceBadge').click();
  await page.locator('#connectMidi').click();
  await page.waitForFunction(()=>window.__prototypeTest.midiInfo.connected&&window.__prototypeTest.midiInfo.name==='MicroLab mock A');
  await page.evaluate(()=>{
