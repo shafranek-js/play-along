@@ -1,4 +1,14 @@
-# Play Along — Piano Practice App (v0.10.91)
+# Play Along — Piano Practice App (v0.10.92)
+
+## FG-04D0B — PianoMotion raw note identity restore (v0.10.92)
+
+**Fix for disabled Apply after successful Python fingering.** PianoMotion's original Python MIDI loader normalizes very short notes to a minimum of 50 ms for its internal model. Comparing those modeled note-offs to the original MIDI with a 40 ms tolerance incorrectly returned `NOTE_MAPPING_NOT_FOUND` even when all fingers were calculated. The Worker now uses an exact one-to-one `sourceNoteIds` join to `rawBaseline.sourceNotes` and restores original onset and release times before returning suggestions to Play Along. No source MIDI, tempo, rhythm, notes or original MusicXML is changed.
+
+The mapping refuses duplicate/missing source IDs, changes to pitch/onset, unexpectedly shortened/lengthened notes, missing assignments and normalization losses. These proposals still require user Apply before MusicXML export, and remain unverified by a pianist. Tested against a synthetic 547-note guitar-like source with sub-50ms notes; browser end-to-end validation with a real user file is still needed.
+
+Tests: `tests/pianomotion-source-identity.test.mjs` now part of `npm test`. Worker source: `src/workers/pianomotion-engine.worker.mjs`, validation helper: `src/core/pianomotion-source-identity.mjs`.
+
+
 
 ## FG-04D0 — PianoMotion MIDI compatibility and safe apply/export (v0.10.91)
 
