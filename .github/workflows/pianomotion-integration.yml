@@ -37,3 +37,5 @@ jobs:
         run: node tests/pianomotion-musicxml-roundtrip.real.test.mjs
       - name: Real Chromium hard-conflict refusal
         run: node tests/pianomotion-physical-audit.real.test.mjs
+      - name: Chromium real MusicXML to private blind P0-A2b candidate
+        run: node tests/p0a2b-source-intake.real.test.mjs
