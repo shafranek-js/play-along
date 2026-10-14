@@ -72,3 +72,20 @@ test('more than ten concurrent notes warns, without modifying the source song',(
  assert.deepEqual(pianoMotionPlayableDiagnostic(song),{maxHeld:11,possiblyUnplayable:true});
  assert.equal(JSON.stringify(song),snapshot);
 });
+
+test('SMF type 0 Program Change identifies guitar even when track is called Track 1',()=>{
+ const song={tracks:[{name:'Track 1',notes:[note(60,0,.4,{channel:0}),
+  note(64,.5,.4,{channel:0}),note(80,.2,.4,{channel:1})]}],
+  audioEvents:[{type:'programChange',track:0,channel:0,program:24},
+               {type:'programChange',track:0,channel:1,program:73}]};
+ const plan=pianoMotionSourcePlan(song,0);
+ assert.equal(plan.mode,'derived');
+ assert.equal(plan.channel,0);
+ const midi=makePianoMotionMidiFromSong(song,{trackIndices:plan.trackIndices,channel:plan.channel});
+ assert.equal(midi.ok,true);
+ assert.deepEqual(midi.sourceNotes.map(n=>n.pitch),[60,64]);
+ const suggestions=[{pitch:60,start:0,end:.4,hand:'RH',finger:1},
+                    {pitch:64,start:.5,end:.9,hand:'RH',finger:3}];
+ assert.equal(pianoMotionAlignSuggestions(song,suggestions,{
+  trackIndices:plan.trackIndices,channel:plan.channel}).ok,true);
+});
