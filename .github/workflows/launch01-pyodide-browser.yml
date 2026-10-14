@@ -1,0 +1,40 @@
+name: LAUNCH-01 genuine Pyodide browser end-to-end
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tests/launch01-pyodide-real-browser.real.test.mjs'
+      - 'src/workers/pianomotion-engine.worker.mjs'
+      - 'src/pianomotion-python/python-core/**'
+      - 'src/core/pianomotion-source-identity.mjs'
+      - 'src/core/pianomotion-song-to-midi.mjs'
+      - '.github/workflows/launch01-pyodide-browser.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: launch01-real-browser-pyodide
+  cancel-in-progress: true
+
+jobs:
+  actual-browser-python:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout Play Along and unchanged original Python source
+        uses: actions/checkout@v4
+      - name: Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install app dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Install real Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Build production worker, source and UI
+        run: npm run build
+      - name: Real Pyodide v314.0.7 + real pinned Python MIDI -> Apply -> download -> MusicXML reimport
+        run: node tests/launch01-pyodide-real-browser.real.test.mjs
