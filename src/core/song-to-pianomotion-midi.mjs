@@ -15,7 +15,7 @@ export function serializeSongForPianoMotion(song){
  const input=[],identity=new Set(),active=new Map();
  for(const [track,t]of song.tracks.entries()){
   if(!Array.isArray(t.notes))continue;
-  if(track>=16)return reason('TOO_MANY_INSTRUMENT_TRACKS');
+  if(track>=15)return reason('TOO_MANY_INSTRUMENT_TRACKS');
   for(const [i,n] of t.notes.entries()){
    if(!Number.isInteger(n?.pitch)||n.pitch<0||n.pitch>127||
       !Number.isFinite(n.start)||n.start<0||!Number.isFinite(n.duration)||n.duration<=0)
