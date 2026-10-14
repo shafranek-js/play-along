@@ -48,3 +48,24 @@ test('invalid paths and absent review files are reported without dumping content
  assert.equal((await runP0A2bLocal(['evaluate'])).reason,'EVALUATION_SIX_INPUTS_REQUIRED');
  assert.equal((await runP0A2bLocal(['packet','not-found','x'])).reason,'LOCAL_SOURCE_UNREADABLE');
 });
+
+test('blank reviewer packet template is private, engine-blind and valid JSON',async()=>{
+ const dir=await mkdtemp(join(tmpdir(),'p0a2b-template-'));
+ try{
+  const src=join(dir,'source.json'),packetPath=join(dir,'packet.json'),
+   template=join(dir,'reviewer.json');
+  await writeFile(src,JSON.stringify(source()));
+  assert.equal((await runP0A2bLocal(['packet',src,packetPath])).ok,true);
+  const result=await runP0A2bLocal(['template',packetPath,template,'expert-1','independent']);
+  assert.equal(result.ok,true);
+  const review=JSON.parse(await readFile(template,'utf8'));
+  assert.equal(review.blindToAlgorithms,true);
+  assert.equal(review.decisions.length,2);
+  assert.ok(review.decisions.every(d=>d.uncertain&&d.acceptable.length===0));
+  assert.equal((await runP0A2bLocal(['template',packetPath,template,'expert-1','independent'])).reason,
+   'TEMPLATE_EXISTS_OR_UNWRITABLE');
+  assert.equal((await runP0A2bLocal(['study',packetPath])).ok,true);
+  assert.equal((await runP0A2bLocal(['study',packetPath,packetPath])).reason,
+   'DUPLICATE_SOURCE_IN_STUDY');
+ }finally{await rm(dir,{recursive:true,force:true})}
+});
