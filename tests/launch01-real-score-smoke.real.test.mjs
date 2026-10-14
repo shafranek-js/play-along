@@ -168,9 +168,9 @@ try{
     }
    }
    const portDeclarationSummary={
-    ports:[...new Set([...xml.matchAll(/<midi-device\\b[^>]*\\bport=["'](\\d+)["']/g)]
+    ports:[...new Set([...xml.matchAll(/<midi-device\b[^>]*\bport=["'](\d+)["']/g)]
       .map(v=>v[1]))].sort(),
-    references:(xml.match(/<midi-device\\b[^>]*\\bport=/g)||[]).length
+    references:(xml.match(/<midi-device\b[^>]*\bport=/g)||[]).length
    };
    const gateDeltaHistogram=[...gateDeltas].sort((a,b)=>b[1]-a[1])
     .slice(0,8).map(([delta,count])=>({deltaSeconds:Number(delta),count}));
