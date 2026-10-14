@@ -690,7 +690,16 @@ function pianoMotionStop(message){
  $('pianoMotionCalculate').disabled=false;
  if(message)$('pianoMotionStatus').textContent=message;
 }
-$('pianoMotionClear').onclick=()=>pianoMotionStop('Предложения скрыты. Ранее применённые пальцы не изменены.');
+$('pianoMotionClear').onclick=()=>{
+ if(pianoMotionLastApplied&&pianoMotionLastSong===current){
+  $('pianoMotionResult').replaceChildren();
+  $('pianoMotionApply').disabled=true;
+  $('pianoMotionClear').disabled=true;
+  $('pianoMotionStatus').textContent='Предложения скрыты. Применённые пальцы сохранены; экспорт MusicXML доступен.';
+  return;
+ }
+ pianoMotionStop('Предложения скрыты. Исходные ноты не изменены.');
+};
 $('pianoMotionCalculate').onclick=()=>{
  pianoMotionStop();
  const song=current;
