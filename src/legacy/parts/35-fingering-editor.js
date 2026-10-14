@@ -98,15 +98,18 @@ function fingerEditorRender(){
  const work=fingerGuideWorkKey(),edits=state.fingerOverrides?.[work]||{};
  for(const b of geo.boxes){
   const n=b.n,manual=fingerOverrideEffective(n,edits[n.noteId]);
-  const finger=manual?manual.finger:n.fingeringSource==='musicxml'?n.finger:null;
+  const suggested=!manual&&n.fingeringSource!=='musicxml'?fingerBrowserPreview?.get(n.noteId):null;
+  const finger=manual?manual.finger:n.fingeringSource==='musicxml'?n.finger:suggested?.finger??null;
   const hand=manual?manual.hand:n.hand==='RH'||n.hand==='LH'?n.hand:null;
   const selected=fingerSelectedIds.has(n.noteId);
   c.fillStyle=hand==='RH'?'#3f6c92':hand==='LH'?'#527a63':'#525e74';
   c.fillRect(b.x,b.y,b.w,b.h);
   c.lineWidth=selected?2.5:manual?1.8:1;
-  c.strokeStyle=selected?'#ffe48c':manual?'#e6ac5d':'#8796ab';
+  c.strokeStyle=selected?'#ffe48c':manual?'#e6ac5d':suggested?'#d6a5ff':'#8796ab';
+  if(suggested&&!selected&&!manual)c.setLineDash([3,2]);
   c.strokeRect(b.x,b.y,b.w,b.h);
-  c.fillStyle=selected?'#fff5cc':'#fff';c.font='bold 11px system-ui';
+  c.setLineDash([]);
+  c.fillStyle=selected?'#fff5cc':suggested?'#e8c7ff':'#fff';c.font='bold 11px system-ui';
   if(b.w>=19)c.fillText(finger===null||finger===undefined?'?':String(finger),b.x+3,b.y+10);
   if(b.w>=41&&hand){
    c.fillStyle='#d9e3ee';c.font='9px system-ui';c.fillText(hand,b.x+19,b.y+10);
@@ -127,7 +130,9 @@ function fingerEditorRender(){
  footer.textContent='Номера пальцев: '+marked+' из '+notes.length+
   ' · Жёлтый контур — выбор · Янтарный — пользовательская правка · Шкала '+px.toFixed(0)+' px/с'+
   ' · Выбрано '+selectedCount+' · Undo '+fingerOverrideHistoryCurrent().past.length+
-  ' · Redo '+fingerOverrideHistoryCurrent().future.length;
+  ' · Redo '+fingerOverrideHistoryCurrent().future.length+
+  (fingerBrowserPreview?' · Фиолетовые пальцы — НЕ проверенные предложения':'');
+ fingerBrowserUpdateActions();
 }
 function fingerEditorPoint(e){
  const rect=fingerEditorCanvas.getBoundingClientRect();
@@ -388,7 +393,13 @@ window.addEventListener('resize',fingerEditorPaintSoon);
  * This explicitly DOES NOT run PianoMotion Python or drive learner hints.
  */
 let fingerBrowserWorker=null,fingerBrowserSeq=0,fingerBrowserSong=null,
-    fingerBrowserSnapshotKey=null;
+    fingerBrowserSnapshotKey=null,fingerBrowserPreview=null;
+function fingerBrowserUpdateActions(){
+ const choices=fingerBrowserPreview&&[...fingerSelectedIds].filter(id=>fingerBrowserPreview.has(id)).length||0;
+ $('fingerBrowserAcceptSelected').disabled=!choices||!$('fingerBrowserConfirm').checked;
+ $('fingerBrowserReject').disabled=!fingerBrowserPreview;
+}
+
 function fingerBrowserInput(){
  if(!fingerEditorAvailable())return null;
  const key=fingerGuideWorkKey(),edits=key?state.fingerOverrides?.[key]||{}:{};
@@ -412,8 +423,11 @@ function fingerBrowserInput(){
 function fingerBrowserAbort(message){
  fingerBrowserSeq++;
  if(fingerBrowserWorker){fingerBrowserWorker.terminate();fingerBrowserWorker=null}
- fingerBrowserSong=null;fingerBrowserSnapshotKey=null;
+ fingerBrowserSong=null;fingerBrowserSnapshotKey=null;fingerBrowserPreview=null;
+ $('fingerBrowserConfirm').checked=false;
+ fingerBrowserUpdateActions();
  $('fingerBrowserMetrics').replaceChildren();
+ if(state.scoreView==='editor')fingerEditorPaintSoon();
  $('fingerBrowserCandidates').replaceChildren();
  if(message)$('fingerBrowserStatus').textContent=message;
 }
@@ -450,6 +464,20 @@ function fingerBrowserShow(report){
   const span=document.createElement('span');span.className='fingerResearchMetric';
   span.textContent=label+': '+value;metrics.append(span);
  }
+ const chosen=a.status==='computed'?a:l.status==='computed'?l:null;
+ if(chosen&&Array.isArray(chosen.candidates)&&chosen.candidates.length&&
+    fingerBrowserSong===current&&fingerBrowserSnapshotKey===JSON.stringify(fingerBrowserInput())){
+  const target=new Map(fingerEditorNotes().map(n=>[n.noteId,n]));
+  const allowed=chosen.candidates.every(n=>Number.isInteger(n.finger)&&n.finger>=1&&n.finger<=5&&
+   (n.hand==='RH'||n.hand==='LH')&&target.get(n.noteId)?.pitch===n.pitch&&
+   target.get(n.noteId)?.start===n.start);
+  if(allowed&&new Set(chosen.candidates.map(n=>n.noteId)).size===chosen.candidates.length){
+   fingerBrowserPreview=new Map(chosen.candidates.map(n=>[n.noteId,n]));
+   fingerBrowserUpdateActions();
+   fingerEditorPaintSoon();
+   status.textContent='Вычислено локально · Предложения для '+fingerBrowserPreview.size+' нот показаны фиолетовым прямо в редакторе. Выдели подходящие ноты и проверь номера до подтверждения.';
+  }
+ }
  if(a.status==='computed'&&a.candidates.length){
   const title=document.createElement('strong');title.textContent='Первые 30 предложений · только для просмотра';
   candidates.append(title);
@@ -463,6 +491,54 @@ function fingerBrowserShow(report){
   candidates.append(list);
  }
 }
+$('fingerCurrentCalculate').onclick=()=>{
+ if(!fingerEditorAvailable()){
+  $('fingerBrowserStatus').textContent=current?.format==='MusicXML'?
+   'Верни оригинальный режим (без адаптации), затем повтори расчёт.':
+   'Выбери произведение MusicXML из библиотеки. Для обычного MIDI пока нужен отдельный алгоритм определения рук.';
+  $('fingerResearchPanel').open=true;
+  $('fingerBrowserContents').hidden=false;
+  $('fingerBrowserToggle').setAttribute('aria-expanded','true');
+  return;
+ }
+ $('fingerResearchPanel').open=true;
+ $('fingerBrowserContents').hidden=false;
+ $('fingerBrowserToggle').setAttribute('aria-expanded','true');
+ $('fingerBrowserCalculate').click();
+};
+$('fingerBrowserConfirm').onchange=fingerBrowserUpdateActions;
+$('fingerBrowserReject').onclick=()=>{
+ fingerBrowserAbort('Предложения скрыты. Оригинальная партитура и сохранённые исправления не изменены.');
+ fingerEditorPaintSoon();
+};
+$('fingerBrowserAcceptSelected').onclick=()=>{
+ if(!fingerBrowserPreview||!$('fingerBrowserConfirm').checked||!fingerEditorAvailable()||
+   fingerBrowserSong!==current||fingerBrowserSnapshotKey!==JSON.stringify(fingerBrowserInput())){
+  fingerBrowserAbort('Предложения устарели. Рассчитай аппликатуру заново.');return;
+ }
+ const sources=new Map(fingerEditorNotes().map(n=>[n.noteId,n]));
+ const key=fingerGuideWorkKey(),saved=state.fingerOverrides?.[key]||{},entries=[];
+ for(const id of fingerSelectedIds){
+  const p=fingerBrowserPreview.get(id),source=sources.get(id);
+  if(!p||!source)continue;
+  const effective=fingerOverrideEffective(source,saved[id]);
+  if(effective||source.fingeringSource==='musicxml'&&Number.isInteger(source.finger))continue;
+  if(source.pitch!==p.pitch||source.start!==p.start||p.hand!=='LH'&&p.hand!=='RH'||
+     !Number.isInteger(p.finger)||p.finger<1||p.finger>5){
+   fingerBrowserAbort('Ноты изменились. Рассчитай заново.');return;
+  }
+  entries.push({id,before:saved[id]??null,after:{finger:p.finger,hand:p.hand}});
+ }
+ if(!entries.length){
+  $('fingerBrowserStatus').textContent='Выдели в редакторе предложенные ноты без авторских или сохранённых пальцев.';return;
+ }
+ // One atomic, undoable USER-confirmed operation. Never writes to source XML.
+ const success=fingerOverrideCommit(null,null,{action:'batch',batch:entries});
+ if(success){
+  fingerBrowserAbort('Принято '+entries.length+' предложений как ручные исправления. Можно отменить через Undo.');
+  fingerEditorRender();
+ }
+};
 $('fingerBrowserToggle').onclick=()=>{
  const contents=$('fingerBrowserContents');
  contents.hidden=!contents.hidden;

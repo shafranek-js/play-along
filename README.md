@@ -1,4 +1,12 @@
-# Play Along — Piano Practice App (v0.10.88)
+# Play Along — Piano Practice App (v0.10.89)
+
+## FG-04C6 — One-click fingering for the already open MusicXML (v0.10.89)
+
+**No second file needed.** Open any supported original MusicXML, select **Аппликатура**, then click **🧠 Рассчитать для текущего произведения** at the top of the editor. The dedicated offline browser worker computes Play Along's current FG-02I / FG-04C3 research models for the **currently selected** score and current calibrated hand size. Missing original hands require explicit consent for a **research-only** staff 1→RH / staff 2→LH assumption; original MIDI remains unsupported by this browser solver. The Python algorithm from PianoMotion Studio is **not** installed or executed by this feature.
+
+Purple, dashed finger labels appear **on the actual note blocks** as clearly unverified suggestions. They are not saved or fed to learner hand animation. A user can select and review individual notes (Ctrl+A selects all), check **«Я проверил(а)…»**, and click **«Принять выбранные предложения»**. Confirmed selections are saved only as ordinary user corrections via the existing validated **one-step Undo/Redo** mechanism. Author fingers and prior manual edits are never overwritten. **«Скрыть предложения»** discards them without any data changes. Changing source, hand-size, hand hypothesis or existing corrections invalidates the current preview. Source MusicXML, playback events, transport, SoundFont and the 14 original PNG hands remain unchanged.
+
+This is a **user-review workflow, not proof of pianist-approved automatic fingering**. Direct PianoMotion MIDI/Python browser integration remains a separate priority requiring pinned runtime assets, exact MIDI identity, source/provenance rights and browser acceptance. [FG-04C6 details](docs/FG-04C6-CURRENT-SONG-FINGERING.md). The Hand-thesia objective remains conservatively **35%** until verified musical accuracy and visual UAT.
 
 ## FG-04C5 — Measure your comfortable hand span (v0.10.88)
 
