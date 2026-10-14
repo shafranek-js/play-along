@@ -1,5 +1,9 @@
 # Play Along — Piano Practice App (v0.10.104)
 
+## Current owner decision — deferred F0, continue functional development (2026-10-14)
+
+The project owner has **deferred the unresolved upstream Hand-thesia/PianoMotion source-rights decision to the final release**. No new licensing research or replacement effort is scheduled in the current development sprint. This is a priority change **only**: rights are **not cleared** and public GitHub Pages/public beta distributions still require consideration of third-party permissions. Engineering continues with LAUNCH-01 F2 transport, Wait/Seek/Loop, pedal/MIDI controller/audio QA, then LAUNCH-02/03 usability and source-safe fingering. The final release requires an explicit upstream grant, compatible license, cleared replacement, or adjusted distribution. See [current launch policy](docs/LAUNCH-READINESS.md). The shipped binary/version remains v0.10.104 because this is a documentation-only planning decision.
+
 ## LAUNCH-01 — real MXL corruption refusal and 1,050-note multi-track MIDI stress (v0.10.104)
 
 **Fixed MXL ZIP source-integrity checks.** The browser archive importer now validates ZIP central/local record consistency, size and directory bounds, declared uncompressed byte counts, unique safe filenames, supportable single-disk/non-encrypted methods, UTF-8, and a real `META-INF/container.xml` rootfile reference; it never silently falls back to unrelated XML when the declared rootfile is missing. Original 15 MiB decompressed and 16 MiB archive size caps are retained. No note pitches, note starts/releases, MusicXML fingering provenance or audio are changed by this fix.
