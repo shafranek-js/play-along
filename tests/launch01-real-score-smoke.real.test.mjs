@@ -184,8 +184,17 @@ try{
     midiSourceProtected:true,workerRetryAfterError:true});
   }finally{await page.close()}
  }
- // Do not put the original copyrighted XML or MIDI bytes in stdout.
- console.log('LAUNCH-01: two ORIGINAL source-pinned real piano MIDI/MusicXML files imported; simulated Python failure recovered; source unchanged; no Apply/Export PASS',cases);
+ // Aggregate-only source diagnostics. No source note lists or music bytes.
+ console.log('LAUNCH01_EVENT_PARITY_DIAGNOSTICS',JSON.stringify(cases.map(c=>({
+  caseId:c.caseId,warningReasons:c.warningReasons,
+  ports:c.portDeclarationSummary,releaseDeltas:c.gateDeltaHistogram,
+  notes:c.noteTimeParity.comparablePairs,
+  pitchHistogramEqual:c.noteTimeParity.pitchHistogramEqual,
+  onsetCount:c.noteTimeParity.onsetWithinTolerance,
+  releaseCount:c.noteTimeParity.releaseWithinTolerance,
+  maxReleaseResidualSeconds:c.noteTimeParity.maxReleaseResidualSeconds
+ }))));
+ console.log('LAUNCH-01: two ORIGINAL source-pinned real piano MIDI/MusicXML files imported; simulated Python failure recovered; source unchanged; no Apply/Export PASS');
 }finally{
  if(browser)await browser.close();
  await new Promise(resolve=>server.close(resolve));
