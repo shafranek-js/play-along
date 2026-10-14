@@ -764,7 +764,8 @@ function pianoMotionReviewDraw(){
  const w=canvas.width,h=canvas.height;
  ctx.clearRect(0,0,w,h);ctx.fillStyle='#0d1622';ctx.fillRect(0,0,w,h);
  const notes=pianoMotionWindow(pianoMotionLastAlignment,pianoMotionReviewOffset,24);
- pianoMotionReviewHit=[];if(!notes.length)return;
+ const summary=pianoMotionReviewAvailable();
+ pianoMotionReviewHit=[];if(!notes.length||!summary)return;
  const lo=Math.min(...notes.map(x=>x.suggestion.pitch)),hi=Math.max(...notes.map(x=>x.suggestion.pitch));
  const t0=Math.min(...notes.map(x=>x.suggestion.start));
  const t1=Math.max(...notes.map(x=>x.suggestion.end??x.suggestion.start+.1),t0+.3);
@@ -777,7 +778,8 @@ function pianoMotionReviewDraw(){
   const length=Math.max(7,Math.min(usableW,((s.end??s.start+.08)-s.start)/(t1-t0)*usableW));
   const y=margin+(hi-s.pitch)/Math.max(1,hi-lo)*(usableH-10);
   const rect={x,y,w:Math.max(6,Math.min(length,w-x-7)),h:9,index};
-  ctx.fillStyle=pianoMotionReviewAudit?.blocked.includes(index)?'#ad5555':
+  ctx.fillStyle=summary.eligibility[index]==='conflict'?'#ad5555':
+   summary.eligibility[index]!=='eligible'?'#67778a':
    s.hand==='RH'?'#4385a8':'#558d6b';
   ctx.fillRect(rect.x,rect.y,rect.w,rect.h);
   ctx.strokeStyle=pianoMotionReviewSelected.has(index)?'#ffe4a0':'#8595a9';
@@ -793,7 +795,7 @@ $('pianoMotionRoll').addEventListener('click',e=>{
  const x=(e.clientX-rect.left)*$('pianoMotionRoll').width/rect.width;
  const y=(e.clientY-rect.top)*$('pianoMotionRoll').height/rect.height;
  const hit=pianoMotionReviewHit.slice().reverse().find(n=>x>=n.x&&x<=n.x+n.w&&y>=n.y-3&&y<=n.y+n.h+3);
- if(!hit)return;
+ if(!hit||pianoMotionReviewAvailable()?.eligibility[hit.index]!=='eligible')return;
  if(pianoMotionReviewSelected.has(hit.index))pianoMotionReviewSelected.delete(hit.index);
  else pianoMotionReviewSelected.add(hit.index);
  pianoMotionReviewRender();
@@ -801,7 +803,8 @@ $('pianoMotionRoll').addEventListener('click',e=>{
 $('pianoMotionPrev').onclick=()=>{pianoMotionReviewOffset-=24;pianoMotionReviewRender()};
 $('pianoMotionNext').onclick=()=>{pianoMotionReviewOffset+=24;pianoMotionReviewRender()};
 $('pianoMotionSelectAll').onclick=()=>{
- pianoMotionReviewSelected=new Set(pianoMotionLastAlignment.matches.map((_,i)=>i));pianoMotionReviewRender();
+ pianoMotionReviewSelected=new Set(pianoMotionReviewAvailable()?.eligibleIndices||[]);
+ pianoMotionReviewRender();
 };
 $('pianoMotionSelectNone').onclick=()=>{pianoMotionReviewSelected.clear();pianoMotionReviewRender()};
 
@@ -996,6 +999,7 @@ function pianoMotionReviewApply(indices){
  }
  pianoMotionReviewHistory=result.history;
  pianoMotionLastApplied=true;
+ pianoMotionReviewSelected.clear();
  if(state.fingerGuidanceMode==='off'){
   state.fingerGuidanceMode='numbers';
   if($('fingerGuideMode'))$('fingerGuideMode').value='numbers';
@@ -1008,7 +1012,7 @@ function pianoMotionReviewApply(indices){
    ' · предложения не являются авторскими.';
 }
 $('pianoMotionApply').onclick=()=>pianoMotionReviewApply(
- pianoMotionLastAlignment?.matches.map((_,i)=>i)||[]
+ pianoMotionReviewAvailable()?.eligibleIndices||[]
 );
 $('pianoMotionApplySelected').onclick=()=>pianoMotionReviewApply([...pianoMotionReviewSelected]);
 for(const [button,direction]of [['pianoMotionUndo','undo'],['pianoMotionRedo','redo']]){
