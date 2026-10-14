@@ -68,6 +68,29 @@ export function fingerGuidancePlayingFrame(steps,now,loop=null){
 }
 
 /**
+ * LAUNCH-02 passive hand: find the last SOURCE-ANNOTATED position for an idle
+ * hand, or its first upcoming position before the hand has played anything.
+ * We do not guess a hand from track, pitch, physical sustain, or arbitrary MIDI.
+ * A past anchor remains stable through subsequent rests.
+ */
+export function fingerGuidanceRestAnchor(steps,hand,now,loop=null){
+ if(!Array.isArray(steps)||!['LH','RH'].includes(hand)||
+  !Number.isFinite(now)||now<0)return null;
+ const looping=loop?.enabled&&Number.isFinite(loop.start)&&
+  Number.isFinite(loop.end)&&loop.end>loop.start;
+ const notes=steps.filter(g=>!looping||
+  g.start>=loop.start-.001&&g.start<loop.end-.001)
+  .flatMap(g=>g.notes||[]).filter(n=>n.hand===hand&&
+   Number.isInteger(n.finger)&&n.finger>=1&&n.finger<=5&&
+   Number.isInteger(n.pitch)&&n.pitch>=0&&n.pitch<=127&&
+   Number.isFinite(n.start)).sort((a,b)=>a.start-b.start||a.pitch-b.pitch);
+ if(!notes.length)return null;
+ let anchor=notes[0];
+ for(const n of notes){if(n.start>now+.001)break;anchor=n;}
+ return {pitch:anchor.pitch,start:anchor.start,hand};
+}
+
+/**
  * FG-03B: presentation-only secondary Ghost preview schedule.
  * Musical events remain in score seconds, whereas lookahead is wall-clock
  * milliseconds; the user's tempo multiplier converts between them.
