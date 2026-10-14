@@ -77,3 +77,7 @@ Compare unmodified FG-02I and real PianoMotion on held-out alternatives with exa
 - The previous 148-note pinned Piano Protege author-reference results remain **P0-A2**, not the new P0-A2b independently reviewed evidence.
 
 **Current gate:** `EXPERT_REVIEW_NOT_YET_VERIFIED`. No external review data is bundled, and no percentage of P0-A2b pianist-judged accuracy is claimed.
+
+## Phase 3: genuine score screening (v0.10.99)
+
+The research-only [composer-disjoint shortlist](P0-A2B-PHASE3-SCREENING.md) includes eight *actual* ASAP scores but NOT certified technique excerpts, source-aligned benchmark inputs or expert ratings. All seven screening tags in this manifest are human-curation hypotheses, not scorer labels. The two-independent-plus-third-adjudicator protocol above remains authoritative; do not automatically upgrade a preliminary candidate to a reference. The source score/hand/manual provenance and research-vs-held-out split remain mandatory.
