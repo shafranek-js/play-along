@@ -26,7 +26,7 @@ export function serializeSongForPianoMotion(song){
    const ref=typeof n.noteId==='string'&&n.noteId.length?n.noteId:'note:'+track+':'+i;
    if(identity.has(ref))return reason('DUPLICATE_SOURCE_NOTE_ID');
    identity.add(ref);
-   const channel=track===9?10:track%16; // avoid percussion channel 10 (zero-indexed 9)
+   const channel=track>=9?track+1:track; // skip percussion channel 9
    input.push({noteId:ref,source:n,pitch:n.pitch,startTick,endTick,track:0,channel,
     velocity:Number.isFinite(n.velocity)?Math.max(1,Math.min(127,Math.round(n.velocity))):80,
     sourceHand:n.hand==='RH'||n.hand==='LH'?n.hand:null});
