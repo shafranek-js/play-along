@@ -23,7 +23,7 @@ import {loadRepertoireSource,corpus} from './fingering-repertoire-benchmark.mjs'
 import {runPianoMotionLocally} from './fg04c2-run-pianomotion.mjs';
 import {runExistingPlayAlongFingeringResearch} from '../src/core/fingering-engine-comparison.mjs';
 import {makeP0A2Cohort} from '../src/core/p0a2-fingering-cohort.mjs';
-import {importP0A2PianoMotion,evaluateP0A2Case,summarizeP0A2}
+import {importP0A2PianoMotion,evaluateP0A2Case,summarizeP0A2,compareP0A2Paired,summarizeP0A2Paired}
  from '../src/core/p0a2-fingering-evaluation.mjs';
 
 const root=resolve(fileURLToPath(new URL('..',import.meta.url)));
@@ -83,11 +83,15 @@ async function singleCase(entry,{python=process.env.PYTHON||'python',repeat=2}={
    engineStatus:pmReason||'PIANOMOTION_NOT_RUN'}):
   evaluateP0A2Case({source:input,reference:cohort.reference,items:pm});
  if(!result.ok)return fail('PIANOMOTION_EVALUATION_'+result.reason);
+ const paired=compareP0A2Paired({source:input,reference:cohort.reference,
+  playAlong:baseline.ok?baseline.items:null,pianoMotion:pm});
+ if(!paired.ok)return fail('PAIRED_'+paired.reason);
  return {ok:true,id:entry.id,sourceSha256:pinned.sha256,midiSha256:sha,
   sourceNotes:cohort.noteCount,knownHandsFromSource:true,referenceFingersWithheld:true,
   midiDerivation:'60bpm-9600ppq-quantized',
   pianoMotion:summary(result,{elapsedMs:Math.round(pmElapsed),repeatStable}),
   playAlong:summary(base,{elapsedMs:Math.round(baselineElapsed),repeatStable:null}),
+  paired,
   elapsedMs:Math.round(performance.now()-start),
   researchOnly:true,expertValidated:false,productionEligible:false};
 }
@@ -112,6 +116,9 @@ export async function runP0A2RealBenchmark({caseIds=null,python=process.env.PYTH
  }
  const totals=summarizeP0A2(cases);
  if(!totals.ok)return totals;
+ const paired=summarizeP0A2Paired(cases);
+ if(!paired.ok)return paired;
+ totals.paired=paired;
  return {ok:true,schema:'p0a2-real-independent-python-finger-benchmark-v1',
   manifestSha256:manifestHash,corpusRevision:corpus.revision,
   corpusLicense:corpus.license,
