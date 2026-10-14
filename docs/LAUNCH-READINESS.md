@@ -1,5 +1,13 @@
 # Play Along — launch readiness without a piano expert panel
 
+## Owner decision — F0 licensing review deferred to final-release decision (2026-10-14)
+
+The project owner has decided to **stop spending active development time on the currently unresolved Hand-thesia / PianoMotion upstream redistribution-rights issue** and revisit options immediately before the **final release**. Track F0 as **DEFERRED FOR DECISION / RIGHTS NOT CLEARED**, rather than a task assigned to the next development sprint. This reprioritizes engineering work; it does **not** supply any missing license, consent, or legal authorization.
+
+Continue LAUNCH-01 transport/MIDI/Wait/Seek/Loop/pedal QA, LAUNCH-02 editable fingering, LAUNCH-03 UX, and non-public testing without waiting for a new license analysis. At final release, the owner must choose a documented permission/license, a provenance-cleared replacement, or an appropriately limited distribution configuration.
+
+**Important distinction:** public GitHub Pages or a public beta **already distributes** the included derivative Python and is not exempt merely because the version is called a beta. Any further public distribution decisions still need rights consideration; this document does not certify the currently published code as licensed. Earlier F0 "before public beta" statements remain relevant to the exposure but **do not schedule additional active license investigation now**. See [source-rights evidence](LAUNCH-01-UPSTREAM-LICENSE-AUDIT.md).
+
 **Product-owner decision (2026-10-14):** Play Along is intended to launch **before** a professional pianist/reviewer panel is available. Independent adjudication of optimal fingering is a **post-launch research enhancement**, never a prerequisite for a functional public beta. This supersedes any roadmap wording implying that hiring a reviewer panel is mandatory to release Play Along.
 
 ## Separate three different decisions
