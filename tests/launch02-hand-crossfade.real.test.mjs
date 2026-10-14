@@ -77,6 +77,12 @@ try{
    window.__fingerGuideTest.handBlends.LH.from==='rest'&&
    window.__fingerGuideTest.handBlends.LH.to==='spread',
   null,{timeout:20000,polling:'raf'});
+ // The first exact NoteOn frame starts at progress=0. Sample a later
+ // browser frame too: opacity is intentionally still 0.70 at that instant.
+ await page.waitForFunction(()=>window.__handPaint.some(p=>
+  p.src==='left-rest.png'&&p.alpha<.69)&&window.__handPaint.some(p=>
+  p.src==='left-spread.png'&&p.alpha>.5&&p.alpha<.87),
+  null,{timeout:10000,polling:'raf'});
  const onset=await page.evaluate(()=>({
   pos:window.__prototypeTest.pos,blend:window.__fingerGuideTest.handBlends.LH,
   preview:window.__fingerGuideTest.preview,
