@@ -36,6 +36,12 @@ Real original Bach/Schubert source-file Chromium import now passes for 1,607 not
 
 Chromium has now diagnosed and **fixed both false MIDI-port warnings** (single port-1 inputs) and independently verified original raw MIDI physical note-offs for **1,607 pinned piano notes**. All 1,607 XML↔MIDI pitches/onsets align within 20 ms; **579 Schubert MIDI releases have genuinely different durations from MusicXML score notes** (already present in original MIDI, no Play Along truncation). Three same-pitch contacts remain source-identity ambiguous. See [full event parity and legal/QA caveats](LAUNCH-01-UAT-RESULTS.md). Remaining public-beta blockers are unchanged: genuine in-browser Pyodide, real MIDI/hardware playback/transport, broader corruption/MXL QA and verified redistribution rights. Reviewer recruitment remains post-launch.
 
+## LAUNCH-01 F1 · genuine Python Web Worker execution now verified (v0.10.103)
+
+The [real Chromium + Pyodide UAT](LAUNCH-01-PYODIDE-LIVE-UAT.md) has proved **22/22 original note identities preserved** on an authentic, SHA-pinned piano excerpt after running the original Python PianoMotion algorithm in the actual module Worker, applying 22 fingers, downloading MusicXML and independently reimporting 22 unverified generated fingers. A genuinely blocked CDN `pyodide.mjs` test confirms no accidental Apply/Export, source preservation and an actionable user retry message. Both passed in [GitHub Actions](https://github.com/shafranek-js/play-along/actions/runs/38617719233).
+
+**This closes the previously open "actual live browser Pyodide" subtest only.** It does **not** verify every end-user MIDI, physical keyboard or speaker audio, Wait/Seek/Loop, Safari/mobile, true piano technique quality, privacy or upstream redistribution rights. **F0 remains a potential legal beta blocker**: the upstream Hand-thesia license/permission has not been established (see [THIRD_PARTY_NOTICES](../THIRD_PARTY_NOTICES.md)). Expert pianists are still NOT required for an honest beta launch.
+
 ## Recommended near-term development queue
 
 1. **LAUNCH-01 — targeted end-to-end UAT and bug fixes.** Test the actual built Pages app with real representative MIDI/MusicXML, external hardware MIDI where possible, resource failure, deliberate source edits, invalid files and an actual download/reimport. Document pass/fail with reproducible cases and console errors.
