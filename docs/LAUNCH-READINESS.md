@@ -32,6 +32,10 @@
 
 Real original Bach/Schubert source-file Chromium import now passes for 1,607 notes in each format (actual source MIDI and MusicXML individually pinned and read). PianoMotion pending inference can be cancelled and safely retried, with late callback rejection. **Not certified:** exact XML↔MIDI event parity, the two XML parser warnings, live Pyodide on those sources, speaker/MicroLab/other real hardware testing or rights to redistribute derived third-party source. [Evidence and exact pass/fail matrix](LAUNCH-01-UAT-RESULTS.md). These remain engineering/legal checks, **not** a demand for a nonexistent expert team.
 
+## LAUNCH-01 F1 follow-up · v0.10.102
+
+Chromium has now diagnosed and **fixed both false MIDI-port warnings** (single port-1 inputs) and independently verified original raw MIDI physical note-offs for **1,607 pinned piano notes**. All 1,607 XML↔MIDI pitches/onsets align within 20 ms; **579 Schubert MIDI releases have genuinely different durations from MusicXML score notes** (already present in original MIDI, no Play Along truncation). Three same-pitch contacts remain source-identity ambiguous. See [full event parity and legal/QA caveats](LAUNCH-01-UAT-RESULTS.md). Remaining public-beta blockers are unchanged: genuine in-browser Pyodide, real MIDI/hardware playback/transport, broader corruption/MXL QA and verified redistribution rights. Reviewer recruitment remains post-launch.
+
 ## Recommended near-term development queue
 
 1. **LAUNCH-01 — targeted end-to-end UAT and bug fixes.** Test the actual built Pages app with real representative MIDI/MusicXML, external hardware MIDI where possible, resource failure, deliberate source edits, invalid files and an actual download/reimport. Document pass/fail with reproducible cases and console errors.
