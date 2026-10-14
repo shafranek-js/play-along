@@ -1,4 +1,14 @@
-# Play Along — Piano Practice App (v0.10.97)
+# Play Along — Piano Practice App (v0.10.98)
+
+## P0-A2b phase 2 — real MusicXML candidate intake for independent pianist review (v0.10.98)
+
+**Implemented:** The existing real Play Along MusicXML browser reader can now securely prepare a **private fingerless, blind-hand, SHA-256-bound research packet** from a rights-confirmed local `.musicxml` or `.xml` file. Its exact source note IDs, pitch, NoteOn and physical NoteOff event times are checked; author finger labels are stripped, hands are **not guessed from staff or pitch**, and unhandled ornaments/incomplete or altered events fail closed. Objective event-derived flags denote co-onset chord *candidates*, held-voice overlaps and repeated pitches; true inversions, thumb-under, crossing and other technique classifications require human pianists. Arbitrary XML entities and DTD subsets are refused. Only the known public standard Recordare MusicXML Partwise DTD declaration may be removed before parsing.
+
+**Technical evidence:** Six pinned, explicitly MIT-licensed MusicXML Test Suite files (9+4+18+30+2+70 = **133 imported source notes**) were checked by Git blob SHA-1, imported in **real Chromium** and converted into private research packet candidates. [Frozen aggregate-only research evidence](research/p0a2b-mit-source-candidates-2026-10-14.json) · [the successful Chromium intake workflow](https://github.com/shafranek-js/play-along/actions/runs/38578243524). These are **synthetic MusicXML notation fixtures, NOT published performances with pianist finger ground truth**. No source score XML, finger vectors or review packets are redistributed in Play Along.
+
+**Local workflow:** `npm ci`, `npm run build`, `npx playwright install chromium`; run `node scripts/p0a2b-import-musicxml.mjs --file /private/licensed-score.musicxml --id work-001 --group composer-001 --split development --rights-confirmed --output /private/work-001-blind-packet.json`. The operator must verify rights outside software; a flag cannot establish permission. Next run the private reviewer-template/adjudication tool described in [source intake and curator notes](docs/P0-A2B-MUSICXML-SOURCE-INTAKE.md) and [blind review protocol](docs/P0-A2B-REVIEW-PROTOCOL.md). Only aggregate counts, not source notes/fingers, are printed publicly. Research CI runs the pinned-MIT qualification and hard XML security tests independently of production Pages deployment.
+
+**Status:** SOURCE_INTAKE_READY; **0 independent pianist reviews**, no confirmed expert accuracy result, `expertValidated=false` and `productionEligible=false`. Neither PianoMotion nor FG-02I solver weights, source notes, audio, original hand PNG assets nor automatically guided lessons are changed. **Next:** acquire independently reviewed *actual* difficult piano passages under suitable rights and validate original-MIDI identity to both real engines; compare separately on genuinely withheld reviewer decisions. Hand-thesia completion stays 35%.
 
 ## P0-A2b — independent blinded pianist-review infrastructure (v0.10.97)
 
