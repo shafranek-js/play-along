@@ -1,4 +1,14 @@
-# Play Along — Piano Practice App (v0.10.102)
+# Play Along — Piano Practice App (v0.10.103)
+
+## LAUNCH-01 — actual browser Pyodide, Apply, MusicXML export and network recovery (v0.10.103)
+
+**A full real-browser Python test has now passed.** Chromium imported a temporary, authentic SHA-verified, finger-free **22-note Au clair de la lune** MIDI from Piano Protege Curriculum (CC BY-SA 4.0); loaded the **actual shipped PianoMotion module Worker**, downloaded pinned **Pyodide 314.0.7** and Python packages, executed the **original Python `analyze_midi`** without mocking the Worker, source-aligned all 22 notes, and applied **22 suggestions explicitly by user action**. The app preserved **all original note identities, pitches, starts, physical releases**. A real MusicXML download and reimport reproduced **22 notes with 22 generated finger annotations tagged as unverified user output**, never forged author labels. The independent structural conflict check found zero hard conflicts in this particular piece; this is NOT a musician's quality judgment.
+
+**Actual offline-network failure test:** a real Chromium Worker attempted to fetch pinned `pyodide.mjs` and its CDN response was deliberately blocked; the app now reports `PYODIDE_RUNTIME_DOWNLOAD_FAILED` with an actionable connection/retry explanation, keeps Apply and Export disabled, leaves MIDI untouched and allows Calculate to be retried. This test **does not** replace the separate successful online test with a synthetic result. Both passed on the same commit in [genuine browser Pyodide CI](https://github.com/shafranek-js/play-along/actions/runs/38617719233).
+
+**Reproduce:** `npm ci`, `npx playwright install --with-deps chromium`, `npm run build`, then `npm run test:pyodide:live`. Test output exposes only source SHA-256, note totals, worker provenance and safety status, not third-party score notes, MIDI or author fingering. The test runs separately from the ordinary release pipeline because genuine Python runtime/wheel downloading is expensive. Details: [LAUNCH-01 genuine Python UAT](docs/LAUNCH-01-PYODIDE-LIVE-UAT.md), checked [aggregate JSON](research/launch01-real-pyodide-browser-2026-10-14.json) and both [browser test files](tests/launch01-pyodide-real-browser.real.test.mjs).
+
+**Important launch limits:** this is **one real 22-note song**, not a test of the user's uploaded MIDI or every score style. It does not validate a physical MIDI keyboard, audible audio, Wait/Seek/Loop, Safari/mobile or professional fingering accuracy. The upstream Hand-thesia derivative source still **lacks confirmed public redistribution permission** (see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)); successful QA and attribution are not a license. Do not certify legal beta release or claim pianist-approved fingering until those separate prerequisites are met. The user's decision to launch without a pianist expert team remains unchanged; expert ratings are post-launch optional. Hand-thesia research completion remains 35%.
 
 ## LAUNCH-01 — independent MIDI timing parity and genuine MusicXML port-warning fix (v0.10.102)
 
