@@ -1,4 +1,14 @@
-# Play Along — Piano Practice App (v0.10.103)
+# Play Along — Piano Practice App (v0.10.104)
+
+## LAUNCH-01 — real MXL corruption refusal and 1,050-note multi-track MIDI stress (v0.10.104)
+
+**Fixed MXL ZIP source-integrity checks.** The browser archive importer now validates ZIP central/local record consistency, size and directory bounds, declared uncompressed byte counts, unique safe filenames, supportable single-disk/non-encrypted methods, UTF-8, and a real `META-INF/container.xml` rootfile reference; it never silently falls back to unrelated XML when the declared rootfile is missing. Original 15 MiB decompressed and 16 MiB archive size caps are retained. No note pitches, note starts/releases, MusicXML fingering provenance or audio are changed by this fix.
+
+**Real Chromium QA passed** for actual production readers: native MXL stored/Deflate formats open equivalently to MusicXML; **9/9 malformed/hostile MXL variations are refused**; a generated **3-track, 1,050-note** MIDI imports with **2,100 audio NoteOn/NoteOff events**, and **5/5 corrupt/unsupported MIDI** cases are refused. Failed imports leave the current song untouched. [Reproduction/negative cases](docs/LAUNCH-01-MXL-MIDI-BOUNDARIES.md) · [successful browser run](https://github.com/shafranek-js/play-along/actions/runs/38620666234). The regression is included in `npm run test:browser` and the separate PianoMotion Chromium Actions job; no copyrighted scores or MIDI sources are bundled as fixtures.
+
+**Parallel launch blocker F0:** a source-rights audit confirmed that [V9011N/pygame-piano-animator](https://github.com/V9011N/pygame-piano-animator)'s pinned revision declares no identifiable public redistribution license, and GitHub metadata reports `license: null`. Since Play Along's build copies its PianoMotion/Hand-thesia-derived Python sources to the public bundle, **owner permission to integrate PianoMotion alone is not sufficient to declare upstream redistribution rights cleared**. [Rights evidence and required decisions](docs/LAUNCH-01-UPSTREAM-LICENSE-AUDIT.md). This is an unresolved launch gate, not a claim of legal prohibition or a substitution for professional advice.
+
+**Next LAUNCH-01:** real transport Wait/Seek/Loop/pedal and MIDI-controller/audio tests plus broader real-source corruption/large-file checks. Experts are not required for an honest beta; clear rights and reliable core playback are. The Hand-thesia research estimate remains 35%, distinct from beta readiness.
 
 ## LAUNCH-01 — actual browser Pyodide, Apply, MusicXML export and network recovery (v0.10.103)
 
