@@ -115,7 +115,7 @@ try{
  await page.evaluate(()=>{
   const app=window.__prototypeTest;
   app.pause();app.setMode('listen');
-  onNoteOn(65,85,'virtual');
+  app.receiveVirtualNoteOn(65);
   window.__midiHotplug.send('second-midi',[0x90,65,90]);
   window.__midiHotplug.send('second-midi',[0x90,69,90]);
  });
@@ -137,7 +137,7 @@ try{
  assert.equal(detachedWithVirtualHeld,true);
  assert.deepEqual(await page.evaluate(()=>window.__prototypeTest.midiHeld),[65],
   'USB unplug must preserve the independently held virtual key');
- await page.evaluate(()=>onNoteOff(65,'virtual'));
+ await page.evaluate(()=>window.__prototypeTest.receiveVirtualNoteOff(65));
  assert.deepEqual(await page.evaluate(()=>window.__prototypeTest.midiHeld),[],
   'virtual NoteOff must finally release its own live key');
 
