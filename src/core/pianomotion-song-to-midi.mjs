@@ -15,6 +15,7 @@ const playable=(track)=>Array.isArray(track?.notes)&&track.notes.some(n=>!drumNo
 const explicitNonPiano=(track)=>{
  const label=String(track.instrumentName??track.instrument??track.name??'').toLowerCase();
  const program=track.program??track.instrumentProgram??track.midiProgram;
+ if(Number.isInteger(program)&&program>7&&program<=127)return true;
  if(/piano|pianoforte|keyboard|клавир|фортепиано/.test(label)&&
     !/guitar|violin|flute/.test(label))return false;
  // "Bass" alone is also a common name for the left-hand piano staff.
@@ -27,10 +28,13 @@ export function pianoMotionSourcePlan(song,activeTrack=0){
  if(!song||!Array.isArray(song.tracks))return {ok:false,reason:'NO_SELECTED_SONG'};
  const candidates=song.tracks.map((t,i)=>playable(t)?i:-1).filter(i=>i>=0);
  if(!candidates.length)return {ok:false,reason:'NO_MELODIC_NOTES'};
+ const playedChannels=new Set(song.tracks.flatMap(t=>t.notes||[])
+  .filter(n=>!n.isDrum&&n.channel!==9&&Number.isInteger(n.channel)).map(n=>n.channel));
  const foreign=song.tracks.some((t)=>explicitNonPiano(t)||t.isDrum||t.channel===9||
   (t.notes||[]).some(n=>drumNote(t,n)))||
   (song.audioEvents||[]).some(e=>e.type==='programChange'&&
-   Number.isInteger(e.program)&&e.program>7&&e.program<=127);
+   Number.isInteger(e.program)&&e.program>7&&e.program<=127&&
+   playedChannels.has(e.channel));
  if(!foreign)return {ok:true,mode:'original',trackIndices:candidates,description:'Исходный фортепианный MIDI'};
  const selected=candidates.includes(activeTrack)?activeTrack:candidates[0];
  const track=song.tracks[selected];
