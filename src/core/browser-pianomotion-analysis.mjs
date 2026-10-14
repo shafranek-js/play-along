@@ -106,7 +106,8 @@ export async function verifyPianoMotionBrowserAnalysis({midiBytes,analysis,sourc
    id=goodId(src.n.noteId)?src.n.noteId:'midi:'+src.track+':'+src.i;
   }
   const source=songNotes.filter(({n:sn,track,i})=>
-   (goodId(sn.noteId)?sn.noteId:'midi:'+track+':'+i)===id);
+   (goodId(sn.noteId)?sn.noteId:'note:'+track+':'+i)===id||
+   id==='midi:'+track+':'+i);
   if(source.length!==1)return fail('MISSING_OPEN_SONG_SOURCE');
   const original=source[0].n;
   if(original.hand==='RH'&&a.hand!=='right'||original.hand==='LH'&&a.hand!=='left')
