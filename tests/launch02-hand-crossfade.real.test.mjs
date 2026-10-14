@@ -116,6 +116,10 @@ try{
   'wrong key must not advance Wait');
  await page.evaluate(()=>{for(const p of [60,64,67])window.__prototypeTest.receiveNoteOn(p)});
  await page.waitForFunction(()=>window.__fingerGuideTest.frame.current===1.15,null,{timeout:15000});
+ // Wait's musical target is synchronous. The Canvas pose is updated on the
+ // following requestAnimationFrame, so observe that actual painted frame.
+ await page.waitForFunction(()=>window.__fingerGuideTest.handBlends.LH.to==='spread',
+  null,{timeout:15000,polling:'raf'});
  const wait=await page.evaluate(()=>({
   blend:window.__fingerGuideTest.handBlends.LH,
   pitches:window.__fingerGuideTest.waitTargets.map(n=>n.pitch)
