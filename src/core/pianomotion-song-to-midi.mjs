@@ -14,9 +14,13 @@ const drumNote=(track,n)=>n.isDrum===true||n.channel===9||track.isDrum===true||t
 const playable=(track)=>Array.isArray(track?.notes)&&track.notes.some(n=>!drumNote(track,n));
 const explicitNonPiano=(track)=>{
  const label=String(track.instrumentName??track.instrument??track.name??'').toLowerCase();
- if(/guitar|bass|flute|violin|cello|sax|clarinet|trumpet|synth|strings|drums|percussion|гитар|бас|флейт|скрип/.test(label))return true;
  const program=track.program??track.instrumentProgram??track.midiProgram;
- return Number.isInteger(program)&&program>7&&program<=127;
+ if(/piano|pianoforte|keyboard|клавир|фортепиано/.test(label)&&
+    !/guitar|violin|flute/.test(label))return false;
+ // "Bass" alone is also a common name for the left-hand piano staff.
+ const foreignLabel=/guitar|flute|violin|cello|sax|clarinet|trumpet|synth|strings|drums|percussion|гитар|флейт|скрип/.test(label)||
+  (/bass|бас/.test(label)&&!/piano|left|lower|clef/.test(label)&&Number.isInteger(program)&&program>7);
+ return foreignLabel||(Number.isInteger(program)&&program>7&&program<=127);
 };
 /** Pure recommendation: direct only if no explicit foreign instrument or drums. */
 export function pianoMotionSourcePlan(song,activeTrack=0){
