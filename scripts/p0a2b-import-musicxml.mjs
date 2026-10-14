@@ -32,7 +32,9 @@ export async function importP0A2bMusicXML({file,output,cohortId,groupId,split='d
   raw=await readFile(path);
  }catch{return fail('PRIVATE_SOURCE_UNREADABLE')}
  const sha=createHash('sha256').update(raw).digest('hex');
- const xml=new TextDecoder('utf8',{fatal:true}).decode(raw);
+ let xml;
+ try{xml=new TextDecoder('utf-8',{fatal:true}).decode(raw)}
+ catch{return fail('MUSICXML_INVALID_UTF8')}
  if(/<!\s*(?:DOCTYPE|ENTITY)\b/i.test(xml))return fail('XML_EXTERNAL_ENTITIES_REFUSED');
  const root=resolve(dist);
  const server=createServer((req,res)=>{
@@ -59,7 +61,7 @@ export async function importP0A2bMusicXML({file,output,cohortId,groupId,split='d
   const page=await browser.newPage();
   await page.goto('http://127.0.0.1:'+server.address().port+'/');
   await page.waitForFunction(()=>!!window.__libraryV08?.readMusicXML,
-    {timeout:25000});
+    undefined,{timeout:25000});
   const imported=await page.evaluate(source=>{
    const s=window.__libraryV08.readMusicXML(source,'research.musicxml');
    return {format:s.format,warnings:s.warnings,
