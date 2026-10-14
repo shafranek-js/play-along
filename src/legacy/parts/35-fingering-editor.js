@@ -675,6 +675,105 @@ $('fingerBrowserCalculate').onclick=()=>{
  * a second file, rewrites source notes or presents guesses as author fingers.
  */
 let pianoMotionRun=null,pianoMotionGeneration=0,pianoMotionLastResult=null,pianoMotionLastSong=null,pianoMotionLastAlignment=null,pianoMotionLastPlan=null,pianoMotionLastApplied=false;
+let pianoMotionReviewSelected=new Set(),pianoMotionReviewOffset=0,pianoMotionReviewHit=[];
+let pianoMotionReviewHistory=pianoMotionEmptyHistory();
+function pianoMotionReviewCountApplied(){
+ return pianoMotionLastAlignment?.matches.filter(x=>x.note.fingeringSource==='pianomotion'&&
+  Number.isInteger(x.note.finger)&&x.note.finger>=1&&x.note.finger<=5).length||0;
+}
+function pianoMotionReviewSync(){
+ const count=pianoMotionLastAlignment?.matches.length||0;
+ const active=!!count&&pianoMotionLastSong===current;
+ const selected=[...pianoMotionReviewSelected].filter(i=>i>=0&&i<count).length;
+ $('pianoMotionReviewCount').textContent=active?'Выбрано '+selected+' из '+count+' нот':'Предложения отсутствуют';
+ $('pianoMotionApplySelected').disabled=!active||!selected;
+ $('pianoMotionSelectAll').disabled=!active;
+ $('pianoMotionSelectNone').disabled=!active||!selected;
+ $('pianoMotionUndo').disabled=!active||!pianoMotionReviewHistory.past.length;
+ $('pianoMotionRedo').disabled=!active||!pianoMotionReviewHistory.future.length;
+ $('pianoMotionExportXML').disabled=!pianoMotionLastApplied||!pianoMotionReviewCountApplied();
+}
+function pianoMotionReviewRender(){
+ const alignment=pianoMotionLastAlignment;
+ if(!alignment?.ok||pianoMotionLastSong!==current)return;
+ const n=alignment.matches.length,limit=24;
+ pianoMotionReviewOffset=Math.max(0,Math.min(Math.floor(pianoMotionReviewOffset/limit)*limit,
+  Math.floor((n-1)/limit)*limit));
+ const windowNotes=pianoMotionWindow(alignment,pianoMotionReviewOffset,limit);
+ $('pianoMotionRollRange').textContent=(pianoMotionReviewOffset+1)+'–'+
+  (pianoMotionReviewOffset+windowNotes.length)+' / '+n;
+ $('pianoMotionPrev').disabled=pianoMotionReviewOffset===0;
+ $('pianoMotionNext').disabled=pianoMotionReviewOffset+limit>=n;
+ const list=$('pianoMotionReviewList');list.replaceChildren();
+ const userKey=fingerOverrideWorkKey(current);
+ const edits=userKey?state.fingerOverrides?.[userKey]||{}:{};
+ for(const {note,suggestion:s,index} of windowNotes){
+  const label=document.createElement('label');label.className='pianoMotionReviewRow';
+  const input=document.createElement('input');input.type='checkbox';input.checked=pianoMotionReviewSelected.has(index);
+  const protectedSource=!!fingerOverrideEffective(note,edits[note.noteId])||
+   (note.fingeringSource!=='pianomotion'&&
+    (note.finger!=null||note.fingeringSource==='musicxml'||note.fingeringSource==='user'));
+  if(protectedSource)label.classList.add('protected');
+  if(s.finger===null)label.classList.add('unresolved');
+  input.addEventListener('change',()=>{
+   if(input.checked)pianoMotionReviewSelected.add(index);else pianoMotionReviewSelected.delete(index);
+   pianoMotionReviewSync();pianoMotionReviewDraw();
+  });
+  const p=document.createElement('span');p.className='pianoMotionReviewPitch';p.textContent=nameOf(s.pitch);
+  const t=document.createElement('span');t.className='pianoMotionReviewTime';t.textContent=s.start.toFixed(2)+' c';
+  const v=document.createElement('span');v.className='pianoMotionReviewFinger';
+  v.textContent=protectedSource?'Автор/ручная':s.finger===null?'Без пальца':
+   s.hand+' · '+s.finger;
+  label.append(input,p,t,v);list.append(label);
+ }
+ pianoMotionReviewDraw();pianoMotionReviewSync();
+}
+function pianoMotionReviewDraw(){
+ const canvas=$('pianoMotionRoll'),ctx=canvas.getContext('2d');
+ if(!ctx)return;
+ const w=canvas.width,h=canvas.height;
+ ctx.clearRect(0,0,w,h);ctx.fillStyle='#0d1622';ctx.fillRect(0,0,w,h);
+ const notes=pianoMotionWindow(pianoMotionLastAlignment,pianoMotionReviewOffset,24);
+ pianoMotionReviewHit=[];if(!notes.length)return;
+ const lo=Math.min(...notes.map(x=>x.suggestion.pitch)),hi=Math.max(...notes.map(x=>x.suggestion.pitch));
+ const t0=Math.min(...notes.map(x=>x.suggestion.start));
+ const t1=Math.max(...notes.map(x=>x.suggestion.end??x.suggestion.start+.1),t0+.3);
+ const margin=30,left=36,usableW=w-left-10,usableH=h-margin-12;
+ ctx.font='12px system-ui';ctx.fillStyle='#9db1c6';ctx.fillText(nameOf(hi),3,22);ctx.fillText(nameOf(lo),3,h-9);
+ for(let j=0;j<5;j++){const y=margin+j*usableH/4;
+  ctx.strokeStyle='#293b50';ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(w-7,y);ctx.stroke();}
+ for(const {suggestion:s,index} of notes){
+  const x=left+(s.start-t0)/(t1-t0)*usableW;
+  const length=Math.max(7,Math.min(usableW,((s.end??s.start+.08)-s.start)/(t1-t0)*usableW));
+  const y=margin+(hi-s.pitch)/Math.max(1,hi-lo)*(usableH-10);
+  const rect={x,y,w:Math.max(6,Math.min(length,w-x-7)),h:9,index};
+  ctx.fillStyle=s.hand==='RH'?'#4385a8':'#558d6b';
+  ctx.fillRect(rect.x,rect.y,rect.w,rect.h);
+  ctx.strokeStyle=pianoMotionReviewSelected.has(index)?'#ffe4a0':'#8595a9';
+  ctx.lineWidth=pianoMotionReviewSelected.has(index)?3:1;
+  ctx.strokeRect(rect.x,rect.y,rect.w,rect.h);
+  pianoMotionReviewHit.push(rect);
+ }
+ ctx.fillStyle='#a4b5cc';ctx.fillText(t0.toFixed(1)+' c',left,h-3);
+ ctx.textAlign='right';ctx.fillText(t1.toFixed(1)+' c',w-7,h-3);ctx.textAlign='left';
+}
+$('pianoMotionRoll').addEventListener('click',e=>{
+ const rect=$('pianoMotionRoll').getBoundingClientRect();
+ const x=(e.clientX-rect.left)*$('pianoMotionRoll').width/rect.width;
+ const y=(e.clientY-rect.top)*$('pianoMotionRoll').height/rect.height;
+ const hit=pianoMotionReviewHit.slice().reverse().find(n=>x>=n.x&&x<=n.x+n.w&&y>=n.y-3&&y<=n.y+n.h+3);
+ if(!hit)return;
+ if(pianoMotionReviewSelected.has(hit.index))pianoMotionReviewSelected.delete(hit.index);
+ else pianoMotionReviewSelected.add(hit.index);
+ pianoMotionReviewRender();
+});
+$('pianoMotionPrev').onclick=()=>{pianoMotionReviewOffset-=24;pianoMotionReviewRender()};
+$('pianoMotionNext').onclick=()=>{pianoMotionReviewOffset+=24;pianoMotionReviewRender()};
+$('pianoMotionSelectAll').onclick=()=>{
+ pianoMotionReviewSelected=new Set(pianoMotionLastAlignment.matches.map((_,i)=>i));pianoMotionReviewRender();
+};
+$('pianoMotionSelectNone').onclick=()=>{pianoMotionReviewSelected.clear();pianoMotionReviewRender()};
+
 function pianoMotionStop(message){
  pianoMotionGeneration++;
  if(pianoMotionRun){pianoMotionRun.terminate();pianoMotionRun=null;}
@@ -683,6 +782,10 @@ function pianoMotionStop(message){
  pianoMotionLastAlignment=null;
  pianoMotionLastPlan=null;
  pianoMotionLastApplied=false;
+ pianoMotionReviewSelected.clear();pianoMotionReviewOffset=0;pianoMotionReviewHit=[];
+ pianoMotionReviewHistory=pianoMotionEmptyHistory();
+ $('pianoMotionReview').hidden=true;
+ $('pianoMotionReviewList').replaceChildren();
  $('pianoMotionResult').replaceChildren();
  $('pianoMotionClear').disabled=true;
  if($('pianoMotionApply'))$('pianoMotionApply').disabled=true;
@@ -692,6 +795,7 @@ function pianoMotionStop(message){
 }
 $('pianoMotionClear').onclick=()=>{
  if(pianoMotionLastApplied&&pianoMotionLastSong===current){
+  $('pianoMotionReview').hidden=true;
   $('pianoMotionResult').replaceChildren();
   $('pianoMotionApply').disabled=true;
   $('pianoMotionClear').disabled=true;
@@ -774,21 +878,11 @@ $('pianoMotionCalculate').onclick=()=>{
     (diagnostic.possiblyUnplayable?' ВНИМАНИЕ: одновременно удерживается до '+diagnostic.maxHeld+' нот (больше 10).':'')+
     (!alignment.ok?' Применение заблокировано: '+alignment.reason+'.':'')+
     ' Предложения не заменяют авторскую аппликатуру.';
-   const title=document.createElement('p');title.className='small';
-   title.textContent='Первые 120 предложений для проверки (правой/левой рукой).';
-   list.append(title);
-   const ol=document.createElement('ol');
-   for(const n of result.suggestions.slice(0,120)){
-    if(!Number.isInteger(n.pitch)||!Number.isFinite(n.start)||
-       !['RH','LH'].includes(n.hand)||n.finger!=null&&(!Number.isInteger(n.finger)||n.finger<1||n.finger>5)){
-     pianoMotionStop('Недопустимые данные аппликатуры от движка.');return;
-    }
-    const li=document.createElement('li');
-    li.textContent=n.hand+' · '+nameOf(n.pitch)+' · '+n.start.toFixed(2)+
-     ' c → '+(n.finger===null?'не определён':'палец '+n.finger);
-    ol.append(li);
+   if(result.suggestions.some(n=>!Number.isInteger(n.pitch)||!Number.isFinite(n.start)||
+     !['RH','LH'].includes(n.hand)||n.finger!=null&&
+     (!Number.isInteger(n.finger)||n.finger<1||n.finger>5))){
+    pianoMotionStop('Недопустимые данные аппликатуры от движка.');return;
    }
-   list.append(ol);
    pianoMotionLastResult=result;
    pianoMotionLastSong=song;
    pianoMotionLastAlignment=alignment.ok?alignment:null;
@@ -796,6 +890,8 @@ $('pianoMotionCalculate').onclick=()=>{
    if($('pianoMotionApply'))$('pianoMotionApply').disabled=!alignment.ok;
    if($('pianoMotionExportXML'))$('pianoMotionExportXML').disabled=true; // Export only after Apply.
    $('pianoMotionClear').disabled=false;
+   $('pianoMotionReview').hidden=!alignment.ok;
+   if(alignment.ok){pianoMotionReviewSelected.clear();pianoMotionReviewRender();}
   };
   worker.onerror=event=>{
    console.error('PianoMotion worker onerror:',event);
@@ -806,55 +902,70 @@ $('pianoMotionCalculate').onclick=()=>{
  }
  startRun(true);
 };
-if($('pianoMotionApply'))$('pianoMotionApply').onclick=()=>{
- const song=current,alignment=pianoMotionLastAlignment;
- if(!song||pianoMotionLastSong!==song||!alignment?.ok){
-  $('pianoMotionStatus').textContent='Нет однозначно сопоставленных нот. Пересчитайте аппликатуру.';return;
- }
- // Check again at click time: the score may have been edited since calculation.
- const checked=pianoMotionAlignSuggestions(song,pianoMotionLastResult.suggestions,{
-  trackIndices:pianoMotionLastPlan.trackIndices,channel:pianoMotionLastPlan.channel??null,
-  tolerance:pianoMotionLastPlan.mode==='original'?.025:.005
- });
- if(!checked.ok||checked.matches.some((entry,i)=>entry.note!==alignment.matches[i]?.note)){
-  $('pianoMotionStatus').textContent='Ноты изменились после расчёта. Рассчитайте аппликатуру заново.';
-  $('pianoMotionApply').disabled=true;
-  $('pianoMotionExportXML').disabled=true;
-  return;
- }
- let applied=0,protectedCount=0,unresolved=0;
- const overrideKey=fingerOverrideWorkKey(song);
- const userEdits=overrideKey?state.fingerOverrides?.[overrideKey]||{}:{};
- // All mapping checks completed before the first source note is modified.
- for(const {note:n,suggestion:s} of alignment.matches){
-  if(s.finger===null){unresolved++;continue}
-  if(fingerOverrideEffective(n,userEdits[n.noteId])||
-     (n.fingeringSource!=='pianomotion'&&
-     (n.finger!=null||n.fingeringSource==='musicxml'||n.fingeringSource==='user'))){
-   protectedCount++;continue;
-  }
-  n.finger=s.finger;n.hand=s.hand;n.fingeringSource='pianomotion';applied++;
- }
- if(!applied){
-  $('pianoMotionStatus').textContent='Нет новых пальцев. Сохранено '+protectedCount+
-   ' авторских/ручных назначений; не определено: '+unresolved+'.';return;
- }
- if(state.fingerGuidanceMode==='off'){
-  state.fingerGuidanceMode='numbers';
-  if($('fingerGuideMode'))$('fingerGuideMode').value='numbers';
- }
- pianoMotionLastApplied=true;
- if($('pianoMotionExportXML'))$('pianoMotionExportXML').disabled=false;
- persist();
- renderCanvas();
+function pianoMotionReviewRefreshSong(){
+ persist();renderCanvas();
  if(state.scoreView==='sheet'&&typeof scoreEnsureRendered==='function'){
   scoreSong=null;scoreEnsureRendered().catch(()=>{});
  }
  if(state.scoreView==='editor'&&typeof fingerEditorRender==='function')fingerEditorRender();
- notify('Применено '+applied+' пальцев · исходные назначения сохранены');
- $('pianoMotionStatus').textContent='Применено '+applied+'/'+alignment.total+
-  ' нот. Сохранено авторских/ручных: '+protectedCount+'; не определено: '+unresolved+'.';
-};
+}
+function pianoMotionReviewValidate(){
+ const song=current,alignment=pianoMotionLastAlignment,plan=pianoMotionLastPlan;
+ if(!song||pianoMotionLastSong!==song||!alignment?.ok||!plan)return false;
+ const checked=pianoMotionAlignSuggestions(song,pianoMotionLastResult.suggestions,{
+  trackIndices:plan.trackIndices,channel:plan.channel??null,
+  tolerance:plan.mode==='original'?.025:.005
+ });
+ if(!checked.ok||checked.matches.some((entry,i)=>entry.note!==alignment.matches[i]?.note)){
+  $('pianoMotionStatus').textContent='Ноты изменились после расчёта. Рассчитайте аппликатуру заново.';
+  $('pianoMotionApply').disabled=true;$('pianoMotionApplySelected').disabled=true;
+  $('pianoMotionExportXML').disabled=true;return false;
+ }
+ return true;
+}
+function pianoMotionReviewApply(indices){
+ if(!pianoMotionReviewValidate())return;
+ const work=fingerOverrideWorkKey(current);
+ const edits=work?state.fingerOverrides?.[work]||{}:{};
+ const batch=pianoMotionProposeBatch(pianoMotionLastAlignment,indices,edits);
+ if(!batch.ok){
+  $('pianoMotionStatus').textContent='Проверка аппликатуры: '+batch.reason;return;
+ }
+ const result=pianoMotionCommitBatch(pianoMotionReviewHistory,batch);
+ if(!result.ok){
+  $('pianoMotionStatus').textContent=result.reason==='NOTHING_TO_APPLY'?
+   'Изменений нет · защищено '+batch.protectedCount+' · без пальца '+batch.unresolved+'.':
+   'Применение отменено: '+result.reason;
+  return;
+ }
+ pianoMotionReviewHistory=result.history;
+ pianoMotionLastApplied=true;
+ if(state.fingerGuidanceMode==='off'){
+  state.fingerGuidanceMode='numbers';
+  if($('fingerGuideMode'))$('fingerGuideMode').value='numbers';
+ }
+ pianoMotionReviewRefreshSong();pianoMotionReviewRender();
+ notify('Применено '+result.count+' выбранных пальцев · Undo доступен');
+ $('pianoMotionStatus').textContent='Применено '+result.count+
+  ' пальцев · защищено '+batch.protectedCount+
+  ' · без пальца '+batch.unresolved+' · предложения не являются авторскими.';
+}
+$('pianoMotionApply').onclick=()=>pianoMotionReviewApply(
+ pianoMotionLastAlignment?.matches.map((_,i)=>i)||[]
+);
+$('pianoMotionApplySelected').onclick=()=>pianoMotionReviewApply([...pianoMotionReviewSelected]);
+for(const [button,direction]of [['pianoMotionUndo','undo'],['pianoMotionRedo','redo']]){
+ $(button).onclick=()=>{
+  if(!pianoMotionReviewValidate())return;
+  const result=pianoMotionTravelHistory(pianoMotionReviewHistory,direction);
+  if(!result.ok){$('pianoMotionStatus').textContent='История недоступна: '+result.reason;return;}
+  pianoMotionReviewHistory=result.history;
+  pianoMotionLastApplied=pianoMotionReviewCountApplied()>0;
+  pianoMotionReviewRefreshSong();pianoMotionReviewRender();
+  $('pianoMotionStatus').textContent=(direction==='undo'?'Отменено ':'Повторено ')+result.count+
+   ' пальцев. Источник MIDI и авторские данные не изменены.';
+ };
+}
 if($('pianoMotionExportXML'))$('pianoMotionExportXML').onclick=()=>{
  const song=current;
  if(!song||pianoMotionLastSong!==song||!pianoMotionLastAlignment?.ok||!pianoMotionLastApplied){
