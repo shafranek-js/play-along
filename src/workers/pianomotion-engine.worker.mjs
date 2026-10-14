@@ -1,3 +1,5 @@
+import {pianoMotionSourceAlignedAssignments} from '../core/pianomotion-source-identity.mjs';
+
 /**
  * FG-04C7: run the ACTUAL owner-authorized PianoMotion Python algorithm
  * from packaged source-verified Python files in a Pyodide browser Worker.
@@ -98,27 +100,20 @@ async function analyze(id,bytes){
     !Array.isArray(result.document?.notes)||
     !Array.isArray(result.fingeringPlan?.assignments))
    throw Error('ORIGINAL_MIDI_PROVENANCE_UNVERIFIED');
-  const docs=new Map(result.document.notes.map(n=>[n.noteId,n]));
-  const assignments=[];
-  for(const item of result.fingeringPlan.assignments){
-   const n=docs.get(item.noteId);
-   if(!n||!['right','left'].includes(item.hand)||!Number.isInteger(n.pitch)||
-     n.pitch<0||n.pitch>127||!Number.isFinite(n.startSeconds)||
-     !Number.isFinite(n.endSeconds)||n.endSeconds<=n.startSeconds||
-     !(item.finger===null||Number.isInteger(item.finger)&&item.finger>=1&&item.finger<=5))
-    throw Error('PIANOMOTION_NOTE_RESULT_INVALID');
-   assignments.push({pitch:n.pitch,start:n.startSeconds,end:n.endSeconds,
-    hand:item.hand==='right'?'RH':'LH',finger:item.finger,
-    disposition:item.disposition==='played'?'played':'unresolved'});
-  }
-  if(assignments.length!==docs.size)throw Error('PIANOMOTION_NOTE_IDENTITY_LOST');
+  // FG-04D0B: the solver may extend very short notes to 50ms for planning.
+  // Restore identity-verified raw MIDI start/end instead of matching those
+  // normalized durations back to a score and rejecting a valid fingering.
+  const verified=pianoMotionSourceAlignedAssignments(result);
+  if(!verified.ok)throw Error(verified.reason);
+  const assignments=verified.suggestions;
   self.postMessage({id,type:'result',result:{
    engine:'PianoMotion Studio · original Python/Pyodide',
    engineVersion,rawMidiSha256:hash,total:assignments.length,
    playable:assignments.filter(n=>n.disposition==='played').length,
    unresolved:assignments.filter(n=>n.disposition!=='played').length,
    suggestions:assignments,
-   researchOnly:true,productionEligible:false,sourceNoteMappingVerified:false,
+   researchOnly:true,productionEligible:false,
+   sourceNoteMappingVerified:verified.sourceNoteMappingVerified,
    expertValidated:false
   }});
  }catch(err){
