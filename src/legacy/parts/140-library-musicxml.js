@@ -792,7 +792,7 @@ async function zipUnpackMXL(arrayBuffer){
  if(c){
   if(c.originalSize>1024*1024)throw Error('Слишком большой META-INF/container.xml');
   const xml=await entryText(c);
-  if(/<!\\s*(?:DOCTYPE|ENTITY)\\b/i.test(xml))
+  if(/<!\s*(?:DOCTYPE|ENTITY)\b/i.test(xml))
    throw Error('Недопустимая декларация XML в контейнере MXL');
   const dom=new DOMParser().parseFromString(xml,'text/xml');
   if(dom.querySelector('parsererror'))throw Error('Повреждён контейнер MXL');
@@ -801,7 +801,7 @@ async function zipUnpackMXL(arrayBuffer){
    throw Error('Указанный нотный XML отсутствует в MXL');
  }
  const target=rootName?entries.find(x=>x.name===rootName):
-  entries.find(x=>/\\.(musicxml|xml)$/i.test(x.name)&&!x.name.startsWith('META-INF/'));
+  entries.find(x=>/\.(musicxml|xml)$/i.test(x.name)&&!x.name.startsWith('META-INF/'));
  if(!target)throw Error('В MXL нет нотного XML');
  return entryText(target);
 }
