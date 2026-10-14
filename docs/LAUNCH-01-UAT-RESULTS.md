@@ -1,6 +1,6 @@
 # LAUNCH-01 — engineering UAT evidence and open prelaunch gates
 
-**2026-10-14 · Play Along v0.10.101 candidate.** This report separates actual automated acceptance results from assumptions, hardware/rights items and potential blockers. An independent pianist panel is NOT needed for the public beta.
+**2026-10-14 · Play Along v0.10.102.** This report separates actual automated acceptance results from assumptions, hardware/rights items and potential blockers. An independent pianist panel is NOT needed for the public beta.
 
 ## Reproducible verified tests
 
@@ -8,11 +8,25 @@ Test: `tests/launch01-real-score-smoke.real.test.mjs` in [the successful browser
 
 | Source (actual pinned score) | Browser MusicXML notes | Browser MIDI notes | MusicXML parser warnings | Outcome |
 |---|---:|---:|---:|---|
-| Bach — WTC I Prelude BWV 846 | 549 | 549 | 1 | **PASS** |
-| Schubert — Moment musical No. 3 | 1,058 | 1,058 | 1 | **PASS** |
-| **Total imported** | **1,607** | **1,607** | **2** | **PASS** |
+| Bach — WTC I Prelude BWV 846 | 549 | 549 | 0 | **PASS** |
+| Schubert — Moment musical No. 3 | 1,058 | 1,058 | 0 | **PASS** |
+| **Total imported** | **1,607** | **1,607** | **0** | **PASS** |
 
-For each pair both browsers parsed parts/tracks, note timestamps were finite and durations positive, MIDI playback event stream existed, and the test recorded no uncaught browser errors. These counts happen to match; **this does not certify event-by-event XML/MIDI alignment, expression, articulation, repeat expansion, musicological correctness or hand split.** The two nonfatal MusicXML parser warnings still need to be investigated before assuming exact score parity.
+For each pair both browsers parsed parts/tracks, note timestamps were finite and durations positive, MIDI playback event stream existed, and the test recorded no uncaught browser errors. These counts happen to match; **this does not certify event-by-event XML/MIDI alignment, expression, articulation, repeat expansion, musicological correctness or hand split.** The two warnings were identified as **false-positive MIDI port mixing**: each actual score uses exactly one port (port 1). The importer now warns only when multiple distinct ports coexist; an independent synthetic 1-versus-2-port fixture verifies that the genuine warning remains.
+
+### MIDI note-on/note-off comparison — independent source cross-check
+
+Test: [successful final diagnostic browser QA](https://github.com/shafranek-js/play-along/actions/runs/38613221446). In addition to the production MusicXML and MIDI browsers, `originalMidiSourceEvents` **independently parsed the pinned MIDI bytes**, matched original notes by pitch and chronological occurrence and checked that the actual browser MIDI physical key-down/key-up times agree with raw NoteOn/NoteOff ticks (constant score tempo for these specific two fixtures). **All 1,607 raw MIDI attacks and releases matched the imported events within floating-point error**. Therefore the score/MIDI release differences below were present in the source files and were **not introduced by the Play Along MIDI import**.
+
+| Pair, at ±20 ms | Pitches same | Note onset | Physical note release | Largest release residual |
+|---|---:|---:|---:|---:|
+| Bach BWV 846 (549) | 549 | 549/549 | 549/549 | 1.04 ms |
+| Schubert Moment musical 3 (1,058) | 1,058 | 1,058/1,058 | 479/1,058 | 157.55 ms |
+| **Combined** | **1,607** | **1,607/1,607** | **1,028/1,607** | **157.55 ms** |
+
+The Schubert source MIDI contains **568** releases about 158 ms before the corresponding notated MusicXML release, while 479 are within 1.5 ms; eleven others have different offsets. This is **source MIDI physical key gating versus MusicXML nominal note length**, not a parser truncation. It may reflect score-to-MIDI articulation or export conventions; the engineering test does **not** certify any particular composer's intended articulation. The application must **not silently lengthen/shorten either imported source** to force agreement.
+
+Caveat: pitch+chronological occurrence comparison is not an authoritative XML-to-MIDI noteId join. Three simultaneous same-pitch contacts in Schubert remain ambiguous. No hand/finger inference, tempo edit or author provenance is claimed. The original raw-MIDI audit does prove the Play Along importer retains the MIDI physical NoteOff times accurately for these inputs. A pinned [machine-verifiable aggregate evidence file](../research/launch01-real-score-parity-2026-10-14.json) records the exact numbers and [unit tests](../tests/launch01-real-score-parity-evidence.test.mjs) fail if any reported denominator is changed without revision.
 
 A deliberately simulated `PIANOMOTION_RUNTIME_FAILED` response to a real imported MIDI verified **one Worker start only**, immediate end of the pending state, disabled Apply/Export, unchanged source notes and accessible retry. This is failure/recovery testing; no live Pyodide inference was claimed.
 
@@ -25,7 +39,7 @@ Earlier regression gates stay in place: the 547-note mixed guitar/flute MIDI use
 | Gate | Present status | Owner action / criterion |
 |---|---|---|
 | F0 · Third-party code and assets rights | **OPEN / POTENTIAL RELEASE BLOCKER** | Verify original/adapted PianoMotion/Hand-thesia source redistribution permission, dependency licenses, sound fonts and generated/public music rights. Attribution by itself cannot grant rights. Commercial use additionally requires separate review of noncommercial datasets and artwork |
-| F1 · Real source XML/MIDI parsing | **PARTIALLY VERIFIED** | 2 actual works, 1,607 browser note imports each format. Need source event identity at pitch/onset/end, verify 2 MusicXML warnings and repeat/tuplet/pedal edge cases; corrupted and long multi-track files |
+| F1 · Real source XML/MIDI parsing | **PARTIALLY VERIFIED** | 2 actual works, 1,607 browser note imports each format, independent raw-MIDI tick parity and 2 false port warnings fixed. Source MIDI/score nominal release differences remain, with 3 ambiguous same-pitch contacts; broader repeat/tuplet/pedal/corruption fixtures still open |
 | F1 · MIDI → finger → exported MusicXML roundtrip | **PARTIALLY VERIFIED** | Prior real-browser file imports with simulated Python result pass; an actual real piece must be run through genuine Pyodide and result/export/reimport checked |
 | F2 · Transport/audio hardware | **NOT VERIFIED HERE** | Audible speaker output, physical MicroLab mk3 (or other) MIDI input, connect/disconnect recovery, Wait/Seek/Loop/pedal interactions, mobile Safari/Android and offline handling need device tests |
 | F3 · Fingering suggestions safety/control | **ENGINEERING TESTS PASS** | Suggestions are opt-in and marked unverified, detected hard physical contradictions withheld, author/manual finger protection and session Undo/Redo verified; does not establish pianist accuracy |
@@ -46,4 +60,4 @@ node tests/launch01-worker-cancel.real.test.mjs
 
 The real-score test requires internet access to the exact pinned, SHA-verified ASAP GitHub source revision and tests it privately. The cancel test works without a real MIDI device and simulates only the asynchronous PianoMotion Worker response. The browser test does not automatically record or capture audio from speakers.
 
-**Next:** LAUNCH-01 follow-up should resolve the XML parser warnings and test source pitch/onset/end mapping on the two real score pairs, then perform an actual browser Python/Pyodide calculation and locally validate hardware MIDI, before a rights-reviewed public beta.
+**Next:** LAUNCH-01 follow-up should run the actual browser Python/Pyodide inference on imported real sources (including failure/offline recovery), test corrupt/long MIDI and MXL, transport Wait/Seek/Loop and locally verify audible output and physical MIDI keyboard. The third-party rights review remains a release gate, independent pianist recruitment does not.
