@@ -1,0 +1,114 @@
+{
+  "schema": "p0a2-finger-blinded-aggregate-snapshot-v1",
+  "created": "2026-10-14",
+  "evidence": {
+    "source": "GitHub Actions real original Python/FG-02I successful workflow",
+    "runUrl": "https://github.com/shafranek-js/play-along/actions/runs/38562825923",
+    "commit": "2a74d1ce5715f2b6c854ca2086dbc4df5804c327",
+    "repository": "shafranek-js/play-along"
+  },
+  "input": {
+    "corpus": "Piano Protege Curriculum stage3_pieces",
+    "sourceRevision": "1b1ef9c1a17d3eb0ff73c701b6f4685955d4833c",
+    "license": "CC-BY-SA-4.0",
+    "sourceAttribution": "Piano Protege Curriculum by Riya Ranjan, Sabbagh, De (CS224R project)",
+    "referenceQuality": "Contributor-hand-authored; no blinded independent pianist consensus",
+    "cases": 5,
+    "notes": 148,
+    "originalInput": "Hand-labelled PIG text at pinned SHA-256; temporary piano SMF generated 60 BPM 9600 PPQ, exact MIDI bytes shared across actual Python repeats, verified raw note-on/off event mapping",
+    "noteTiming": "Quantized to ticks of 1/9600 s; not a claim of original MIDI/MusicXML bit parity",
+    "handLabelsKnownToEngines": true,
+    "fingerLabelsWithheldUntilAfterInference": true,
+    "pianoMotionEngineVersion": "99243fa5335e6cca95a5c09f34d1dedb0225b73e88f0d9b358ababfaed2c3f4d",
+    "fg02i": "existing research-only score router, handSize M, beamWidth 40",
+    "pythonDependencies": {
+      "pretty_midi": "0.2.11.post0",
+      "mido": "1.3.3",
+      "numpy": "2.2.6",
+      "six": "1.17.0"
+    },
+    "pianoMotionRunsPerCase": 2
+  },
+  "results": {
+    "playAlong": {
+      "eligible": 148,
+      "proposed": 148,
+      "correct": 87,
+      "wrong": 61,
+      "refused": 0,
+      "physicalBlocked": 0,
+      "exactMatchPct": 58.78
+    },
+    "pianoMotion": {
+      "eligible": 148,
+      "proposed": 148,
+      "correct": 87,
+      "wrong": 61,
+      "refused": 0,
+      "physicalBlocked": 0,
+      "exactMatchPct": 58.78,
+      "repeatStable": true
+    },
+    "paired": {
+      "evaluated": 148,
+      "identicalAssignments": 117,
+      "differentAssignments": 31,
+      "bothCorrect": 77,
+      "onlyPlayAlongCorrect": 10,
+      "onlyPianoMotionCorrect": 10,
+      "bothWrong": 51,
+      "agreementPct": 79.05
+    },
+    "cases": [
+      {
+        "id": "bach-minuet-g-major",
+        "notes": 32,
+        "playAlongCorrect": 25,
+        "pianoMotionCorrect": 22,
+        "identical": 24,
+        "different": 8
+      },
+      {
+        "id": "fur-elise-theme",
+        "notes": 36,
+        "playAlongCorrect": 15,
+        "pianoMotionCorrect": 22,
+        "identical": 22,
+        "different": 14
+      },
+      {
+        "id": "au-clair-de-la-lune",
+        "notes": 22,
+        "playAlongCorrect": 22,
+        "pianoMotionCorrect": 22,
+        "identical": 22,
+        "different": 0
+      },
+      {
+        "id": "frere-jacques",
+        "notes": 32,
+        "playAlongCorrect": 15,
+        "pianoMotionCorrect": 12,
+        "identical": 24,
+        "different": 8
+      },
+      {
+        "id": "amazing-grace",
+        "notes": 26,
+        "playAlongCorrect": 10,
+        "pianoMotionCorrect": 9,
+        "identical": 25,
+        "different": 1
+      }
+    ]
+  },
+  "interpretation": {
+    "accuracyGainEstablished": false,
+    "algorithmWinner": null,
+    "productionEligible": false,
+    "expertValidated": false,
+    "handSeparationAccuracyMeasured": false,
+    "note": "Hands were supplied from annotated source to both engines: this is a finger-choice comparison, not a blind hand-separation test. Exact-match of one annotation is not the unique viable piano fingering. Python wall time includes interpreter startup, JS is in-process: cannot compare speed from reported times. No algorithm weights changed.",
+    "next": "Independent blind pianist-labelled polyphonic and varied-hand-size held-out corpus; preregister metrics and prevent tuning on evaluation cohort."
+  }
+}
