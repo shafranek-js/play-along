@@ -51,7 +51,7 @@ try{
   'BLIND_PACKET_EXISTS_OR_UNWRITABLE');
  const unsafe=join(dir,'unsafe.musicxml'),badOutput=join(dir,'unsafe-packet.json');
  await writeFile(unsafe,xml.replace(
-  '<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN"\\n"http://www.musicxml.org/dtds/partwise.dtd">',
+  /<!DOCTYPE[\\s\\S]*?>/,
   '<!DOCTYPE score-partwise [ <!ENTITY inject "bad"> ]>'));
  assert.equal((await importP0A2bMusicXML({
   file:unsafe,output:badOutput,...config
