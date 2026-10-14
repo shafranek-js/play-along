@@ -814,11 +814,14 @@ if($('pianoMotionApply'))$('pianoMotionApply').onclick=()=>{
   return;
  }
  let applied=0,protectedCount=0,unresolved=0;
+ const overrideKey=fingerOverrideWorkKey(song);
+ const userEdits=overrideKey?state.fingerOverrides?.[overrideKey]||{}:{};
  // All mapping checks completed before the first source note is modified.
  for(const {note:n,suggestion:s} of alignment.matches){
   if(s.finger===null){unresolved++;continue}
-  if(n.fingeringSource!=='pianomotion'&&
-     (n.finger!=null||n.fingeringSource==='musicxml'||n.fingeringSource==='user')){
+  if(fingerOverrideEffective(n,userEdits[n.noteId])||
+     (n.fingeringSource!=='pianomotion'&&
+     (n.finger!=null||n.fingeringSource==='musicxml'||n.fingeringSource==='user'))){
    protectedCount++;continue;
   }
   n.finger=s.finger;n.hand=s.hand;n.fingeringSource='pianomotion';applied++;
@@ -859,10 +862,15 @@ if($('pianoMotionExportXML'))$('pianoMotionExportXML').onclick=()=>{
  let xml=null;
  if(song.format==='MusicXML'&&song.notationXML&&typeof sheetFingeringOverlay==='function'){
   const changes={};
+  const overrideKey=fingerOverrideWorkKey(song);
+  const userEdits=overrideKey?state.fingerOverrides?.[overrideKey]||{}:{};
   for(const t of (song.tracks||[])){
    for(const n of (t.notes||[])){
-    if(n.noteId&&Number.isInteger(n.finger)&&n.finger>=1&&n.finger<=5){
-     changes[n.noteId]={finger:n.finger,hand:n.hand||null};
+    const user=n.noteId?fingerOverrideEffective(n,userEdits[n.noteId]):null;
+    const finger=user?user.finger:n.finger;
+    const hand=user?user.hand:n.hand;
+    if(n.noteId&&Number.isInteger(finger)&&finger>=1&&finger<=5){
+     changes[n.noteId]={finger,hand:hand||null};
     }
    }
   }
