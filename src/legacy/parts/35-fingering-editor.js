@@ -910,6 +910,36 @@ if($('pianoMotionExportXML'))$('pianoMotionExportXML').onclick=()=>{
  if(!xml){
   notify('Не удалось сформировать MusicXML');return;
  }
+ // FG-04D2: never re-import generated PianoMotion numbers as composer fingers.
+ // This reuses the conservative importer marker from FG-04D1. The original
+ // document/song is untouched; only the separate download is annotated.
+ try{
+  const doc=new DOMParser().parseFromString(xml,'application/xml');
+  const root=doc.documentElement;
+  if(!root||root.localName!=='score-partwise'||doc.querySelector('parsererror'))
+   throw Error('Некорректная партитура');
+  const ns=root.namespaceURI,make=name=>ns?doc.createElementNS(ns,name):doc.createElement(name);
+  const direct=(parent,name)=>[...(parent?.children||[])].find(n=>n.localName===name)||null;
+  let identification=direct(root,'identification');
+  if(!identification){
+   identification=make('identification');
+   const next=[...root.children].find(n=>['defaults','credit','part-list','part'].includes(n.localName))||null;
+   root.insertBefore(identification,next);
+  }
+  let miscellaneous=direct(identification,'miscellaneous');
+  if(!miscellaneous){miscellaneous=make('miscellaneous');identification.append(miscellaneous);}
+  if(![...miscellaneous.children].some(n=>n.localName==='miscellaneous-field'&&
+      n.getAttribute('name')==='play-along-user-fingering')){
+   const marker=make('miscellaneous-field');
+   marker.setAttribute('name','play-along-user-fingering');
+   marker.textContent='PianoMotion-generated fingers applied by user in Play Along; not composer-authored; original MIDI-derived notation is approximate.';
+   miscellaneous.append(marker);
+  }
+  xml=new XMLSerializer().serializeToString(doc);
+ }catch(error){
+  notify('Не удалось безопасно пометить происхождение аппликатуры: '+(error?.message||error));
+  return;
+ }
  const blob=new Blob([xml],{type:'application/vnd.recordare.musicxml+xml;charset=utf-8'});
  const url=URL.createObjectURL(blob),a=document.createElement('a');
  const safeName=(String(song.title||'melody').replace(/[\\/:*?"<>|\x00-\x1f]/g,'_').slice(0,80)||'melody')+'-fingering.musicxml';
