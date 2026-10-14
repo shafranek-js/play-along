@@ -674,12 +674,14 @@ $('fingerBrowserCalculate').onclick=()=>{
  * Pyodide browser worker. Runs on the currently selected song; never uploads
  * a second file, rewrites source notes or presents guesses as author fingers.
  */
-let pianoMotionRun=null,pianoMotionGeneration=0,pianoMotionLastResult=null,pianoMotionLastSong=null;
+let pianoMotionRun=null,pianoMotionGeneration=0,pianoMotionLastResult=null,pianoMotionLastSong=null,pianoMotionLastAlignment=null,pianoMotionLastPlan=null;
 function pianoMotionStop(message){
  pianoMotionGeneration++;
  if(pianoMotionRun){pianoMotionRun.terminate();pianoMotionRun=null;}
  pianoMotionLastResult=null;
  pianoMotionLastSong=null;
+ pianoMotionLastAlignment=null;
+ pianoMotionLastPlan=null;
  $('pianoMotionResult').replaceChildren();
  $('pianoMotionClear').disabled=true;
  if($('pianoMotionApply'))$('pianoMotionApply').disabled=true;
@@ -687,21 +689,7 @@ function pianoMotionStop(message){
  $('pianoMotionCalculate').disabled=false;
  if(message)$('pianoMotionStatus').textContent=message;
 }
-$('pianoMotionClear').onclick=()=>{
- if(current?.tracks){
-  let cleared=0;
-  for(const t of current.tracks){
-   for(const n of (t.notes||[])){
-    if(n.fingeringSource==='pianomotion'){
-     delete n.finger;delete n.hand;delete n.fingeringSource;
-     cleared++;
-    }
-   }
-  }
-  if(cleared)renderCanvas();
- }
- pianoMotionStop('Предложения очищены; исходная мелодия не изменена.');
-};
+$('pianoMotionClear').onclick=()=>pianoMotionStop('Предложения скрыты. Ранее применённые пальцы не изменены.');
 $('pianoMotionCalculate').onclick=()=>{
  pianoMotionStop();
  const song=current;
@@ -709,13 +697,17 @@ $('pianoMotionCalculate').onclick=()=>{
  if(!window.Worker){
   $('pianoMotionStatus').textContent='Браузер не поддерживает Web Worker.';return;
  }
+ const plan=pianoMotionSourcePlan(song,Number(state.track)||0);
+ if(!plan.ok){$('pianoMotionStatus').textContent='Нет подходящих нот: '+plan.reason;return}
  function startRun(useExactOriginal){
-  const original=useExactOriginal?originalMidiForSong(song):null;
-  const derived=!original?makePianoMotionMidiFromSong(song):null;
+  // Never feed a guitar/percussion MIDI directly to the two-hand piano solver.
+  const original=useExactOriginal&&plan.mode==='original'?originalMidiForSong(song):null;
+  const derived=!original?makePianoMotionMidiFromSong(song,{trackIndices:plan.trackIndices}):null;
   if(!original&&!derived?.ok){
    $('pianoMotionStatus').textContent='Не могу подготовить MIDI для расчёта: '+(derived?.reason||'нет нот')+'.';return;
   }
   const midi=original||derived.midiBytes;
+  const diagnostic=pianoMotionPlayableDiagnostic(song,plan.trackIndices);
   if(midi.length>4000000){
    $('pianoMotionStatus').textContent='MIDI больше допустимого ограничения 4 МБ.';return;
   }
@@ -723,8 +715,7 @@ $('pianoMotionCalculate').onclick=()=>{
   const exact=!!original;
   $('pianoMotionStatus').textContent=exact?
    'Подготовлен исходный MIDI; загружаю оригинальный Python-алгоритм PianoMotion…':
-   (useExactOriginal?'Создан временный MIDI из нот текущей партитуры; загружаю Python-алгоритм…':
-    'Исходный MIDI содержит не-фортепианные данные; рассчитываю аппликатуру по нотам мелодии…');
+   plan.description+' · рассчитываю пальцы для фортепиано…';
   let worker;
   try{worker=new Worker('./assets/pianomotion-engine-worker.js',{type:'module'});}
   catch{
@@ -748,13 +739,10 @@ $('pianoMotionCalculate').onclick=()=>{
    worker.terminate();pianoMotionRun=null;
    $('pianoMotionCalculate').disabled=false;
    if(data.type==='error'){
-    if(exact){
-     const fallback=makePianoMotionMidiFromSong(song);
-     if(fallback?.ok){
-      console.warn('PianoMotion exact MIDI failed ('+data.reason+'); retrying with clean song notes as piano.');
-      startRun(false);
-      return;
-     }
+    if(exact&&pianoMotionCanRetry(data.reason)){
+     console.warn('PianoMotion raw MIDI structure rejected: '+data.reason+'; retrying parsed notes.');
+     startRun(false);
+     return;
     }
     const hint=data.reason==='PIANOMOTION_RUNTIME_FAILED'
      ?'. Проверь подключение к сети и консоль браузера (F12).'
@@ -767,9 +755,14 @@ $('pianoMotionCalculate').onclick=()=>{
    if(!Array.isArray(result.suggestions)||result.suggestions.length!==result.total){
     $('pianoMotionStatus').textContent='PianoMotion вернул неполную последовательность. Предложения отклонены.';return;
    }
+   const alignment=pianoMotionAlignSuggestions(song,result.suggestions,{
+    trackIndices:plan.trackIndices,tolerance:exact?.025:.005
+   });
    $('pianoMotionStatus').textContent='Оригинальный PianoMotion Python · '+result.total+
     ' нот · '+result.playable+' пальцев · '+result.unresolved+' не определено. '+
-    (exact?'Исходный MIDI без изменений.':'Расчёт по нотам мелодии как фортепиано.')+
+    (exact?'Исходный MIDI без изменений.':plan.description+'.')+
+    (diagnostic.possiblyUnplayable?' ВНИМАНИЕ: одновременно удерживается до '+diagnostic.maxHeld+' нот (больше 10).':'')+
+    (!alignment.ok?' Применение заблокировано: '+alignment.reason+'.':'')+
     ' Предложения не заменяют авторскую аппликатуру.';
    const title=document.createElement('p');title.className='small';
    title.textContent='Первые 120 предложений для проверки (правой/левой рукой).';
@@ -788,22 +781,15 @@ $('pianoMotionCalculate').onclick=()=>{
    list.append(ol);
    pianoMotionLastResult=result;
    pianoMotionLastSong=song;
-   if($('pianoMotionApply'))$('pianoMotionApply').disabled=false;
-   if($('pianoMotionExportXML'))$('pianoMotionExportXML').disabled=false;
+   pianoMotionLastAlignment=alignment.ok?alignment:null;
+   pianoMotionLastPlan=alignment.ok?plan:null;
+   if($('pianoMotionApply'))$('pianoMotionApply').disabled=!alignment.ok;
+   if($('pianoMotionExportXML'))$('pianoMotionExportXML').disabled=!alignment.ok;
    $('pianoMotionClear').disabled=false;
   };
   worker.onerror=event=>{
    console.error('PianoMotion worker onerror:',event);
-   if(cancel()){
-    if(exact){
-     const fallback=makePianoMotionMidiFromSong(song);
-     if(fallback?.ok){
-      startRun(false);
-      return;
-     }
-    }
-    pianoMotionStop('Ошибка браузерного Python Worker. Проверь консоль.');
-   }
+   if(cancel())pianoMotionStop('Ошибка браузерного Python Worker. Повторная конверсия MIDI не поможет; проверь консоль.');
   };
   const transferable=midi.slice().buffer;
   worker.postMessage({id,type:'analyze-midi',midiBytes:transferable},[transferable]);
@@ -811,70 +797,43 @@ $('pianoMotionCalculate').onclick=()=>{
  startRun(true);
 };
 if($('pianoMotionApply'))$('pianoMotionApply').onclick=()=>{
- const song=current;
- if(!song||!pianoMotionLastResult||pianoMotionLastSong!==song){
-  $('pianoMotionStatus').textContent='Сначала рассчитайте аппликатуру для открытой мелодии.';return;
+ const song=current,alignment=pianoMotionLastAlignment;
+ if(!song||pianoMotionLastSong!==song||!alignment?.ok){
+  $('pianoMotionStatus').textContent='Нет однозначно сопоставленных нот. Пересчитайте аппликатуру.';return;
  }
- const suggestions=pianoMotionLastResult.suggestions;
- if(!Array.isArray(suggestions)||!suggestions.length){
-  $('pianoMotionStatus').textContent='Нет доступных предложений для применения.';return;
- }
- const songNotes=[];
- (song.tracks||[]).forEach((t,trIndex)=>{
-  (t.notes||[]).forEach(n=>{
-   if(!n.isDrum&&n.channel!==9)songNotes.push({n,trIndex});
-  });
- });
- if(!songNotes.length){
-  $('pianoMotionStatus').textContent='В мелодии не найдено нот для применения.';return;
- }
- const suggByPitch=new Map();
- for(const s of suggestions){
-  if(!suggByPitch.has(s.pitch))suggByPitch.set(s.pitch,[]);
-  suggByPitch.get(s.pitch).push({s,used:false});
- }
- let applied=0;
- for(const item of songNotes){
-  const n=item.n;
-  const list=suggByPitch.get(n.pitch);
-  if(!list||!list.length)continue;
-  let bestDist=Infinity,bestEntry=null;
-  for(const entry of list){
-   if(entry.used)continue;
-   const dist=Math.abs(entry.s.start-n.start);
-   if(dist<0.35&&dist<bestDist){
-    bestDist=dist;
-    bestEntry=entry;
-   }
+ let applied=0,protectedCount=0,unresolved=0;
+ // All mapping checks completed before the first source note is modified.
+ for(const {note:n,suggestion:s} of alignment.matches){
+  if(s.finger===null){unresolved++;continue}
+  if(n.fingeringSource!=='pianomotion'&&
+     (n.finger!=null||n.fingeringSource==='musicxml'||n.fingeringSource==='user')){
+   protectedCount++;continue;
   }
-  if(bestEntry){
-   bestEntry.used=true;
-   if(Number.isInteger(bestEntry.s.finger)&&bestEntry.s.finger>=1&&bestEntry.s.finger<=5){
-    n.finger=bestEntry.s.finger;
-    n.hand=bestEntry.s.hand==='RH'||bestEntry.s.hand==='LH'?bestEntry.s.hand:null;
-    n.fingeringSource='pianomotion';
-    applied++;
-   }
-  }
+  n.finger=s.finger;n.hand=s.hand;n.fingeringSource='pianomotion';applied++;
  }
- if(applied>0){
-  if(state.fingerGuidanceMode==='off'){
-   state.fingerGuidanceMode='numbers';
-   if($('fingerGuideMode'))$('fingerGuideMode').value='numbers';
-  }
-  persist();
-  renderCanvas();
-  if(state.scoreView==='sheet'&&typeof scoreEnsureRendered==='function')scoreEnsureRendered().catch(()=>{});
-  if(state.scoreView==='editor'&&typeof fingerEditorRender==='function')fingerEditorRender();
-  notify('Применено '+applied+' пальцев · подсказки над клавиатурой активны');
-  $('pianoMotionStatus').textContent='Аппликатура применена ('+applied+'/'+songNotes.length+' нот). Подсказки отображаются на клавиатуре и Piano Roll.';
- }else{
-  $('pianoMotionStatus').textContent='Не удалось сопоставить ноты предложений с текущей партией.';
+ if(!applied){
+  $('pianoMotionStatus').textContent='Нет новых пальцев. Сохранено '+protectedCount+
+   ' авторских/ручных назначений; не определено: '+unresolved+'.';return;
  }
+ if(state.fingerGuidanceMode==='off'){
+  state.fingerGuidanceMode='numbers';
+  if($('fingerGuideMode'))$('fingerGuideMode').value='numbers';
+ }
+ persist();
+ renderCanvas();
+ if(state.scoreView==='sheet'&&typeof scoreEnsureRendered==='function'){
+  scoreSong=null;scoreEnsureRendered().catch(()=>{});
+ }
+ if(state.scoreView==='editor'&&typeof fingerEditorRender==='function')fingerEditorRender();
+ notify('Применено '+applied+' пальцев · исходные назначения сохранены');
+ $('pianoMotionStatus').textContent='Применено '+applied+'/'+alignment.total+
+  ' нот. Сохранено авторских/ручных: '+protectedCount+'; не определено: '+unresolved+'.';
 };
 if($('pianoMotionExportXML'))$('pianoMotionExportXML').onclick=()=>{
  const song=current;
- if(!song){notify('Нет открытой мелодии');return}
+ if(!song||pianoMotionLastSong!==song||!pianoMotionLastAlignment?.ok){
+  notify('Сначала выполните расчёт и проверку соответствия нот');return;
+ }
  let xml=null;
  if(song.format==='MusicXML'&&song.notationXML&&typeof sheetFingeringOverlay==='function'){
   const changes={};
@@ -892,9 +851,14 @@ if($('pianoMotionExportXML'))$('pianoMotionExportXML').onclick=()=>{
    if(res?.status==='applied'&&res.xml)xml=res.xml;
   }
  }
+ if(!xml&&song.format==='MusicXML'&&song.notationXML){
+  notify('Экспорт остановлен: не удалось безопасно наложить аппликатуру на оригинальный MusicXML.');return;
+ }
  if(!xml){
   try{
-   xml=scoreXMLFromSong(song);
+   const tracks=pianoMotionLastPlan?.mode==='derived'
+    ?pianoMotionLastPlan.trackIndices.map(i=>song.tracks[i]):song.tracks;
+   xml=scoreXMLFromSong({...song,tracks});
   }catch(e){
    notify('Не удалось создать MusicXML: '+(e?.message||e));
    return;
