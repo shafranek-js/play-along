@@ -150,7 +150,7 @@ function fingerGuidanceSteps(){
  // For non-demo works only explicitly annotated MusicXML is eligible.
  // An ordinary MIDI pitch is never treated as evidence of a finger.
  const key=fingerGuideWorkKey(),edits=key?state.fingerOverrides?.[key]||{}:{};
- if(!demo&&!current.tracks.some(t=>t.notes.some(n=>Number.isInteger(n.finger)&&n.finger>=1&&n.finger<=5))&&!Object.keys(edits).length)return [];
+ if(!demo&&!current.tracks.some(t=>t.notes.some(n=>['musicxml','pianomotion','user'].includes(n.fingeringSource)&&Number.isInteger(n.finger)&&n.finger>=1&&n.finger<=5))&&!Object.keys(edits).length)return [];
  const scale=[1,2,3,1,2,3,4,5,4,3,2,1,3,2,1];
  const events=[];
  current.tracks.forEach((track,trackIndex)=>{
@@ -168,8 +168,13 @@ function fingerGuidanceSteps(){
    }else if(fingerOverrideEffective(n,edits[n.noteId])){
     const selected=fingerOverrideEffective(n,edits[n.noteId]);
     finger=selected.finger;hand=selected.hand;source='user';
-   }else if(Number.isInteger(n.finger)&&n.finger>=1&&n.finger<=5){
-    finger=n.finger;hand=n.hand==='RH'||n.hand==='LH'?n.hand:null;source=n.fingeringSource==='musicxml'?'musicxml':'user';
+   }else if(['musicxml','pianomotion','user'].includes(n.fingeringSource)&&
+      Number.isInteger(n.finger)&&n.finger>=1&&n.finger<=5){
+    // Keep trusted author fingers and only explicitly accepted session edits
+    // (including user-applied PianoMotion suggestions). Never convert imported
+    // musicxml-user-export-unverified digits into learner-facing guidance.
+    finger=n.finger;hand=n.hand==='RH'||n.hand==='LH'?n.hand:null;
+    source=n.fingeringSource==='musicxml'?'musicxml':'user';
    }
    // Preserve ALL source-note onsets, including notes with no trusted finger.
    // Otherwise a later annotated group could be shown prematurely while an

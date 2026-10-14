@@ -9,6 +9,16 @@ on:
       - 'scripts/p0a2b-mit-candidate-qualification.mjs'
       - 'tests/p0a2b-source-intake*'
       - 'research/fg04b1a-musicxml-corpus.json'
+      - 'research/p0a2b-phase3-screening-plan.json'
+      - 'research/fg04b1b-asap-score-manifest.json'
+      - '.github/workflows/p0a2b-candidate-intake.yml'
+  pull_request:
+    paths:
+      - 'src/core/p0a2b-*'
+      - 'scripts/p0a2b-*'
+      - 'tests/p0a2b-*'
+      - 'research/p0a2b-phase3-screening-plan.json'
+      - 'research/fg04b1b-asap-score-manifest.json'
       - '.github/workflows/p0a2b-candidate-intake.yml'
   workflow_dispatch:
 
@@ -35,6 +45,11 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Build application
         run: npm run build
+      - name: Verify eight genuine-score screening candidates and leakage protection
+        run: |
+          node --test tests/p0a2b-phase3-cohort.test.mjs
+          node scripts/p0a2b-phase3-screening.mjs
+          node scripts/p0a2b-phase3-screening.mjs --verify-sources
       - name: Verify source notes and source-bound metadata
         run: node --test tests/p0a2b-source-intake.test.mjs
       - name: Real MusicXML browser parser and private packet

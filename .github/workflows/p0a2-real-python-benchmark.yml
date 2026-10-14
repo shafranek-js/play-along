@@ -12,7 +12,16 @@ on:
       - 'tests/p0a2-*'
       - 'src/pianomotion-python/python-core/**'
       - 'research/fg02g-repertoire-manifest.json'
+      - 'research/p0a2b-phase3-screening-plan.json'
       - 'package.json'
+      - '.github/workflows/p0a2-real-python-benchmark.yml'
+  pull_request:
+    paths:
+      - 'src/core/p0a2-*'
+      - 'src/core/p0a2b-*'
+      - 'scripts/p0a2b-*'
+      - 'tests/p0a2b-*'
+      - 'research/p0a2b-phase3-screening-plan.json'
       - '.github/workflows/p0a2-real-python-benchmark.yml'
   workflow_dispatch:
 
@@ -43,7 +52,7 @@ jobs:
       - name: Verify provenance joins, blinded reference and evaluation denominators
         run: node --test tests/p0a2-fingering-comparison.test.mjs
       - name: Validate blinded reviewer protocol, adjudication and privacy-safe aggregate CLI
-        run: node --test tests/p0a2b-independent-review.test.mjs tests/p0a2b-review-workflow.test.mjs
+        run: node --test tests/p0a2b-independent-review.test.mjs tests/p0a2b-review-workflow.test.mjs tests/p0a2b-phase3-cohort.test.mjs
       - name: Actual original Python PianoMotion vs Play Along on all five pinned hand-authored excerpts
         env:
           PYTHON: python

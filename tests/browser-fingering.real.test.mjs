@@ -77,14 +77,14 @@ try{
    document.getElementById('pianoMotionCalculate').click();
    await new Promise(ok=>setTimeout(ok,10));
    return {...captured,status:document.getElementById('pianoMotionStatus').textContent,
-    rows:document.querySelectorAll('#pianoMotionResult li').length};
+    rows:document.querySelectorAll('#pianoMotionReviewList label.pianoMotionReviewRow').length};
   }finally{window.Worker=Native}
  });
  assert.deepEqual(engineConnection.original,[...originalMidi],
   'already-selected MIDI must be passed to original Python worker without another upload');
  assert.equal(engineConnection.type,'analyze-midi');
  assert.equal(engineConnection.options.type,'module');
- assert.equal(engineConnection.rows,1);
+ assert.equal(engineConnection.rows,1,'PianoMotion proposals appear in the current paginated, source-aligned review list');
  assert.match(engineConnection.status,/PianoMotion Python/);
  const before=await page.evaluate(xml=>{
   const song=window.__libraryV08.readMusicXML(xml,'browser-finger.musicxml');
