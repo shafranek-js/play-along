@@ -122,7 +122,7 @@ try{
  assert.deepEqual((await page.evaluate(()=>window.__prototypeTest.midiHeld)).sort((a,b)=>a-b),[65,69],
   'virtual and MIDI keys must share the pressed-key display without duplicate pitch entries');
  await page.evaluate(()=>window.__midiHotplug.send('second-midi',[0x80,65,0]));
- assert.deepEqual(await page.evaluate(()=>window.__prototypeTest.midiHeld.sort((a,b)=>a-b),[65,69]),
+ assert.deepEqual((await page.evaluate(()=>window.__prototypeTest.midiHeld)).sort((a,b)=>a-b),[65,69],
   'physical NoteOff must not release a virtual key of the same pitch');
  await page.evaluate(()=>window.__midiHotplug.send('second-midi',[0xB0,123,0]));
  assert.deepEqual(await page.evaluate(()=>window.__prototypeTest.midiHeld),[65],
