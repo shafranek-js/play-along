@@ -35,3 +35,5 @@ jobs:
         run: node tests/pianomotion-apply-export.test.mjs
       - name: Real Chromium 547-note guitar + flute MIDI roundtrip
         run: node tests/pianomotion-musicxml-roundtrip.real.test.mjs
+      - name: Real Chromium hard-conflict refusal
+        run: node tests/pianomotion-physical-audit.real.test.mjs
