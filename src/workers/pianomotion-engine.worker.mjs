@@ -122,9 +122,17 @@ async function analyze(id,bytes){
    expertValidated:false
   }});
  }catch(err){
+  console.error('PianoMotion worker error:', err);
   runtimePromise=null;
-  fail(id,typeof err?.message==='string'&&/^[A-Z0-9_]{5,70}$/.test(err.message)?
-   err.message:'PIANOMOTION_RUNTIME_FAILED');
+  let message='PIANOMOTION_RUNTIME_FAILED';
+  if(typeof err?.message==='string'&&err.message.trim()){
+   message=err.message.trim();
+   if(message.includes('Traceback (most recent call last):')){
+    const lines=message.trim().split('\n');
+    message=lines[lines.length-1].trim() || message;
+   }
+  }
+  fail(id,message);
  }finally{busy=false}
 }
 self.onmessage=e=>{

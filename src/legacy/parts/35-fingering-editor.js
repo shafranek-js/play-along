@@ -728,8 +728,10 @@ $('pianoMotionCalculate').onclick=()=>{
   worker.terminate();pianoMotionRun=null;
   $('pianoMotionCalculate').disabled=false;
   if(data.type==='error'){
-   $('pianoMotionStatus').textContent='PianoMotion: '+data.reason+
-    '. Проверь подключение к сети и поддержку WebAssembly.';return;
+   const hint=data.reason==='PIANOMOTION_RUNTIME_FAILED'
+    ?'. Проверь подключение к сети и консоль браузера (F12).'
+    :' (подробности в консоли F12).';
+   $('pianoMotionStatus').textContent='PianoMotion: '+data.reason+hint;return;
   }
   if(data.type!=='result'||!data.result)return;
   const result=data.result;
@@ -758,7 +760,10 @@ $('pianoMotionCalculate').onclick=()=>{
   list.append(ol);
   $('pianoMotionClear').disabled=false;
  };
- worker.onerror=()=>{if(cancel())pianoMotionStop('Ошибка браузерного Python Worker. Проверь консоль.')};
+ worker.onerror=event=>{
+  console.error('PianoMotion worker onerror:',event);
+  if(cancel())pianoMotionStop('Ошибка браузерного Python Worker. Проверь консоль.');
+ };
  // Defensive copy is transferred, never the in-memory source MIDI buffer.
  const transferable=midi.slice().buffer;
  worker.postMessage({id,type:'analyze-midi',midiBytes:transferable},[transferable]);
