@@ -1,4 +1,14 @@
-# Play Along — Piano Practice App (v0.10.96)
+# Play Along — Piano Practice App (v0.10.97)
+
+## P0-A2b — independent blinded pianist-review infrastructure (v0.10.97)
+
+**Delivered an engineering protocol, NOT independent pianist-validated accuracy.** This release introduces an offline, immutable SHA-bound, **fingerless** review packet with full source-note identity, hand-mode choice (explicit score hands vs blind hand separation), human-curated technical categories (chords, inversions, thumb-under, repeated notes, arpeggios, crossing, held voices, wide spans), and predeclared `development` / `heldout` study grouping. Finger-number references and all candidate model predictions are rejected if they appear in the source packet.
+
+Two independent anonymous reviewer responses are required; agreed acceptable hand/finger combinations use the **intersection** of their acceptable choices, not a silently broadened union. Uncertain/disputed notes are excluded until a third distinct adjudicator explicitly rules with a rationale. Both engines' candidate rows must join by the same original `noteId`, pitch, onset and duration; no hand guessing, shifted events or nearest-pitch alignment. Reported outputs aggregate coverage, abstentions, reference-compatible fingers, disagreements, by-hand and by-technique measures, and never print source note vectors/finger assignments. The CLI can create private, no-overwrite review templates and validate that the same work/composer/arrangement group does not straddle development/heldout.
+
+**Local workflow:** `node scripts/p0a2b-review-workflow.mjs packet /private/curated-source.json /private/packet.json`, then `template`, `study` and `evaluate` commands documented in [P0-A2b reviewer protocol](docs/P0-A2B-REVIEW-PROTOCOL.md). All input scores, expert reviews, engine outputs and packet forms stay local; no new data collection UI or automatic sharing is enabled. Unit tests `tests/p0a2b-independent-review.test.mjs` and `tests/p0a2b-review-workflow.test.mjs` are part of `npm test` and the research GitHub Actions gate. The previous genuine Python/PianoMotion-vs-FG-02I 148-note report remains [P0-A2](docs/P0-A2-REAL-FINGERING-QUALITY.md).
+
+**Acceptance remains blocked:** no independently qualified pianists have supplied the required blind ratings, and the program cannot verify reviewers' credentials, rights grants or the truth of `blindToAlgorithms` self-attestations. This code does not execute either solver or prove accuracy gains; it scores only separately computed, exact-source outputs. The resulting `independentlyValidated=false`, `productionEligible=false`; generated fingers are not automatically promoted to teaching guidance. **NEXT P0-A2b:** obtain authorized polyphonic and technique-rich material and actual, independently reviewed variant fingering reference sets, then run the real Python and FG-02I engines on frozen heldout cases. Hand-thesia completion remains 35%; optional IK remains separate.
 
 ## P0-A2 — REAL original-Python PianoMotion vs Play Along FG-02I (v0.10.96)
 
