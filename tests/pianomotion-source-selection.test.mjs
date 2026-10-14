@@ -89,3 +89,17 @@ test('SMF type 0 Program Change identifies guitar even when track is called Trac
  assert.equal(pianoMotionAlignSuggestions(song,suggestions,{
   trackIndices:plan.trackIndices,channel:plan.channel}).ok,true);
 });
+
+test('piano left-hand Bass staff does not trigger foreign-instrument fallback',()=>{
+ const song={tracks:[{name:'Piano RH',notes:[note(72,0,.5,{channel:0})]},
+                       {name:'Bass',notes:[note(48,0,.5,{channel:1})]}],
+  audioEvents:[{type:'programChange',program:0,channel:0,track:0},
+               {type:'programChange',program:0,channel:1,track:1}]};
+ assert.equal(pianoMotionSourcePlan(song,0).mode,'original');
+});
+test('non-sounding foreign Program Change does not discard the second piano hand',()=>{
+ const song={tracks:[{name:'RH',notes:[note(72,0,.5,{channel:0})]},
+                       {name:'LH',notes:[note(48,0,.5,{channel:1})]}],
+  audioEvents:[{type:'programChange',program:24,channel:2,track:null}]};
+ assert.equal(pianoMotionSourcePlan(song,0).mode,'original');
+});
