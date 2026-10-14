@@ -1,0 +1,43 @@
+name: P0-A2b pinned MusicXML candidate intake (research only)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/core/p0a2b-source-intake.mjs'
+      - 'scripts/p0a2b-import-musicxml.mjs'
+      - 'scripts/p0a2b-mit-candidate-qualification.mjs'
+      - 'tests/p0a2b-source-intake*'
+      - 'research/fg04b1a-musicxml-corpus.json'
+      - '.github/workflows/p0a2b-candidate-intake.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: p0a2b-research-candidate-intake
+  cancel-in-progress: true
+
+jobs:
+  verified-sources-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Build application
+        run: npm run build
+      - name: Verify source notes and source-bound metadata
+        run: node --test tests/p0a2b-source-intake.test.mjs
+      - name: Real MusicXML browser parser and private packet
+        run: node tests/p0a2b-source-intake.real.test.mjs
+      - name: Verify six pinned MIT MusicXML research candidates
+        run: node scripts/p0a2b-mit-candidate-qualification.mjs
