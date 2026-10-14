@@ -42,6 +42,10 @@ function refreshInputs(){
 function setInput(input,remember=true){
  if(midiInput===input)return;
  if(midiInput)midiInput.onmidimessage=null;
+ // A disconnected or replaced keyboard may never send its last NoteOff.
+ // Finalize these key releases through the same path as physical NoteOff so
+ // PracticeSession and Wait cannot retain ghost presses after a hotplug.
+ for(const pitch of [...midiHeld])onNoteOff(pitch,'midi');
  midiHeld.clear();stopLiveAll();if(waitReleaseGroup)advanceWaitAfterRelease();midiInput=input||null;deviceName=midiInput?.name||'';
  if(midiInput){midiInput.onmidimessage=onMIDI;if(remember){state.preferredMidiName=midiInput.name||'';persist()}}
  updateDevice();
