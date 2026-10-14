@@ -1,4 +1,14 @@
-# Play Along — Piano Practice App (v0.10.100)
+# Play Along — Piano Practice App (v0.10.101)
+
+## LAUNCH-01 — Real piano score/MIDI UAT and cancellable Python calculation (v0.10.101)
+
+**Real-score engineering QA:** a new independent Chromium workflow uses **original SHA-pinned Bach Prelude BWV 846 and Schubert Moment musical No. 3** MusicXML + MIDI source pairs from the ASAP dataset (CC BY-NC-SA 4.0, temporary noncommercial QA only). The actual app readers imported **549 + 1,058 = 1,607 playable notes** in each format, without invalid note timing or page errors. Both MusicXML imports emitted one warning; matching counts **do not establish exact event alignment**. No upstream music bytes are bundled, committed or deployed. On those real imported piano MIDIs, a simulated Python Worker runtime failure leaves source notes unchanged, prevents Apply/Export and permits retry.
+
+**UX fix:** an earlier long Python/Pyodide Worker call could not be cancelled. While it runs, an explicit **✕ Отменить расчёт** button now terminates the Worker and invalidates late callbacks, retains MIDI and manual corrections, and unlocks Calculate for retry. On completion/error or cancellation it disappears. A real Chromium regression exercises delayed async replies and safe retry with unchanged notes. This is a local asynchronous Worker mock, not a claim that actual Pyodide reliably loads offline.
+
+**Evidence:** [LAUNCH-01 engineering UAT](docs/LAUNCH-01-UAT-RESULTS.md), [original-score and cancellation browser QA workflow](.github/workflows/pianomotion-integration.yml).  Previous mixed-instrument 547-note Apply → Undo/Redo → MusicXML reimport tests and real original Python research tests remain independent and unchanged.
+
+**Beta readiness remains conditional:** two real scores pass parsing, but the source-event semantic parity, nonfatal XML warnings, actual end-to-end Pyodide calculation for user music, hardware MicroLab/musical audio/Wait-Seek-Loop checks and **third-party redistribution rights** remain open. Missing professional pianist adjudicators do **not** block a beta, but legal or critical data/playback problems do. No fingering solver weights or animation sprites were changed.
 
 ## LAUNCH-01 — honest beta fingering without expert-review dependency (v0.10.100)
 
