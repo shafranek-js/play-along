@@ -85,6 +85,12 @@ test('FG-04C9: browser applies PianoMotion suggestions and exports MusicXML with
 
   document.getElementById('pianoMotionClear').click();
   const afterClearFinger = song.tracks[0].notes[0].finger;
+  const undoAfterHide = !document.getElementById('pianoMotionUndo').disabled &&
+   !document.getElementById('pianoMotionReview').hidden;
+  document.getElementById('pianoMotionUndo').click();
+  const afterClearUndoFinger=song.tracks[0].notes[0].finger;
+  document.getElementById('pianoMotionRedo').click();
+  const afterClearRedoFinger=song.tracks[0].notes[0].finger;
 
   URL.createObjectURL = originalCreateObjectURL;
   let runtimeErrorRetries = 0;
@@ -112,6 +118,9 @@ test('FG-04C9: browser applies PianoMotion suggestions and exports MusicXML with
    guideMode,
    guideStatus,
    afterClearFinger,
+   undoAfterHide,
+   afterClearUndoFinger,
+   afterClearRedoFinger,
    exportedXml
   };
  });
@@ -128,7 +137,10 @@ test('FG-04C9: browser applies PianoMotion suggestions and exports MusicXML with
  assert.match(result.runtimeErrorMessage, /PIANOMOTION_RUNTIME_FAILED/);
  assert.equal(result.guideMode, 'numbers');
  assert.ok(result.guideStatus.includes('1/1'));
- assert.equal(result.afterClearFinger, 4); // Clearing proposals must preserve accepted fingers.
+ assert.equal(result.afterClearFinger, 4); // Hiding proposals must preserve accepted fingers.
+ assert.equal(result.undoAfterHide,true,'Undo stays visible after hiding accepted previews');
+ assert.equal(result.afterClearUndoFinger,undefined);
+ assert.equal(result.afterClearRedoFinger,4);
  assert.ok(result.exportedXml.includes('<score-partwise'));
  assert.ok(result.exportedXml.includes('<technical><fingering>4</fingering></technical>'));
 });
