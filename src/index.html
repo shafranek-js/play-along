@@ -212,6 +212,13 @@
     </div>
     <div class="panelSection"><div class="sectionLabel">Выбранная нота</div><div id="selection" class="metabox"><strong>Ничего не выбрано</strong><p>Нажми на цветную полоску в Piano Roll. Здесь появятся свойства ноты.</p></div></div>
     <div class="panelSection"><div class="sectionLabel">Навигация</div><div class="twocol"><button id="loopStartBtn" class="btn tiny">⟲ Начало Loop</button><button id="loopEndBtn" class="btn tiny">⟳ Конец Loop</button></div><div style="display:flex;gap:7px;margin-top:8px"><button id="loopClearBtn" class="btn tiny ghost" style="flex:1">Сброс Loop</button><button id="addBookmarkBtn" class="btn tiny ghost" style="flex:1">Закладка</button></div><div class="small" id="loopLabel" style="margin-top:10px">Повтор не выбран</div></div>
+    <div id="pianoMotionMidiPanel" class="panelSection hidden">
+     <div class="sectionLabel">PianoMotion · оригинальный MIDI-алгоритм (локальное исследование)</div>
+     <p class="small">Работает с уже открытым MIDI: запускает оригинальное Python-ядро PianoMotion в браузере через локальный Pyodide. Без повторной загрузки файла. Предложения не принимаются автоматически и не управляют учебными руками.</p>
+     <button type="button" id="pianoMotionMidiRun" class="btn tiny primary">🧠 Рассчитать MIDI в PianoMotion</button>
+     <p id="pianoMotionMidiStatus" class="small" role="status" aria-live="polite">Выбери MIDI-произведение, уже сохранённое в библиотеке.</p>
+     <div id="pianoMotionMidiResults" class="fingerBrowserCandidates"></div>
+    </div>
   </div>
   <div id="tabAdapt" class="hidden">
     <div class="panelSection"><div class="sectionLabel">Smart Song Adaptation v0.6</div>

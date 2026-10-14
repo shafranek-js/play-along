@@ -32,6 +32,8 @@ try{
  const failures=[];page.on('pageerror',e=>failures.push(e.message));
  await page.goto('http://127.0.0.1:'+server.address().port);
  await page.waitForFunction(()=>window.__libraryV08&&window.__prototypeTest&&window.__fingerGuideTest);
+ assert.equal(await page.locator('#pianoMotionMidiPanel').isHidden(),true,
+  'Public build must not expose PianoMotion private runtime without explicit local staging');
  assert.equal(await page.locator('#fingerSpanToggle').isVisible(),true,'Calibration is available even without a MusicXML file');
  const before=await page.evaluate(xml=>{
   const song=window.__libraryV08.readMusicXML(xml,'browser-finger.musicxml');

@@ -31,6 +31,15 @@ if (!js.includes(`window.__playAlongVersion='${version}'`)) throw Error('Failed 
 const dist = path.join(root, 'dist');
 fs.mkdirSync(path.join(dist, 'assets'), {recursive:true});
 fs.writeFileSync(path.join(dist, 'assets/app.js'), js);
+// FG-04C7: executable original-PianoMotion Python worker only when a developer
+// explicitly stages the private, SHA-pinned runtime into dist (local research).
+// No PianoMotion Python, wheel or SoundFont source is shipped by npm build.
+await esbuild({
+ entryPoints:[path.join(root,'src/workers/pianomotion-engine.worker.mjs')],
+ outfile:path.join(dist,'assets/pianomotion-engine-worker.js'),
+ bundle:true,format:'esm',platform:'browser',target:['es2022'],
+ minify:true,legalComments:'none',sourcemap:false,logLevel:'silent'
+});
 // FG-04C4: classic dedicated research Worker, bundled for offline use.
 // This is independent of the player's music/audio transport and loads on demand.
 await esbuild({
