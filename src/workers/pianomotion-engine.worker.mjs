@@ -55,7 +55,7 @@ await micropip.install(["pretty-midi==0.2.11.post0","mido==1.3.3","importlib-res
  }
  py.FS.writeFile('/python-core/handthesia_core/source_manifest.json',
   new TextEncoder().encode(JSON.stringify(core)));
- await py.runPythonAsync('import sys\\nsys.path.insert(0,"/python-core")\\nimport handthesia_core.api');
+ await py.runPythonAsync('import sys\nsys.path.insert(0,"/python-core")\nimport handthesia_core.api');
  return {py,engineVersion:core.engineVersion};
 }
 const ORIGINAL_ANALYSIS=[
