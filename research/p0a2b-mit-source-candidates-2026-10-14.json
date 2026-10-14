@@ -1,0 +1,122 @@
+{
+  "ok": true,
+  "schema": "p0a2b-mit-musicxml-source-precheck-v1",
+  "pinnedRevision": "77c19f7e819154c70ca1a1992e80dcda8ff82fea",
+  "license": "MIT",
+  "attribution": "Reinhold Kainhofer / GNU LilyPond and Michael Scott Asato Cuthbert; see upstream LICENSE and README",
+  "selected": 6,
+  "verifiedSourceBlobs": 6,
+  "technicallyParsed": 6,
+  "sourcesCommitted": 0,
+  "expertReviewerCount": 0,
+  "notesReviewedByHuman": 0,
+  "independentFingeringAccuracy": null,
+  "note": "MusicXML test suite contains SYNTHETIC notation fixtures, not expert pianist reference or real performance corpus. Development pre-screen only; ALL musicological tags require human review. No MIDI solver or pianist ratings executed.",
+  "cases": [
+    {
+      "id": "schubert-chord",
+      "category": "chords",
+      "sourceKind": "synthetic-notation-test",
+      "sourceBlobSha1": "637da5663dd0ee985e8cfa352a588714523f81d5",
+      "scoreSha256": "07325229b78933c7d2daef46a0de83bf69d38a6f3f33e973f0ed2ac460eb2ce9",
+      "status": "TECHNICAL_CANDIDATE",
+      "notes": 9,
+      "tagSignals": {
+        "chord": 8,
+        "heldVoice": 0,
+        "repeatedNote": 5
+      },
+      "ties": 0
+    },
+    {
+      "id": "interleaved-voices",
+      "category": "polyphony",
+      "sourceKind": "synthetic-notation-test",
+      "sourceBlobSha1": "ff1d07ea71568c31bf372bf33254066d6821d068",
+      "scoreSha256": "110dc468aa4d34a264055b74809d6c57e1ccedcc3036a691085eabad19557b1f",
+      "status": "TECHNICAL_CANDIDATE",
+      "notes": 4,
+      "tagSignals": {
+        "chord": 4,
+        "heldVoice": 0,
+        "repeatedNote": 0
+      },
+      "ties": 0
+    },
+    {
+      "id": "single-arpeggio",
+      "category": "arpeggios",
+      "sourceKind": "synthetic-notation-test",
+      "sourceBlobSha1": "0d0d0024d44098999fdc6d03bc5f16782037ca88",
+      "scoreSha256": "acf452bc172e562cea3bf8f03438f9333b04bac359e041a12129c1ad835fdef6",
+      "status": "TECHNICAL_CANDIDATE",
+      "notes": 18,
+      "tagSignals": {
+        "chord": 18,
+        "heldVoice": 0,
+        "repeatedNote": 0
+      },
+      "ties": 0
+    },
+    {
+      "id": "crossed-arpeggios",
+      "category": "arpeggios",
+      "sourceKind": "synthetic-notation-test",
+      "sourceBlobSha1": "21fbec5fd82517eecd72066c0fa52519e69c374c",
+      "scoreSha256": "fd0e3f4a16552b2eefbc1616014a5f4b2369b9c6147d10f58f6ec37451d3c2c8",
+      "status": "TECHNICAL_CANDIDATE",
+      "notes": 30,
+      "tagSignals": {
+        "chord": 30,
+        "heldVoice": 0,
+        "repeatedNote": 20
+      },
+      "ties": 0
+    },
+    {
+      "id": "grand-staff",
+      "category": "multi-staff",
+      "sourceKind": "synthetic-notation-test",
+      "sourceBlobSha1": "e9455ac7fb096c5fb13ddd03aeff3166ff61e327",
+      "scoreSha256": "820450630ce05ea3bbc53c5ac63c0a8ac6597d7db4c232201d54f0ca162d1503",
+      "status": "TECHNICAL_CANDIDATE",
+      "notes": 2,
+      "tagSignals": {
+        "chord": 2,
+        "heldVoice": 0,
+        "repeatedNote": 0
+      },
+      "ties": 0
+    },
+    {
+      "id": "multi-staff-chords",
+      "category": "multi-staff",
+      "sourceKind": "synthetic-notation-test",
+      "sourceBlobSha1": "4be8defbbb8d7c2260b517da22e92db89983c418",
+      "scoreSha256": "b14a8020797c339d3f4e53bb3dd853f09bd59a3a148910dcddfaafc7116d10a8",
+      "status": "TECHNICAL_CANDIDATE",
+      "notes": 70,
+      "tagSignals": {
+        "chord": 70,
+        "heldVoice": 0,
+        "repeatedNote": 63
+      },
+      "ties": 0
+    }
+  ],
+  "researchOnly": true,
+  "expertValidated": false,
+  "productionEligible": false,
+  "evidence": {
+    "runUrl": "https://github.com/shafranek-js/play-along/actions/runs/38578243524",
+    "workflowCommit": "94d282afcf973ad2fca2b188488d94f200392801",
+    "runCompleted": "2026-10-14T14:11:52Z",
+    "extractedFromActualGitHubActionsLog": true
+  },
+  "validation": {
+    "realChromiumParserUsed": true,
+    "fingerLabelsWithheld": true,
+    "scoreMusicAllowedByPinnedManifestMIT": true,
+    "independentPianistRatingsPresent": false
+  }
+}
