@@ -46,7 +46,7 @@ try{
   return JSON.stringify(song.tracks.map(t=>t.notes.map(n=>
    [n.noteId,n.pitch,n.start,n.duration,n.finger??null])));
  });
- await page.locator('#pianoMotionCalculate').click();
+ await page.evaluate(()=>document.getElementById('pianoMotionCalculate').click());
  try{
   await page.waitForFunction(()=>
    (document.getElementById('pianoMotionStatus')?.textContent||'')
