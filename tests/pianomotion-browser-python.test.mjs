@@ -39,7 +39,7 @@ test('FG-04C9 bundles hash-identical original owner Python files, not reconstruc
  const root=join(dirname(fileURLToPath(import.meta.url)),'..');
  const base=join(root,'src/pianomotion-python/python-core/handthesia_core');
  const manifest=JSON.parse(readFileSync(join(base,'source_manifest.json'),'utf8'));
- const ordered=Object.entries(manifest.files).sort(([a],[b])=>a.localeCompare(b));
+ const ordered=Object.entries(manifest.files).sort(([a],[b])=>a<b?-1:a>b?1:0);
  const digest=createHash('sha256').update(JSON.stringify({files:Object.fromEntries(ordered)})).digest('hex');
  assert.equal(digest,manifest.engineVersion);
  for(const [file,hash] of ordered){
