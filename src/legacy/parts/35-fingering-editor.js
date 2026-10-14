@@ -636,7 +636,8 @@ function pianoMotionStart(){
    $('pianoMotionStatus').textContent='Ошибка проверки исходных MIDI-нот. Предложения скрыты.';
   }
  };
- worker.postMessage({id:request,type:'analyze-midi',midiBytes:originalBytes.buffer},[originalBytes.buffer]);
+ const transferBytes=originalBytes.slice().buffer;
+ worker.postMessage({id:request,type:'analyze-midi',midiBytes:transferBytes},[transferBytes]);
 }
 $('pianoMotionCalculate').onclick=pianoMotionStart;
 $('pianoMotionClear').onclick=()=>pianoMotionAbort('Предложения PianoMotion скрыты. Исходная музыка не изменена.');
