@@ -1,0 +1,90 @@
+{
+  "schema": "p0a2b-phase3-real-score-screening-v1",
+  "sourceManifest": "research/fg04b1b-asap-score-manifest.json",
+  "sourceRevision": "afc815c75c42e83a79c03feb6da8a35e77d4c6b8",
+  "license": "CC-BY-NC-SA-4.0",
+  "purpose": "noncommercial private research candidate screening, not approved expert material",
+  "splitPolicy": "composer-disjoint-frozen-before-algorithm-evaluation",
+  "labelsStatus": "unverified-screening-hypotheses-only",
+  "selections": [
+    {
+      "caseId": "bach-prelude-846",
+      "split": "development",
+      "groupId": "composer-bach",
+      "techniqueTargets": [
+        "arpeggio",
+        "thumb-under"
+      ]
+    },
+    {
+      "caseId": "beethoven-sonata-17-1",
+      "split": "development",
+      "groupId": "composer-beethoven",
+      "techniqueTargets": [
+        "chord",
+        "held-voice"
+      ]
+    },
+    {
+      "caseId": "schubert-moment-musical-3",
+      "split": "development",
+      "groupId": "composer-schubert",
+      "techniqueTargets": [
+        "chord",
+        "inversion"
+      ]
+    },
+    {
+      "caseId": "schumann-kreisleriana-1",
+      "split": "development",
+      "groupId": "composer-schumann",
+      "techniqueTargets": [
+        "repeated-note",
+        "held-voice"
+      ]
+    },
+    {
+      "caseId": "chopin-etude-10-1",
+      "split": "heldout",
+      "groupId": "composer-chopin",
+      "techniqueTargets": [
+        "arpeggio",
+        "thumb-under",
+        "wide-span"
+      ]
+    },
+    {
+      "caseId": "liszt-concert-etude-145-1",
+      "split": "heldout",
+      "groupId": "composer-liszt",
+      "techniqueTargets": [
+        "crossing",
+        "wide-span"
+      ]
+    },
+    {
+      "caseId": "mozart-sonata-12-2",
+      "split": "heldout",
+      "groupId": "composer-mozart",
+      "techniqueTargets": [
+        "chord",
+        "inversion"
+      ]
+    },
+    {
+      "caseId": "debussy-pour-piano-1",
+      "split": "heldout",
+      "groupId": "composer-debussy",
+      "techniqueTargets": [
+        "held-voice",
+        "crossing"
+      ]
+    }
+  ],
+  "sourceBytesDownloaded": false,
+  "musicxmlMidiEventIdentityVerified": false,
+  "humanTechniqueScreeningCompleted": false,
+  "independentPianistReviews": 0,
+  "expertAdjudicatedNotes": 0,
+  "productionEligible": false
+}
