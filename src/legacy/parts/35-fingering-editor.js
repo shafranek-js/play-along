@@ -686,9 +686,12 @@ function pianoMotionReviewSync(){
  const active=!!count&&pianoMotionLastSong===current;
  const selected=[...pianoMotionReviewSelected].filter(i=>i>=0&&i<count).length;
  $('pianoMotionReviewCount').textContent=active?'Выбрано '+selected+' из '+count+' нот':'Предложения отсутствуют';
- $('pianoMotionApplySelected').disabled=!active||!selected;
- $('pianoMotionSelectAll').disabled=!active;
- $('pianoMotionSelectNone').disabled=!active||!selected;
+ $('pianoMotionApplySelected').disabled=!active||!selected||
+  $('pianoMotionReview').classList.contains('collapsed');
+ $('pianoMotionSelectAll').disabled=!active||
+  $('pianoMotionReview').classList.contains('collapsed');
+ $('pianoMotionSelectNone').disabled=!active||!selected||
+  $('pianoMotionReview').classList.contains('collapsed');
  $('pianoMotionUndo').disabled=!active||!pianoMotionReviewHistory.past.length;
  $('pianoMotionRedo').disabled=!active||!pianoMotionReviewHistory.future.length;
  $('pianoMotionExportXML').disabled=!pianoMotionLastApplied||!pianoMotionReviewCountApplied();
@@ -785,6 +788,7 @@ function pianoMotionStop(message){
  pianoMotionReviewSelected.clear();pianoMotionReviewOffset=0;pianoMotionReviewHit=[];
  pianoMotionReviewHistory=pianoMotionEmptyHistory();
  $('pianoMotionReview').hidden=true;
+ $('pianoMotionReview').classList.remove('collapsed');
  $('pianoMotionReviewList').replaceChildren();
  $('pianoMotionResult').replaceChildren();
  $('pianoMotionClear').disabled=true;
@@ -795,11 +799,12 @@ function pianoMotionStop(message){
 }
 $('pianoMotionClear').onclick=()=>{
  if(pianoMotionLastApplied&&pianoMotionLastSong===current){
-  $('pianoMotionReview').hidden=true;
+  $('pianoMotionReview').classList.add('collapsed');
+  pianoMotionReviewSync();
   $('pianoMotionResult').replaceChildren();
   $('pianoMotionApply').disabled=true;
   $('pianoMotionClear').disabled=true;
-  $('pianoMotionStatus').textContent='Предложения скрыты. Применённые пальцы сохранены; экспорт MusicXML доступен.';
+  $('pianoMotionStatus').textContent='Предложения скрыты. Применённые пальцы сохранены; Undo/Redo и экспорт доступны.';
   return;
  }
  pianoMotionStop('Предложения скрыты. Исходные ноты не изменены.');
