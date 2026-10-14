@@ -1,4 +1,4 @@
-# Play Along — Piano Practice App (v0.10.90)
+# Play Along — Piano Practice App (v0.10.91)
 
 ## FG-04D0 — PianoMotion MIDI compatibility and safe apply/export (14 October 2026)
 
@@ -6,7 +6,7 @@
 
 **Fail closed:** original MIDI retries occur only for known structural/provenance errors; Python/Pyodide download, checksums, source-module and Worker failures do not trigger repeated conversion. Temporary MIDI uses one piano channel and millisecond note times; it rejects overlapping identical pitches with ambiguous note-offs. A warning for more than ten simultaneously held notes is a coarse diagnostic, NOT expert validation of piano playability.
 
-**Apply and export:** all returned fingers must be uniquely matched by pitch and tightly matching note timings to existing source notes in the selected track/channel; ambiguous, missing or extra notes disable Apply and XML export. Existing author/user fingers are protected. Clear hides proposals **without deleting applied fingers**. Original MusicXML export never silently falls back to an approximate transcription if the overlay fails; imported MIDI exports only the chosen piano part/channel using explicitly approximate transcription. Generated fingerings are not expert-verified ground truth.
+**Apply and export:** all returned fingers must be uniquely matched by pitch and tightly matching note timings to existing source notes in the selected track/channel; ambiguous, missing or extra notes disable Apply and XML export. XML export is enabled only after applying at least one finger. Source-note identity is rechecked at both Apply and Export. Existing author/user fingers are protected. Clear hides proposals **without deleting applied fingers**. Original MusicXML export never silently falls back to an approximate transcription if the overlay fails; imported MIDI exports only the chosen piano part/channel using explicitly approximate transcription. Generated fingerings are not expert-verified ground truth.
 
 Regression tests: `tests/pianomotion-source-selection.test.mjs` (`npm test`) and `tests/pianomotion-apply-export.test.mjs` (`npm run test:browser`). Source: `src/core/pianomotion-song-to-midi.mjs` and `src/legacy/parts/35-fingering-editor.js`. Retain the author/upstream attribution below.
 
