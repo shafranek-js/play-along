@@ -1,5 +1,11 @@
 # Play Along — development roadmap: Finger Guidance and musical reliability
 
+## Owner reprioritization — stop active upstream-licensing work until final release (2026-10-14)
+
+**Decision:** the Hand-thesia/PianoMotion upstream rights question is presently unresolved and cannot reasonably be advanced in this development cycle. Its **decision is deferred to the final-release milestone**; no more repeated licensing audits or attempts at permission are planned during ongoing feature work. Mark **F0: DEFERRED / RIGHTS NOT CLEARED**. This does not grant a right to publicly redistribute existing Python derivatives, including on today's GitHub Pages and any public beta.
+
+**Active next task:** LAUNCH-01 F2 musical transport, MIDI controller, sustain pedal (CC64), Wait/Seek/Loop/Tempo, release timing and browser audio QA; then LAUNCH-02 source-safe editable fingering and LAUNCH-03 UX/stability. At final release, explicitly choose between documented legal permission, independent code replacement or an adjusted distribution scope. Earlier roadmap descriptions of F0 as a release gate are **not removed**, but the gate is no longer part of the current sprint. Expert pianist recruitment remains optional after launch.
+
 ## LAUNCH-01 — strict MXL ZIP parsing, corrupted input and real multi-track MIDI (v0.10.104)
 
 **Delivered:** browser importer now rejects inconsistent MXL ZIP catalogs/local headers, encrypted/multidisk archives, unsafe/duplicated entry names, unsupported compression, expanded-size mismatches, and bogus `META-INF/container.xml` rootfile targets rather than opening a different score. Genuine Chromium verified compressed and stored MXL, **9/9 malformed MXL refused**, imported **1,050 notes across three separate MIDI tracks**, **2,100 physical key events**, and refused **5/5 invalid MIDI** with the currently open song intact. [New source/negative QA](LAUNCH-01-MXL-MIDI-BOUNDARIES.md) and [successful workflow](https://github.com/shafranek-js/play-along/actions/runs/38620666234). Original MIDI note-off times, user/author fingering and audio remain untouched.
