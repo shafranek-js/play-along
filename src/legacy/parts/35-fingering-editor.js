@@ -702,12 +702,12 @@ $('pianoMotionCalculate').onclick=()=>{
  function startRun(useExactOriginal){
   // Never feed a guitar/percussion MIDI directly to the two-hand piano solver.
   const original=useExactOriginal&&plan.mode==='original'?originalMidiForSong(song):null;
-  const derived=!original?makePianoMotionMidiFromSong(song,{trackIndices:plan.trackIndices}):null;
+  const derived=!original?makePianoMotionMidiFromSong(song,{trackIndices:plan.trackIndices,channel:plan.channel??null}):null;
   if(!original&&!derived?.ok){
    $('pianoMotionStatus').textContent='Не могу подготовить MIDI для расчёта: '+(derived?.reason||'нет нот')+'.';return;
   }
   const midi=original||derived.midiBytes;
-  const diagnostic=pianoMotionPlayableDiagnostic(song,plan.trackIndices);
+  const diagnostic=pianoMotionPlayableDiagnostic(song,plan.trackIndices,plan.channel??null);
   if(midi.length>4000000){
    $('pianoMotionStatus').textContent='MIDI больше допустимого ограничения 4 МБ.';return;
   }
@@ -756,7 +756,7 @@ $('pianoMotionCalculate').onclick=()=>{
     $('pianoMotionStatus').textContent='PianoMotion вернул неполную последовательность. Предложения отклонены.';return;
    }
    const alignment=pianoMotionAlignSuggestions(song,result.suggestions,{
-    trackIndices:plan.trackIndices,tolerance:exact?.025:.005
+    trackIndices:plan.trackIndices,channel:plan.channel??null,tolerance:exact?.025:.005
    });
    $('pianoMotionStatus').textContent='Оригинальный PianoMotion Python · '+result.total+
     ' нот · '+result.playable+' пальцев · '+result.unresolved+' не определено. '+
@@ -857,7 +857,11 @@ if($('pianoMotionExportXML'))$('pianoMotionExportXML').onclick=()=>{
  if(!xml){
   try{
    const tracks=pianoMotionLastPlan?.mode==='derived'
-    ?pianoMotionLastPlan.trackIndices.map(i=>song.tracks[i]):song.tracks;
+    ?pianoMotionLastPlan.trackIndices.map(i=>({
+      ...song.tracks[i],notes:song.tracks[i].notes.filter(n=>
+       !n.isDrum&&n.channel!==9&&
+       (pianoMotionLastPlan.channel==null||n.channel===pianoMotionLastPlan.channel))
+     })):song.tracks;
    xml=scoreXMLFromSong({...song,tracks});
   }catch(e){
    notify('Не удалось создать MusicXML: '+(e?.message||e));
