@@ -1,4 +1,14 @@
-# Play Along — Piano Practice App (v0.10.94)
+# Play Along — Piano Practice App (v0.10.95)
+
+## P0-A1 — independent PianoMotion physical contradiction audit (v0.10.95)
+
+This release adds a **source-note-anchored second opinion on generated fingering**, NOT a different fingering model and NOT evidence of increased pianist accuracy. Before a proposed PianoMotion finger can be accepted in the Practice review, `pianoMotionAuditFingers` independently checks physical key release times (original MIDI NoteOff, **not pedal sustain**): a single finger cannot hold two unrelated keys, the same physical key cannot be independently attacked by two different hands/held reattacks, and one hand cannot hold more than five separate keys. Simultaneous unisons on the same hand/finger are allowed; the original PianoMotion **adjacent double-thumb (white/black) and double-pinky (white)** technique is recognized as a separate *unverified technique exception*, not incorrectly declared impossible.
+
+Conflicting candidates are highlighted in red with an accessible reason; source-author and manual annotations are protected. **Apply all** and **Apply selected** automatically skip hard-contradictory generated candidates and state how many were skipped. Valid remaining candidates retain existing per-note selection and Undo/Redo; unresolved notes remain unresolved; exports never silently convert a rejected proposal into an approved finger. The input score, track selection, MIDI physical timings, tempo, SoundFont, hand PNG assets and backed-up original corrections do not change. The screen refuses malformed source alignments and streams with extreme concurrent density, rather than hanging or fabricating finger assignments.
+
+**Engineering QA:** `src/core/pianomotion-physical-audit.mjs`, `tests/pianomotion-physical-audit.test.mjs`, and the real-Chromium `tests/pianomotion-physical-audit.real.test.mjs` (genuine MIDI import and UI with a synthetic conflicting Python Worker result). The dedicated Chromium workflow also runs the existing 547-note guitar + flute apply/export/reimport regression. **Limitations:** no pianist-labelled corpus was run in this increment, and the browser integration uses a simulated Python response. Hard-conflict absence ≠ good fingering, anatomy certification, or performance accuracy; generated proposals are never relabelled as score-author annotations.
+
+**Next P0-A2:** execute both real PianoMotion Python and the existing Play Along FG-02I scorer on **identical, source-ID-verified, independently hand-annotated MusicXML/MIDI cases** including scales, repeated notes, inversions, fast thumb crossings, held voices and different hand spans; use strictly withheld expert finger annotations, record full eligible/proposed/refused/error denominators, and change solver weights only on independently verified gains. The preliminary research contract is `docs/FG-04C2-PIANOMOTION-FINGERING-COMPARISON.md`. Optional PianoMotion IK (FG-03D5/03D6) stays behind that acceptance gate; Hand-thesia completion remains 35%.
 
 ## FG-04D3 — PianoMotion complete visual fingering review (v0.10.94)
 
