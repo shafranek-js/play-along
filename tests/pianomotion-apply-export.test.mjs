@@ -97,7 +97,7 @@ test('FG-04C9: browser applies PianoMotion suggestions and exports MusicXML with
  assert.equal(result.afterApplyFinger, 4);
  assert.equal(result.guideMode, 'numbers');
  assert.ok(result.guideStatus.includes('1/1'));
- assert.equal(result.afterClearFinger, undefined);
+ assert.equal(result.afterClearFinger, 4); // Clearing proposals must preserve accepted fingers.
  assert.ok(result.exportedXml.includes('<score-partwise'));
  assert.ok(result.exportedXml.includes('<technical><fingering>4</fingering></technical>'));
 });
