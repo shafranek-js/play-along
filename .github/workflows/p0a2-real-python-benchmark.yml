@@ -1,0 +1,45 @@
+name: P0-A2 real Python fingering comparison
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/core/p0a2-*'
+      - 'scripts/p0a2-real-fingering-benchmark.mjs'
+      - 'tests/p0a2-*'
+      - 'src/pianomotion-python/python-core/**'
+      - 'research/fg02g-repertoire-manifest.json'
+      - 'package.json'
+      - '.github/workflows/p0a2-real-python-benchmark.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: p0a2-real-python-comparison
+  cancel-in-progress: true
+
+jobs:
+  compare-real-engines:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install original PianoMotion Python runtime dependencies
+        run: python -m pip install --disable-pip-version-check --no-input "numpy==2.2.6" "pretty_midi==0.2.11.post0" "mido==1.3.3" "six==1.17.0"
+      - name: Verify provenance joins, blinded reference and evaluation denominators
+        run: node --test tests/p0a2-fingering-comparison.test.mjs
+      - name: Actual original Python PianoMotion vs Play Along on all five pinned hand-authored excerpts
+        env:
+          PYTHON: python
+        run: node scripts/p0a2-real-fingering-benchmark.mjs --all --repeat 2
