@@ -46,6 +46,24 @@ node scripts/p0a2b-mit-candidate-qualification.mjs
 
 The standalone [candidate intake GitHub Actions workflow](../.github/workflows/p0a2b-candidate-intake.yml) runs the same checks with a production build and a real Chromium browser. Its output is a source-compatibility report, not a piano-learning model benchmark. A source refused for missing identity, unsupported ornaments/repeats, or unsafe XML is intentionally **not eligible** for expert-performance evaluation.
 
+## First independently reproduced technical intake — 14 October 2026
+
+A real [GitHub Actions Chromium intake run](https://github.com/shafranek-js/play-along/actions/runs/38578243524) verified **all six pinned MIT source blobs**, imported each in the actual Play Along MusicXML reader, and successfully built six **private, fingerless** candidate packets. The run exercised the narrow standard MusicXML PUBLIC Partwise DTD exception: the declaration was removed before browser parsing, while explicit internal entities were refused. No external source files or packet note vectors were committed.
+
+| Source fixture (MIT, technical/synthetic) | Source notes |
+|---|---:|
+| Schubert chord | 9 |
+| Interleaved voices | 4 |
+| Single arpeggio | 18 |
+| Crossed arpeggios | 30 |
+| Grand staff | 2 |
+| Multi-staff chords | 70 |
+| **Total** | **133** |
+
+The immutable [aggregate snapshot](../research/p0a2b-mit-source-candidates-2026-10-14.json) records the pinned revision, original Git blob SHA-1, actual source SHA-256, note counts and preliminary overlap/repeated-note signals. Co-onset overlap can include different hands; those provisional tags do not establish physical same-hand chord technique.
+
+**Human piano reviewers: 0. Independently adjudicated finger reference notes: 0.** This is six *synthetic technical MusicXML fixtures* (not six independent repertoire performances). The first real source preparation is complete, but pianist-verified held-out accuracy measurement remains blocked.
+
 ## Research status and next acceptance gate
 
 - Engineering verification is a prerequisite, **not** a substitute for independent pianist ratings.
