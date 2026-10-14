@@ -1,0 +1,111 @@
+{
+  "schema": "launch01-actual-asap-score-midi-parity-v1",
+  "date": "2026-10-14",
+  "evidence": {
+    "chromiumWorkflowUrl": "https://github.com/shafranek-js/play-along/actions/runs/38613221446",
+    "sourceManifest": "research/fg04b1b-asap-score-manifest.json",
+    "sourceLicense": "CC-BY-NC-SA-4.0",
+    "purposes": "noncommercial browser QA; no score content redistributed"
+  },
+  "method": {
+    "actualProductionMusicXmlReader": true,
+    "actualProductionMidiReader": true,
+    "independentRawMidiPhysicalTickReader": "src/core/pianomotion-midi-source-map.mjs",
+    "noteComparison": "within-pitch chronological occurrence; identical pitch histogram required",
+    "onsetAndReleaseToleranceSeconds": 0.02,
+    "midiPhysicalTickResolution": 480,
+    "caveat": "Pitch+occurrence comparison is not provenance-proof note identity; three coincident same-pitch contacts in Schubert remain ambiguous. Printed timings are parser-level; no audible hardware testing.",
+    "sourceFilesCommitted": false,
+    "pianoExpertReviewed": false
+  },
+  "cases": [
+    {
+      "caseId": "bach-prelude-846",
+      "sourceNotes": 549,
+      "midiNotes": 549,
+      "matchingPitchHistogram": true,
+      "noteOnWithin20ms": 549,
+      "noteOffWithin20ms": 549,
+      "midiDeviceDeclaredPorts": [
+        "1"
+      ],
+      "warningsAfterFix": [],
+      "originalMidiRawTickVerification": {
+        "tickResolution": 480,
+        "secondsPerTick": 0.0010416666666666667,
+        "maxOnsetResidualSeconds": 0,
+        "maxNoteOffResidualSeconds": 1.1102230246251565e-16
+      },
+      "longestNoteOffDeviationSeconds": 0.0010416666666674956,
+      "gateDifferenceHistogramSeconds": [
+        {
+          "delta": -0.001,
+          "count": 549
+        }
+      ],
+      "simultaneousSamePitchAmbiguities": 0,
+      "fullSourceNoteIdentityProven": false
+    },
+    {
+      "caseId": "schubert-moment-musical-3",
+      "sourceNotes": 1058,
+      "midiNotes": 1058,
+      "matchingPitchHistogram": true,
+      "noteOnWithin20ms": 1058,
+      "noteOffWithin20ms": 479,
+      "midiDeviceDeclaredPorts": [
+        "1"
+      ],
+      "warningsAfterFix": [],
+      "originalMidiRawTickVerification": {
+        "tickResolution": 480,
+        "secondsPerTick": 0.0013020833333333335,
+        "maxOnsetResidualSeconds": 1.4210854715202004e-14,
+        "maxNoteOffResidualSeconds": 2.842170943040401e-14
+      },
+      "longestNoteOffDeviationSeconds": 0.1575520833333428,
+      "gateDifferenceHistogramSeconds": [
+        {
+          "delta": -0.158,
+          "count": 568
+        },
+        {
+          "delta": -0.001,
+          "count": 479
+        },
+        {
+          "delta": -0.155,
+          "count": 3
+        },
+        {
+          "delta": -0.156,
+          "count": 3
+        },
+        {
+          "delta": 0.077,
+          "count": 3
+        },
+        {
+          "delta": -0.118,
+          "count": 2
+        }
+      ],
+      "simultaneousSamePitchAmbiguities": 3,
+      "fullSourceNoteIdentityProven": false
+    }
+  ],
+  "totals": {
+    "scoreNotes": 1607,
+    "midiNotes": 1607,
+    "onsetWithin20ms": 1607,
+    "releasesWithin20ms": 1028,
+    "releasesDifferentOver20ms": 579,
+    "falseMidiPortWarningsFixed": 2,
+    "actualSourceMidiPhysicalTickImportedWithoutAlteration": true,
+    "allCrossFormatSourceNoteIdentitiesEstablished": false,
+    "generatedFingeringAccuracyMeasured": false,
+    "hardwareAudioVerified": false,
+    "productionReleaseReady": false
+  },
+  "conclusion": "The two MusicXML port warnings were spurious on single port 1, now suppressed. Schubert's shorter physical note gates are already present in source MIDI events; preserving them is correct. No automatic change to score nominal note lengths or MIDI physical release times was made."
+}
