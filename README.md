@@ -1,4 +1,12 @@
-# Play Along — Piano Practice App (v0.10.101)
+# Play Along — Piano Practice App (v0.10.102)
+
+## LAUNCH-01 — independent MIDI timing parity and genuine MusicXML port-warning fix (v0.10.102)
+
+**Resolved false source warnings:** Bach BWV 846 and Schubert Moment musical No. 3 each declare only MIDI port 1. The previous MusicXML importer showed a misleading port-conflict warning for *any* port declaration. Now it reports potential instrument/channel port collisions **only if multiple different ports really coexist**; a real-browser test proves single-port scores stay clean and a two-port score still warns. Original MusicXML/MIDI bytes, source note timing and author notes are never mutated.
+
+**Independent real-score MIDI timing audit:** the same two SHA-pinned real ASAP MusicXML/MIDI pairs contain **1,607 actual notes** in each format. All pitches and note-on times align within 20 ms under a transparent same-pitch chronological comparison. In Bach, **549/549** note releases agree within 20 ms. Schubert has **479/1,058** agreeing within 20 ms; 568 raw MIDI key releases are about **158 ms shorter** than MusicXML's notated note duration, plus eleven other differences. Crucially a second **independent parser of the original raw MIDI NoteOn/NoteOff ticks** independently confirmed all 1,607 MIDI source key releases were preserved by Play Along's actual MIDI importer down to floating-point precision. **Do not lengthen them automatically**: this is a physical source MIDI vs score notation difference, not a Play Along data-loss bug. Three same-pitch Schubert overlaps remain ambiguous under the pitch+occurrence correspondence heuristic; full MusicXML-to-MIDI source-ID parity is **not** claimed.
+
+**Reproducibility:** [LAUNCH-01 precise original score UAT](docs/LAUNCH-01-UAT-RESULTS.md) · [source-hashed aggregate evidence](research/launch01-real-score-parity-2026-10-14.json) · `tests/launch01-midi-xml-parity.test.mjs` and `tests/launch01-real-score-parity-evidence.test.mjs`, plus original-source Chromium QA in `tests/launch01-real-score-smoke.real.test.mjs`. No third-party score/MIDI bytes are committed, and ASAP's CC BY-NC-SA 4.0 use is restricted to noncommercial research. Open beta gates remain real-browser Pyodide, hardware MIDI/audio/transport QA and source code/assets redistribution rights. Independent pianist recruitment is **not** a launch gate.
 
 ## LAUNCH-01 — Real piano score/MIDI UAT and cancellable Python calculation (v0.10.101)
 
