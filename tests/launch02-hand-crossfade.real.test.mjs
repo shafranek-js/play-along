@@ -116,7 +116,7 @@ try{
  }));
  assert.equal(wait.blend.to,'spread');
  assert.deepEqual(wait.pitches.sort((a,b)=>a-b),[48,52,55],
-  'Wait's authoritative target changes immediately, even if PNG is still fading');
+  'Wait target changes immediately, even if PNG is still fading');
  await page.evaluate(()=>window.__prototypeTest.pause());
  await page.emulateMedia({reducedMotion:'reduce'});
  // Reduced motion disables the animation at the next render.
