@@ -338,6 +338,48 @@ function drawFingerGuidanceHand(c,geom,keyY,keyboardH,group,hand,ghost=false,tai
  return placement;
 }
 
+// Both rest PNGs ship with the user's seven original poses per hand.
+// They do NOT mean a piano key is depressed; locate the hovering wrist near
+// the hand's last authored/accepted note instead of fabricating a finger.
+function fingerGuidanceRestPlacement(steps,hand,now,geom,keyboardH){
+ const anchor=fingerGuidanceRestAnchor(steps,hand,now,loop);
+ const key=anchor&&geom?.byPitch?.get(anchor.pitch);
+ if(!key||!geom?.whites?.length)return null;
+ const entry=fingerGuidanceGetImage(hand,'rest');
+ const unit=geom.whites[0].w,width=unit*4.85;
+ const iw=entry?.image.naturalWidth||303,ih=entry?.image.naturalHeight||532;
+ const height=width*ih/iw;
+ const x=key.center-width/2;
+ // Unlike an active fingertip, the resting fingers hover above the key bed.
+ const y=keyboardTop+keyboardH*.20-height*.075;
+ const visible=Math.max(0,Math.min(lastCanvasSize.w,x+width)-Math.max(0,x));
+ if(visible<width*.65)return null; // cropped keyboard: no phantom wrist
+ return {x,y,width,height,unit,hand,pose:'rest',pitch:anchor.pitch,
+  anchorStart:anchor.start,notes:[],error:0};
+}
+function fingerGuidancePassivePlacements(steps,group,now,geom,keyboardH){
+ const empty={LH:null,RH:null};
+ if(!group?.notes?.length)return empty;
+ // Never synthesize the second hand for a one-hand score or MIDI where the
+ // hand split remains unknown. Both hands must be score/provenance anchored.
+ const both=['LH','RH'].every(h=>steps.some(g=>g.notes.some(n=>n.hand===h)));
+ if(!both)return empty;
+ const active=['LH','RH'].filter(h=>group.notes.some(n=>n.hand===h));
+ if(active.length!==1)return empty;
+ const idle=active[0]==='LH'?'RH':'LH';
+ return {...empty,[idle]:fingerGuidanceRestPlacement(steps,idle,now,geom,keyboardH)};
+}
+function drawFingerGuidanceRest(c,placement,keyY,keyboardH,tail=0){
+ if(!placement)return null;
+ const entry=fingerGuidanceGetImage(placement.hand,'rest');
+ if(!entry?.loaded)return null;
+ c.save();c.beginPath();c.rect(0,keyY,lastCanvasSize.w,keyboardH+tail);c.clip();
+ c.globalAlpha=.70;c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';
+ c.drawImage(entry.image,placement.x,placement.y,placement.width,placement.height);
+ c.restore();
+ return placement;
+}
+
 function fingerGuidanceMotionState(group,next,geom,keyboardH,handTail,ghostTime,playing){
  const pairs=Object.fromEntries(['LH','RH'].map(hand=>[hand,{
   from:fingerGuidanceSpritePlacement(group?.notes,hand,geom,keyboardH,handTail),
@@ -418,6 +460,12 @@ function drawFingerGuidance(c,geom,keyY,keyboardH,handsAllowed,handTail=0){
    }
   }
   return;
+ }
+ // Keep the non-playing hand visible in its own original rest PNG. Draw
+ // first (under active hands/markers), without any pressed-key contact.
+ if(handsAllowed&&['hands','ghost'].includes(mode)){
+  const resting=fingerGuidancePassivePlacements(steps,group,pos,geom,keyboardH);
+  for(const hand of ['LH','RH'])drawFingerGuidanceRest(c,resting[hand],keyY,keyboardH,handTail);
  }
  // A partially authored chord is NOT evidence of a complete hand pose.
  // Numeric marks may still be shown for its individually authored notes.
