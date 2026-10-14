@@ -750,7 +750,7 @@ $('pianoMotionMidiRun').onclick=async()=>{
   if(message.type!=='result'||!message.result)return;
   const r=message.result;
   status.textContent='Оригинальный PianoMotion · '+r.total+' нот · '+r.playable+
-   ' предложений · '+r.unresolved+' не определены. Источник проверен SHA-256. Результаты пока только для анализа.';
+   ' предложений · '+r.unresolved+' не определены. Источник проверен SHA-256. Результаты только для анализа; используется стандартная анатомия PianoMotion, выбранный в Play Along размер кисти пока не применяется.';
   const title=document.createElement('p');title.className='small';
   title.textContent='Первые '+r.suggestions.length+' нот. Сопоставление с подсказками Play Along и экспертная проверка ещё не выполнены.';
   host.append(title);
