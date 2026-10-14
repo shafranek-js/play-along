@@ -1,4 +1,12 @@
-# Play Along — Piano Practice App (v0.10.98)
+# Play Along — Piano Practice App (v0.10.99)
+
+## P0-A2b Phase 3 — real piano repertoire screening pre-registration (v0.10.99)
+
+**Engineering delivery, NOT expert accuracy or a ready-to-run source corpus.** Eight **actual classical piano works** from the existing SHA-1-pinned ASAP CC BY-NC-SA 4.0 real-score manifest are now selected for **private, noncommercial** excerpt screening: 4 development (Bach Prelude BWV 846; Beethoven Sonata 17/I; Schubert Moment musical 3; Schumann Kreisleriana I) and 4 held-out (Chopin Etude Op. 10/1; Liszt Concert Etude S.145/1; Mozart Sonata 12/II; Debussy Pour le piano I). The **composer-disjoint split is frozen in advance**. The plan contains no copied score, MIDI, performance, source note/finger rows, expert evaluations or invented bar boundaries.
+
+A source-pinned, deterministic independent audit checks 16 upstream real-score metadata entries, the selected 8 unique work IDs, noncommercial license scope, source-pair blob SHA-1 shape, composer-group isolation, split balance and explicitly **unverified** screening targets for chords, inversions, arpeggios, thumb-under, repeated notes, held voices and crossing. Screening targets are hypotheses for a qualified curator, **NOT musicologically verified properties of a selected excerpt**. It refuses tampered licensing, invented expert counts, declared XML/MIDI source alignment, duplicated scores and development/heldout composer leakage. Run `npm run research:fingering:p0a2b-phase3` or `node --test tests/p0a2b-phase3-cohort.test.mjs`. The dedicated Chromium candidate-intake and real-original-Python baseline Actions workflows run these checks on PRs and main.
+
+**Open gates:** A curator must choose actual measure windows and approve their musical techniques, verify exact original MusicXML/MIDI NoteOn/NoteOff identity for each window, confirm external rights and reviewer qualifications, collect two independent blind pianist submissions, and obtain a distinct third adjudicator for disputed notes. Existing P0-A2b private review tooling remains the review mechanism. No real source excerpt downloaded by this increment; no verified human reference or P0-A2b two-engine comparison exists. `independentReviews=0`, `productionEligible=false`, no solver weights, source score, UI, audio, or any of the 14 PNG hand poses were modified. Hand-thesia **35%**. [Screening protocol](docs/P0-A2B-PHASE3-SCREENING.md) · [research-only plan](research/p0a2b-phase3-screening-plan.json).
 
 ## P0-A2b phase 2 — real MusicXML candidate intake for independent pianist review (v0.10.98)
 
