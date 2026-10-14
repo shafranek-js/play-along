@@ -1,4 +1,16 @@
-# Play Along — Piano Practice App (v0.10.92)
+# Play Along — Piano Practice App (v0.10.93)
+
+## FG-04D2 — Real Chromium PianoMotion integration and safe XML provenance (v0.10.93)
+
+**Why:** The new PianoMotion Worker can compute and explicitly apply fingers to an imported MIDI, but a generated MusicXML file must not disguise those fingers as original composer-provided annotations when re-imported.
+
+**Fix:** Downloaded PianoMotion MusicXML now contains the existing conservative `play-along-user-fingering` provenance marker. Upon independent MusicXML re-import, the parser treats **every numeric fingering** in such a download as `musicxml-user-export-unverified`, never `musicxml` score-author fingering. If the XML cannot be safely parsed/marked, export fails rather than shipping misleading digits. Input MIDI/MusicXML, note on/off, tempo, SoundFont, author/user corrections and all 14 owner PNG hand poses remain untouched. The output derived from MIDI is **approximate score notation** and preserves no claim of bit-perfect source timing in the generated score.
+
+**Integration QA:** Added `tests/pianomotion-musicxml-roundtrip.real.test.mjs`: Chromium imports a deterministic Format-1 synthetic guitar MIDI with **547 notes** (including short notes, repeated pitches and chords) plus **12 separate flute notes**. A deterministic test double substitutes only for the external Python Worker; the browser uses the actual MIDI parser, source selection, user Apply, MusicXML download, independent MusicXML importer and provenance guards. It verifies 547/547 applied guitar notes, no flute edits, unchanged underlying source-note timing/velocity, 547 exported/reimported notes and *zero* fabricated composer-author fingers. The existing browser Apply/Export and 21 source/adapter module regressions also run in an **independent GitHub Actions Chromium workflow** on main: [PianoMotion integration QA](.github/workflows/pianomotion-integration.yml). Registered the new test in `npm run test:browser`.
+
+**Validation boundary:** Python/Pyodide's actual network-dependent inference has not yet been run inside this new CI browser scenario; previously built source-identity and 50-ms normalization checks remain pure module tests. No expert musician has approved generated fingering as lesson-grade. Rights inherited from adapted third-party Hand-thesia sources remain an independent review requirement.
+
+**Next:** FG-04D3 source-note-anchored visual review and selective finger acceptance/Undo, followed by measured P0-A musical quality work and FG-03D5/03D6 switchable PianoMotion IK. The full roadmap is [docs/ROADMAP-FINGER-GUIDANCE.md](docs/ROADMAP-FINGER-GUIDANCE.md); the 3D piano idea remains deferred under issue #36.
 
 ## FG-04D0B — PianoMotion raw note identity restore (v0.10.92)
 
