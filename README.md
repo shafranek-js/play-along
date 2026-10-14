@@ -1,6 +1,6 @@
 # Play Along — Piano Practice App (v0.10.90)
 
-## v0.10.90 — Genuine PianoMotion Python fingering in the browser
+## FG-04C9 — Genuine PianoMotion Python fingering in the browser (v0.10.90)
 
 **Original PianoMotion Studio Python implementation now shipped as source and executed by Pyodide/WebAssembly inside a dedicated browser Worker.** Open a currently selected piece and press **Практика → «🧠 Рассчитать для открытого произведения»**. No second upload and no local Python installation. For `.mid/.midi` the engine receives the **original exact selected bytes**. MusicXML, `.mxl`, and MuseScore `.mscx/.mscz` use existing score import and a strict temporary score-note→MIDI conversion (the opened work and music playback remain unchanged).
 
