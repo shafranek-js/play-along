@@ -42,19 +42,32 @@ function refreshInputs(){
 function setInput(input,remember=true){
  if(midiInput===input)return;
  if(midiInput)midiInput.onmidimessage=null;
- // A disconnected or replaced keyboard may never send its last NoteOff.
- // Finalize these key releases through the same path as physical NoteOff so
- // PracticeSession and Wait cannot retain ghost presses after a hotplug.
- for(const pitch of [...midiHeld])onNoteOff(pitch,'midi');
- midiHeld.clear();stopLiveAll();if(waitReleaseGroup)advanceWaitAfterRelease();midiInput=input||null;deviceName=midiInput?.name||'';
+ // Only the previous USB input's pitches are synthetic NoteOffs. A key held
+ // on the virtual keyboard belongs to a different input and must survive.
+ releaseMidiInputNotes();
+ // MIDI pedals/controllers are also owned by the disconnected input. Clear
+ // them without silencing any surviving virtual-keyboard voice.
+ if(midiHeld.size)audioResetLiveInputControls();else stopLiveAll();
+ if(waitReleaseGroup)advanceWaitAfterRelease();midiInput=input||null;deviceName=midiInput?.name||'';
  if(midiInput){midiInput.onmidimessage=onMIDI;if(remember){state.preferredMidiName=midiInput.name||'';persist()}}
  updateDevice();
+}
+function releaseMidiInputNotes(){
+ for(const [pitch,sources] of [...midiHeldSources])if(sources.has('midi'))onNoteOff(pitch,'midi');
 }
 function onMIDI(e){
  if(!e.data)return;
  const [status,data1=0,data2=0]=e.data,op=status&0xF0;
  if(op===0x90&&data2>0)onNoteOn(data1,data2,'midi',e.timeStamp);
  else if(op===0x80||(op===0x90&&data2===0))onNoteOff(data1,'midi',e.timeStamp);
+ else if(op===0xB0&&[120,123,124,125,126,127].includes(data1)){
+  // Real MIDI controllers may send All Sound Off / All Notes Off without
+  // individual NoteOffs. Release the practice/Wait ownership as well as the
+  // synthesizer; preserve any simultaneous virtual-keyboard press.
+  releaseMidiInputNotes();
+  if(midiHeld.size)audioResetLiveInputControls();
+  else if(typeof audioLiveControl==='function')audioLiveControl({type:'cc',controller:data1,value:data2});
+ }
  else if(typeof audioLiveControl==='function'){
   let event=null;
   if(op===0xB0)event={type:'cc',controller:data1,value:data2};
@@ -70,10 +83,17 @@ function eventPosition(timestamp){const p=isPlaying?clockPos():pos;if(!isPlaying
 function addMonitor(t){monitor.unshift(t);monitor=monitor.slice(0,5);$('midiMonitor').textContent=monitor.join('\n');}
 function onNoteOn(note,velocity=85,from='midi',timestamp){
  if(calibrationOpen()&&cal.step<2){calibrateCapture(note);return}
- if(midiHeld.has(note))return; // suppress duplicate NoteOn / key autorepeat
+ // A physical MIDI key and a virtual key can own the same pitch at once.
+ // Ignore repeated NoteOns from the SAME source, not a new second source.
+ const source=from==='virtual'?'virtual':'midi';
+ let owners=midiHeldSources.get(note);
+ if(owners?.has(source))return;
+ if(!owners){owners=new Set();midiHeldSources.set(note,owners)}
+ owners.add(source);
+ if(midiHeld.has(note))return;
  midiHeld.add(note);noteCount++;addMonitor('ON  '+nameOf(note).padEnd(5)+'  '+String(velocity).padStart(3));
  $('statNotes').textContent=noteCount;$('midiLive').textContent='MIDI: '+nameOf(note)+' · vel '+velocity;
- if(smart.waitingNext&&from==='midi'){midiHeld.delete(note);smartGoNext();return}
+ if(smart.waitingNext&&source==='midi'){midiHeld.delete(note);midiHeldSources.delete(note);smartGoNext();return}
  playLive(note,velocity);
  if(isPlaying&&practice){
   const wait=state.mode==='wait';
@@ -118,6 +138,11 @@ function advanceWaitAfterRelease(){
 }
 function onNoteOff(note,from='midi',timestamp){
  if(calibrationOpen()&&cal.step<2)return;
+ const source=from==='virtual'?'virtual':'midi',owners=midiHeldSources.get(note);
+ if(!owners?.has(source))return; // late NoteOff from an old input
+ owners.delete(source);
+ if(owners.size)return; // the other input is still physically held
+ midiHeldSources.delete(note);
  midiHeld.delete(note);releaseLive(note);
  if(practice){practice.inputOff(note,isPlaying?eventPosition(timestamp):pos);if(isPlaying)showPractice()}
  if(waitReleaseGroup){waitReleasePitches.delete(note);if(!waitReleasePitches.size)advanceWaitAfterRelease()}
