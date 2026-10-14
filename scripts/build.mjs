@@ -39,7 +39,7 @@ const pmStatic=path.join(dist,'assets/pianomotion');
 const pmSource=JSON.parse(fs.readFileSync(path.join(pmRoot,'python-core/handthesia_core/source_manifest.json'),'utf8'));
 const {createHash}=await import('node:crypto');
 for(const [relative,expected] of Object.entries(pmSource.files)){
- if(!/^handthesia_core\\/[a-z_]+\\.py$/.test(relative)||!/^[a-f0-9]{64}$/.test(expected))
+ if(!new RegExp('^handthesia_core/[a-z_]+[.]py$').test(relative)||!/^[a-f0-9]{64}$/.test(expected))
   throw Error('Invalid PianoMotion source path/hash: '+relative);
  const from=path.join(pmRoot,'python-core',relative),target=path.join(pmStatic,'python-core',relative);
  const bytes=fs.readFileSync(from);
