@@ -60,10 +60,18 @@ test('FG-04C9: browser applies PianoMotion suggestions and exports MusicXML with
   const exportBtn = document.getElementById('pianoMotionExportXML');
 
   const beforeApplyFinger = song.tracks[0].notes[0].finger;
+  const beforeApplyExportDisabled = exportBtn.disabled;
   applyBtn.click();
+  const afterApplyExportEnabled = !exportBtn.disabled;
   const afterApplyFinger = song.tracks[0].notes[0].finger;
   const guideMode = document.getElementById('fingerGuideMode').value;
   const guideStatus = document.getElementById('fingerGuideStatus').textContent;
+  song.tracks[0].notes[0].finger = 2;
+  song.tracks[0].notes[0].fingeringSource = 'user';
+  applyBtn.click();
+  const protectedManualFinger = song.tracks[0].notes[0].finger;
+  song.tracks[0].notes[0].finger = 4;
+  song.tracks[0].notes[0].fingeringSource = 'pianomotion';
 
   let capturedXml = null;
   const originalCreateObjectURL = URL.createObjectURL;
@@ -79,10 +87,28 @@ test('FG-04C9: browser applies PianoMotion suggestions and exports MusicXML with
   const afterClearFinger = song.tracks[0].notes[0].finger;
 
   URL.createObjectURL = originalCreateObjectURL;
+  let runtimeErrorRetries = 0;
+  window.Worker = class {
+   constructor() { runtimeErrorRetries++; }
+   postMessage(m) {
+    queueMicrotask(() => this.onmessage({data: {
+     id: m.id, type: 'error', reason: 'PIANOMOTION_RUNTIME_FAILED'
+    }}));
+   }
+   terminate() {}
+  };
+  document.getElementById('pianoMotionCalculate').click();
+  await new Promise(ok => setTimeout(ok, 20));
+  const runtimeErrorMessage = document.getElementById('pianoMotionStatus').textContent;
   window.Worker = Native;
   return {
    beforeApplyFinger,
+   beforeApplyExportDisabled,
+   afterApplyExportEnabled,
    afterApplyFinger,
+   protectedManualFinger,
+   runtimeErrorRetries,
+   runtimeErrorMessage,
    guideMode,
    guideStatus,
    afterClearFinger,
@@ -95,6 +121,11 @@ test('FG-04C9: browser applies PianoMotion suggestions and exports MusicXML with
 
  assert.equal(result.beforeApplyFinger, undefined);
  assert.equal(result.afterApplyFinger, 4);
+ assert.equal(result.beforeApplyExportDisabled, true);
+ assert.equal(result.afterApplyExportEnabled, true);
+ assert.equal(result.protectedManualFinger, 2, 'manual fingering must be protected');
+ assert.equal(result.runtimeErrorRetries, 1, 'runtime failures may not trigger MIDI fallback');
+ assert.match(result.runtimeErrorMessage, /PIANOMOTION_RUNTIME_FAILED/);
  assert.equal(result.guideMode, 'numbers');
  assert.ok(result.guideStatus.includes('1/1'));
  assert.equal(result.afterClearFinger, 4); // Clearing proposals must preserve accepted fingers.
