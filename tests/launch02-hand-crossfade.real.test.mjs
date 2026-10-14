@@ -44,7 +44,7 @@ try{
   const real=CanvasRenderingContext2D.prototype.drawImage;
   CanvasRenderingContext2D.prototype.drawImage=function(img,...args){
    const src=String(img?.src||'');
-   if(/finger-guidance\\/poses\\/(left|right)\\/(left|right)-(rest|spread)\\.png$/.test(src)){
+   if(src.includes('/finger-guidance/poses/') && (src.endsWith('-rest.png')||src.endsWith('-spread.png'))){
     window.__handPaint.push({src:src.split('/').at(-1),alpha:this.globalAlpha,x:args[0],
      y:args[1],at:performance.now()});
     if(window.__handPaint.length>1500)window.__handPaint.shift();
