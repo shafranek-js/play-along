@@ -17,6 +17,7 @@ import {chromium} from 'playwright';
 import {realCorpusManifest,validateRealCorpusManifest,gitBlobHash}
  from '../scripts/fingering-asap-real-score-audit.mjs';
 import {auditScoreMidiParity} from '../src/core/launch01-midi-xml-parity.mjs';
+import {originalMidiSourceEvents} from '../src/core/pianomotion-midi-source-map.mjs';
 
 const root=resolve(fileURLToPath(new URL('..',import.meta.url)));
 const dist=join(root,'dist');
@@ -167,6 +168,23 @@ try{
    assert.deepEqual(pageErrors,[],'no browser JavaScript errors');
    const parity=auditScoreMidiParity(observed.alignmentNotes.score,
     observed.alignmentNotes.midi,{toleranceSeconds:.02});
+   // Completely independent raw-MIDI note-on/off tick parser. These two
+   // pinned MIDI fixtures have a single constant score tempo, so infer
+   // seconds-per-tick from the common physical final release. Do not apply
+   // this normalization to variable-tempo MIDI without an explicit tempo map.
+   const raw=originalMidiSourceEvents(new Uint8Array(midiBytes));
+   assert.equal(raw.ok,true,'independent original MIDI event parser must work');
+   assert.equal(raw.items.length,observed.second.notes,
+    'independent raw MIDI events must match Play Along imported count');
+   const lastTick=Math.max(...raw.items.map(n=>n.endTick));
+   const lastSecond=Math.max(...observed.alignmentNotes.midi.map(n=>n.start+n.duration));
+   const secondsPerTick=lastSecond/lastTick;
+   const rawAsSeconds=raw.items.map(n=>({
+    pitch:n.pitch,start:n.startTick*secondsPerTick,
+    duration:(n.endTick-n.startTick)*secondsPerTick
+   }));
+   const independentMidiParity=auditScoreMidiParity(
+    rawAsSeconds,observed.alignmentNotes.midi,{toleranceSeconds:.003});
    // Aggregate gate-duration residuals by source-pitch ordinal, never publish
    // original score note lists or MIDI bytes.
    const x=observed.alignmentNotes.score,m=observed.alignmentNotes.midi;
@@ -197,10 +215,25 @@ try{
    assert.equal(parity.ok,true);
    assert.equal(parity.noteCountScore,observed.first.notes);
    assert.equal(parity.noteCountMidi,observed.second.notes);
+   assert.equal(independentMidiParity.pitchHistogramEqual,true,
+    'source raw MIDI and production reader must preserve every pitch multiplicity');
+   assert.equal(independentMidiParity.onsetWithinTolerance,raw.items.length,
+    'source raw MIDI physical note-on ticks must survive browser import');
+   assert.equal(independentMidiParity.releaseWithinTolerance,raw.items.length,
+    'source raw MIDI note-off ticks must survive browser import');
+   assert.equal(independentMidiParity.ambiguousRepeatedPitchContacts,0,
+    'must not claim raw MIDI ordinal matching when same-key unisons are ambiguous');
    cases.push({caseId:id,musicXmlNotes:observed.first.notes,midiNotes:observed.second.notes,
     musicXmlWarnings:observed.first.warnings,
     warningReasons:observed.warnings,alignmentDiagnostics:observed.alignmentDiagnostics,
-    noteTimeParity:parity,gateDeltaHistogram,portDeclarationSummary,
+    noteTimeParity:parity,rawMidiPhysicalTickParity:{
+      sourceNotes:raw.items.length,
+      tickResolution:raw.ppq,
+      inferredSecondsPerTick:secondsPerTick,
+      onsetMaxResidualSeconds:independentMidiParity.maxOnsetResidualSeconds,
+      releaseMaxResidualSeconds:independentMidiParity.maxReleaseResidualSeconds,
+      rawTicksMatchImportedNoteEvents:true
+    },gateDeltaHistogram,portDeclarationSummary,
     midiSourceProtected:true,workerRetryAfterError:true});
   }finally{await page.close()}
  }
@@ -210,6 +243,7 @@ try{
   ports:c.portDeclarationSummary,releaseDeltas:c.gateDeltaHistogram,
   notes:c.noteTimeParity.comparablePairs,
   pitchHistogramEqual:c.noteTimeParity.pitchHistogramEqual,
+  rawMidiParity:c.rawMidiPhysicalTickParity,
   onsetCount:c.noteTimeParity.onsetWithinTolerance,
   releaseCount:c.noteTimeParity.releaseWithinTolerance,
   maxReleaseResidualSeconds:c.noteTimeParity.maxReleaseResidualSeconds
