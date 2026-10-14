@@ -684,3 +684,88 @@ $('fingerResearchExport').onclick=()=>{
  document.body.append(a);a.click();a.remove();
  setTimeout(()=>URL.revokeObjectURL(url),1000);
 };
+
+// FG-04C7: locally staged, ORIGINAL PianoMotion Python runtime for existing
+// MIDI works. This experimental panel is invisible in ordinary public builds
+// because the private source/wheel assets are NEVER staged by npm build or CI.
+let pianoMotionMidiSeq=0,pianoMotionMidiWorker=null;
+void fetch('./assets/pianomotion/staged-manifest.json',{cache:'no-store'})
+ .then(r=>r.ok?r.json():null).then(manifest=>{
+  if(manifest?.localOnly===true&&manifest?.runtimeVersion==='314.0.7'&&
+      manifest?.publicRedistributionApproved===false)
+   $('pianoMotionMidiPanel').classList.remove('hidden');
+ }).catch(()=>{});
+$('pianoMotionMidiRun').onclick=async()=>{
+ const status=$('pianoMotionMidiStatus'),host=$('pianoMotionMidiResults');
+ host.replaceChildren();
+ if(current?.format!=='MIDI'){
+  status.textContent='Выбери обычный MIDI-файл из библиотеки Play Along. MusicXML использует отдельный источник нот.';return;
+ }
+ const song=current,sourceId=song.id;
+ if(!collectionIndex.some(e=>e.id===sourceId)){
+  status.textContent='Исходный MIDI ещё не сохранён в «Моей коллекции». Дождись сохранения и повтори расчёт.';return;
+ }
+ if(pianoMotionMidiWorker){pianoMotionMidiWorker.terminate();pianoMotionMidiWorker=null}
+ let bytes;
+ try{
+  const stored=await libraryReadBinary(sourceId);
+  if(song!==current||sourceId!==current.id)return;
+  if(!/\.(mid|midi)$/i.test(stored.name)||!stored.data||stored.data.byteLength>4000000)
+   throw Error('Оригинальный файл не является MIDI до 4 МБ');
+  if(!(await libraryMatchesContentId(stored.data,sourceId)))
+   throw Error('Контрольная сумма сохранённого MIDI не совпала');
+  bytes=stored.data.slice(0);
+ }catch(error){
+  status.textContent='Не удалось прочитать исходный MIDI: '+(error?.message||'нет данных');return;
+ }
+ const id=++pianoMotionMidiSeq;
+ let worker;
+ try{worker=new Worker('./assets/pianomotion-engine-worker.js',{type:'module'})}
+ catch{status.textContent='Браузер заблокировал модульный Web Worker';return}
+ pianoMotionMidiWorker=worker;
+ $('pianoMotionMidiRun').disabled=true;
+ status.textContent='Загружаю локальный Pyodide и Python-ядро PianoMotion…';
+ const finish=()=>{
+  clearTimeout(timer);worker.terminate();
+  if(pianoMotionMidiWorker===worker)pianoMotionMidiWorker=null;
+  $('pianoMotionMidiRun').disabled=false;
+ };
+ const timer=setTimeout(()=>{
+  if(id!==pianoMotionMidiSeq)return;
+  finish();status.textContent='Python-движок не ответил вовремя. Оригинальный MIDI сохранён без изменений.';
+ },180000);
+ worker.onmessage=e=>{
+  if(e.data?.id!==id||song!==current||sourceId!==current.id){
+   if(song!==current)finish();return;
+  }
+  const message=e.data;
+  if(message.type==='progress'){
+   status.textContent=String(message.message).slice(0,250);return;
+  }
+  finish();
+  if(message.type==='error'){
+   status.textContent='PianoMotion отказался рассчитывать: '+message.reason+
+    '. Никакие пользовательские пальцы не изменены.';return;
+  }
+  if(message.type!=='result'||!message.result)return;
+  const r=message.result;
+  status.textContent='Оригинальный PianoMotion · '+r.total+' нот · '+r.playable+
+   ' предложений · '+r.unresolved+' не определены. Источник проверен SHA-256. Результаты пока только для анализа.';
+  const title=document.createElement('p');title.className='small';
+  title.textContent='Первые '+r.suggestions.length+' нот. Сопоставление с подсказками Play Along и экспертная проверка ещё не выполнены.';
+  host.append(title);
+  const list=document.createElement('ol');
+  for(const n of r.suggestions){
+   const li=document.createElement('li');
+   li.textContent=n.hand+' · '+nameOf(n.pitch)+' · '+n.start.toFixed(2)+
+    ' с → '+(n.finger===null?'без пальца':'палец '+n.finger)+
+    ' (автоматически, не проверено)';
+   list.append(li);
+  }
+  host.append(list);
+ };
+ worker.onerror=()=>{
+  finish();status.textContent='Не удалось запустить Python-ядро в браузере. Сохранённый MIDI не изменён.';
+ };
+ worker.postMessage({id,type:'analyze-midi',midiBytes:bytes},[bytes]);
+};
