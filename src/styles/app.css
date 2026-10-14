@@ -195,3 +195,13 @@ body.onlyLibrary #leftPanel .sidebody>.panelSection:first-child{
 .fingerBrowserCandidates strong{color:var(--txt);font-weight:650}
 .fingerBrowserCandidates ol{margin:6px 0 0;padding-left:22px}
 .fingerBrowserCandidates li{padding:2px 0;overflow-wrap:anywhere}
+
+/* FG-04C5: bounded, accessible RH/LH fingering hand-span self-calibration */
+.handSpanCalibration{margin:10px 0;padding:10px;border:1px solid var(--line);border-radius:10px}
+.handSpanCalibration #fingerSpanContents{padding-top:10px}
+.handSpanGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:10px 0}
+.handSpanHand{min-width:0;border:1px solid var(--line);border-radius:8px;padding:9px}
+.handSpanHand legend{padding:0 6px;font-weight:700;font-size:12px}
+.handSpanHand label{display:block;color:var(--sub);font-size:11px;margin:8px 0 4px}
+.handSpanHand select{width:100%;min-width:0;color:var(--txt);background:var(--panel2);border:1px solid #455067;border-radius:7px;padding:7px 5px}
+@media(max-width:600px){.handSpanGrid{grid-template-columns:minmax(0,1fr)}}
