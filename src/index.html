@@ -101,48 +101,8 @@
       <select id="fingerBrowserHandSize" aria-label="Размер кисти для экспериментального расчёта"><option>XXS</option><option>XS</option><option>S</option><option selected>M</option><option>L</option><option>XL</option><option>XXL</option></select>
       <button type="button" id="fingerBrowserCalculate" class="btn tiny primary">Рассчитать и сравнить</button>
      </div>
-     <section class="handSpanCalibration">
-      <button id="fingerSpanToggle" type="button" class="btn tiny ghost" aria-controls="fingerSpanContents" aria-expanded="false">📏 Как определить мой размер кисти?</button>
-      <div id="fingerSpanContents" hidden>
-       <p class="small">Сыграйте большим пальцем (1) и мизинцем (5) две ноты одновременно. Выберите <strong>самый широкий комфортный интервал</strong> для каждой руки. Не растягивайте пальцы через боль. Это приблизительная настройка алгоритма, а не медицинское измерение.</p>
-       <div class="handSpanGrid">
-        <fieldset class="handSpanHand"><legend>Правая рука (RH)</legend>
-         <label for="fingerSpanRH">Максимальный интервал</label>
-         <select id="fingerSpanRH">
-          <option value="unknown">Ещё не проверял(а)</option>
-          <option value="sub7">Меньше септимы</option>
-          <option value="seventh">Септима C4–B4</option>
-          <option value="octave">Октава C4–C5</option>
-          <option value="ninth">Нона C4–D5</option>
-          <option value="tenth">Децима C4–E5</option>
-          <option value="beyondTenth">Шире децимы</option>
-         </select>
-         <label for="fingerSpanRHComfort">Как ощущается?</label>
-         <select id="fingerSpanRHComfort"><option value="easy">Легко, без напряжения</option><option value="stretch">Заметное растяжение</option><option value="pain">Дискомфорт или боль</option></select>
-        </fieldset>
-        <fieldset class="handSpanHand"><legend>Левая рука (LH)</legend>
-         <label for="fingerSpanLH">Максимальный интервал</label>
-         <select id="fingerSpanLH">
-          <option value="unknown">Ещё не проверял(а)</option>
-          <option value="sub7">Меньше септимы</option>
-          <option value="seventh">Септима C4–B4</option>
-          <option value="octave">Октава C4–C5</option>
-          <option value="ninth">Нона C4–D5</option>
-          <option value="tenth">Децима C4–E5</option>
-          <option value="beyondTenth">Шире децимы</option>
-         </select>
-         <label for="fingerSpanLHComfort">Как ощущается?</label>
-         <select id="fingerSpanLHComfort"><option value="easy">Легко, без напряжения</option><option value="stretch">Заметное растяжение</option><option value="pain">Дискомфорт или боль</option></select>
-        </fieldset>
-       </div>
-       <div class="fingerResearchControls">
-        <button id="fingerSpanRecommend" type="button" class="btn tiny">Определить размер</button>
-        <button id="fingerSpanApply" type="button" class="btn tiny primary" disabled>Использовать этот размер</button>
-       </div>
-       <p class="small" id="fingerSpanResult" role="status" aria-live="polite">Укажите интервал хотя бы для одной руки.</p>
-       <p class="small">Для двух рук применяется более осторожное из двух значений. Размер XXL и охват соседних пальцев эта короткая проверка не подтверждает. При необходимости можно изменить размер вручную.</p>
-      </div>
-     </section>
+     <button id="fingerSpanEditorOpen" type="button" class="btn tiny ghost">📏 Настроить охват кисти</button>
+
      <label class="small"><input id="fingerBrowserAssumeStaves" type="checkbox"> Только для этого сравнения принять стан 1 = RH, стан 2 = LH там, где рука не указана (гипотеза, не учебная подсказка)</label>
      <p class="small" id="fingerBrowserStatus" role="status" aria-live="polite">Откройте исходный MusicXML и нажмите «Рассчитать».</p>
      <div class="fingerBrowserMetrics" id="fingerBrowserMetrics"></div>
@@ -198,6 +158,50 @@
     <div class="small" id="upcomingNotes" style="margin-top:8px">Следующая нота: —</div>
     </div>
     <div class="panelSection"><div class="sectionLabel">Параметры воспроизведения</div><div class="setting"><label for="speed">Скорость <strong id="speedLabel">100%</strong></label><input type="range" id="speed" min="25" max="150" step="5" value="100"></div><div class="setting"><label for="trackSelect">Партия для тренировки</label><select id="trackSelect"></select></div><div class="setting"><label for="displayRange">Видимый диапазон Piano Roll</label><select id="displayRange"><option value="song">Всё произведение / все ноты</option><option value="device">Калиброванная клавиатура</option></select></div><label class="switch">Показывать названия нот <input id="labels" type="checkbox" checked></label><label class="switch">Подсвечивать нажатые клавиши (MIDI + звук) <input id="highlight" type="checkbox" checked></label><div class="small" style="margin:-6px 0 16px"> <span style="color:#87b9fd">■</span> Звучит запись: голубые клавиши и светящиеся блоки · <span style="color:#f5a286">■</span> Играешь ты: оранжевые клавиши и контур блока. Подсветка держится до окончания звучания/отпускания.</div><label class="switch">Показать все MIDI-дорожки <input id="allTracks" type="checkbox" checked></label></div>
+    <div class="panelSection"><div class="sectionLabel">Аппликатура · размер кисти</div>
+     <section class="handSpanCalibration">
+      <button id="fingerSpanToggle" type="button" class="btn tiny ghost" aria-controls="fingerSpanContents" aria-expanded="false">📏 Как определить мой размер кисти?</button>
+      <div id="fingerSpanContents" hidden>
+       <p class="small">Сыграйте большим пальцем (1) и мизинцем (5) две ноты одновременно. Выберите <strong>самый широкий комфортный интервал</strong> для каждой руки. Не растягивайте пальцы через боль. Это приблизительная настройка алгоритма, а не медицинское измерение.</p>
+       <div class="handSpanGrid">
+        <fieldset class="handSpanHand"><legend>Правая рука (RH)</legend>
+         <label for="fingerSpanRH">Максимальный интервал</label>
+         <select id="fingerSpanRH">
+          <option value="unknown">Ещё не проверял(а)</option>
+          <option value="sub7">Меньше септимы</option>
+          <option value="seventh">Септима C4–B4</option>
+          <option value="octave">Октава C4–C5</option>
+          <option value="ninth">Нона C4–D5</option>
+          <option value="tenth">Децима C4–E5</option>
+          <option value="beyondTenth">Шире децимы</option>
+         </select>
+         <label for="fingerSpanRHComfort">Как ощущается?</label>
+         <select id="fingerSpanRHComfort"><option value="easy">Легко, без напряжения</option><option value="stretch">Заметное растяжение</option><option value="pain">Дискомфорт или боль</option></select>
+        </fieldset>
+        <fieldset class="handSpanHand"><legend>Левая рука (LH)</legend>
+         <label for="fingerSpanLH">Максимальный интервал</label>
+         <select id="fingerSpanLH">
+          <option value="unknown">Ещё не проверял(а)</option>
+          <option value="sub7">Меньше септимы</option>
+          <option value="seventh">Септима C4–B4</option>
+          <option value="octave">Октава C4–C5</option>
+          <option value="ninth">Нона C4–D5</option>
+          <option value="tenth">Децима C4–E5</option>
+          <option value="beyondTenth">Шире децимы</option>
+         </select>
+         <label for="fingerSpanLHComfort">Как ощущается?</label>
+         <select id="fingerSpanLHComfort"><option value="easy">Легко, без напряжения</option><option value="stretch">Заметное растяжение</option><option value="pain">Дискомфорт или боль</option></select>
+        </fieldset>
+       </div>
+       <div class="fingerResearchControls">
+        <button id="fingerSpanRecommend" type="button" class="btn tiny">Определить размер</button>
+        <button id="fingerSpanApply" type="button" class="btn tiny primary" disabled>Использовать этот размер</button>
+       </div>
+       <p class="small" id="fingerSpanResult" role="status" aria-live="polite">Укажите интервал хотя бы для одной руки.</p>
+       <p class="small">Для двух рук применяется более осторожное из двух значений. Размер XXL и охват соседних пальцев эта короткая проверка не подтверждает. При необходимости можно изменить размер вручную.</p>
+      </div>
+     </section>
+    </div>
     <div class="panelSection"><div class="sectionLabel">Выбранная нота</div><div id="selection" class="metabox"><strong>Ничего не выбрано</strong><p>Нажми на цветную полоску в Piano Roll. Здесь появятся свойства ноты.</p></div></div>
     <div class="panelSection"><div class="sectionLabel">Навигация</div><div class="twocol"><button id="loopStartBtn" class="btn tiny">⟲ Начало Loop</button><button id="loopEndBtn" class="btn tiny">⟳ Конец Loop</button></div><div style="display:flex;gap:7px;margin-top:8px"><button id="loopClearBtn" class="btn tiny ghost" style="flex:1">Сброс Loop</button><button id="addBookmarkBtn" class="btn tiny ghost" style="flex:1">Закладка</button></div><div class="small" id="loopLabel" style="margin-top:10px">Повтор не выбран</div></div>
   </div>
