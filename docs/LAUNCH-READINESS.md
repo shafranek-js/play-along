@@ -42,6 +42,14 @@ The [real Chromium + Pyodide UAT](LAUNCH-01-PYODIDE-LIVE-UAT.md) has proved **22
 
 **This closes the previously open "actual live browser Pyodide" subtest only.** It does **not** verify every end-user MIDI, physical keyboard or speaker audio, Wait/Seek/Loop, Safari/mobile, true piano technique quality, privacy or upstream redistribution rights. **F0 remains a potential legal beta blocker**: the upstream Hand-thesia license/permission has not been established (see [THIRD_PARTY_NOTICES](../THIRD_PARTY_NOTICES.md)). Expert pianists are still NOT required for an honest beta launch.
 
+## LAUNCH-01 F1 and F0 update — v0.10.104
+
+A new real Chromium MXL stress run verified **both stored and deflated MXL**, refused **9 malformed MXL archives**, imported **1,050 notes/three MIDI tracks** with **2,100 MIDI note-on/off events**, and refused **five unsupported/invalid MIDI files** without changing the open song. [Measured regression](LAUNCH-01-MXL-MIDI-BOUNDARIES.md) confirms the ZIP parser now refuses forged sizes, missing container targets and unsafe paths instead of silently substituting sources.
+
+A separate [source rights audit](LAUNCH-01-UPSTREAM-LICENSE-AUDIT.md) confirmed no identifiable public license in pinned upstream Hand-thesia sources. The Play Along production build does include adapted Python files, so **F0 remains BLOCKED pending verified grant/license or independently authored replacement**. This prevents treating the beta as rights-cleared; it is separate from end-user fingering quality and the post-launch optional expert cohort.
+
+**Next:** transport Wait/Seek/Loop with pedal-state and complex MIDI; physical controller/audio/browser UAT; source/assets rights determination and documented beta checklist.
+
 ## Recommended near-term development queue
 
 1. **LAUNCH-01 — targeted end-to-end UAT and bug fixes.** Test the actual built Pages app with real representative MIDI/MusicXML, external hardware MIDI where possible, resource failure, deliberate source edits, invalid files and an actual download/reimport. Document pass/fail with reproducible cases and console errors.
