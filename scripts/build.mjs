@@ -31,6 +31,11 @@ if (!js.includes(`window.__playAlongVersion='${version}'`)) throw Error('Failed 
 const dist = path.join(root, 'dist');
 fs.mkdirSync(path.join(dist, 'assets'), {recursive:true});
 fs.writeFileSync(path.join(dist, 'assets/app.js'), js);
+// FG-04C9: ship the owner's exact original PianoMotion Python computation
+// sources (not synthetic JS substitutes). Manifest is checked in the Worker.
+const bundledCore=path.join(root,'src/pianomotion-python/python-core');
+const coreTarget=path.join(dist,'assets/pianomotion/python-core');
+fs.cpSync(bundledCore,coreTarget,{recursive:true});
 // FG-04C7: executable original-PianoMotion Python worker only when a developer
 // explicitly stages the private, SHA-pinned runtime into dist (local research).
 // No PianoMotion Python, wheel or SoundFont source is shipped by npm build.
