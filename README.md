@@ -1,4 +1,12 @@
-# Play Along — Piano Practice App (v0.10.110)
+# Play Along — Piano Practice App (v0.10.111)
+
+## LAUNCH-02 — smooth passive/playing hand PNG transitions (v0.10.111)
+
+**200 ms eased visual crossfade** between original `rest` PNG and a score-confirmed active hand PNG. The two hands have independent short-lived transition states. The old and new PNG are drawn at smoothly interpolated wrist positions while opacity changes, preserving each image's native aspect ratio. A released key immediately stops being a score/keyboard contact at **NoteOff**; only a faint, decaying visual trace (alpha ≤ 0.18) can remain for at most 200 ms. On **NoteOn**, the active PNG appears immediately at visible alpha while the previous `rest` fades. Key target/finger badges are always instantaneous and authoritative, especially in **Wait**; wrong notes never advance its target.
+
+**Safety and usability:** no claimed articulation of static PNG finger joints, no invented transitions between arbitrary active finger poses, no guessed fingers/hands for unknown MIDI. Pending transitions reset on Seek, Pause/Play state changes, score replacement, resized keyboard, mode/track/loop changes, tab-throttling jumps and reduced-motion preference. Ghost preview remains independent and only appears under its own existing rules. Existing 14 user originals and source-note timing remain untouched.
+
+**Verification:** Node easing/pose-switch/immutability tests and a real Chromium Canvas interception check of original PNG fading while live score time crosses NoteOff and NoteOn, plus Wait target accuracy, explicit Seek reset and reduced-motion mode. Hardware MIDI/physical pianist validation are not claimed.
 
 ## LAUNCH-02 — visibly resting idle piano hand (v0.10.110)
 
