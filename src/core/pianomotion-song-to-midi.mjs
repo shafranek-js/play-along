@@ -24,12 +24,21 @@ export function pianoMotionSourcePlan(song,activeTrack=0){
  const candidates=song.tracks.map((t,i)=>playable(t)?i:-1).filter(i=>i>=0);
  if(!candidates.length)return {ok:false,reason:'NO_MELODIC_NOTES'};
  const foreign=song.tracks.some((t)=>explicitNonPiano(t)||t.isDrum||t.channel===9||
-  (t.notes||[]).some(n=>drumNote(t,n)));
+  (t.notes||[]).some(n=>drumNote(t,n)))||
+  (song.audioEvents||[]).some(e=>e.type==='programChange'&&
+   Number.isInteger(e.program)&&e.program>7&&e.program<=127);
  if(!foreign)return {ok:true,mode:'original',trackIndices:candidates,description:'Исходный фортепианный MIDI'};
  const selected=candidates.includes(activeTrack)?activeTrack:candidates[0];
  const track=song.tracks[selected];
- return {ok:true,mode:'derived',trackIndices:[selected],
-  selectedTrack:selected,description:'Фортепианная партия: '+String(track.name||'дорожка '+(selected+1)),
+ // SMF Type 0 can multiplex instruments on multiple MIDI channels in ONE track.
+ // When that happens, take the densest melodic channel, never the merged ensemble.
+ const counts=new Map();
+ for(const n of track.notes||[])if(!drumNote(track,n)&&Number.isInteger(n.channel))
+  counts.set(n.channel,(counts.get(n.channel)||0)+1);
+ const channel=counts.size>1?[...counts].sort((a,b)=>b[1]-a[1]||a[0]-b[0])[0][0]:null;
+ return {ok:true,mode:'derived',trackIndices:[selected],channel,
+  selectedTrack:selected,description:'Фортепианная партия: '+String(track.name||'дорожка '+(selected+1))+
+   (channel===null?'':' · MIDI-канал '+(channel+1)),
   omittedTracks:candidates.length-1};
 }
 /** Retry only for known source-structure failures; runtime failures are not MIDI problems. */
@@ -37,7 +46,7 @@ export function pianoMotionCanRetry(reason){
  return ['ORIGINAL_MIDI_PROVENANCE_UNVERIFIED','NOT_A_STANDARD_MIDI_FILE',
   'ORIGINAL_MIDI_STRUCTURE_UNSUPPORTED','PIANOMOTION_MIDI_STRUCTURE_UNSUPPORTED'].includes(String(reason));
 }
-export function makePianoMotionMidiFromSong(song,{trackIndices}={}){
+export function makePianoMotionMidiFromSong(song,{trackIndices,channel=null}={}){
  if(!song||!Array.isArray(song.tracks)||!song.tracks.length)
   return {ok:false,reason:'NO_SELECTED_SONG'};
  const chosen=trackIndices==null?null:new Set(trackIndices);
@@ -47,7 +56,7 @@ export function makePianoMotionMidiFromSong(song,{trackIndices}={}){
  for(const [trackIndex,track]of song.tracks.entries()){
   if(chosen&&!chosen.has(trackIndex))continue;
   for(const [ordinal,n]of (track.notes||[]).entries()){
-   if(drumNote(track,n))continue;
+   if(drumNote(track,n)||(channel!==null&&n.channel!==channel))continue;
    if(!Number.isInteger(n.pitch)||n.pitch<0||n.pitch>127||
       !Number.isFinite(n.start)||n.start<0||
       !Number.isFinite(n.duration)||n.duration<=0||
@@ -86,7 +95,7 @@ export function makePianoMotionMidiFromSong(song,{trackIndices}={}){
   tempoAutomationPreserved:false};
 }
 /** Independent, strict note alignment. No in-place edits on ambiguous mappings. */
-export function pianoMotionAlignSuggestions(song,suggestions,{trackIndices,tolerance=.025}={}){
+export function pianoMotionAlignSuggestions(song,suggestions,{trackIndices,channel=null,tolerance=.025}={}){
  if(!song||!Array.isArray(song.tracks)||!Array.isArray(suggestions)||!suggestions.length)
   return {ok:false,reason:'NO_NOTE_MAPPING'};
  const selected=trackIndices==null?null:new Set(trackIndices);
@@ -94,7 +103,7 @@ export function pianoMotionAlignSuggestions(song,suggestions,{trackIndices,toler
  for(const [trackIndex,track]of song.tracks.entries()){
   if(selected&&!selected.has(trackIndex))continue;
   for(const [ordinal,n]of (track.notes||[]).entries()){
-   if(!drumNote(track,n))source.push({note:n,trackIndex,ordinal});
+   if(!drumNote(track,n)&&(channel===null||n.channel===channel))source.push({note:n,trackIndex,ordinal});
   }
  }
  if(source.length!==suggestions.length)return {ok:false,reason:'NOTE_COUNT_MISMATCH',expected:source.length,actual:suggestions.length};
@@ -115,12 +124,12 @@ export function pianoMotionAlignSuggestions(song,suggestions,{trackIndices,toler
  return {ok:true,matches,total:source.length};
 }
 /** Diagnostic only: exceeding ten simultaneous attacks/held notes is not a safe piano part. */
-export function pianoMotionPlayableDiagnostic(song,trackIndices){
+export function pianoMotionPlayableDiagnostic(song,trackIndices,channel=null){
  const selected=trackIndices==null?null:new Set(trackIndices),events=[];
  (song?.tracks||[]).forEach((track,i)=>{
   if(selected&&!selected.has(i))return;
   for(const n of track.notes||[]){
-   if(drumNote(track,n))continue;
+   if(drumNote(track,n)||(channel!==null&&n.channel!==channel))continue;
    events.push({time:n.start,delta:1});
    events.push({time:n.start+n.duration,delta:-1});
   }
