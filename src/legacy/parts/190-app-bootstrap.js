@@ -272,7 +272,13 @@ window.__fingerGuideTest={
   ['thumb','index','middle','ring','pinky','rest','spread'])fingerGuidanceGetImage(h,p)},
  get spritePlacements(){const notes=fingerGuidanceFrame(fingerGuidanceSteps(),pos).current?.notes||[];
   return Object.fromEntries(['LH','RH'].map(h=>[h,fingerGuidanceSpritePlacement(notes,h,pianoGeom,keyboardBottom-keyboardTop,lastCanvasSize.h-keyboardBottom)]))},
- get passivePlacements(){
+ get handBlends(){return Object.fromEntries(['LH','RH'].map(h=>{
+  const b=fingerGuidanceBlendState[h];
+  return [h,{from:b?.from?.pose??null,to:b?.target?.pose??null,
+   startedMs:b?.startedMs??null,poseX:b?.target?.x??null,
+   poseY:b?.target?.y??null}];
+ }))},
+  get passivePlacements(){
   if(!['hands','ghost'].includes(state.fingerGuidanceMode)||!pianoGeom||
    lastCanvasSize.h<360)return {LH:null,RH:null};
   const steps=fingerGuidanceSteps(),frame=fingerGuidanceFrame(steps,pos);

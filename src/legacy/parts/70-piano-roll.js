@@ -381,6 +381,61 @@ function drawFingerGuidanceRest(c,placement,keyY,keyboardH,tail=0){
  return placement;
 }
 
+// LAUNCH-02 v0.10.111: independent animation memory per rendered hand.
+// The source score and keyboard/Wait target marks remain instantaneous.
+let fingerGuidanceBlendState={LH:null,RH:null},fingerGuidanceBlendScope=null;
+let fingerGuidanceBlendSong=null,fingerGuidanceBlendLastPos=null;
+function fingerGuidanceResetTransitions(){
+ fingerGuidanceBlendState={LH:null,RH:null};fingerGuidanceBlendScope=null;
+ fingerGuidanceBlendSong=null;fingerGuidanceBlendLastPos=null;
+}
+function fingerGuidanceDrawBlend(c,layers,keyY,keyboardH,tail){
+ for(const layer of layers){
+  if(layer.alpha<.002)continue;
+  const entry=fingerGuidanceGetImage(layer.placement.hand,layer.placement.pose);
+  if(!entry?.loaded)continue;
+  c.save();c.beginPath();c.rect(0,keyY,lastCanvasSize.w,keyboardH+tail);c.clip();
+  c.globalAlpha=layer.alpha;c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';
+  c.drawImage(entry.image,layer.x,layer.y,
+   layer.placement.width,layer.placement.height);
+  c.restore();
+ }
+}
+function fingerGuidanceDrawBlendedHands(c,steps,group,geom,keyY,keyboardH,tail){
+ const scope=[state.mode,state.fingerGuidanceMode,state.adaptMode,state.track,
+  state.allTracks,state.displayRange,isPlaying,loop.enabled,loop.start,loop.end,
+  lastCanvasSize.w,lastCanvasSize.h].join('|');
+ // An actual Seek / rewind, responsive resize or edited current song must
+ // cancel stale transitions. Loop wraps and tab throttling also snap safely.
+ const discontinuity=state.mode==='listen'&&isPlaying&&
+  Number.isFinite(fingerGuidanceBlendLastPos)&&
+  (pos<fingerGuidanceBlendLastPos-.015||pos-fingerGuidanceBlendLastPos>.25);
+ const reset=scope!==fingerGuidanceBlendScope||
+  current!==fingerGuidanceBlendSong||discontinuity||
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+ if(reset)fingerGuidanceBlendState={LH:null,RH:null};
+ fingerGuidanceBlendSong=current;fingerGuidanceBlendScope=scope;
+ fingerGuidanceBlendLastPos=pos;
+ const twoHands=['LH','RH'].every(hand=>
+  steps.some(g=>g.notes.some(n=>n.hand===hand)));
+ const restBoth=!group&&state.mode==='listen'&&isPlaying&&twoHands;
+ const passive=group?fingerGuidancePassivePlacements(steps,group,pos,geom,keyboardH)
+  :{LH:null,RH:null};
+ const now=performance.now();
+ for(const hand of ['LH','RH']){
+  // No active silhouette for a source-incomplete chord or an unknown finger.
+  const active=group?.complete?
+   fingerGuidanceSpritePlacement(group.notes,hand,geom,keyboardH,tail):null;
+  const resting=passive[hand]||(restBoth?
+   fingerGuidanceRestPlacement(steps,hand,pos,geom,keyboardH):null);
+  const target=active||resting;
+  const blended=fingerGuidanceHandTransition(fingerGuidanceBlendState[hand],
+   target,now,{durationMs:200,reset});
+  fingerGuidanceBlendState[hand]=blended.state;
+  fingerGuidanceDrawBlend(c,blended.layers,keyY,keyboardH,tail);
+ }
+}
+
 function fingerGuidanceMotionState(group,next,geom,keyboardH,handTail,ghostTime,playing){
  const pairs=Object.fromEntries(['LH','RH'].map(hand=>[hand,{
   from:fingerGuidanceSpritePlacement(group?.notes,hand,geom,keyboardH,handTail),
@@ -421,6 +476,7 @@ function drawFingerGuidance(c,geom,keyY,keyboardH,handsAllowed,handTail=0){
  if(status&&status.textContent!==(mode==='off'?'':behavior+' · '+message))
   status.textContent=mode==='off'?'':behavior+' · '+message;
  if(!steps.length){
+  fingerGuidanceResetTransitions();
   if(mode!=='off'&&state.mode==='wait'&&practice){
    for(const n of practice.nextGroup()?.notes||[]){
     if(n.hit||n.miss||n.skipped)continue;
@@ -443,6 +499,12 @@ function drawFingerGuidance(c,geom,keyY,keyboardH,handsAllowed,handTail=0){
   }
  }
  if(!group){
+  // On physical NoteOff both hands return to their original rest silhouettes
+  // while the authoritative key markers clear immediately. The blend is
+  // visual only; released source keys never remain held in the score.
+  if(handsAllowed&&['hands','ghost'].includes(mode))
+   fingerGuidanceDrawBlendedHands(c,steps,null,geom,keyY,keyboardH,handTail);
+  else fingerGuidanceResetTransitions();
   // In the rests between physical key releases, no key looks pressed.
   // Ghost mode may move a translucent hand toward the NEXT source onset.
   if(mode==='ghost'&&state.mode==='listen'&&next?.complete){
@@ -462,15 +524,10 @@ function drawFingerGuidance(c,geom,keyY,keyboardH,handsAllowed,handTail=0){
   }
   return;
  }
- // Keep the non-playing hand visible in its own original rest PNG. Draw
- // first (under active hands/markers), without any pressed-key contact.
- if(handsAllowed&&['hands','ghost'].includes(mode)){
-  const resting=fingerGuidancePassivePlacements(steps,group,pos,geom,keyboardH);
-  for(const hand of ['LH','RH'])drawFingerGuidanceRest(c,resting[hand],keyY,keyboardH,handTail);
- }
  // A partially authored chord is NOT evidence of a complete hand pose.
  // Numeric marks may still be shown for its individually authored notes.
  if(mode==='numbers'||!group.complete||!handsAllowed||group.notes.every(n=>!n.hand)){
+  fingerGuidanceResetTransitions();
   for(const n of group.notes){const k=geom.byPitch.get(n.pitch);if(k)drawFingerGuidanceBadge(c,keyY,keyboardH,k,n.finger,n.hand);}
   return;
  }
@@ -517,8 +574,8 @@ function drawFingerGuidance(c,geom,keyY,keyboardH,handsAllowed,handTail=0){
   const k=geom.byPitch.get(n.pitch);
   if(k)drawFingerGuidanceBadge(c,keyY,keyboardH,k,n.finger,null);
  }
+ fingerGuidanceDrawBlendedHands(c,steps,group,geom,keyY,keyboardH,handTail);
  for(const hand of ['LH','RH']){
-  const drawn=drawFingerGuidanceHand(c,geom,keyY,keyboardH,group.notes,hand,false,handTail);
   // The PNG visual is secondary: always locate the actionable circles from
   // the music score and key geometry, never from guessed image pixels.
   for(const n of group.notes.filter(n=>n.hand===hand)){
