@@ -725,22 +725,83 @@ function readMusicXML(xmlString,filename){
  return{id:'xml-'+Date.now(),title:title.slice(0,100),author:author.slice(0,110),type:'import',format:'MusicXML',tracks,audioEvents,warnings:[...warnings],notationXML:playbackXml,originalNotationXML:repeatExpansion.expanded?safeXml:undefined,scoreTempoMap:tempoMap.map(t=>({beat:t.tick/ppq,sec:t.sec,tempo:t.tempo}))};
 }
 async function zipUnpackMXL(arrayBuffer){
- const a=new Uint8Array(arrayBuffer),d=new DataView(arrayBuffer);if(a.length>16*1024*1024)throw Error('MXL больше 16 МБ');let eocd=-1;
- for(let p=a.length-22;p>=Math.max(0,a.length-65557);p--)if(d.getUint32(p,true)===0x06054b50){eocd=p;break}
- if(eocd<0)throw Error('Некорректный ZIP/MXL');const number=d.getUint16(eocd+10,true),dirAt=d.getUint32(eocd+16,true);if(number>500)throw Error('Слишком много элементов в MXL');
- const entries=[];let p=dirAt;for(let i=0;i<number;i++){
-  if(p+46>a.length||d.getUint32(p,true)!==0x02014b50)throw Error('Ошибка каталога ZIP');
-  const method=d.getUint16(p+10,true),size=d.getUint32(p+20,true),originalSize=d.getUint32(p+24,true),nameLength=d.getUint16(p+28,true),extraLength=d.getUint16(p+30,true),commentLength=d.getUint16(p+32,true),localOffset=d.getUint32(p+42,true);
+ const a=new Uint8Array(arrayBuffer),d=new DataView(arrayBuffer);
+ if(a.length>16*1024*1024)throw Error('MXL больше 16 МБ');
+ if(a.length<22)throw Error('Некорректный ZIP/MXL');
+ let eocd=-1;
+ for(let p=a.length-22;p>=Math.max(0,a.length-65557);p--){
+  if(d.getUint32(p,true)===0x06054b50&&p+22+d.getUint16(p+20,true)===a.length){
+   eocd=p;break;
+  }
+ }
+ if(eocd<0)throw Error('Некорректный ZIP/MXL');
+ const count=d.getUint16(eocd+10,true),dirAt=d.getUint32(eocd+16,true),
+  dirSize=d.getUint32(eocd+12,true);
+ // ZIP64, encrypted, split archives, and silently trailing directory records
+ // are not supported. The MXL format has no need for these variants.
+ if(count>500||count===0)throw Error('Некорректное число элементов MXL');
+ if(d.getUint16(eocd+4,true)!==0||d.getUint16(eocd+6,true)!==0||
+  d.getUint16(eocd+8,true)!==count||
+  dirAt===0xffffffff||dirSize===0xffffffff||
+  dirAt>eocd||dirSize>eocd-dirAt)
+  throw Error('Некорректный каталог ZIP/MXL');
+ const entries=[],names=new Set();let p=dirAt;
+ for(let i=0;i<count;i++){
+  if(p+46>dirAt+dirSize||d.getUint32(p,true)!==0x02014b50)
+   throw Error('Ошибка каталога ZIP');
+  const flags=d.getUint16(p+8,true),method=d.getUint16(p+10,true),
+   size=d.getUint32(p+20,true),originalSize=d.getUint32(p+24,true),
+   nameLength=d.getUint16(p+28,true),extraLength=d.getUint16(p+30,true),
+   commentLength=d.getUint16(p+32,true),localOffset=d.getUint32(p+42,true);
+  const end=p+46+nameLength+extraLength+commentLength;
+  if(end>dirAt+dirSize)throw Error('Обрезанный каталог ZIP');
   const name=new TextDecoder().decode(a.subarray(p+46,p+46+nameLength));
-  entries.push({name,method,size,originalSize,localOffset});p+=46+nameLength+extraLength+commentLength;
+  if(!name||name.includes('\\')||name.startsWith('/')||name.includes('\0')||
+   name.split('/').some(x=>x==='.'||x==='..')||names.has(name))
+   throw Error('Некорректный путь или повтор в MXL');
+  if(flags&1)throw Error('Зашифрованный MXL не поддерживается');
+  names.add(name);
+  entries.push({name,method,size,originalSize,localOffset,flags});
+  p=end;
  }
- async function entryText(e){if(e.originalSize>15*1024*1024)throw Error('MXL XML слишком большой');let off=e.localOffset;if(d.getUint32(off,true)!==0x04034b50)throw Error('Повреждён ZIP');let start=off+30+d.getUint16(off+26,true)+d.getUint16(off+28,true);if(start+e.size>a.length)throw Error('Обрезанный ZIP');let src=a.slice(start,start+e.size);
-  if(e.method===0)return new TextDecoder().decode(src);
-  if(e.method!==8)throw Error('Метод сжатия MXL не поддерживается');
-  if(typeof DecompressionStream==='undefined')throw Error('Браузер не поддерживает распаковку MXL (DecompressionStream). Используй Chrome/Edge или распакованный MusicXML.');
-  const raw=await zipInflateBounded(src,15*1024*1024,'MXL');return new TextDecoder().decode(raw);
+ if(p!==dirAt+dirSize)throw Error('Несогласованный каталог ZIP');
+ async function entryText(e){
+  if(e.originalSize>15*1024*1024)throw Error('MXL XML слишком большой');
+  const off=e.localOffset;
+  if(off>dirAt||off+30>dirAt||d.getUint32(off,true)!==0x04034b50)
+   throw Error('Повреждён ZIP');
+  const localFlags=d.getUint16(off+6,true),localMethod=d.getUint16(off+8,true),
+   n=d.getUint16(off+26,true),extra=d.getUint16(off+28,true);
+  const start=off+30+n+extra;
+  if((localFlags&1)||(localFlags&8)!==(e.flags&8)||
+   localMethod!==e.method||start>dirAt||e.size>dirAt-start)
+   throw Error('Повреждённая запись MXL');
+  const localName=new TextDecoder().decode(a.subarray(off+30,off+30+n));
+  if(localName!==e.name)throw Error('Несогласованное имя файла MXL');
+  const src=a.slice(start,start+e.size);
+  let raw;
+  if(e.method===0)raw=src;
+  else if(e.method===8)raw=await zipInflateBounded(src,15*1024*1024,'MXL');
+  else throw Error('Метод сжатия MXL не поддерживается');
+  if(raw.length!==e.originalSize)
+   throw Error('Несовпадение размера распакованного MXL');
+  return new TextDecoder('utf-8',{fatal:true}).decode(raw);
  }
- const c=entries.find(x=>x.name==='META-INF/container.xml');let rootName='';if(c){const text=await entryText(c);const dom=new DOMParser().parseFromString(text,'text/xml');rootName=dom.querySelector('rootfile')?.getAttribute('full-path')||''}
- const target=entries.find(x=>x.name===rootName)||entries.find(x=>/\.(musicxml|xml)$/i.test(x.name)&&!x.name.startsWith('META-INF/'));
- if(!target)throw Error('В MXL нет нотного XML');return entryText(target);
+ const c=entries.find(x=>x.name==='META-INF/container.xml');
+ let rootName='';
+ if(c){
+  if(c.originalSize>1024*1024)throw Error('Слишком большой META-INF/container.xml');
+  const xml=await entryText(c);
+  if(/<!\\s*(?:DOCTYPE|ENTITY)\\b/i.test(xml))
+   throw Error('Недопустимая декларация XML в контейнере MXL');
+  const dom=new DOMParser().parseFromString(xml,'text/xml');
+  if(dom.querySelector('parsererror'))throw Error('Повреждён контейнер MXL');
+  rootName=dom.querySelector('rootfile')?.getAttribute('full-path')||'';
+  if(rootName&&(!names.has(rootName)||rootName==='META-INF/container.xml'))
+   throw Error('Указанный нотный XML отсутствует в MXL');
+ }
+ const target=rootName?entries.find(x=>x.name===rootName):
+  entries.find(x=>/\\.(musicxml|xml)$/i.test(x.name)&&!x.name.startsWith('META-INF/'));
+ if(!target)throw Error('В MXL нет нотного XML');
+ return entryText(target);
 }
