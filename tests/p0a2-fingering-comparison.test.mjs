@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {makeP0A2Cohort} from '../src/core/p0a2-fingering-cohort.mjs';
 import {originalMidiSourceEvents} from '../src/core/pianomotion-midi-source-map.mjs';
-import {importP0A2PianoMotion,evaluateP0A2Case,summarizeP0A2}
+import {importP0A2PianoMotion,evaluateP0A2Case,summarizeP0A2,compareP0A2Paired,summarizeP0A2Paired}
  from '../src/core/p0a2-fingering-evaluation.mjs';
 import {runP0A2RealBenchmark} from '../scripts/p0a2-real-fingering-benchmark.mjs';
 const parsed=()=>({sourceId:'fixture',notes:[
@@ -125,4 +125,43 @@ test('CLI research runner rejects nonexistent source before any external downloa
  assert.equal(r.reason,'UNKNOWN_OR_DUPLICATE_CASE');
  const b=await runP0A2RealBenchmark({repeat:0});
  assert.equal(b.reason,'INVALID_REPEAT_COUNT');
+});
+
+test('paired report distinguishes same choices from each engine uniquely correct',()=>{
+ const c=makeP0A2Cohort(parsed());
+ const pa=c.source.map((n,i)=>({...n,finger:c.reference[i].finger}));
+ const pm=c.source.map((n,i)=>({...n,finger:c.reference[i].finger}));
+ // PianoMotion alone correct on note 0; Play Along alone on note 1;
+ // both different/wrong on note 2; both correct on note 3.
+ pa[0].finger=3;pm[1].finger=1;
+ pa[2].finger=1;pm[2].finger=5;
+ const x=compareP0A2Paired({source:c.source,reference:c.reference,playAlong:pa,pianoMotion:pm});
+ assert.equal(x.ok,true);
+ assert.equal(x.eligible,4);assert.equal(x.bothProposed,4);
+ assert.equal(x.same,1);assert.equal(x.differ,3);
+ assert.equal(x.bothCorrect,1);
+ assert.equal(x.onlyPlayAlongCorrect,1);
+ assert.equal(x.onlyPianoMotionCorrect,1);
+ assert.equal(x.bothWrong,1);
+ const total=summarizeP0A2Paired([{paired:x},{paired:x}]);
+ assert.equal(total.ok,true);assert.equal(total.bothProposed,8);
+ assert.equal(total.same,2);assert.equal(total.differ,6);
+});
+test('paired comparison with missing real Python must show not-run, not zero disagreements',()=>{
+ const c=makeP0A2Cohort(parsed());
+ const x=compareP0A2Paired({source:c.source,reference:c.reference,playAlong:[],pianoMotion:null});
+ assert.equal(x.ok,true);
+ assert.equal(x.status,'not-run');
+ assert.equal(x.eitherAbstained,4);
+ const total=summarizeP0A2Paired([{paired:x}]);
+ assert.equal(total.casesEvaluated,0);assert.equal(total.casesNotRun,1);
+});
+test('pairwise source/ground-truth tampering refuses rather than renumbering',()=>{
+ const c=makeP0A2Cohort(parsed()),a=c.source.map((n,i)=>({...n,finger:i%5+1}));
+ const dup=a.map(n=>({...n}));dup[1].noteId=dup[0].noteId;
+ assert.equal(compareP0A2Paired({source:c.source,reference:c.reference,
+  playAlong:dup,pianoMotion:a}).reason,'INVALID_PAIRED_PROPOSALS');
+ const ref=c.reference.map(n=>({...n}));ref[1].hand='RH';
+ assert.equal(compareP0A2Paired({source:c.source,reference:ref,
+  playAlong:a,pianoMotion:a}).reason,'INVALID_SOURCE_TO_REFERENCE');
 });
