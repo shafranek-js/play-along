@@ -262,3 +262,6 @@ test('P1: other-hand repeat iteration and next-status must match canonical targe
 
 // FG-03D4: run the isolated PianoMotion pose interchange safety suite in npm test.
 import './pianomotion-pose-adapter.test.mjs';
+
+// FG-04C7: source-pinned original PianoMotion runtime manifest safety gates.
+import './pianomotion-runtime-staging.test.mjs';
