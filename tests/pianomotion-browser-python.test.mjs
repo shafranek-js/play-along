@@ -48,3 +48,16 @@ test('FG-04C9 bundles hash-identical original owner Python files, not reconstruc
  }
  assert.ok(ordered.length>=10);
 });
+
+test('FG-04C9 upstream attribution remains visible and never masquerades as a license',()=>{
+ const root=join(dirname(fileURLToPath(import.meta.url)),'..');
+ const read=path=>readFileSync(join(root,path),'utf8');
+ const notices=read('THIRD_PARTY_NOTICES.md');
+ const readme=read('README.md');
+ assert.match(notices,/V9011N\/pygame-piano-animator/);
+ assert.match(notices,/f8189c021d9235005fb35faa2c8cfbc09a3768a0/);
+ assert.match(notices,/No .?LICENSE.? or .?LICENSE\.md.? granting rights/);
+ assert.match(notices,/Attribution.*not.*copyright license/i);
+ assert.match(readme,/THIRD_PARTY_NOTICES\.md/);
+ assert.match(readme,/Attribution does not grant redistribution rights/);
+});
