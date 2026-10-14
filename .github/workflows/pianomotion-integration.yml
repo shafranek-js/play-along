@@ -30,7 +30,7 @@ jobs:
       - name: Build production assets
         run: npm run build
       - name: Run source MIDI/PianoMotion identity regressions
-        run: node --test tests/pianomotion-source-selection.test.mjs tests/pianomotion-source-identity.test.mjs tests/pianomotion-review.test.mjs tests/pianomotion-browser-python.test.mjs
+        run: node --test tests/pianomotion-source-selection.test.mjs tests/pianomotion-source-identity.test.mjs tests/pianomotion-review.test.mjs tests/pianomotion-physical-audit.test.mjs tests/pianomotion-browser-python.test.mjs
       - name: Real Chromium apply and MusicXML export
         run: node tests/pianomotion-apply-export.test.mjs
       - name: Real Chromium 547-note guitar + flute MIDI roundtrip
