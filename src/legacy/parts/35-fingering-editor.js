@@ -491,20 +491,158 @@ function fingerBrowserShow(report){
   candidates.append(list);
  }
 }
-$('fingerCurrentCalculate').onclick=()=>{
- if(!fingerEditorAvailable()){
-  $('fingerBrowserStatus').textContent=current?.format==='MusicXML'?
-   'Верни оригинальный режим (без адаптации), затем повтори расчёт.':
-   'Выбери произведение MusicXML из библиотеки. Для обычного MIDI пока нужен отдельный алгоритм определения рук.';
+// FG-04C9 — REAL Python PianoMotion, on an already selected MIDI/MusicXML.
+let pianoMotionWorker=null,pianoMotionRequest=0,pianoMotionPreview=null;
+let pianoMotionByEvent=new Map();
+function pianoMotionEventKey(note){
+ return [note.pitch,Math.round(note.start*1000),Math.round(note.duration*1000)].join(':');
+}
+function pianoMotionPreviewFor(note){
+ if(!pianoMotionPreview||pianoMotionPreview.song!==current||
+     state.adaptMode!=='original')return null;
+ return pianoMotionByEvent.get(pianoMotionEventKey(note))||null;
+}
+function pianoMotionAbort(message=''){
+ pianoMotionRequest++;
+ if(pianoMotionWorker)pianoMotionWorker.terminate();
+ pianoMotionWorker=null;pianoMotionPreview=null;pianoMotionByEvent.clear();
+ $('pianoMotionResults').replaceChildren();
+ $('pianoMotionClear').disabled=true;
+ $('pianoMotionCalculate').disabled=false;
+ if(message)$('pianoMotionStatus').textContent=message;
+ fingerEditorPaintSoon();
+}
+function pianoMotionDisplayVerified(report,song){
+ pianoMotionPreview={song,notes:report.candidates};
+ pianoMotionByEvent=new Map();
+ const results=$('pianoMotionResults'),lines=document.createElement('ol');
+ results.replaceChildren();
+ let playable=0;
+ for(const candidate of report.candidates){
+  if(!Number.isInteger(candidate.finger))continue;
+  playable++;
+  const key=pianoMotionEventKey(candidate);
+  if(!pianoMotionByEvent.has(key))pianoMotionByEvent.set(key,candidate);
+ }
+ for(const n of report.candidates.slice(0,80)){
+  const row=document.createElement('li');
+  row.textContent=n.hand+' · '+nameOf(n.pitch)+' · '+n.start.toFixed(2)+
+    ' с · '+(n.finger??'не удалось назначить');
+  lines.append(row);
+ }
+ results.append(lines);
+ $('pianoMotionStatus').textContent='PianoMotion Python · проверено соответствие '+report.candidates.length+
+  ' исходных нот; назначено '+playable+'. Фиолетовые цифры видны на нотах. '+
+  'Автоматические предложения нужно проверить перед применением.';
+ $('pianoMotionClear').disabled=false;
+ if(fingerEditorAvailable()){
+  fingerBrowserAbort();
+  fingerBrowserSong=song;
+  fingerBrowserSnapshotKey=JSON.stringify(fingerBrowserInput());
+  const originals=new Map(fingerEditorNotes().map(n=>[n.noteId,n]));
+  const key=fingerGuideWorkKey();
+  const overrides=key?state.fingerOverrides?.[key]||{}:{};
+  fingerBrowserPreview=new Map(report.candidates.filter(n=>{
+   const source=originals.get(n.noteId);
+   return source&&Number.isInteger(n.finger)&&n.finger>=1&&n.finger<=5&&
+     !(source.fingeringSource==='musicxml'&&Number.isInteger(source.finger))&&
+     !fingerOverrideEffective(source,overrides[n.noteId]);
+  }).map(n=>[n.noteId,n]));
+  $('fingerBrowserConfirm').checked=false;
+  fingerBrowserUpdateActions();
   $('fingerResearchPanel').open=true;
   $('fingerBrowserContents').hidden=false;
   $('fingerBrowserToggle').setAttribute('aria-expanded','true');
+  $('fingerBrowserStatus').textContent='Расчёт выполнен оригинальным PianoMotion. '+
+    'Фиолетовые предложения видны прямо на нотах. Выдели нужные и подтвердите после проверки.';
+  fingerEditorPaintSoon();
+ }
+ renderCanvas();
+}
+function pianoMotionStart(){
+ if(!current){
+  $('pianoMotionStatus').textContent='Сначала выбери произведение MIDI или MusicXML из библиотеки.';
   return;
  }
- $('fingerResearchPanel').open=true;
- $('fingerBrowserContents').hidden=false;
- $('fingerBrowserToggle').setAttribute('aria-expanded','true');
- $('fingerBrowserCalculate').click();
+ if(state.adaptMode!=='original'){
+  $('pianoMotionStatus').textContent='Выбери режим Original (без адаптации диапазона), чтобы не менять исходные MIDI-ноты.';
+  return;
+ }
+ let midiBytes,sourceIndex=null;
+ const direct=current.format==='MIDI';
+ if(direct){
+  midiBytes=originalMidiForSong(current);
+  if(!midiBytes){
+   $('pianoMotionStatus').textContent='Оригинальные байты выбранного MIDI недоступны. Открой произведение из библиотеки ещё раз, чтобы выполнить исходный расчёт.';
+   return;
+  }
+ }else{
+  const converted=serializeSongForPianoMotion(current);
+  if(!converted.ok){
+   $('pianoMotionStatus').textContent='Не удалось получить MIDI из выбранной партитуры: '+converted.reason;
+   return;
+  }
+  midiBytes=converted.midiBytes;sourceIndex=converted.bySignature;
+ }
+ if(!window.Worker){
+  $('pianoMotionStatus').textContent='Этот браузер не поддерживает Web Workers.';
+  return;
+ }
+ pianoMotionAbort();
+ const song=current,request=++pianoMotionRequest,originalBytes=midiBytes.slice(),
+    sourceIndexForRequest=sourceIndex;
+ $('pianoMotionCalculate').disabled=true;
+ $('pianoMotionStatus').textContent='Загружаю настоящий Python/Pyodide и рассчитываю аппликатуру…';
+ let worker;
+ try{worker=new Worker('./assets/pianomotion-engine-worker.js',{type:'module'});}
+ catch{
+  pianoMotionAbort('Браузер не смог запустить Python Worker.');
+  return;
+ }
+ pianoMotionWorker=worker;
+ const timer=setTimeout(()=>{
+  if(request!==pianoMotionRequest)return;
+  pianoMotionAbort('Расчёт превышает ограничение времени. Проверь соединение с интернетом и попробуй ещё раз.');
+ },180000);
+ const done=()=>{clearTimeout(timer);if(request!==pianoMotionRequest)return false;
+  worker.terminate();pianoMotionWorker=null;$('pianoMotionCalculate').disabled=false;return true;};
+ worker.onerror=()=>{if(done())$('pianoMotionStatus').textContent='Ошибка выполнения Python/WebAssembly. Проверь доступ к Python-зависимостям.'};
+ worker.onmessage=async e=>{
+  if(e.data?.id!==request||song!==current)return;
+  if(e.data.type==='progress'){
+   $('pianoMotionStatus').textContent=e.data.message;
+   return;
+  }
+  if(e.data.type==='error'){
+   if(done())$('pianoMotionStatus').textContent='PianoMotion: '+e.data.reason;
+   return;
+  }
+  if(e.data.type!=='result')return;
+  if(!done())return;
+  try{
+   const module=await import('./assets/browser-pianomotion-analysis.js');
+   const report=await module.verifyPianoMotionBrowserAnalysis({
+    midiBytes:originalBytes,analysis:e.data.result.analysis,
+    sourceSong:song,sourceIndex:sourceIndexForRequest
+   });
+   if(song!==current||request!==pianoMotionRequest)return;
+   if(!report.ok){
+    $('pianoMotionStatus').textContent='Расчёт получен, но не применён: '+report.reason+
+     '. Без точной идентичности нот показывать пальцы нельзя.';
+    return;
+   }
+   pianoMotionDisplayVerified(report,song);
+  }catch{
+   $('pianoMotionStatus').textContent='Ошибка проверки исходных MIDI-нот. Предложения скрыты.';
+  }
+ };
+ worker.postMessage({id:request,type:'analyze-midi',midiBytes:originalBytes.buffer},[originalBytes.buffer]);
+}
+$('pianoMotionCalculate').onclick=pianoMotionStart;
+$('pianoMotionClear').onclick=()=>pianoMotionAbort('Предложения PianoMotion скрыты. Исходная музыка не изменена.');
+$('fingerCurrentCalculate').onclick=()=>{
+ state.right=true;applyPanels();switchRightTab('practice');
+ pianoMotionStart();
 };
 $('fingerBrowserConfirm').onchange=fingerBrowserUpdateActions;
 $('fingerBrowserReject').onclick=()=>{
