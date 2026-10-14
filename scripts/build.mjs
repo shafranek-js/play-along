@@ -36,6 +36,9 @@ fs.writeFileSync(path.join(dist, 'assets/app.js'), js);
 const bundledCore=path.join(root,'src/pianomotion-python/python-core');
 const coreTarget=path.join(dist,'assets/pianomotion/python-core');
 fs.cpSync(bundledCore,coreTarget,{recursive:true});
+// Ship the source provenance notice alongside the copied Python modules.
+fs.copyFileSync(path.join(root,'THIRD_PARTY_NOTICES.md'),path.join(dist,'THIRD_PARTY_NOTICES.md'));
+
 // FG-04C7: executable original-PianoMotion Python worker only when a developer
 // explicitly stages the private, SHA-pinned runtime into dist (local research).
 // No PianoMotion Python, wheel or SoundFont source is shipped by npm build.
