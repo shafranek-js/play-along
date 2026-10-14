@@ -35,7 +35,14 @@ export async function importP0A2bMusicXML({file,output,cohortId,groupId,split='d
  let xml;
  try{xml=new TextDecoder('utf-8',{fatal:true}).decode(raw)}
  catch{return fail('MUSICXML_INVALID_UTF8')}
- if(/<!\s*(?:DOCTYPE|ENTITY)\b/i.test(xml))return fail('XML_EXTERNAL_ENTITIES_REFUSED');
+ if(/<!\s*ENTITY\b/i.test(xml)||/<!DOCTYPE[^>]*\[/i.test(xml))
+  return fail('XML_EXTERNAL_ENTITIES_REFUSED');
+ // MusicXML scores often declare the standard PUBLIC DTD. This is a known
+ // no-internal-subset declaration only; strip it BEFORE DOM parsing, never
+ // load the external DTD over network. All other declarations are refused.
+ const publicDTD=/<!DOCTYPE\s+score-partwise\s+PUBLIC\s+["']-\/\/Recordare\/\/DTD MusicXML [0-9.]+ Partwise\/\/EN["']\s+["']https?:\/\/(?:www\.)?musicxml\.org\/dtds\/partwise\.dtd["']\s*>/gi;
+ const safeXML=xml.replace(publicDTD,'');
+ if(/<!\s*DOCTYPE\b/i.test(safeXML))return fail('XML_EXTERNAL_ENTITIES_REFUSED');
  const root=resolve(dist);
  const server=createServer((req,res)=>{
   let uri;
@@ -71,7 +78,7 @@ export async function importP0A2bMusicXML({file,output,cohortId,groupId,split='d
     }))})),
     audioEvents:s.audioEvents.filter(e=>e.type==='noteOn'||e.type==='noteOff')
      .map(e=>({type:e.type,noteId:e.noteId,pitch:e.pitch,time:e.time}))};
-  },xml);
+  },safeXML);
   const compiled=p0a2bCandidateFromSong(imported,{
    cohortId,groupId,split,scoreSha256:sha,rightsConfirmed:true
   });
