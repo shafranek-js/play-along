@@ -56,14 +56,15 @@ export function fingerGuidancePlayingFrame(steps,now,loop=null){
  const available=looping?steps.filter(g=>g.start>=loop.start-.001&&g.start<loop.end-.001):steps;
  if(!available.length)return empty;
  const next=available.find(g=>g.start>now+.001)||(looping?available[0]:null);
+ const previous=available.filter(g=>g.start<=now+.001).at(-1)||null;
  const overlapping=available.filter(g=>g.start<=now+.001&&
   g.notes?.some(n=>n.start<=now+.001&&now<n.start+n.duration-.001));
  const playing=overlapping.flatMap(g=>g.notes.filter(n=>
   n.start<=now+.001&&now<n.start+n.duration-.001));
- if(!playing.length)return {current:null,next};
+ if(!playing.length)return {current:null,next,previous};
  return {current:{start:Math.min(...playing.map(n=>n.start)),
   notes:playing,totalNotes:overlapping.reduce((count,g)=>count+g.totalNotes,0),
-  complete:overlapping.every(g=>g.complete)},next};
+  complete:overlapping.every(g=>g.complete)},next,previous};
 }
 
 /**
