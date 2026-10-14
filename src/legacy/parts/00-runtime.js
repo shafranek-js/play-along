@@ -204,7 +204,7 @@ const demoSongs=[
   ]}
 ];
 let imports=[],current=null,selectedNote=null,pos=0,isPlaying=false,startAt=0,startAudioTime=0,playNext=0,ctx=null,activeVoices=new Set(),mouseNote=null;let schedulerTimer=null,practice=null,holdForInput=false,liveVoices=new Map();
-let midiAccess=null,midiInput=null,deviceName='',midiConnecting=null,monitor=[],midiHeld=new Set(),noteCount=0,cal={step:0,low:null,high:null},pointerDrag=null,hitboxes=[];
+let midiAccess=null,midiInput=null,deviceName='',midiConnecting=null,monitor=[],midiHeld=new Set(),midiHeldSources=new Map(),noteCount=0,cal={step:0,low:null,high:null},pointerDrag=null,hitboxes=[];
 let loop={start:null,end:null,enabled:false},bookmarks=[];let adaptPlan=null,adaptMemo=null;let waitReleaseGroup=null,waitReleasePitches=new Set();
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const names=['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];
