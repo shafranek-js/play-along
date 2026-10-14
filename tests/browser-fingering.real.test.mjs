@@ -65,6 +65,36 @@ try{
  assert.equal(await page.locator('#fingerBrowserCandidates li').count(),0,'old candidate list must be invalidated');
  await page.locator('#fingerBrowserCalculate').click();
  await page.waitForFunction(()=>document.querySelector('#fingerBrowserStatus').textContent.includes('Вычислено локально'),null,{timeout:15000});
+ // FG-04C5: interactive two-hand self-report and persistent application.
+ await page.locator('#fingerSpanToggle').click();
+ await page.locator('#fingerSpanRH').selectOption('tenth');
+ await page.locator('#fingerSpanLH').selectOption('tenth');
+ await page.locator('#fingerSpanRecommend').click();
+ assert.match(await page.locator('#fingerSpanResult').innerText(),/Рекомендация: L/);
+ assert.equal(await page.locator('#fingerSpanApply').isEnabled(),true);
+ await page.locator('#fingerSpanApply').click();
+ assert.equal(await page.locator('#fingerBrowserHandSize').inputValue(),'L');
+ assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('playalong:smart-practice:v07')).fingerBrowserHandSize),'L');
+ assert.equal(await page.locator('#fingerBrowserCandidates li').count(),0,
+  'calibrated size invalidates previous candidate suggestions');
+ await page.locator('#fingerSpanLH').selectOption('octave');
+ await page.locator('#fingerSpanRecommend').click();
+ assert.match(await page.locator('#fingerSpanResult').innerText(),/Рекомендация: S/);
+ await page.locator('#fingerSpanApply').click();
+ assert.equal(await page.locator('#fingerBrowserHandSize').inputValue(),'S',
+  'smaller comfortable LH span controls the shared setting');
+ await page.locator('#fingerSpanLHComfort').selectOption('pain');
+ await page.locator('#fingerSpanRecommend').click();
+ assert.match(await page.locator('#fingerSpanResult').innerText(),/Размер не назначен/);
+ assert.equal(await page.locator('#fingerSpanApply').isDisabled(),true);
+ assert.equal(await page.locator('#fingerBrowserHandSize').inputValue(),'S',
+  'pain must never auto-enlarge a stored profile');
+ await page.reload();
+ await page.waitForFunction(()=>window.__fingerGuideTest&&window.__prototypeTest);
+ assert.equal(await page.locator('#fingerBrowserHandSize').inputValue(),'S',
+  'size calibration persists after a fresh browser session');
+ assert.deepEqual(await page.evaluate(()=>window.__fingerGuideTest.userCorrections),{},
+  'hand span calibration must not create score finger overrides');
  assert.deepEqual(failures,[],'No unhandled page exceptions');
  console.log('FG-04C4 browser Worker, explicit research staff assumption, result/stale-data integrity: PASS');
 }finally{
