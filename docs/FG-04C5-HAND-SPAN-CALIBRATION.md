@@ -1,7 +1,7 @@
 # FG-04C5 — User-friendly hand-span calibration (v0.10.88)
 
 ## User goal
-The user need not guess `XXS`–`XXL`. In the browser fingering editor's existing research panel, **«Как определить мой размер кисти?»** asks the maximum **comfortable** thumb–little finger keyboard interval separately for RH and LH and whether it felt easy, noticeably stretched or painful. For example, C4–E5 is a **tenth** and an easy, relaxed tenth suggests `L` at the current Play Along FG-04C3 pair-span model. This captures a subjective preliminary span only; it does not measure finger 2–3/3–4/4–5 reach.
+The user need not guess `XXS`–`XXL`. In the always-available **Практика** sidebar, **«Как определить мой размер кисти?»** asks the maximum **comfortable** thumb–little finger keyboard interval separately for RH and LH and whether it felt easy, noticeably stretched or painful. For example, C4–E5 is a **tenth** and an easy, relaxed tenth suggests `L` at the current Play Along FG-04C3 pair-span model. This captures a subjective preliminary span only; it does not measure finger 2–3/3–4/4–5 reach.
 
 The current solver only accepts one hand-size scalar for both hands, so where two estimates are available it deliberately selects the smaller one. With only one hand tested it labels the estimate **provisional**. When stretching is noticeable the estimate is reduced one level rather than encouraging a strained reach; if pain/discomfort is reported it produces **no recommendation**. Very large reported spans cannot automatically choose XXL; users may still manually select any existing enum based on other evidence.
 
