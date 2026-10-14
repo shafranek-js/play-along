@@ -234,3 +234,8 @@ body.onlyLibrary #leftPanel .sidebody>.panelSection:first-child{
 .pianoMotionReview.collapsed>p,.pianoMotionReview.collapsed>.pianoMotionRollHead,
 .pianoMotionReview.collapsed>.pianoMotionRoll,.pianoMotionReview.collapsed>.pianoMotionReviewList,
 .pianoMotionReview.collapsed>.pianoMotionReviewToolbar:first-child{display:none!important}
+
+/* P0-A1: independent structural conflict review; red is not a musical grade. */
+.pianoMotionReviewRow.physicalConflict{border-left:3px solid #d46f6f;background:#34232a}
+.pianoMotionReviewRow.physicalConflict .pianoMotionReviewFinger{color:#ffc2bd;font-size:11px;white-space:normal;text-align:right}
+.pianoMotionReviewRow.physicalConflict:has(input:checked){background:#4a2c35}
