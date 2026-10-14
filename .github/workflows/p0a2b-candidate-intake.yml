@@ -49,6 +49,7 @@ jobs:
         run: |
           node --test tests/p0a2b-phase3-cohort.test.mjs
           node scripts/p0a2b-phase3-screening.mjs
+          node scripts/p0a2b-phase3-screening.mjs --verify-sources
       - name: Verify source notes and source-bound metadata
         run: node --test tests/p0a2b-source-intake.test.mjs
       - name: Real MusicXML browser parser and private packet
