@@ -149,3 +149,15 @@ test('study refuses development/heldout leakage by group, reusing source or note
  assert.equal(pass.independentExpertsAvailable,false);
  assert.equal(validateP0A2bStudy([dev,dev]).reason,'DUPLICATE_SOURCE_IN_STUDY');
 });
+
+test('fabricated adjudication map is rejected even when a packet hash matches',()=>{
+ const p=packet(),f=[[1],[3],[2],[5]],
+  good=adjudicateP0A2b(p,[makeReview(p,'one',f),makeReview(p,'two',f)]);
+ const forged={...good,accepted:new Map([['unknown-note',new Set(['RH:1'])]])};
+ const items=proposals(p,[1,3,2,5]);
+ assert.equal(evaluateP0A2bEngines(p,forged,{playAlong:items,pianoMotion:items}).reason,
+  'INVALID_ADJUDICATED_REFERENCE');
+ const fakeToken={...good,accepted:new Map([['p1:0',new Set(['RH:9'])]])};
+ assert.equal(evaluateP0A2bEngines(p,fakeToken,{playAlong:items,pianoMotion:items}).reason,
+  'INVALID_ADJUDICATED_REFERENCE');
+});
