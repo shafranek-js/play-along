@@ -469,6 +469,20 @@ function readMusicXML(xmlString,filename){
  const creator=[...root.getElementsByTagName('creator')].find(x=>x.getAttribute('type')==='composer');const author=creator?.textContent?.trim()||'MusicXML · импорт';
  const namesById={};for(const p of xmlList(xmlDirect(root,'part-list'),'score-part'))namesById[p.getAttribute('id')]=xmlText(p,'part-name','Партия');
  const segments=[],tempos=[{tick:0,tempo:500000}],ppq=10080;let warnings=new Set();
+ // One MIDI port requires no routing: warn only if multiple distinct ports
+ // coexist across score-part definitions or mid-measure sound declarations.
+ const portSet=new Set();
+ for(const def of xmlList(xmlDirect(root,'part-list'),'score-part')){
+  const devices=xmlList(def,'midi-device');
+  if(!devices.length)portSet.add('1');
+  for(const d of devices)portSet.add(d.getAttribute('port')||'1');
+ }
+ for(const sound of [...root.getElementsByTagName('sound')]){
+  for(const d of xmlList(sound,'midi-device'))
+   portSet.add(d.getAttribute('port')||'1');
+ }
+ if(portSet.size>1)
+  warnings.add('Порты MusicXML midi-device не разделяются; инструменты с разными портами могут звучать вместе.');
  const userExportMarker=xmlList(xmlDirect(xmlDirect(root,'identification'),'miscellaneous'),'miscellaneous-field')
   .some(x=>x.getAttribute('name')==='play-along-user-fingering');
  if(userExportMarker)warnings.add('В MusicXML есть отметка о пользовательских правках Play Along. Все номера пальцев из файла считаются неподтверждёнными: они НЕ используются как авторские подсказки. Чтобы включить подсказку, проверь и назначь палец и руку вручную в редакторе.');
@@ -584,10 +598,10 @@ function readMusicXML(xmlString,filename){
   }
   if(!configs.size)makeConfig(partId,null);
   const defaultInstrumentId=configs.keys().next().value,defaultConfig=configs.get(defaultInstrumentId);
-  if(partDef&&xmlList(partDef,'midi-device').some(x=>x.hasAttribute('port')))warnings.add('Порты MusicXML midi-device не разделяются; инструменты с разными портами могут звучать вместе.');
+  // Inter-port conflicts were checked globally; same-port declarations are harmless.
   const recordMidiSound=(sound,soundTick)=>{
    if(!sound)return;
-   for(const device of xmlList(sound,'midi-device'))if(device.hasAttribute('port'))warnings.add('Смена порта MusicXML midi-device не применяется; соответствующие инструменты могут звучать вместе.');
+   // Sound-local port changes are already included in the global conflict audit.
    if(xmlList(sound,'instrument-change').length)warnings.add('Смена виртуального инструмента MusicXML не применяется; сохраняется исходный тембр партии.');
    for(const midi of xmlList(sound,'midi-instrument')){
     const id=midi.getAttribute('id')||defaultInstrumentId,config=configs.get(id);
