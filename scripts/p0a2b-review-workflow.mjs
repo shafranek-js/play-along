@@ -3,7 +3,7 @@
  *
  * packet <curated-source.json> <blind-packet.json>:
  *   compile an immutable source SHA-bound, FINGERLESS review packet
- * evaluate <blind-packet.json> <reviewer1.json> <reviewer2.json>
+ * template <blind-packet.json> <review-template.json> <reviewer-code> <independent|adjudicator>:\n *   produce no-overwrite PRIVATE source-bound blank reviewer form\n * study <blind-packet1.json> [more-packets.json ...]:\n *   reject group leakage, duplicated source hashes and repeated score identities\n * evaluate <blind-packet.json> <reviewer1.json> <reviewer2.json>
  *          <adjudicator.json|-> <play-along.json> <piano-motion.json>
  *   prints ONLY aggregate note-level accuracy/technique coverage counts.
  *
@@ -14,7 +14,7 @@ import {readFile,open,stat} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import {makeP0A2bBlindPacket,adjudicateP0A2b,
- evaluateP0A2bEngines}from '../src/core/p0a2b-independent-review.mjs';
+ evaluateP0A2bEngines,validateP0A2bStudy}from '../src/core/p0a2b-independent-review.mjs';
 const MAX=6_000_000;
 async function readJSON(filename){
  const file=resolve(filename),info=await stat(file);
@@ -39,6 +39,39 @@ export async function runP0A2bLocal(args){
    sourceNotes:built.packet.notes.length,
    packetSha256:built.packet.packetSha256,reviewerQualificationVerified:false,
    productionEligible:false};
+ }
+ if(args[0]==='template'){
+  if(args.length!==5)return error('TEMPLATE_PACKET_OUTPUT_REVIEWER_ROLE_REQUIRED');
+  const [_,file,destination,reviewerCode,role]=args;
+  if(!/^[a-z0-9][a-z0-9._:-]{0,120}$/i.test(reviewerCode)||
+   !['independent','adjudicator'].includes(role))
+   return error('INVALID_REVIEWER_OR_ROLE');
+  let packet;
+  try{packet=await readJSON(file);}
+  catch{return error('LOCAL_PACKET_UNREADABLE');}
+  const verified=validateP0A2bStudy([packet]);
+  if(!verified.ok)return error('TEMPLATE_'+verified.reason);
+  const review={schema:'p0a2b-blind-review-v1',
+   packetSha256:packet.packetSha256,cohortId:packet.cohortId,
+   reviewerCode,role,blindToAlgorithms:true,
+   decisions:packet.notes.map(n=>({noteId:n.noteId,uncertain:true,
+    acceptable:[],
+    ...(role==='adjudicator'?{rationale:''}:{})}))};
+  try{
+   const out=await open(resolve(destination),'wx',0o600);
+   try{await out.writeFile(JSON.stringify(review,null,2)+'\\n');}
+   finally{await out.close();}
+  }catch{return error('TEMPLATE_EXISTS_OR_UNWRITABLE');}
+  return {ok:true,status:'BLIND_REVIEW_TEMPLATE_CREATED',
+   noteCount:packet.notes.length,packetSha256:packet.packetSha256,
+   productionEligible:false};
+ }
+ if(args[0]==='study'){
+  if(args.length<2)return error('STUDY_PACKETS_REQUIRED');
+  let packets;
+  try{packets=await Promise.all(args.slice(1).map(readJSON));}
+  catch{return error('STUDY_PACKET_UNREADABLE');}
+  return validateP0A2bStudy(packets);
  }
  if(args[0]==='evaluate'){
   if(args.length!==7)return error('EVALUATION_SIX_INPUTS_REQUIRED');
