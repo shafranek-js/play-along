@@ -150,7 +150,7 @@ function fingerGuidanceSteps(){
  // For non-demo works only explicitly annotated MusicXML is eligible.
  // An ordinary MIDI pitch is never treated as evidence of a finger.
  const key=fingerGuideWorkKey(),edits=key?state.fingerOverrides?.[key]||{}:{};
- if(!demo&&!current.tracks.some(t=>t.notes.some(n=>n.fingeringSource==='musicxml'&&n.finger>=1&&n.finger<=5))&&!Object.keys(edits).length)return [];
+ if(!demo&&!current.tracks.some(t=>t.notes.some(n=>Number.isInteger(n.finger)&&n.finger>=1&&n.finger<=5))&&!Object.keys(edits).length)return [];
  const scale=[1,2,3,1,2,3,4,5,4,3,2,1,3,2,1];
  const events=[];
  current.tracks.forEach((track,trackIndex)=>{
@@ -168,8 +168,8 @@ function fingerGuidanceSteps(){
    }else if(fingerOverrideEffective(n,edits[n.noteId])){
     const selected=fingerOverrideEffective(n,edits[n.noteId]);
     finger=selected.finger;hand=selected.hand;source='user';
-   }else if(n.fingeringSource==='musicxml'&&Number.isInteger(n.finger)&&n.finger>=1&&n.finger<=5){
-    finger=n.finger;hand=n.hand==='RH'||n.hand==='LH'?n.hand:null;source='musicxml';
+   }else if(Number.isInteger(n.finger)&&n.finger>=1&&n.finger<=5){
+    finger=n.finger;hand=n.hand==='RH'||n.hand==='LH'?n.hand:null;source=n.fingeringSource==='musicxml'?'musicxml':'user';
    }
    // Preserve ALL source-note onsets, including notes with no trusted finger.
    // Otherwise a later annotated group could be shown prematurely while an
@@ -361,9 +361,10 @@ function drawFingerGuidance(c,geom,keyY,keyboardH,handsAllowed,handTail=0){
  const message=mode==='off'?'':state.adaptMode!=='original'?'Адаптация: подсказки пока недоступны':
   !steps.length?'Для этой партии пока нет подтверждённой аппликатуры':
   hasPreset?'Демо-аппликатура · MIDI не определяет реальные пальцы':
-  'MusicXML: авторская аппликатура '+authored.length+'/'+total+
+  authored.length?'MusicXML: авторская аппликатура '+authored.length+'/'+total+
    (corrected.length?' · правки пользователя: '+corrected.length:'')+
-   (unassigned?' · рука не указана: только номера':'');
+   (unassigned?' · рука не указана: только номера':''):
+  'PianoMotion: аппликатура ('+steps.flatMap(g=>g.notes).filter(n=>n.finger).length+'/'+total+' нот)';
  if(status&&status.textContent!==message)status.textContent=message;
  if(!steps.length)return;
  const {current:group,next}=fingerGuidanceFrame(steps,pos);
@@ -502,7 +503,8 @@ function renderCanvas(){
   if(fingerSelectedIds.has(n.noteId)){c.strokeStyle='#f8e183';c.lineWidth=2.8;c.stroke();}
    else if(selectedNote===n){c.strokeStyle='#fff';c.lineWidth=1.5;c.setLineDash([3,3]);c.stroke();c.setLineDash([]);}
   c.restore();
-  if(state.labels&&nw>=24&&nh>18){c.fillStyle=audible?'#062439':'#171d25';c.font='bold 10px system-ui';c.textAlign='center';c.fillText(nameOf(n.pitch),k.center,y+13);c.textAlign='left';}
+  if(state.labels&&nw>=24&&nh>18){c.fillStyle=audible?'#062439':'#171d25';c.font='bold 10px system-ui';c.textAlign='center';c.fillText(nameOf(n.pitch)+(n.finger?' · '+n.finger:''),k.center,y+13);c.textAlign='left';}
+  else if(n.finger&&nw>=14&&nh>14){c.fillStyle=audible?'#062439':'#171d25';c.font='bold 10px system-ui';c.textAlign='center';c.fillText(String(n.finger),k.center,y+11);c.textAlign='left';}
   hitboxes.push({x,y,w:nw,h:nh,n});
  }
  if(loop.start!=null&&loop.end!=null){

@@ -35,7 +35,7 @@ function scoreXMLFromSong(song){
  for(const tr of tracks){const notes=tr.notes.map(n=>{
   const start=Math.max(0,Math.round((Number.isFinite(n.scoreBeat)?n.scoreBeat:n.start*beatPerSec)*4)/4);
   const length=Math.max(.25,Math.round((Number.isFinite(n.scoreBeatLength)?n.scoreBeatLength:n.duration*beatPerSec)*4)/4);
-  return{at:Math.round(start*div),until:Math.round((start+length)*div),pitch:n.pitch};
+  return{at:Math.round(start*div),until:Math.round((start+length)*div),pitch:n.pitch,finger:n.finger,hand:n.hand};
  }).sort((a,b)=>a.at-b.at||a.until-b.until||a.pitch-b.pitch);
  const voices=[];
  for(const n of notes){let voice=voices.find(v=>v.until<=n.at);if(!voice){voice={until:0,notes:[]};voices.push(voice)}if(voices.length>12)throw Error('Слишком много независимых голосов для автоматической записи. Используй Piano Roll или оригинальный MusicXML.');voice.notes.push(n);voice.until=n.until;scoreEnd=Math.max(scoreEnd,n.until)}
@@ -45,12 +45,15 @@ function scoreXMLFromSong(song){
  const values=[[1920,'whole',false],[1440,'half',true],[960,'half',false],[720,'quarter',true],[480,'quarter',false],[360,'eighth',true],[240,'eighth',false],[180,'16th',true],[120,'16th',false]];
  function pieces(d){const out=[];for(const [value,type,dotted] of values){while(d>=value){out.push({value,type,dotted});d-=value}}if(d)throw Error('Неквантованная длительность при записи MIDI в ноты');return out}
  function rest(d,v){return pieces(d).map(p=>'<note><rest/><duration>'+p.value+'</duration><voice>'+v+'</voice><type>'+p.type+'</type>'+(p.dotted?'<dot/>':'')+'</note>').join('')}
- function noteXml(n,start,d,v,tieStop,tieStart){const parts=pieces(d);return parts.map((part,i)=>{const from=tieStop||i>0,to=tieStart||i<parts.length-1;return '<note>'+scorePitchXML(n.pitch)+'<duration>'+part.value+'</duration><voice>'+v+'</voice><type>'+part.type+'</type>'+(part.dotted?'<dot/>':'')+(from?'<tie type="stop"/>':'')+(to?'<tie type="start"/>':'')+(from||to?'<notations>'+(from?'<tied type="stop"/>':'')+(to?'<tied type="start"/>':'')+'</notations>':'')+'</note>'}).join('')}
+ function noteXml(n,start,d,v,tieStop,tieStart){const parts=pieces(d);return parts.map((part,i)=>{const from=tieStop||i>0,to=tieStart||i<parts.length-1;const tech=(n.finger&&!from)?'<technical><fingering>'+n.finger+'</fingering></technical>':'';return '<note>'+scorePitchXML(n.pitch)+'<duration>'+part.value+'</duration><voice>'+v+'</voice><type>'+part.type+'</type>'+(part.dotted?'<dot/>':'')+(from?'<tie type="stop"/>':'')+(to?'<tie type="start"/>':'')+(from||to||tech?'<notations>'+(from?'<tied type="stop"/>':'')+(to?'<tied type="start"/>':'')+tech+'</notations>':'')+'</note>'}).join('')}
  const chunks=[];
  for(let k=0;k<measures.length;k++){
   const {name,voices}=measures[k],partID='P'+(k+1);let body='<part id="'+partID+'">';
+  const allVNotes=voices.flatMap(v=>v.notes);
+  const avgPitch=allVNotes.length?allVNotes.reduce((s,n)=>s+n.pitch,0)/allVNotes.length:60;
+  const clefSign=avgPitch<60?'F':'G',clefLine=avgPitch<60?4:2;
   for(let measure=0;measure<barCount;measure++){
-   const left=measure*bar,right=left+bar;let xml='<measure number="'+(measure+1)+'">';if(measure===0)xml+='<attributes><divisions>'+div+'</divisions><key><fifths>0</fifths></key><time><beats>4</beats><beat-type>4</beat-type></time><clef><sign>G</sign><line>2</line></clef></attributes>';
+   const left=measure*bar,right=left+bar;let xml='<measure number="'+(measure+1)+'">';if(measure===0)xml+='<attributes><divisions>'+div+'</divisions><key><fifths>0</fifths></key><time><beats>4</beats><beat-type>4</beat-type></time><clef><sign>'+clefSign+'</sign><line>'+clefLine+'</line></clef></attributes>';
    const active=voices.map((v,i)=>({index:i+1,notes:v.notes.filter(n=>n.at<right&&n.until>left)})).filter(v=>v.notes.length);
    if(!active.length){xml+=rest(bar,1)}else{
     active.forEach((voice,idx)=>{if(idx)xml+='<backup><duration>'+bar+'</duration></backup>';let at=left;

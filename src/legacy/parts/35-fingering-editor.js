@@ -674,16 +674,34 @@ $('fingerBrowserCalculate').onclick=()=>{
  * Pyodide browser worker. Runs on the currently selected song; never uploads
  * a second file, rewrites source notes or presents guesses as author fingers.
  */
-let pianoMotionRun=null,pianoMotionGeneration=0;
+let pianoMotionRun=null,pianoMotionGeneration=0,pianoMotionLastResult=null,pianoMotionLastSong=null;
 function pianoMotionStop(message){
  pianoMotionGeneration++;
  if(pianoMotionRun){pianoMotionRun.terminate();pianoMotionRun=null;}
+ pianoMotionLastResult=null;
+ pianoMotionLastSong=null;
  $('pianoMotionResult').replaceChildren();
  $('pianoMotionClear').disabled=true;
+ if($('pianoMotionApply'))$('pianoMotionApply').disabled=true;
+ if($('pianoMotionExportXML'))$('pianoMotionExportXML').disabled=true;
  $('pianoMotionCalculate').disabled=false;
  if(message)$('pianoMotionStatus').textContent=message;
 }
-$('pianoMotionClear').onclick=()=>pianoMotionStop('Предложения скрыты; исходная мелодия не изменена.');
+$('pianoMotionClear').onclick=()=>{
+ if(current?.tracks){
+  let cleared=0;
+  for(const t of current.tracks){
+   for(const n of (t.notes||[])){
+    if(n.fingeringSource==='pianomotion'){
+     delete n.finger;delete n.hand;delete n.fingeringSource;
+     cleared++;
+    }
+   }
+  }
+  if(cleared)renderCanvas();
+ }
+ pianoMotionStop('Предложения очищены; исходная мелодия не изменена.');
+};
 $('pianoMotionCalculate').onclick=()=>{
  pianoMotionStop();
  const song=current;
@@ -768,6 +786,10 @@ $('pianoMotionCalculate').onclick=()=>{
     ol.append(li);
    }
    list.append(ol);
+   pianoMotionLastResult=result;
+   pianoMotionLastSong=song;
+   if($('pianoMotionApply'))$('pianoMotionApply').disabled=false;
+   if($('pianoMotionExportXML'))$('pianoMotionExportXML').disabled=false;
    $('pianoMotionClear').disabled=false;
   };
   worker.onerror=event=>{
@@ -787,6 +809,107 @@ $('pianoMotionCalculate').onclick=()=>{
   worker.postMessage({id,type:'analyze-midi',midiBytes:transferable},[transferable]);
  }
  startRun(true);
+};
+if($('pianoMotionApply'))$('pianoMotionApply').onclick=()=>{
+ const song=current;
+ if(!song||!pianoMotionLastResult||pianoMotionLastSong!==song){
+  $('pianoMotionStatus').textContent='Сначала рассчитайте аппликатуру для открытой мелодии.';return;
+ }
+ const suggestions=pianoMotionLastResult.suggestions;
+ if(!Array.isArray(suggestions)||!suggestions.length){
+  $('pianoMotionStatus').textContent='Нет доступных предложений для применения.';return;
+ }
+ const songNotes=[];
+ (song.tracks||[]).forEach((t,trIndex)=>{
+  (t.notes||[]).forEach(n=>{
+   if(!n.isDrum&&n.channel!==9)songNotes.push({n,trIndex});
+  });
+ });
+ if(!songNotes.length){
+  $('pianoMotionStatus').textContent='В мелодии не найдено нот для применения.';return;
+ }
+ const suggByPitch=new Map();
+ for(const s of suggestions){
+  if(!suggByPitch.has(s.pitch))suggByPitch.set(s.pitch,[]);
+  suggByPitch.get(s.pitch).push({s,used:false});
+ }
+ let applied=0;
+ for(const item of songNotes){
+  const n=item.n;
+  const list=suggByPitch.get(n.pitch);
+  if(!list||!list.length)continue;
+  let bestDist=Infinity,bestEntry=null;
+  for(const entry of list){
+   if(entry.used)continue;
+   const dist=Math.abs(entry.s.start-n.start);
+   if(dist<0.35&&dist<bestDist){
+    bestDist=dist;
+    bestEntry=entry;
+   }
+  }
+  if(bestEntry){
+   bestEntry.used=true;
+   if(Number.isInteger(bestEntry.s.finger)&&bestEntry.s.finger>=1&&bestEntry.s.finger<=5){
+    n.finger=bestEntry.s.finger;
+    n.hand=bestEntry.s.hand==='RH'||bestEntry.s.hand==='LH'?bestEntry.s.hand:null;
+    n.fingeringSource='pianomotion';
+    applied++;
+   }
+  }
+ }
+ if(applied>0){
+  if(state.fingerGuidanceMode==='off'){
+   state.fingerGuidanceMode='numbers';
+   if($('fingerGuideMode'))$('fingerGuideMode').value='numbers';
+  }
+  persist();
+  renderCanvas();
+  if(state.scoreView==='sheet'&&typeof scoreEnsureRendered==='function')scoreEnsureRendered().catch(()=>{});
+  if(state.scoreView==='editor'&&typeof fingerEditorRender==='function')fingerEditorRender();
+  notify('Применено '+applied+' пальцев · подсказки над клавиатурой активны');
+  $('pianoMotionStatus').textContent='Аппликатура применена ('+applied+'/'+songNotes.length+' нот). Подсказки отображаются на клавиатуре и Piano Roll.';
+ }else{
+  $('pianoMotionStatus').textContent='Не удалось сопоставить ноты предложений с текущей партией.';
+ }
+};
+if($('pianoMotionExportXML'))$('pianoMotionExportXML').onclick=()=>{
+ const song=current;
+ if(!song){notify('Нет открытой мелодии');return}
+ let xml=null;
+ if(song.format==='MusicXML'&&song.notationXML&&typeof sheetFingeringOverlay==='function'){
+  const changes={};
+  for(const t of (song.tracks||[])){
+   for(const n of (t.notes||[])){
+    if(n.noteId&&Number.isInteger(n.finger)&&n.finger>=1&&n.finger<=5){
+     changes[n.noteId]={finger:n.finger,hand:n.hand||null};
+    }
+   }
+  }
+  if(Object.keys(changes).length){
+   const parse=s=>new DOMParser().parseFromString(s,'application/xml');
+   const serialize=d=>new XMLSerializer().serializeToString(d);
+   const res=sheetFingeringOverlay(song,changes,{parse,serialize,exportMode:true});
+   if(res?.status==='applied'&&res.xml)xml=res.xml;
+  }
+ }
+ if(!xml){
+  try{
+   xml=scoreXMLFromSong(song);
+  }catch(e){
+   notify('Не удалось создать MusicXML: '+(e?.message||e));
+   return;
+  }
+ }
+ if(!xml){
+  notify('Не удалось сформировать MusicXML');return;
+ }
+ const blob=new Blob([xml],{type:'application/vnd.recordare.musicxml+xml;charset=utf-8'});
+ const url=URL.createObjectURL(blob),a=document.createElement('a');
+ const safeName=(String(song.title||'melody').replace(/[\\/:*?"<>|\x00-\x1f]/g,'_').slice(0,80)||'melody')+'-fingering.musicxml';
+ a.href=url;a.download=safeName;
+ document.body.append(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),1000);
+ notify('Файл '+safeName+' скачан');
 };
 /** FG-04A: local, read-only comparison against an external generator's XML.
  * Never turn these suggestions into teacher hints or saved user overrides.
