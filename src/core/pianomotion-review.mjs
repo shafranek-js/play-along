@@ -21,7 +21,7 @@ function restore(note,s){
  if(s.hasHand)note.hand=s.hand;else delete note.hand;
  if(s.hasSource)note.fingeringSource=s.source;else delete note.fingeringSource;
 }
-export function pianoMotionProposeBatch(alignment,indices,userEdits={}){
+export function pianoMotionProposeBatch(alignment,indices,userEdits={},audit=null){
  const fail=reason=>({ok:false,reason});
  if(!alignment?.ok||!Array.isArray(alignment.matches)||!Array.isArray(indices)||
   indices.length>30000||!userEdits||typeof userEdits!=='object')
@@ -29,13 +29,17 @@ export function pianoMotionProposeBatch(alignment,indices,userEdits={}){
  const unique=new Set(indices);
  if(unique.size!==indices.length||[...unique].some(i=>!Number.isInteger(i)||
    i<0||i>=alignment.matches.length))return fail('INVALID_REVIEW_SELECTION');
- const patches=[];let protectedCount=0,unresolved=0,unchanged=0;
+ if(audit&&(!audit.ok||audit.total!==alignment.matches.length||
+   !Array.isArray(audit.blocked)))return fail('PHYSICAL_AUDIT_REJECTED');
+ const blocked=new Set(audit?.blocked||[]);
+ const patches=[];let protectedCount=0,unresolved=0,unchanged=0,blockedCount=0;
  for(const i of unique){
   const {note:n,suggestion:s}=alignment.matches[i]||{};
   if(!n||!s||!['RH','LH'].includes(s.hand)||
     !(s.finger===null||Number.isInteger(s.finger)&&s.finger>=1&&s.finger<=5))
    return fail('INVALID_REVIEW_NOTE');
   if(s.finger===null){unresolved++;continue;}
+  if(blocked.has(i)){blockedCount++;continue;}
   if(n.noteId&&own(userEdits,n.noteId)||
      n.fingeringSource!=='pianomotion'&&
      (n.finger!=null||n.fingeringSource==='musicxml'||n.fingeringSource==='user')){
@@ -47,7 +51,7 @@ export function pianoMotionProposeBatch(alignment,indices,userEdits={}){
   if(pianoMotionStateEqual(before,after)){unchanged++;continue;}
   patches.push({note:n,before,after,index:i});
  }
- return {ok:true,patches,protectedCount,unresolved,unchanged};
+ return {ok:true,patches,protectedCount,unresolved,unchanged,blockedCount};
 }
 export function pianoMotionCommitBatch(history,batch){
  if(!batch?.ok||!Array.isArray(batch.patches)||!batch.patches.length)
