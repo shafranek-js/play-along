@@ -67,5 +67,8 @@ test('FG-04C7 missing or changed original MIDI is never silently matched',()=>{
  assert.equal(run({midiBytes:bytes,analysis:null}).reason,'PIANOMOTION_RESULT_UNAVAILABLE_OR_REPAIRED');
 });
 
+// FG-04C9 browser Pyodide source verification and intermediate MusicXML MIDI.
+import './pianomotion-browser-python-integration.test.mjs';
+
 // FG-04C8 session isolates the exact original MIDI for a future browser engine.
 import './original-midi-session.test.mjs';
