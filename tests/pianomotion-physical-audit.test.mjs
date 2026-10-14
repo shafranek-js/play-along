@@ -84,3 +84,10 @@ test('distant double-thumb and non-thumb black-key pairs remain hard contradicti
  assert.deepEqual(distant.blocked,[0,1]);
  assert.deepEqual(blackPinky.blocked,[0,1]);
 });
+
+test('pathologically dense held-note stream refuses before quadratic work',()=>{
+ const notes=Array.from({length:66},(_,i)=>[40+i,0,4,'RH',1+i%5]);
+ const r=pianoMotionAuditFingers(alignment(notes));
+ assert.equal(r.ok,false);
+ assert.equal(r.reason,'UNSUPPORTED_HELD_NOTE_DENSITY');
+});
