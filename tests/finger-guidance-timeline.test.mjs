@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {fingerGuidanceTimeline,fingerGuidancePlayingFrame,fingerGuidanceGhostWindow,fingerGuidanceHandsCross,fingerGuidanceMotionPlan} from '../src/core/finger-guidance-timeline.mjs';
+import {fingerGuidanceTimeline,fingerGuidancePlayingFrame,fingerGuidanceRestAnchor,fingerGuidanceGhostWindow,fingerGuidanceHandsCross,fingerGuidanceMotionPlan} from '../src/core/finger-guidance-timeline.mjs';
 const note=(pitch,start,finger=null,extra={})=>({pitch,start,duration:.25,hand:'RH',
  finger,source:finger==null?null:'musicxml',track:0,...extra});
 
@@ -214,4 +214,30 @@ test('LAUNCH-02 mixed authored/unknown source may not create a fabricated full-h
  const wrapped=fingerGuidancePlayingFrame(steps,.88,loop);
  assert.equal(wrapped.current,null);
  assert.equal(wrapped.next.start,0);
+});
+
+test('LAUNCH-02 passive rest positions are source-based, last played stable, first future anchored',()=>{
+ const events=[
+  note(64,0,3,{hand:'RH',duration:.4}),
+  note(48,1.5,5,{hand:'LH',duration:.4}),
+  note(52,3,3,{hand:'LH',duration:.4}),
+  note(67,4,5,{hand:'RH',duration:.4}),
+ ];
+ const before=structuredClone(events),steps=fingerGuidanceTimeline(events);
+ assert.deepEqual(fingerGuidanceRestAnchor(steps,'LH',.2),{pitch:48,start:1.5,hand:'LH'},
+  'before the left hand plays, its rest pose may use the first known future key');
+ assert.deepEqual(fingerGuidanceRestAnchor(steps,'RH',1.6),{pitch:64,start:0,hand:'RH'},
+  'right hand remains near its last key while left plays');
+ assert.deepEqual(fingerGuidanceRestAnchor(steps,'LH',2.8),{pitch:48,start:1.5,hand:'LH'},
+  'rest does not jump ahead through silent gaps');
+ assert.deepEqual(fingerGuidanceRestAnchor(steps,'LH',3.5),{pitch:52,start:3,hand:'LH'},
+  'rest moves to the latest played note once hand finishes its phrase');
+ assert.deepEqual(fingerGuidanceRestAnchor(steps,'LH',1.7,{enabled:true,start:0,end:2}),
+  {pitch:48,start:1.5,hand:'LH'});
+ assert.equal(fingerGuidanceRestAnchor(steps,'LH',2.8,{enabled:true,start:3.5,end:5}),null,
+  'a selected loop must not borrow out-of-loop pose coordinates');
+ assert.equal(fingerGuidanceRestAnchor(steps,'XX',1),null);
+ assert.equal(fingerGuidanceRestAnchor(fingerGuidanceTimeline([note(60,0,1)]),'LH',1),null,
+  'unknown second hand must not be fabricated for a one-hand score');
+ assert.deepEqual(events,before,'passive hand placement never edits source events');
 });
