@@ -48,7 +48,7 @@ for(const [relative,expected] of Object.entries(pmSource.files)){
  fs.mkdirSync(path.dirname(target),{recursive:true});fs.copyFileSync(from,target);
 }
 const versionDigest=createHash('sha256').update(JSON.stringify({files:Object.fromEntries(
- Object.entries(pmSource.files).sort(([a],[b])=>a.localeCompare(b,'en'))
+ Object.entries(pmSource.files).sort(([a],[b])=>a<b?-1:a>b?1:0)
 )})).digest('hex');
 if(versionDigest!==pmSource.engineVersion)throw Error('PianoMotion version digest mismatch');
 fs.mkdirSync(path.join(pmStatic,'python-core/handthesia_core'),{recursive:true});
