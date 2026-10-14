@@ -1,4 +1,12 @@
-# Play Along — Piano Practice App (v0.10.109)
+# Play Along — Piano Practice App (v0.10.110)
+
+## LAUNCH-02 — visibly resting idle piano hand (v0.10.110)
+
+**Reused both existing original transparent PNG assets** (`src/assets/finger-guidance/poses/left/left-rest.png` and `right/right-rest.png`): previously the sprite placement logic returned `null` when a hand had zero currently assigned notes, so the unused `rest` pose could never appear. When a source-bound **two-hand** piece has playable/expected notes for only one hand in the current Listen or Wait frame, the other is now drawn in its actual original `rest` PNG, visibly hovering rather than claiming to press a keyboard key. On the next phrase they switch naturally. The existing hands/ghost modes respect the setting; numbers/off mode and single-hand or unknown-hand MIDI never fabricate an idle hand.
+
+**Position stays stable during each silent phrase:** for the idle hand, position follows its last score-verified or explicitly user-applied note; if it has never played, use its first upcoming known note. Do not guess an offscreen wrist, infer which hand from note pitch, or change source timestamps. Resting sprites stay inside the piano viewport and are drawn beneath active hand poses. This does not implement articulated finger movement or imply pedagogical approval.
+
+**Regression:** pure Node test verifies first upcoming anchor, last played position, stable rests, loop isolation and one-hand/no-provenance refusals. New genuine production Chromium test checks both real rest PNG `drawImage` invocations, stable positions, Listen physical playing/idle inversion, Wait chord completion with the other hand resting, and absence of an invented second hand in single-hand works. Existing 14 PNG binary-preservation audit and all music/audio/browser tests remain required; physical piano/controller evaluation is separate.
 
 ## LAUNCH-02 — distinct hand guidance in Listen vs Wait (v0.10.109)
 
