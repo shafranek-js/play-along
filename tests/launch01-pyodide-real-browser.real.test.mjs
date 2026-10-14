@@ -58,6 +58,7 @@ try{
   const data=Uint8Array.from(source);
   const song=await window.__libraryV08.songFromBuffer('au-clair-de-la-lune.mid',data.buffer);
   window.__prototypeTest.loadSong(song);
+  window.__launch01TestOriginalSong=song;
   const notes=song.tracks.flatMap(t=>t.notes);
   return {count:notes.length,
    hasPreexistingFingers:notes.some(n=>Number.isInteger(n.finger)),
@@ -104,10 +105,18 @@ try{
   const song=window.__prototypeTest?.currentSong?.()||null;
   const status=document.getElementById('pianoMotionStatus').textContent;
   const exportReady=!document.getElementById('pianoMotionExportXML').disabled;
-  return {exportReady,status};
+  const notes=window.__launch01TestOriginalSong.tracks.flatMap(t=>t.notes);
+  const sourceTiming=JSON.stringify(notes.map(n=>[
+   n.noteId,n.pitch,n.start,n.duration,n.channel]));
+  return {exportReady,status,sourceTiming,
+   generatedFingers:notes.filter(n=>n.fingeringSource==='pianomotion'&&
+    Number.isInteger(n.finger)).length};
  });
  assert.equal(after.exportReady,true,
   'some actually playable assignments must be accepted and exportable: '+after.status);
+ assert.equal(after.sourceTiming,initial.sourceTiming,
+  'genuine Python Apply must change only fingers, never source pitch/onset/release');
+ assert.ok(after.generatedFingers>0,'real Python generated finger values must be applied');
  const downloadPromise=page.waitForEvent('download',{timeout:20000});
  await page.locator('#pianoMotionExportXML').click();
  const download=await downloadPromise;
@@ -133,7 +142,7 @@ try{
   officialPyodideModuleDownloaded:true,sourceMapping:true,
   physicalConflicts:review.blocked,exportedNotes:roundtrip.notes,
   unverifiedFingersOnReimport:roundtrip.marked,
-  inputNoteTimingUnchanged:'checked-before-download',
+  inputNoteTimingUnchanged:true,appliedFingers:after.generatedFingers,
   genuinePythonNoMock:true,independentPianistValidation:false
  }));
 }finally{
