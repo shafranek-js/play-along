@@ -66,20 +66,21 @@ try{
  assert.ok(initial.paint.some(p=>p.endsWith('/left-rest.png')),
   'actual original left rest PNG must be drawn on canvas');
  assert.ok(initial.rests.LH.width>25&&initial.rests.LH.height>40);
- const stationary=await page.evaluate(()=>{
-  const app=window.__prototypeTest;
-  const start=window.__fingerGuideTest.passivePlacements.LH;
-  app.seek(.45);
-  const later=window.__fingerGuideTest.passivePlacements.LH;
-  return {x0:start.x,x1:later.x,y0:start.y,y1:later.y};
- });
- assert.deepEqual([stationary.x0,stationary.y0],[stationary.x1,stationary.y1],
+ // Listen while PAUSED previews upcoming notes; stable physical rest
+ // positioning must be tested during actual running Listen transport.
+ await page.locator('#playBtn').click();
+ await page.waitForFunction(()=>window.__prototypeTest.isPlaying&&
+  window.__prototypeTest.audio.getStatus().lifecycle==='ready',null,{timeout:60000});
+ await page.evaluate(()=>window.__prototypeTest.seek(.45));
+ await page.waitForFunction(()=>window.__prototypeTest.isPlaying&&
+  window.__prototypeTest.pos>.45&&window.__prototypeTest.pos<1.05,null,{timeout:10000});
+ const laterRest=await page.evaluate(()=>window.__fingerGuideTest.passivePlacements.LH);
+ assert.ok(laterRest,'LH should still be resting during the first RH phrase');
+ assert.deepEqual([initial.rests.LH.x,initial.rests.LH.y],[laterRest.x,laterRest.y],
   'rest PNG must not jump around while the other hand continues playing');
 
  // Advance Listen transport to the left-hand-only phrase: RH must now use
  // its own original resting asset at its preceding right-hand source keys.
- await page.locator('#playBtn').click();
- await page.waitForFunction(()=>window.__prototypeTest.isPlaying,null,{timeout:60000});
  await page.evaluate(()=>window.__prototypeTest.seek(1.87));
  await page.waitForFunction(()=>window.__prototypeTest.isPlaying&&
   window.__prototypeTest.pos>1.87&&window.__prototypeTest.pos<2.5,null,{timeout:10000});
