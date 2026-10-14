@@ -205,3 +205,5 @@ body.onlyLibrary #leftPanel .sidebody>.panelSection:first-child{
 .handSpanHand label{display:block;color:var(--sub);font-size:11px;margin:8px 0 4px}
 .handSpanHand select{width:100%;min-width:0;color:var(--txt);background:var(--panel2);border:1px solid #455067;border-radius:7px;padding:7px 5px}
 @media(max-width:600px){.handSpanGrid{grid-template-columns:minmax(0,1fr)}}
+.sidebar .handSpanGrid{grid-template-columns:minmax(0,1fr)}
+.sidebar .handSpanCalibration{margin:7px 0;padding:9px}
