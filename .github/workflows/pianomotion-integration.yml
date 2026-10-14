@@ -41,3 +41,5 @@ jobs:
         run: node tests/p0a2b-source-intake.real.test.mjs
       - name: LAUNCH-01 source-pinned real piano score and MIDI production smoke
         run: node tests/launch01-real-score-smoke.real.test.mjs
+      - name: LAUNCH-01 cancel and retry pending Python inference safely
+        run: node tests/launch01-worker-cancel.real.test.mjs
