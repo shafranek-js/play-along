@@ -65,3 +65,22 @@ test('invalid note, invalid config and missing source alignment refuse',()=>{
  const a=alignment([[60,0,1,'RH',1]]);a.matches[0].note.duration=0;
  assert.equal(pianoMotionAuditFingers(a).reason,'INVALID_SOURCE_OR_PROPOSAL');
 });
+
+test('PianoMotion allowed adjacent double-thumb is a technique exception, not refusal',()=>{
+ const r=pianoMotionAuditFingers(alignment([[60,0,.5,'RH',1],[62,0,.5,'RH',1]]));
+ assert.deepEqual(r.blocked,[]);assert.equal(r.safe,2);
+ assert.equal(r.techniqueExceptions,1);
+});
+test('PianoMotion allowed adjacent double-pinky on white keys and double-thumb on black keys',()=>{
+ const pinky=pianoMotionAuditFingers(alignment([[64,0,.5,'RH',5],[65,0,.5,'RH',5]]));
+ const thumb=pianoMotionAuditFingers(alignment([[61,0,.5,'RH',1],[63,0,.5,'RH',1]]));
+ assert.equal(pinky.safe,2);assert.equal(thumb.safe,2);
+ assert.equal(pinky.techniqueExceptions,1);
+ assert.equal(thumb.techniqueExceptions,1);
+});
+test('distant double-thumb and non-thumb black-key pairs remain hard contradictions',()=>{
+ const distant=pianoMotionAuditFingers(alignment([[60,0,1,'RH',1],[64,0,1,'RH',1]]));
+ const blackPinky=pianoMotionAuditFingers(alignment([[61,0,1,'LH',5],[63,0,1,'LH',5]]));
+ assert.deepEqual(distant.blocked,[0,1]);
+ assert.deepEqual(blackPinky.blocked,[0,1]);
+});
