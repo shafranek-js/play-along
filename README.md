@@ -1,4 +1,12 @@
-# Play Along — Piano Practice App (v0.10.106)
+# Play Along — Piano Practice App (v0.10.107)
+
+## LAUNCH-01 F2 — MIDI source ownership and All Notes Off (v0.10.107)
+
+**Fixed simultaneous USB and virtual-key interaction:** the aggregate pressed-key display previously conflated MIDI and the on-screen piano. A MIDI device disconnect would synthesize NoteOffs for *all* highlighted keys, incorrectly releasing mouse-held notes. Physical and virtual input now each own their own held pitches. Repeated NoteOn from one source stays de-duplicated; if both sources hold the same pitch, one source releasing it cannot stop the other source's note or corrupt the practice score.
+
+**Fixed CC123 / CC120 / channel-mode All Notes Off:** a hardware MIDI reset may never send individual NoteOffs, which previously left Wait frozen on apparently still-held physical notes. Controller resets now clear physical MIDI key ownership through the normal practice-release path and unblock Wait. The existing live instrument engine routes incoming channels to its single live channel, so these reset commands apply to the selected **USB input**, not a fictitious independent per-channel synthesizer. If an on-screen key remains held, controller reset/pedal-up is sent without All Sound Off silencing that virtual note. Device disconnect also releases MIDI-owned controller states without cancelling virtual-key presses. Original source files and audio/score timing are unchanged.
+
+**Regression:** expanded real-app Chromium `tests/launch01-midi-hotplug.real.test.mjs` covers duplicate-pitch ownership, physical NoteOff, MIDI CC123, mode switch, USB unplug with a held virtual note, and Wait recovery/next-note acceptance after CC123. The existing F2 unplug/reconnect checks remain. Hardware MicroLab mk3, actual pedals, multi-channel live instruments and acoustic speaker output have not been physically tested.
 
 ## LAUNCH-01 F2 — sustain-aware playback key highlights (v0.10.106)
 
@@ -14,7 +22,7 @@ A new actual production Chromium test (`tests/launch01-sustain-visual.real.test.
 
 ## Current owner decision — deferred F0, continue functional development (2026-10-14)
 
-The project owner has **deferred the unresolved upstream Hand-thesia/PianoMotion source-rights decision to the final release**. No new licensing research or replacement effort is scheduled in the current development sprint. This is a priority change **only**: rights are **not cleared** and public GitHub Pages/public beta distributions still require consideration of third-party permissions. Engineering continues with LAUNCH-01 F2 transport, Wait/Seek/Loop, pedal/MIDI controller/audio QA, then LAUNCH-02/03 usability and source-safe fingering. The final release requires an explicit upstream grant, compatible license, cleared replacement, or adjusted distribution. See [current launch policy](docs/LAUNCH-READINESS.md). This owner's F0 decision remains unchanged in v0.10.106; F2 MIDI hotplug and CC64 visual fixes are separate engineering changes.
+The project owner has **deferred the unresolved upstream Hand-thesia/PianoMotion source-rights decision to the final release**. No new licensing research or replacement effort is scheduled in the current development sprint. This is a priority change **only**: rights are **not cleared** and public GitHub Pages/public beta distributions still require consideration of third-party permissions. Engineering continues with LAUNCH-01 F2 transport, Wait/Seek/Loop, pedal/MIDI controller/audio QA, then LAUNCH-02/03 usability and source-safe fingering. The final release requires an explicit upstream grant, compatible license, cleared replacement, or adjusted distribution. See [current launch policy](docs/LAUNCH-READINESS.md). This owner's F0 decision remains unchanged in v0.10.107; F2 MIDI ownership/hotplug/CC64 fixes are separate engineering changes.
 
 ## LAUNCH-01 — real MXL corruption refusal and 1,050-note multi-track MIDI stress (v0.10.104)
 
