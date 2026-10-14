@@ -6,6 +6,8 @@ import {join}from 'node:path';
 import {createHash}from 'node:crypto';
 import {importP0A2bMusicXML}from '../scripts/p0a2b-import-musicxml.mjs';
 const xml=`<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN"
+"http://www.musicxml.org/dtds/partwise.dtd">
 <score-partwise version="4.0"><work><work-title>Test source</work-title></work>
 <part-list>
  <score-part id="P1"><part-name>Right Hand</part-name></score-part>
@@ -47,5 +49,12 @@ try{
  if(process.platform!=='win32')assert.equal((await stat(output)).mode&0o777,0o600);
  assert.equal((await importP0A2bMusicXML({file,output,...config})).reason,
   'BLIND_PACKET_EXISTS_OR_UNWRITABLE');
+ const unsafe=join(dir,'unsafe.musicxml'),badOutput=join(dir,'unsafe-packet.json');
+ await writeFile(unsafe,xml.replace(
+  '<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN"\\n"http://www.musicxml.org/dtds/partwise.dtd">',
+  '<!DOCTYPE score-partwise [ <!ENTITY inject "bad"> ]>'));
+ assert.equal((await importP0A2bMusicXML({
+  file:unsafe,output:badOutput,...config
+ })).reason,'XML_EXTERNAL_ENTITIES_REFUSED');
  console.log('P0-A2b REAL MusicXML parser: 4-note score, fingerprinted source, stripped author fingering, private blind review candidate PASS');
 }finally{await rm(dir,{recursive:true,force:true})}
