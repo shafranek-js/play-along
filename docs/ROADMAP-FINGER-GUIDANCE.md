@@ -1,5 +1,13 @@
 # Play Along — development roadmap: Finger Guidance and musical reliability
 
+## LAUNCH-01 · F1 pitch/onset/release parity verified and false port warning fixed (v0.10.102)
+
+**Complete in this increment:** Baked-in normalised per-pitch note identity *screen* (`src/core/launch01-midi-xml-parity.mjs`) and two actual SHA-pinned piano MusicXML/MIDI pairs imported in real Chromium. All **1,607 pitches and note-on times align** between the respective source representations within 20 ms. **Bach 549/549 releases** and **Schubert 479/1,058 releases** match within tolerance; 579 Schubert MIDI key gates differ from notated MusicXML end times (568 approximately 158 ms shorter). An *independent raw MIDI byte parser* confirms all MIDI physical note-off ticks are preserved by the Play Along importer to floating precision; no note durations are "corrected" or distorted to force musical alignment. Three same-pitch unisons remain fundamentally ambiguous, so pitch+ordinal association is **not full cross-format source-ID proof**.
+
+**Corrected:** both misleading MusicXML port-warning messages resulted from a single port 1 declaration. The importer now warns only when actual multiple port numbers coexist, verified against real scores and a synthetic mixed-port score. No expert validation was requested or invented. [Full LAUNCH-01 report](LAUNCH-01-UAT-RESULTS.md), [checked evidence JSON](../research/launch01-real-score-parity-2026-10-14.json).
+
+**Next:** real production-browser Pyodide inference on original musical sources including network/offline failure, MXL and corrupt MIDI input, hardware MicroLab/audio/Wait/Seek/Loop, responsive recovery, and third-party redistribution rights due diligence. Independent pianists **post-launch**, research Hand-thesia 35% unchanged.
+
 ## LAUNCH-01 — real score import and cancellation UAT (v0.10.101)
 
 **Delivered:** production-readers tested in Chromium against original, hash-verified, privately downloaded real ASAP piano MusicXML/MIDI pairs: Bach Prelude BWV 846 (549 notes in each format) and Schubert Moment musical 3 (1,058 notes in each format); source counts agree but event-by-event semantic alignment is not yet proven. Each MusicXML has one parser warning requiring review. Real imported score note timings remain finite, source MIDI unaffected by a simulated Python runtime failure and Apply/Export stay disabled. A new `✕ Отменить расчёт` action terminates a long-running PianoMotion Worker and blocks late results, restores retry and does not change score notes, with a dedicated real Chromium regression. See [LAUNCH-01 UAT evidence](LAUNCH-01-UAT-RESULTS.md).
