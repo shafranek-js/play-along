@@ -1,4 +1,10 @@
-# Play Along — Piano Practice App (v0.10.105)
+# Play Along — Piano Practice App (v0.10.106)
+
+## LAUNCH-01 F2 — sustain-aware playback key highlights (v0.10.106)
+
+**Fixed a visual/audio discrepancy, not source MIDI:** prior playback key highlights ended at the physical note's `NoteOff` even when channel sustain `CC64 >= 64` was holding the note audibly. A bounded channel-specific pass now derives the *visual-only* release instant from the original ordered MIDI CC64/NoteOff timeline, including pedal-up, controller resets, seek into an already pedaled note and bounded loop/song ending. Original NoteOn/NoteOff timestamps, source note IDs, PCM scheduling, score annotations and audio bank data remain untouched. Pedal-down **after** a NoteOff never resurrects that note, and CC64 for one channel never extends another channel's key highlight.
+
+A new actual production Chromium test (`tests/launch01-sustain-visual.real.test.mjs`) checks highlighted notes after their NoteOff while CC64 remains down, channel isolation, seek into the sustained tail, pedal-up extinction and unchanged source score/audio events. It joins `npm run test:browser`. The companion existing `tests/practice-transport.real.test.mjs` continues to verify *audible PCM* sustain/seek/loop behavior; a highlighted key is not a measurement of final acoustic sample decay. Tests are simulated controls only; **no actual physical pedal, USB controller or speakers were used**.
 
 ## LAUNCH-01 F2 — MIDI hotplug and Wait recovery (v0.10.105)
 
@@ -8,7 +14,7 @@
 
 ## Current owner decision — deferred F0, continue functional development (2026-10-14)
 
-The project owner has **deferred the unresolved upstream Hand-thesia/PianoMotion source-rights decision to the final release**. No new licensing research or replacement effort is scheduled in the current development sprint. This is a priority change **only**: rights are **not cleared** and public GitHub Pages/public beta distributions still require consideration of third-party permissions. Engineering continues with LAUNCH-01 F2 transport, Wait/Seek/Loop, pedal/MIDI controller/audio QA, then LAUNCH-02/03 usability and source-safe fingering. The final release requires an explicit upstream grant, compatible license, cleared replacement, or adjusted distribution. See [current launch policy](docs/LAUNCH-READINESS.md). This owner's F0 decision is unchanged in v0.10.105; the F2 MIDI hotplug fix is a separate engineering change.
+The project owner has **deferred the unresolved upstream Hand-thesia/PianoMotion source-rights decision to the final release**. No new licensing research or replacement effort is scheduled in the current development sprint. This is a priority change **only**: rights are **not cleared** and public GitHub Pages/public beta distributions still require consideration of third-party permissions. Engineering continues with LAUNCH-01 F2 transport, Wait/Seek/Loop, pedal/MIDI controller/audio QA, then LAUNCH-02/03 usability and source-safe fingering. The final release requires an explicit upstream grant, compatible license, cleared replacement, or adjusted distribution. See [current launch policy](docs/LAUNCH-READINESS.md). This owner's F0 decision remains unchanged in v0.10.106; F2 MIDI hotplug and CC64 visual fixes are separate engineering changes.
 
 ## LAUNCH-01 — real MXL corruption refusal and 1,050-note multi-track MIDI stress (v0.10.104)
 
