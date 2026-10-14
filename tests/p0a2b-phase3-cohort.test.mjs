@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {runP0A2bPhase3Screening} from '../scripts/p0a2b-phase3-screening.mjs';
 import {auditP0A2bPhase3Screening} from '../src/core/p0a2b-phase3-cohort.mjs';
 
 const plan=JSON.parse(readFileSync(new URL('../research/p0a2b-phase3-screening-plan.json',import.meta.url)));
@@ -73,4 +74,17 @@ test('screening balance, targets, and composer-group identity remain locked',()=
   'INSUFFICIENT_SPLIT_OR_TECHNIQUE_SCREENING');
  const d=copy(upstream);d.source.usage='commercial';
  assert.equal(auditP0A2bPhase3Screening(plan,d).reason,'UNVERIFIED_UPSTREAM_MANIFEST');
+});
+
+test('the executable audit is offline by default and real source errors fail closed',async()=>{
+ const noNetwork=await runP0A2bPhase3Screening({
+  fetcher:async()=>{throw Error('network must not be touched')},
+ });
+ assert.equal(noNetwork.ok,true);
+ assert.equal(noNetwork.sourceVerification,undefined);
+ const network=await runP0A2bPhase3Screening({
+  verifySources:true,fetcher:async()=>{throw Error('offline regression')}
+ });
+ assert.equal(network.reason,'REAL_SOURCE_FETCH_SIZE_HASH_OR_FORMAT_FAILED');
+ assert.equal(network.productionEligible,false);
 });
