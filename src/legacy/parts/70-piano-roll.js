@@ -503,6 +503,15 @@ function renderCanvas(){
    else if(selectedNote===n){c.strokeStyle='#fff';c.lineWidth=1.5;c.setLineDash([3,3]);c.stroke();c.setLineDash([]);}
   c.restore();
   if(state.labels&&nw>=24&&nh>18){c.fillStyle=audible?'#062439':'#171d25';c.font='bold 10px system-ui';c.textAlign='center';c.fillText(nameOf(n.pitch),k.center,y+13);c.textAlign='left';}
+  // FG-04C9: annotate the existing ORIGINAL MIDI blocks with independently
+  // verified PianoMotion fingers; never changes MIDI, notes or audio.
+  const pianoFinger=pianoMotionPreviewFor(n);
+  if(pianoFinger&&Number.isInteger(pianoFinger.finger)&&nw>=12&&nh>=17){
+   c.fillStyle='#f0c7ff';c.font='bold 11px system-ui';
+   c.textAlign='center';
+   c.fillText(pianoFinger.hand[0]+pianoFinger.finger,k.center,Math.min(keyY-2,y+nh-4));
+   c.textAlign='left';
+  }
   hitboxes.push({x,y,w:nw,h:nh,n});
  }
  if(loop.start!=null&&loop.end!=null){
