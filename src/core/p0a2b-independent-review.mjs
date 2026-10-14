@@ -145,6 +145,12 @@ export function evaluateP0A2bEngines(packet,adjudication,engines){
  if(!engines||!Array.isArray(engines.playAlong)||!Array.isArray(engines.pianoMotion))
   return fail('BOTH_ENGINE_OUTPUTS_REQUIRED');
  const lookup=new Map(packet.notes.map(n=>[n.noteId,n])),reviewed=adjudication.accepted;
+ const validSource=new Set(packet.notes.map(n=>n.noteId));
+ if(adjudication.accepted.size>packet.notes.length||
+    [...adjudication.accepted].some(([id,choices])=>
+      !validSource.has(id)||!(choices instanceof Set)||!choices.size||
+      [...choices].some(choice=>!/^R[H]:[1-5]$|^L[H]:[1-5]$/.test(choice))))
+  return fail('INVALID_ADJUDICATED_REFERENCE');
  const results={};
  for(const name of ['playAlong','pianoMotion']){
   const predictions=engines[name],map=new Map();
@@ -166,7 +172,6 @@ export function evaluateP0A2bEngines(packet,adjudication,engines){
    const expected=reviewed.get(n.noteId);if(!expected)continue;
    const p=map.get(n.noteId),proposed=!!p&&finger(p.finger);
    const isAccepted=proposed&&expected.has(token(p));
-   summary.eligible++; // Corrected below to avoid double counting.
    if(proposed)summary.proposed++;else summary.abstained++;
    if(isAccepted)summary.acceptable++;else if(proposed)summary.disagree++;
    for(const tag of n.tags){
