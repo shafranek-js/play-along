@@ -1,8 +1,14 @@
-# Play Along — Piano Practice App (v0.10.104)
+# Play Along — Piano Practice App (v0.10.105)
+
+## LAUNCH-01 F2 — MIDI hotplug and Wait recovery (v0.10.105)
+
+**Fixed:** when a MIDI controller is unplugged or the selected input is switched while a note is held, the browser often receives no matching NoteOff. Play Along now finalizes those held keys through its ordinary release pathway before detaching the port; PracticeSession's played-note state and the Wait-release latch cannot remain stuck on the old device. The practice transport stays active and accepts the next note when another keyboard reconnects.
+
+**Automated coverage:** `tests/launch01-midi-hotplug.real.test.mjs` uses the production Chromium app with a simulated Web MIDI permission/port, an actual Wait session, a missing NoteOff during USB disconnect, new-port reconnection and explicit input switching. It asserts the played-note map clears and Wait progresses instead of hiding phantom pressed keys. Included in `npm run test:browser`. This verifies browser logic **only**, not physical MicroLab mk3 electrical/USB behavior, audible speakers, pedal hardware, Safari, or real device latency; those remain F2 UAT work.
 
 ## Current owner decision — deferred F0, continue functional development (2026-10-14)
 
-The project owner has **deferred the unresolved upstream Hand-thesia/PianoMotion source-rights decision to the final release**. No new licensing research or replacement effort is scheduled in the current development sprint. This is a priority change **only**: rights are **not cleared** and public GitHub Pages/public beta distributions still require consideration of third-party permissions. Engineering continues with LAUNCH-01 F2 transport, Wait/Seek/Loop, pedal/MIDI controller/audio QA, then LAUNCH-02/03 usability and source-safe fingering. The final release requires an explicit upstream grant, compatible license, cleared replacement, or adjusted distribution. See [current launch policy](docs/LAUNCH-READINESS.md). The shipped binary/version remains v0.10.104 because this is a documentation-only planning decision.
+The project owner has **deferred the unresolved upstream Hand-thesia/PianoMotion source-rights decision to the final release**. No new licensing research or replacement effort is scheduled in the current development sprint. This is a priority change **only**: rights are **not cleared** and public GitHub Pages/public beta distributions still require consideration of third-party permissions. Engineering continues with LAUNCH-01 F2 transport, Wait/Seek/Loop, pedal/MIDI controller/audio QA, then LAUNCH-02/03 usability and source-safe fingering. The final release requires an explicit upstream grant, compatible license, cleared replacement, or adjusted distribution. See [current launch policy](docs/LAUNCH-READINESS.md). This owner's F0 decision is unchanged in v0.10.105; the F2 MIDI hotplug fix is a separate engineering change.
 
 ## LAUNCH-01 — real MXL corruption refusal and 1,050-note multi-track MIDI stress (v0.10.104)
 
