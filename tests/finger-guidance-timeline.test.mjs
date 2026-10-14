@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {fingerGuidanceTimeline,fingerGuidanceGhostWindow,fingerGuidanceHandsCross,fingerGuidanceMotionPlan} from '../src/core/finger-guidance-timeline.mjs';
+import {fingerGuidanceTimeline,fingerGuidancePlayingFrame,fingerGuidanceGhostWindow,fingerGuidanceHandsCross,fingerGuidanceMotionPlan} from '../src/core/finger-guidance-timeline.mjs';
 const note=(pitch,start,finger=null,extra={})=>({pitch,start,duration:.25,hand:'RH',
  finger,source:finger==null?null:'musicxml',track:0,...extra});
 
@@ -174,4 +174,44 @@ test('FG-03B2 only genuine shifts become moving hands; other targets remain anch
   assert.equal(fingerGuidanceMotionPlan({from:pose(20),to:pose(220),
    canvasWidth:500,remainingMs:250,leadMs:750,...cfg}).kind,'markers');
  }
+});
+
+test('LAUNCH-02 Listen physically held notes, not future prompts, across independent onsets',()=>{
+ const src=[
+  note(60,0,1,{duration:.8,noteId:'rh-a'}),
+  note(48,.3,5,{duration:.8,hand:'LH',noteId:'lh-b'}),
+  note(64,1.2,3,{duration:.3,noteId:'rh-c'})
+ ];
+ const snapshot=structuredClone(src),steps=fingerGuidanceTimeline(src);
+ const first=fingerGuidancePlayingFrame(steps,.1);
+ assert.deepEqual(first.current.notes.map(n=>n.pitch),[60]);
+ assert.equal(first.next.start,.3);
+ const overlap=fingerGuidancePlayingFrame(steps,.4);
+ assert.deepEqual(overlap.current.notes.map(n=>n.pitch),[60,48]);
+ assert.equal(overlap.current.complete,true);
+ assert.equal(overlap.next.start,1.2);
+ const leftOnly=fingerGuidancePlayingFrame(steps,.85);
+ assert.deepEqual(leftOnly.current.notes.map(n=>n.pitch),[48]);
+ const rest=fingerGuidancePlayingFrame(steps,1.15);
+ assert.equal(rest.current,null,'hand must lift at physical NoteOff, not hold a future note');
+ assert.equal(rest.previous.start,.3);
+ assert.equal(rest.next.start,1.2);
+ const last=fingerGuidancePlayingFrame(steps,1.25);
+ assert.deepEqual(last.current.notes.map(n=>n.pitch),[64]);
+ assert.equal(fingerGuidancePlayingFrame(steps,1.55).current,null);
+ assert.equal(fingerGuidancePlayingFrame(steps,1.55).next,null);
+ assert.deepEqual(src,snapshot,'visual calculation never mutates score notes');
+});
+test('LAUNCH-02 mixed authored/unknown source may not create a fabricated full-hand pose',()=>{
+ const steps=fingerGuidanceTimeline([
+  note(60,0,1,{duration:.5}),note(64,0,null,{duration:.5}),note(67,.6,5),
+ ]);
+ const partial=fingerGuidancePlayingFrame(steps,.2);
+ assert.equal(partial.current.complete,false);
+ assert.deepEqual(partial.current.notes.map(n=>n.pitch),[60]);
+ assert.equal(partial.next.start,.6);
+ const loop={enabled:true,start:0,end:1};
+ const wrapped=fingerGuidancePlayingFrame(steps,.88,loop);
+ assert.equal(wrapped.current,null);
+ assert.equal(wrapped.next.start,0);
 });
