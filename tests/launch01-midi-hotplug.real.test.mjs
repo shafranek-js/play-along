@@ -144,6 +144,9 @@ try{
  // Keyboard CC123 may arrive with no per-key NoteOff. In Wait this must
  // resolve the released group and let the player continue after reconnect.
  await page.evaluate(()=>window.__midiHotplug.attach('cc123-midi'));
+ // A different keyboard is already connected; explicitly select the new
+ // port instead of expecting auto-connect to override the current choice.
+ await page.locator('#inputSelect').selectOption('cc123-midi');
  await page.waitForFunction(()=>window.__prototypeTest.midiInfo.name==='MicroLab mock cc123-midi');
  await page.evaluate(()=>{
   const app=window.__prototypeTest;
