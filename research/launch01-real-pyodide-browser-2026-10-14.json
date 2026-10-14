@@ -1,0 +1,56 @@
+{
+  "schema": "launch01-real-pyodide-end-to-end-evidence-v1",
+  "date": "2026-10-14",
+  "testedCommit": "8422da43902531653521e8e4e277e0e87230f029",
+  "evidence": {
+    "workflow": "https://github.com/shafranek-js/play-along/actions/runs/38617719233",
+    "workflowType": "Actual Chromium module Worker, genuine Pyodide 314.0.7",
+    "syntheticWorkerResponseUsed": false,
+    "nativePythonSubstituteUsed": false,
+    "userProvidedMidiTested": false
+  },
+  "source": {
+    "caseId": "au-clair-de-la-lune",
+    "kind": "Piano Protege Curriculum stage3_pieces, SHA256-verified CC-BY-SA-4.0 hand-authored source converted to fingerless temporary 2-track MIDI",
+    "sourceSHA256": "3b83a5393a3f56e25b234c8a3e970a8052cd450f4b6c30a80a0a1baa0d4fb62a",
+    "generatedMidiSHA256": "b0665e1bb4286696b1600fd3f8ac0afd522894740b47ed7b76b3bea5d8799d7f",
+    "noteCount": 22,
+    "corpusLicense": "CC-BY-SA-4.0",
+    "sourceFilesCommitted": false,
+    "fingerReferencesSentToSolver": false
+  },
+  "actualLiveResult": {
+    "workerLoaded": true,
+    "officialPyodideModuleFetched": true,
+    "pythonAlgorithmExecuted": true,
+    "originalNotes": 22,
+    "physicalContradictionsDetected": 0,
+    "appliedFingeringNumbers": 22,
+    "exportMusicXmlDownloaded": true,
+    "reimportedMusicXmlNotes": 22,
+    "reimportedFingersMarkedUnverifiedUserExport": 22,
+    "reimportedFingersMisclassifiedAuthor": 0,
+    "sourcePitchOnsetPhysicalReleaseAndNoteIdsUnchanged": true
+  },
+  "offlineRecovery": {
+    "failureMode": "deliberately blocked real pinned pyodide.mjs CDN network request",
+    "blockedCdnRequests": 1,
+    "workerOriginalNotMocked": true,
+    "actionableErrorText": true,
+    "calculateAvailableForRetry": true,
+    "applyStayedDisabled": true,
+    "exportStayedDisabled": true,
+    "originalSongUnmodified": true
+  },
+  "boundaries": {
+    "testSampleOnly": true,
+    "testedActualUserUpload": false,
+    "expertFingeringAccuracyVerified": false,
+    "allMidiFormatsValidated": false,
+    "midiKeyboardHardwareVerified": false,
+    "audibleSoundVerified": false,
+    "externalCopyrightAndRedistributionCleared": false,
+    "rightsStatus": "Open: upstream Hand-thesia/pygame-piano-animator license/permission still requires review; this test does not grant rights.",
+    "publicBetaReleaseApproved": false
+  }
+}
