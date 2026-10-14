@@ -1,5 +1,13 @@
 # Play Along — development roadmap: Finger Guidance and musical reliability
 
+## Product launch decision — public beta without expert reviewers (2026-10-14)
+
+**Project owner confirmed there is no expert/reviewer team and Play Along MUST be launchable without one.** Independent pianist adjudication P0-A2b is **deferred until after launch**, not a public-beta gate. Existing blind-review protocol remains available for when collaborators join. Release priority immediately shifts to **LAUNCH-01 through LAUNCH-04**: real-song/browser/hardware integration UAT, reliable opt-in source-bound fingering suggestion and manual correction, player/transport/UX and legal/third-party-rights review. An absent expert panel, the 35% Hand-thesia research estimate, or an unproven fingering accuracy advantage do **not** prevent a carefully qualified beta. Legality, critical security, lost musical data and broken core playback **do** prevent it.
+
+**What ships:** automatic PianoMotion finger *suggestions*, explicit user-controlled Apply/Undo/Redo, source-preserving MusicXML export, author/user-fingering protection and structurally conflicting note refusal, with honest warnings that the result is **not pianist validated**. P0-A2b `expertValidated=false` / `productionEligible=false` research flags must **never be repurposed to disable the ordinary user's optional fingering preview/Apply UI**. Do not claim these research statuses certify the beta for release. See [Launch readiness and beta gates](LAUNCH-READINESS.md).
+
+**After launch:** opt-in user reports, independent reviewer cohort and measured upgrades if collaborators become available. Optional PianoMotion IK visuals can proceed separately under musical-source/animation UAT gates, with Classic PNG maintained by default and no claim of pianist-validated finger positioning. The 35% research estimate stays unchanged; it is separate from *beta launch progress*.
+
 ## P0-A2b Phase 3 — composer-disjoint real-score candidate screening (v0.10.99)
 
 **Research infrastructure delivered, HUMAN MUSICAL VALIDATION STILL BLOCKED.** Eight pinned real piano works were selected from the previously catalogued ASAP CC BY-NC-SA 4.0 **noncommercial** research source pairs; four development composers and four different held-out composers. `research/p0a2b-phase3-screening-plan.json` registers the work IDs, source revision, immutable intended splits and tentative technique-screening targets. These are NOT approved excerpts and the plan contains no measure windows, expert-labelled notes or copied score bytes. The validated parent manifest retains 16 pinned real score MusicXML/MIDI pairs. The Phase 2 six MIT MusicXML Test Suite examples remain *synthetic technical fixtures* in a separate track.
