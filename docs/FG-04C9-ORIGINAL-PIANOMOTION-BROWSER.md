@@ -13,6 +13,12 @@ In the right **Практика** sidebar, select any piece already loaded from 
 
 The Python engine returns `RH/LH`, fingers `1–5`, explicit unresolved notes and source MIDI SHA. A read-only ordered preview in Practice shows suggestions for the first 120 notes; counters cover the whole result. The Worker prevents changed source objects from adopting stale output; suggestions are never marked author-verified or silently written into user corrections or the notation. The original fourteen PNG hand sprites are unchanged.
 
+## Authorship and attribution
+
+The copied Python core is **PianoMotion Studio** code, with algorithms adapted in part from the independent upstream project **Hand-thesia / pygame-piano-animator** by GitHub user **V9011N**, https://github.com/V9011N/pygame-piano-animator. The source manifest identifies original desktop revision `f8189c021d9235005fb35faa2c8cfbc09a3768a0`. Play Along retains that file, with per-file SHA-256, to make the lineage auditable without altering the copied Python files.
+
+The copyright/provenance statement is recorded in [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md) and linked prominently from README. **No license granting public redistribution has been confirmed for the upstream Hand-thesia source. Crediting a creator does not replace a grant of permission.** A release still needs both that clearance and a successful real Pyodide/browser calculation, independently of standard GitHub CI.
+
 ## Acceptance and remaining limitations
 
 1. Unit tests verify original Python file hash equality, original manifest engine version, nonmutating input conversion and physical MIDI timing. Build must include source files and the worker.
