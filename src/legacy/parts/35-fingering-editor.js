@@ -676,7 +676,7 @@ $('fingerBrowserCalculate').onclick=()=>{
  */
 let pianoMotionRun=null,pianoMotionGeneration=0,pianoMotionLastResult=null,pianoMotionLastSong=null,pianoMotionLastAlignment=null,pianoMotionLastPlan=null,pianoMotionLastApplied=false;
 let pianoMotionReviewSelected=new Set(),pianoMotionReviewOffset=0,pianoMotionReviewHit=[];
-let pianoMotionReviewHistory=pianoMotionEmptyHistory();
+let pianoMotionReviewHistory=pianoMotionEmptyHistory(),pianoMotionReviewAudit=null;
 function pianoMotionReviewCountApplied(){
  return pianoMotionLastAlignment?.matches.filter(x=>x.note.fingeringSource==='pianomotion'&&
   Number.isInteger(x.note.finger)&&x.note.finger>=1&&x.note.finger<=5).length||0;
@@ -686,7 +686,7 @@ function pianoMotionReviewSync(){
  const active=!!count&&pianoMotionLastSong===current;
  const selected=[...pianoMotionReviewSelected].filter(i=>i>=0&&i<count).length;
  $('pianoMotionReviewCount').textContent=active?'Выбрано '+selected+' из '+count+' нот':'Предложения отсутствуют';
- $('pianoMotionApplySelected').disabled=!active||!selected||
+ $('pianoMotionApplySelected').disabled=!active||!pianoMotionReviewAudit?.ok||!selected||
   $('pianoMotionReview').classList.contains('collapsed');
  $('pianoMotionSelectAll').disabled=!active||
   $('pianoMotionReview').classList.contains('collapsed');
@@ -717,6 +717,11 @@ function pianoMotionReviewRender(){
    (note.fingeringSource!=='pianomotion'&&
     (note.finger!=null||note.fingeringSource==='musicxml'||note.fingeringSource==='user'));
   if(protectedSource)label.classList.add('protected');
+  const physicalConflict=pianoMotionReviewAudit?.issues.find(x=>x.index===index);
+  if(physicalConflict){
+   label.classList.add('physicalConflict');
+   label.title='Нельзя применить автоматически: '+physicalConflict.codes.join(', ');
+  }
   if(s.finger===null)label.classList.add('unresolved');
   input.addEventListener('change',()=>{
    if(input.checked)pianoMotionReviewSelected.add(index);else pianoMotionReviewSelected.delete(index);
@@ -725,8 +730,9 @@ function pianoMotionReviewRender(){
   const p=document.createElement('span');p.className='pianoMotionReviewPitch';p.textContent=nameOf(s.pitch);
   const t=document.createElement('span');t.className='pianoMotionReviewTime';t.textContent=s.start.toFixed(2)+' c';
   const v=document.createElement('span');v.className='pianoMotionReviewFinger';
-  v.textContent=protectedSource?'Автор/ручная':s.finger===null?'Без пальца':
-   s.hand+' · '+s.finger;
+  v.textContent=protectedSource?'Автор/ручная':
+   physicalConflict?'⚠ конфликт · '+s.hand+' '+s.finger:
+   s.finger===null?'Без пальца':s.hand+' · '+s.finger;
   label.append(input,p,t,v);list.append(label);
  }
  pianoMotionReviewDraw();pianoMotionReviewSync();
@@ -750,7 +756,8 @@ function pianoMotionReviewDraw(){
   const length=Math.max(7,Math.min(usableW,((s.end??s.start+.08)-s.start)/(t1-t0)*usableW));
   const y=margin+(hi-s.pitch)/Math.max(1,hi-lo)*(usableH-10);
   const rect={x,y,w:Math.max(6,Math.min(length,w-x-7)),h:9,index};
-  ctx.fillStyle=s.hand==='RH'?'#4385a8':'#558d6b';
+  ctx.fillStyle=pianoMotionReviewAudit?.blocked.includes(index)?'#ad5555':
+   s.hand==='RH'?'#4385a8':'#558d6b';
   ctx.fillRect(rect.x,rect.y,rect.w,rect.h);
   ctx.strokeStyle=pianoMotionReviewSelected.has(index)?'#ffe4a0':'#8595a9';
   ctx.lineWidth=pianoMotionReviewSelected.has(index)?3:1;
@@ -786,7 +793,7 @@ function pianoMotionStop(message){
  pianoMotionLastPlan=null;
  pianoMotionLastApplied=false;
  pianoMotionReviewSelected.clear();pianoMotionReviewOffset=0;pianoMotionReviewHit=[];
- pianoMotionReviewHistory=pianoMotionEmptyHistory();
+ pianoMotionReviewHistory=pianoMotionEmptyHistory();pianoMotionReviewAudit=null;
  $('pianoMotionReview').hidden=true;
  $('pianoMotionReview').classList.remove('collapsed');
  $('pianoMotionReviewList').replaceChildren();
@@ -877,12 +884,17 @@ $('pianoMotionCalculate').onclick=()=>{
    const alignment=pianoMotionAlignSuggestions(song,result.suggestions,{
     trackIndices:plan.trackIndices,channel:plan.channel??null,tolerance:exact?.025:.005
    });
+   const audit=alignment.ok?pianoMotionAuditFingers(alignment):null;
+   pianoMotionReviewAudit=audit;
    $('pianoMotionStatus').textContent='Оригинальный PianoMotion Python · '+result.total+
     ' нот · '+result.playable+' пальцев · '+result.unresolved+' не определено. '+
     (exact?'Исходный MIDI без изменений.':plan.description+'.')+
     (diagnostic.possiblyUnplayable?' ВНИМАНИЕ: одновременно удерживается до '+diagnostic.maxHeld+' нот (больше 10).':'')+
-    (!alignment.ok?' Применение заблокировано: '+alignment.reason+'.':'')+
-    ' Предложения не заменяют авторскую аппликатуру.';
+    (!alignment.ok?' Применение заблокировано: '+alignment.reason+'.':
+     audit&&!audit.ok?' Аудит отказал: '+audit.reason+'.':
+     audit?.blocked.length?' Физические противоречия: '+audit.blocked.length+
+      ' нот. Эти предложения не будут применены.':'')+
+    ' Физическая проверка не подтверждает педагогическую правильность.';
    if(result.suggestions.some(n=>!Number.isInteger(n.pitch)||!Number.isFinite(n.start)||
      !['RH','LH'].includes(n.hand)||n.finger!=null&&
      (!Number.isInteger(n.finger)||n.finger<1||n.finger>5))){
@@ -890,13 +902,13 @@ $('pianoMotionCalculate').onclick=()=>{
    }
    pianoMotionLastResult=result;
    pianoMotionLastSong=song;
-   pianoMotionLastAlignment=alignment.ok?alignment:null;
-   pianoMotionLastPlan=alignment.ok?plan:null;
-   if($('pianoMotionApply'))$('pianoMotionApply').disabled=!alignment.ok;
+   pianoMotionLastAlignment=alignment.ok&&audit?.ok?alignment:null;
+   pianoMotionLastPlan=alignment.ok&&audit?.ok?plan:null;
+   if($('pianoMotionApply'))$('pianoMotionApply').disabled=!alignment.ok||!audit?.ok;
    if($('pianoMotionExportXML'))$('pianoMotionExportXML').disabled=true; // Export only after Apply.
    $('pianoMotionClear').disabled=false;
-   $('pianoMotionReview').hidden=!alignment.ok;
-   if(alignment.ok){pianoMotionReviewSelected.clear();pianoMotionReviewRender();}
+   $('pianoMotionReview').hidden=!alignment.ok||!audit?.ok;
+   if(alignment.ok&&audit?.ok){pianoMotionReviewSelected.clear();pianoMotionReviewRender();}
   };
   worker.onerror=event=>{
    console.error('PianoMotion worker onerror:',event);
@@ -926,20 +938,28 @@ function pianoMotionReviewValidate(){
   $('pianoMotionApply').disabled=true;$('pianoMotionApplySelected').disabled=true;
   $('pianoMotionExportXML').disabled=true;return false;
  }
+ const audit=pianoMotionAuditFingers(checked);
+ if(!audit.ok){
+  $('pianoMotionStatus').textContent='Проверка аппликатуры: '+audit.reason;
+  $('pianoMotionApply').disabled=true;$('pianoMotionApplySelected').disabled=true;
+  $('pianoMotionExportXML').disabled=true;return false;
+ }
+ pianoMotionReviewAudit=audit;
  return true;
 }
 function pianoMotionReviewApply(indices){
  if(!pianoMotionReviewValidate())return;
  const work=fingerOverrideWorkKey(current);
  const edits=work?state.fingerOverrides?.[work]||{}:{};
- const batch=pianoMotionProposeBatch(pianoMotionLastAlignment,indices,edits);
+ const batch=pianoMotionProposeBatch(pianoMotionLastAlignment,indices,edits,pianoMotionReviewAudit);
  if(!batch.ok){
   $('pianoMotionStatus').textContent='Проверка аппликатуры: '+batch.reason;return;
  }
  const result=pianoMotionCommitBatch(pianoMotionReviewHistory,batch);
  if(!result.ok){
   $('pianoMotionStatus').textContent=result.reason==='NOTHING_TO_APPLY'?
-   'Изменений нет · защищено '+batch.protectedCount+' · без пальца '+batch.unresolved+'.':
+   'Изменений нет · защищено '+batch.protectedCount+' · без пальца '+batch.unresolved+
+    ' · конфликтных '+batch.blockedCount+'.':
    'Применение отменено: '+result.reason;
   return;
  }
@@ -953,7 +973,8 @@ function pianoMotionReviewApply(indices){
  notify('Применено '+result.count+' выбранных пальцев · Undo доступен');
  $('pianoMotionStatus').textContent='Применено '+result.count+
   ' пальцев · защищено '+batch.protectedCount+
-  ' · без пальца '+batch.unresolved+' · предложения не являются авторскими.';
+  ' · без пальца '+batch.unresolved+' · конфликтных пропущено '+batch.blockedCount+
+   ' · предложения не являются авторскими.';
 }
 $('pianoMotionApply').onclick=()=>pianoMotionReviewApply(
  pianoMotionLastAlignment?.matches.map((_,i)=>i)||[]
