@@ -61,6 +61,9 @@ export function pianoMotionAuditFingers(alignment,{epsilon=.002,maxNotes=10000}=
  let active=[];
  for(const n of all){
   active=active.filter(a=>a.end>n.start+epsilon);
+  // Stop before quadratic work on a corrupted/ensemble-sized held chord.
+  // Refusing the entire analysis is safer than silently ignoring overlaps.
+  if(active.length>64)return refusal('UNSUPPORTED_HELD_NOTE_DENSITY');
   for(const old of active){
    if(old.pitch===n.pitch){
     if(old.hand!==n.hand||Math.abs(old.start-n.start)>epsilon||
