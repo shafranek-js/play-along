@@ -128,3 +128,6 @@ test('FG-04C2 Node launcher rejects missing local Python core without invoking a
  assert.equal(runPianoMotionLocally([]).reason,'THREE_PATHS_REQUIRED');
  assert.equal(runPianoMotionLocally(['/does-not-exist','x.mid','out.json']).reason,'PIANOMOTION_CORE_NOT_FOUND');
 });
+
+// FG-04C7: original MIDI source-event mapping from the actual PianoMotion result.
+import './pianomotion-midi-fingering-bridge.test.mjs';
