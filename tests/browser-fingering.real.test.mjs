@@ -54,6 +54,38 @@ try{
  assert.deepEqual(snap.before,[...originalMidi]);
  assert.deepEqual(snap.after,[...originalMidi],'A transferred copy never damages the original in-memory MIDI');
  assert.equal(snap.trackCount,1);
+ // FG-04C9 UI wiring: intercept ONLY the engine transport; this is a UI
+ // contract test, not a claim that Python/Pyodide ran during CI.
+ const engineConnection=await page.evaluate(async()=>{
+  const Native=window.Worker,captured={};
+  window.Worker=class {
+   constructor(url,options){
+    captured.url=url;captured.options=options;
+    if(!String(url).includes('pianomotion-engine-worker'))throw Error('unexpected worker');
+   }
+   postMessage(m){
+    captured.type=m.type;captured.original=[...new Uint8Array(m.midiBytes)];
+    queueMicrotask(()=>this.onmessage({data:{id:m.id,type:'result',result:{
+     engine:'PianoMotion Studio · original Python/Pyodide',
+     total:1,playable:1,unresolved:0,
+     suggestions:[{hand:'RH',pitch:60,start:0,finger:1,disposition:'played'}]
+    }}}));
+   }
+   terminate(){}
+  };
+  try{
+   document.getElementById('pianoMotionCalculate').click();
+   await new Promise(ok=>setTimeout(ok,10));
+   return {...captured,status:document.getElementById('pianoMotionStatus').textContent,
+    rows:document.querySelectorAll('#pianoMotionResult li').length};
+  }finally{window.Worker=Native}
+ });
+ assert.deepEqual(engineConnection.original,[...originalMidi],
+  'already-selected MIDI must be passed to original Python worker without another upload');
+ assert.equal(engineConnection.type,'analyze-midi');
+ assert.equal(engineConnection.options.type,'module');
+ assert.equal(engineConnection.rows,1);
+ assert.match(engineConnection.status,/PianoMotion Python/);
  const before=await page.evaluate(xml=>{
   const song=window.__libraryV08.readMusicXML(xml,'browser-finger.musicxml');
   window.__prototypeTest.loadSong(song);
