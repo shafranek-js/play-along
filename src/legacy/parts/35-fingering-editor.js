@@ -475,7 +475,7 @@ function fingerBrowserShow(report){
    fingerBrowserPreview=new Map(chosen.candidates.map(n=>[n.noteId,n]));
    fingerBrowserUpdateActions();
    fingerEditorPaintSoon();
-   status.textContent='Предложения для '+fingerBrowserPreview.size+' нот показаны фиолетовым прямо в редакторе. Выдели подходящие ноты и проверь номера до подтверждения.';
+   status.textContent='Вычислено локально · Предложения для '+fingerBrowserPreview.size+' нот показаны фиолетовым прямо в редакторе. Выдели подходящие ноты и проверь номера до подтверждения.';
   }
  }
  if(a.status==='computed'&&a.candidates.length){
