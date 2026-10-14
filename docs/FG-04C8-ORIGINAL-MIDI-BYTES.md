@@ -1,0 +1,11 @@
+# FG-04C8 — Original selected MIDI byte retention (browser integration prerequisite)
+
+A user must **never need to upload the same MIDI twice** to request a PianoMotion fingering calculation.
+
+- `src/core/original-midi-session.mjs` independently defines an ephemeral weak-keyed MIDI byte reservoir with explicit 4 MB size gate (the current FG-04C7 source verification limit). Copies prevent a transferred ArrayBuffer or an engine-side edit from corrupting original source bytes. Non-MIDI files, invalid objects and unsupported sizes are never retained.
+- `src/legacy/parts/160-library-import.js`: the existing `songFromBuffer` path now retains raw bytes of a successfully parsed `.mid/.midi`, linked only to the exact song object; no persistence, server upload, source mutation, new network request or second file chooser. Saved-library, file-upload and online entries that already route through this parser automatically benefit. Previously parsed songs or alternative entry paths without original bytes explicitly return unavailable.
+- `originalMidiForSong(song=current)` returns a fresh copy of the original MIDI, or `null`. Future workers MUST use that copy and MUST refuse processing if unavailable, rather than attempting to reconstruct identical bytes from parsed notes.
+- No MIDI fingering inference or Python/Pyodide execution is added by this change. Future engine integration will invoke real `analyze_midi` on these exact retained bytes and verify result provenance via FG-04C7.
+- Safety: retained bytes are only in RAM and released by garbage collection when the song object is no longer referenced. Does not change existing score/playback, pedal/timing events, MusicXML, original hand PNGs, manual finger overlays, backup format, user guidance, SoundFont or MAESTRO.
+
+Tests: `tests/original-midi-session.test.mjs` deterministic copy and size assertions (registered in full npm test), plus browser `tests/browser-fingering.real.test.mjs` proving selected MIDI is retained byte-identically, the caller's copy may be modified without changing the original, and the MusicXML fingering workflow is unaffected. No user-visible release or progress increase until actual browser PianoMotion engine and user instruction mode pass independent acceptance.
