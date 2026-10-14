@@ -39,9 +39,11 @@ fs.cpSync(bundledCore,coreTarget,{recursive:true});
 // Ship the source provenance notice alongside the copied Python modules.
 fs.copyFileSync(path.join(root,'THIRD_PARTY_NOTICES.md'),path.join(dist,'THIRD_PARTY_NOTICES.md'));
 
-// FG-04C7: executable original-PianoMotion Python worker only when a developer
-// explicitly stages the private, SHA-pinned runtime into dist (local research).
-// No PianoMotion Python, wheel or SoundFont source is shipped by npm build.
+// FG-04C9: npm build DOES ship the copied original PianoMotion Python source
+// above, along with the real bundled Worker. It does NOT embed the large
+// Pyodide WebAssembly runtime or Python wheels: those download at first use.
+// Before a public beta, third-party source redistribution rights are a
+// separate legal release gate (see THIRD_PARTY_NOTICES.md).
 await esbuild({
  entryPoints:[path.join(root,'src/workers/pianomotion-engine.worker.mjs')],
  outfile:path.join(dist,'assets/pianomotion-engine-worker.js'),
