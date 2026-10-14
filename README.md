@@ -1,4 +1,14 @@
-# Play Along — Piano Practice App (v0.10.93)
+# Play Along — Piano Practice App (v0.10.94)
+
+## FG-04D3 — PianoMotion complete visual fingering review (v0.10.94)
+
+**New in Practice → Automatic Fingering:** the original-Python calculation now opens a source-anchored **interactive miniature piano roll** and a keyboard-accessible paged note list (24 real notes/page, no first-120 cutoff). Click a note rectangle or its checkbox to select the candidate, select all/none, inspect the proposed RH/LH and finger number, then **Apply selected**. The original **Apply to current melody** button still exists for explicit accept-all, but is not automatic. Selections can span all pages including all 547 guitar notes. Source author and manual finger assignments are skipped, never overwritten; unresolved fingers are not filled by guessing. MIDI note times, pedal, imported tracks and original MusicXML stay unchanged.
+
+**Undo/Redo:** every selected or all-notes Apply is one atomic, reversible session history step (up to 40 batches), including the note's prior hand/finger/provenance fields. Any intervening manual or source-note modification refuses a stale undo rather than partially reverting edited notes. Session review/history resets on a fresh calculation. Hiding accepted proposals collapses the preview but leaves Undo/Redo and already accepted MusicXML export available. Generated results are still unverified and not original composer annotations.
+
+**Verification:** `tests/pianomotion-review.test.mjs` is in `npm test`. Dedicated GitHub Actions runs the real Chromium flow `tests/pianomotion-musicxml-roundtrip.real.test.mjs`: import source MIDI containing 547 guitar + 12 flute notes, navigate pages, select via canvas and checkbox, Apply one, Undo, Redo, Undo, Apply all, export marked MusicXML and independently re-import with non-authorial fingering provenance. A deterministic simulated Worker supplies suggestions; this checks real app UI/MIDI/XML integration but is **not an actual Pyodide/PianoMotion musical-accuracy benchmark**. The previous real-browser Apply/Export test also asserts Undo after hiding details.
+
+**Next:** per-score semantic piano-fingering comparison with independent pianist-reviewed labels (P0-A), then source-safe optional PianoMotion IK procedural hand display (FG-03D5/03D6). Third-party source redistribution review and musician validation remain open gates.
 
 ## FG-04D2 — Real Chromium PianoMotion integration and safe XML provenance (v0.10.93)
 
