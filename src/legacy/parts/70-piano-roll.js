@@ -349,11 +349,12 @@ function fingerGuidanceRestPlacement(steps,hand,now,geom,keyboardH){
  const unit=geom.whites[0].w,width=unit*4.85;
  const iw=entry?.image.naturalWidth||303,ih=entry?.image.naturalHeight||532;
  const height=width*ih/iw;
- const x=key.center-width/2;
+ // A rest pose does not imply an exact finger contact. Keep the whole
+ // image inside the view near the anchored key, including first/last octaves.
+ if(lastCanvasSize.w<width*.65)return null;
+ const x=clamp(key.center-width/2,0,Math.max(0,lastCanvasSize.w-width));
  // Unlike an active fingertip, the resting fingers hover above the key bed.
  const y=keyboardTop+keyboardH*.20-height*.075;
- const visible=Math.max(0,Math.min(lastCanvasSize.w,x+width)-Math.max(0,x));
- if(visible<width*.65)return null; // cropped keyboard: no phantom wrist
  return {x,y,width,height,unit,hand,pose:'rest',pitch:anchor.pitch,
   anchorStart:anchor.start,notes:[],error:0};
 }
