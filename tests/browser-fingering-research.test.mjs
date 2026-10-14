@@ -71,3 +71,6 @@ test('FG-04C4 exact length cap rejects excessive worker requests',()=>{
  assert.equal(calc({notes}).reason,'INVALID_NOTE_COUNT');
  assert.equal(calc({notes:[]}).reason,'INVALID_NOTE_COUNT');
 });
+
+// FG-04C5: hand span self-report calibration and refusal controls.
+import './hand-span-calibration.test.mjs';

@@ -407,7 +407,7 @@ function fingerBrowserInput(){
    candidate.authorFinger=n.finger;
   return candidate;
  });
- return {notes,handSize:$('fingerBrowserHandSize').value};
+ return {notes,handSize:state.fingerBrowserHandSize};
 }
 function fingerBrowserAbort(message){
  fingerBrowserSeq++;
@@ -468,7 +468,78 @@ $('fingerBrowserToggle').onclick=()=>{
  contents.hidden=!contents.hidden;
  $('fingerBrowserToggle').setAttribute('aria-expanded',String(!contents.hidden));
 };
-$('fingerBrowserHandSize').onchange=()=>fingerBrowserAbort('Размер кисти изменён. Повторите расчёт.');
+// FG-04C5: self-reported RH/LH keyboard span; no MIDI sampling, pain
+// diagnosis or auto-adoption of generated fingers. Save only the resulting
+// bounded size enum, never personal measurements or comfort responses.
+let fingerSpanProposal=null;
+function fingerSpanInvalidate(){
+ fingerSpanProposal=null;
+ $('fingerSpanApply').disabled=true;
+ $('fingerSpanResult').textContent='Ответы изменены. Нажмите «Определить размер».';
+}
+$('fingerSpanToggle').onclick=()=>{
+ const contents=$('fingerSpanContents');
+ contents.hidden=!contents.hidden;
+ $('fingerSpanToggle').setAttribute('aria-expanded',String(!contents.hidden));
+};
+$('fingerSpanEditorOpen').onclick=()=>{
+ state.right=true;
+ applyPanels();
+ switchRightTab('practice');
+ if($('fingerSpanContents').hidden)$('fingerSpanToggle').click();
+ $('fingerSpanToggle').scrollIntoView({block:'nearest'});
+ $('fingerSpanToggle').focus({preventScroll:true});
+};
+
+for(const hand of ['RH','LH']){
+ $('fingerSpan'+hand).onchange=fingerSpanInvalidate;
+ $('fingerSpan'+hand+'Comfort').onchange=fingerSpanInvalidate;
+}
+$('fingerSpanRecommend').onclick=()=>{
+ fingerSpanProposal=null;
+ $('fingerSpanApply').disabled=true;
+ const result=recommendHandSpanProfile({
+  RH:{interval:$('fingerSpanRH').value,comfort:$('fingerSpanRHComfort').value},
+  LH:{interval:$('fingerSpanLH').value,comfort:$('fingerSpanLHComfort').value}
+ });
+ if(!result.ok){
+  $('fingerSpanResult').textContent=result.reason==='DISCOMFORT_REPORTED'?
+   'Размер не назначен: при боли или дискомфорте прекратите растяжку. Укажите интервал, доступный без неприятных ощущений.':
+   result.reason==='NO_HAND_MEASURED'?
+   'Укажите хотя бы один проверенный интервал для правой или левой руки.':
+   'Не удалось оценить ответы. Выберите интервал и ощущение заново.';
+  return;
+ }
+ fingerSpanProposal=result.profile;
+ const measured=Object.entries(result.byHand).map(([hand,size])=>hand+': '+size).join(', ');
+ $('fingerSpanResult').textContent='Рекомендация: '+result.profile+' · '+measured+
+  (result.status==='provisional-one-hand'?
+   '. Предварительно: вторая рука не проверена.':' · учтён меньший из двух охватов.')+
+  ' Охват соседних пальцев отдельно не измерен.';
+ $('fingerSpanApply').disabled=false;
+};
+$('fingerSpanApply').onclick=()=>{
+ if(!fingerSpanProposal)return;
+ const verified=settingValidated('fingerBrowserHandSize',fingerSpanProposal);
+ if(!verified)return;
+ state.fingerBrowserHandSize=verified;
+ $('fingerBrowserHandSize').value=verified;
+ fingerBrowserAbort('Размер кисти изменён. Повторите расчёт аппликатуры.');
+ persist();
+ $('fingerSpanResult').textContent='Сохранено: '+verified+
+  '. Этот размер автоматически используется в следующих экспериментальных расчётах. Его можно изменить вручную.';
+ fingerSpanProposal=null;
+ $('fingerSpanApply').disabled=true;
+};
+$('fingerBrowserHandSize').value=state.fingerBrowserHandSize;
+$('fingerBrowserHandSize').onchange=()=>{
+ const verified=settingValidated('fingerBrowserHandSize',$('fingerBrowserHandSize').value);
+ if(verified===undefined){$('fingerBrowserHandSize').value=state.fingerBrowserHandSize;return}
+ state.fingerBrowserHandSize=verified;
+ persist();
+ fingerBrowserAbort('Размер кисти изменён. Повторите расчёт.');
+};
+
 $('fingerBrowserAssumeStaves').onchange=()=>fingerBrowserAbort('Предположение о руках изменено. Повторите расчёт.');
 $('fingerBrowserCalculate').onclick=()=>{
  fingerBrowserAbort();

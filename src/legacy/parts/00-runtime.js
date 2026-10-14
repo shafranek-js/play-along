@@ -1,7 +1,7 @@
 const $=id=>document.getElementById(id);
 const STORE='playalong:smart-practice:v07';const V06_STORE='playalong:performance-analyzer:v06';const PREV_STORE='playalong:smart-phrasing:v05';const PREV2_OLD_STORE='playalong:real-piano:v04';const PREV2_STORE='playalong:keyboard-engine:v03';const OLD_STORE='playalong:music-engine:v02';const OLDER_STORE='playalong:ui-prototype:v1';
 const defaultAudioSettings=()=>({backend:'soundfont',bankId:null,livePreset:{bankMSB:0,bankLSB:0,program:0,isDrum:false},useFilePrograms:true});
-const defaults={layout:'learn',page:'practice',left:true,right:true,leftWidth:286,rightWidth:318,rightTab:'practice',mode:'listen',accompany:true,accompanyExplicit:false,autoMidi:true,preferredMidiName:'',speed:100,displayRange:'song',labels:true,highlight:true,allTracks:true,volume:40,selected:'demo-scale',track:0,deviceProfiles:{},audioSettings:defaultAudioSettings(),targetRange:'device',adaptMode:'original',adaptShift:0,auditionAdapted:false,showReviewMarkers:true,scoreView:'roll',sheetZoom:100,sheetFollow:true,fingerGuidanceMode:'off',fingerLookaheadMs:750,fingerOverrides:{},librarySections:librarySectionLayoutNormalize()};
+const defaults={layout:'learn',page:'practice',left:true,right:true,leftWidth:286,rightWidth:318,rightTab:'practice',mode:'listen',accompany:true,accompanyExplicit:false,autoMidi:true,preferredMidiName:'',speed:100,displayRange:'song',labels:true,highlight:true,allTracks:true,volume:40,selected:'demo-scale',track:0,deviceProfiles:{},audioSettings:defaultAudioSettings(),targetRange:'device',adaptMode:'original',adaptShift:0,auditionAdapted:false,showReviewMarkers:true,scoreView:'roll',sheetZoom:100,sheetFollow:true,fingerGuidanceMode:'off',fingerLookaheadMs:750,fingerBrowserHandSize:'M',fingerOverrides:{},librarySections:librarySectionLayoutNormalize()};
 // Treat backups AND older localStorage snapshots as untrusted input.
 // Invalid restored values are rejected in strict backup mode; legacy
 // localStorage uses safe defaults to preserve normal upgrades.
@@ -11,6 +11,7 @@ const SETTING_ENUMS={
  rightTab:['practice','adapt','midi','review','smart','analysis'],mode:['listen','wait','tempo'],
  displayRange:['song','device'],targetRange:['device','preview25','preview37','preview49','preview61','preview76','preview88'],
  adaptMode:['original','transpose','adaptive'],adaptProfile:['center','low','high'],scoreView:['roll','sheet','editor'],
+ fingerBrowserHandSize:['XXS','XS','S','M','L','XL','XXL'],
  fingerGuidanceMode:['off','numbers','hands','ghost']
 };
 const SETTING_NUMBERS={
@@ -185,6 +186,7 @@ function syncSongSettingsUI(){
  $('accompany').checked=state.accompany;$('allTracks').checked=state.allTracks;
  $('displayRange').value=state.displayRange;
  $('fingerGuideMode').value=state.fingerGuidanceMode;
+ $('fingerBrowserHandSize').value=state.fingerBrowserHandSize;
  $('fingerGuideLookahead').value=String(state.fingerLookaheadMs);
  $('fingerGuideLookahead').disabled=state.fingerGuidanceMode!=='ghost';
  $('sheetZoomLabel').textContent=state.sheetZoom+'%';$('sheetFollow').checked=state.sheetFollow!==false;

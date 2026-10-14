@@ -1,4 +1,10 @@
-# Play Along — Piano Practice App (v0.10.87)
+# Play Along — Piano Practice App (v0.10.88)
+
+## FG-04C5 — Measure your comfortable hand span (v0.10.88)
+
+**New in the MusicXML fingering editor:** in the **Практика** (Practice) sidebar, open **«Как определить мой размер кисти?»** at any time, even before loading MusicXML. The fingering editor also offers **«Настроить охват кисти»** as a shortcut. For each hand, test how far thumb (1) and little finger (5) can comfortably reach on the actual keyboard: seventh C4–B4, octave C4–C5, ninth C4–D5 or tenth C4–E5 (with smaller/wider options). Select **«Легко, без напряжения»**, **«Заметное растяжение»**, or **«Дискомфорт или боль»**. The app recommends a conservative research hand-size model: a relaxed tenth yields **L**; the smaller estimate across LH/RH determines the single shared profile; an unmeasured hand is marked provisional; any pain prevents automatic recommendation. Noticeable stretch lowers the suggested class; a lone wide reach cannot automatically recommend XXL or establish the reach of adjacent fingers. **This is not a medical or pianist-validated biomechanical measurement.**
+
+Click **«Использовать этот размер»** to apply it to the existing browser calculation `XXS–XXL` setting; it is validated, saved as a global preference, restored on reload and included in normal user backup, rather than resetting per song. The user can override the profile manually. The questionnaire answers/comfort levels are **not saved**. Previous research candidates are invalidated on a size change. Nothing changes MusicXML, MIDI timing, playback, user finger corrections or learner guidance, and all fourteen supplied Classic PNG hand assets remain byte-identical. [FG-04C5 contract and tests](docs/FG-04C5-HAND-SPAN-CALIBRATION.md).
 
 ## FG-04C4 — Browser-native fingering research (v0.10.87)
 
