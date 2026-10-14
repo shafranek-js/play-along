@@ -1,5 +1,15 @@
 # Play Along — Piano Practice App (v0.10.90)
 
+## FG-04D0 — PianoMotion MIDI compatibility and safe apply/export (14 October 2026)
+
+**Scope: one playable piano part, NOT an orchestral arranger.** “Calculate fingers” inspects track names, GM Program Change events, drum channel 10 and track/channel membership. Clearly piano-only MIDI uses exact original bytes when available. MIDI with foreign instruments or drums (e.g. guitar solo) creates a temporary piano-note MIDI from **one selected playable track** (and the densest melodic channel for multi-channel SMF type 0). The currently selected track is preferred; otherwise the first playable track is used. Original song and timing are unchanged. No orchestral reduction is claimed.
+
+**Fail closed:** original MIDI retries occur only for known structural/provenance errors; Python/Pyodide download, checksums, source-module and Worker failures do not trigger repeated conversion. Temporary MIDI uses one piano channel and millisecond note times; it rejects overlapping identical pitches with ambiguous note-offs. A warning for more than ten simultaneously held notes is a coarse diagnostic, NOT expert validation of piano playability.
+
+**Apply and export:** all returned fingers must be uniquely matched by pitch and tightly matching note timings to existing source notes in the selected track/channel; ambiguous, missing or extra notes disable Apply and XML export. Existing author/user fingers are protected. Clear hides proposals **without deleting applied fingers**. Original MusicXML export never silently falls back to an approximate transcription if the overlay fails; imported MIDI exports only the chosen piano part/channel using explicitly approximate transcription. Generated fingerings are not expert-verified ground truth.
+
+Regression tests: `tests/pianomotion-source-selection.test.mjs` (`npm test`) and `tests/pianomotion-apply-export.test.mjs` (`npm run test:browser`). Source: `src/core/pianomotion-song-to-midi.mjs` and `src/legacy/parts/35-fingering-editor.js`. Retain the author/upstream attribution below.
+
 ## FG-04C9 — ORIGINAL PianoMotion Python fingering in the browser (v0.10.90)
 
 **Source attribution:** the PianoMotion browser integration incorporates the owner's [PianoMotion Studio](https://github.com/shafranek-js/pianomotion-studio) Python code, which includes algorithms adapted in part from **Hand-thesia / pygame-piano-animator** by [V9011N](https://github.com/V9011N/pygame-piano-animator), upstream source revision `f8189c021d9235005fb35faa2c8cfbc09a3768a0`. The exact files and hashes are identified in the original `source_manifest.json`. See [third-party attribution and permission status](THIRD_PARTY_NOTICES.md). **Attribution does not grant redistribution rights**; the upstream repository has no verified permissive license.
