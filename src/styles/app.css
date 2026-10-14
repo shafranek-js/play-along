@@ -229,3 +229,8 @@ body.onlyLibrary #leftPanel .sidebody>.panelSection:first-child{
 .pianoMotionReviewRow .pianoMotionReviewFinger{margin-left:auto;color:#edd4a5;white-space:nowrap}
 .pianoMotionReviewRow.protected .pianoMotionReviewFinger{color:#96a9bb}
 .pianoMotionReviewRow.unresolved .pianoMotionReviewFinger{color:#cf9c8e}
+
+/* After accepting fingers, hide previews but leave session Undo/Redo reachable. */
+.pianoMotionReview.collapsed>p,.pianoMotionReview.collapsed>.pianoMotionRollHead,
+.pianoMotionReview.collapsed>.pianoMotionRoll,.pianoMotionReview.collapsed>.pianoMotionReviewList,
+.pianoMotionReview.collapsed>.pianoMotionReviewToolbar:first-child{display:none!important}
