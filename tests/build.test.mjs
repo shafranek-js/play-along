@@ -21,6 +21,17 @@ test('all feature parts form exactly one valid JavaScript bundle',()=>{
  assert.equal(js,expected);
  execFileSync(process.execPath,['--check',path.join(root,'dist/assets/app.js')]);
 });
+test('public beta fingering has explicit no-expert warning and does not gate user Apply',()=>{
+ const original=read('src/index.html');
+ assert.match(original,/id="pianoMotionBetaNotice"/);
+ assert.match(original,/не проверена профессиональным пианистом/);
+ assert.match(original,/id="pianoMotionCalculate"[^>]*>🧠 Предложить аппликатуру/);
+ assert.match(original,/id="pianoMotionApply"/);
+ assert.match(original,/id="pianoMotionExportXML"/);
+ assert.match(js,/pianoMotionReviewApply\(/);
+ assert.doesNotMatch(js,/if\s*\(\s*(?:result\.)?expertValidated\s*===?\s*false\s*\)\s*return/);
+});
+
 test('CSS and HTML are separate, all expected DOM anchors exist',()=>{
  assert.equal(css,read('src/styles/app.css'));
  assert.ok(html.includes(`href="./assets/app.css?v=${JSON.parse(read('package.json')).version}"`));
