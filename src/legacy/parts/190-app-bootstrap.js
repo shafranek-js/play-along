@@ -291,6 +291,12 @@ window.__fingerGuideTest={
  get steps(){return fingerGuidanceSteps().map(g=>({start:g.start,totalNotes:g.totalNotes,complete:g.complete,notes:g.notes.map(n=>({...n}))}))},
  get frame(){const f=fingerGuidanceFrame(fingerGuidanceSteps(),pos);return {current:f.current?.start??null,next:f.next?.start??null}},
  get preview(){return fingerGuidanceFrame(fingerGuidanceSteps(),pos).current?.notes.map(n=>({pitch:n.pitch,hand:n.hand,finger:n.finger}))||[]},
+ get waitTargets(){if(state.mode!=='wait'||!practice?.nextGroup())return [];
+  const known=fingerGuidanceFrame(fingerGuidanceSteps(),pos).current?.notes||[];
+  return practice.nextGroup().notes.filter(n=>!n.hit&&!n.miss&&!n.skipped).map(n=>{
+   const marked=known.find(k=>k.pitch===n.pitch);
+   return {pitch:n.pitch,hand:marked?.hand??null,finger:marked?.finger??null};
+  });},
  get layout(){return {keyboardTop,keyboardBlackH,canvasHeight:lastCanvasSize.h}},
 };
 window.__prototypeTest.audio={
