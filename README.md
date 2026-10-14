@@ -1,4 +1,12 @@
-# Play Along — Piano Practice App (v0.10.89)
+# Play Along — Piano Practice App (v0.10.90)
+
+## v0.10.90 — Genuine PianoMotion Python fingering in the browser
+
+**Original PianoMotion Studio Python implementation now shipped as source and executed by Pyodide/WebAssembly inside a dedicated browser Worker.** Open a currently selected piece and press **Практика → «🧠 Рассчитать для открытого произведения»**. No second upload and no local Python installation. For `.mid/.midi` the engine receives the **original exact selected bytes**. MusicXML, `.mxl`, and MuseScore `.mscx/.mscz` use existing score import and a strict temporary score-note→MIDI conversion (the opened work and music playback remain unchanged).
+
+On first use Pyodide 314.0.7 and SHA-pinned Python dependencies are fetched over HTTPS. The included original `handthesia_core` Python sources (12 modules) are SHA-256 checked against PianoMotion Studio's source manifest at build and runtime. Results must pass separate raw NoteOn/NoteOff, file hash, source event, author hand and unique selected-score note matching before a note's **unverified** finger is shown in the Practice panel, original Piano Roll or MusicXML fingering editor. In MusicXML, the user can review and **explicitly accept selected fingers** as undoable corrections. No untouched author fingers or musical files are automatically rewritten.
+
+**Key limitation:** this is a first integrated browser engine, not yet independently proven superior on a musician-labelled test corpus. Some ambiguous/overlapping notes fail closed. The user's simple XS–XXL hand-span scale is not yet automatically translated to PianoMotion's biometric parameters. Runtime first launch needs internet; source-project redistribution rights for adapted third-party sections must be checked before general distribution. Fourteen original PNG hands, all audio/transport and source MusicXML remain unchanged. See [FG-04C9 implementation and QA](docs/FG-04C9-BROWSER-PIANOMOTION-PYTHON.md).
 
 **FG-04C8 (research foundation):** Opening an original .mid/.midi through the existing library parser now retains a byte-identical original MIDI snapshot **in memory** for that specific song. The future PianoMotion worker can use a copy for the source-verified FG-04C7 conversion without a second file upload. The snapshot is bounded, never placed in browser backup/storage, safely copied and eventually garbage-collected. This change does not yet run the Python algorithm in browser or enable automatic teaching fingers. [Implementation and tests](docs/FG-04C8-ORIGINAL-MIDI-BYTES.md).
 
