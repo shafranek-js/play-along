@@ -99,6 +99,24 @@ try{
   const initialRows=document.querySelectorAll('#pianoMotionReviewList input[type="checkbox"]').length;
   document.getElementById('pianoMotionNext').click();
   const nextPageRange=document.getElementById('pianoMotionRollRange').textContent;
+  // Click the first drawn source note in the canvas, then deselect it: this
+  // exercises the actual source-note anchored visualization, not just checkboxes.
+  const canvas=document.getElementById('pianoMotionRoll');
+  const chunk=song.tracks[0].notes.slice(24,48),first=chunk[0];
+  const lo=Math.min(...chunk.map(n=>n.pitch)),hi=Math.max(...chunk.map(n=>n.pitch));
+  const t0=Math.min(...chunk.map(n=>n.start));
+  const t1=Math.max(...chunk.map(n=>n.start+n.duration),t0+.3);
+  const cx=36+(first.start-t0)/(t1-t0)*(640-36-10)+3;
+  const cy=30+(hi-first.pitch)/Math.max(1,hi-lo)*(152-30-12-10)+4;
+  const rect=canvas.getBoundingClientRect();
+  const clickCanvas=()=>canvas.dispatchEvent(new MouseEvent('click',{
+   bubbles:true,clientX:rect.left+cx*rect.width/640,
+   clientY:rect.top+cy*rect.height/152
+  }));
+  clickCanvas();
+  const canvasSelected=document.getElementById('pianoMotionReviewCount').textContent;
+  clickCanvas();
+  const canvasUnselected=document.getElementById('pianoMotionReviewCount').textContent;
   const checkbox=document.querySelector('#pianoMotionReviewList input[type="checkbox"]');
   checkbox.checked=true;checkbox.dispatchEvent(new Event('change',{bubbles:true}));
   const selectCount=document.getElementById('pianoMotionReviewCount').textContent;
@@ -136,7 +154,7 @@ try{
   return {
    tracksBefore,analysisRequests,derivedBytes,statusBefore,applyEnabled,
    exportInitiallyDisabled,appliedCount,didNotAssignFlute,exportEnabled,
-   reviewInitiallyVisible,initialRows,nextPageRange,selectCount,
+   reviewInitiallyVisible,initialRows,nextPageRange,canvasSelected,canvasUnselected,selectCount,
    selectiveOne,undoEnabled,afterUndo,afterRedo,afterSecondUndo,selectedAll,
    sourceUnchanged,xmlHasMarker:!!xml?.includes('name="play-along-user-fingering"'),
    xmlHasGeneratedDigits:!!xml?.includes('<fingering>'),
@@ -159,6 +177,8 @@ try{
  assert.equal(result.reviewInitiallyVisible,true);
  assert.equal(result.initialRows,24,'page renders a bounded source-anchored list');
  assert.match(result.nextPageRange,/25–48 \/ 547/);
+ assert.match(result.canvasSelected,/Выбрано 1 из 547/);
+ assert.match(result.canvasUnselected,/Выбрано 0 из 547/);
  assert.match(result.selectCount,/Выбрано 1 из 547/);
  assert.equal(result.selectiveOne,1,'only selected source note changes');
  assert.equal(result.undoEnabled,true);
