@@ -1,7 +1,7 @@
 /**
  * FG-04C7: run the ACTUAL owner-authorized PianoMotion Python algorithm
- * inside a local-only, SHA-verified Pyodide browser Worker.
- * Runtime files are staged opt-in, NEVER committed to the public repo.
+ * from packaged source-verified Python files in a Pyodide browser Worker.
+ * First run downloads pinned Python runtime and required wheels.
  */
 const base=new URL('./pianomotion/',import.meta.url);
 const MAX_BYTES=4000000;
@@ -24,59 +24,38 @@ async function get(path,expected){
  return b;
 }
 async function initialize(id){
- const response=await fetch(new URL('staged-manifest.json',base),{cache:'no-store'});
- if(!response.ok)throw Error('PIANOMOTION_LOCAL_RUNTIME_NOT_STAGED');
- const pinned=await response.json();
- if(pinned.schemaVersion!==1||pinned.runtimeVersion!=='314.0.7'||
-  pinned.localOnly!==true||pinned.publicRedistributionApproved!==false)
-  throw Error('LOCAL_DEVELOPMENT_BUNDLE_ONLY');
- const core=pinned.sourceManifest,assets=pinned.assetManifest;
- if(core?.schemaVersion!==1||!hashed(core.engineVersion)||
-  !core.files||typeof core.files!=='object'||Array.isArray(core.files))
-  throw Error('INVALID_PIANOMOTION_SOURCE');
+ // Original PianoMotion Python files are packaged from the owner checkout.
+ // Pyodide's pinned official 314.0.7 CDN supplies the runtime and packages.
+ // No installation required; the first calculation needs network access.
+ const sourceManifestResponse=await fetch(new URL('python-core/handthesia_core/source_manifest.json',base));
+ if(!sourceManifestResponse.ok)throw Error('PIANOMOTION_CORE_MISSING');
+ const core=await sourceManifestResponse.json();
+ if(core?.schemaVersion!==1||!hashed(core.engineVersion)||!core.files||
+   typeof core.files!=='object'||Array.isArray(core.files))throw Error('PIANOMOTION_MANIFEST_INVALID');
  const entries=Object.entries(core.files).sort(([a],[b])=>a<b?-1:a>b?1:0);
- if(entries.length<8||entries.some(([name,hash])=>
-   !/^handthesia_core\/[a-z_]+\.py$/.test(name)||!hashed(hash)))
-  throw Error('INVALID_PYTHON_SOURCE');
- if(await sha(new TextEncoder().encode(JSON.stringify({files:Object.fromEntries(entries)})))!==
-   core.engineVersion||pinned.engineVersion!==core.engineVersion)
+ if(entries.length<8||entries.some(([file,hash])=>
+   !/^handthesia_core\\/[a-z_]+\\.py$/.test(file)||!hashed(hash)))
+  throw Error('PIANOMOTION_FILE_LIST_INVALID');
+ if(await sha(new TextEncoder().encode(JSON.stringify({files:Object.fromEntries(entries)})))!==core.engineVersion)
   throw Error('PIANOMOTION_ENGINE_DIGEST_MISMATCH');
- if(assets?.runtime?.version!=='314.0.7'||!Array.isArray(assets.files)||
-    !Array.isArray(assets.purePythonWheels))
-  throw Error('INVALID_PYODIDE_CATALOG');
- const byPath=new Map(assets.files.map(f=>[f.path,f]));
- const entry=byPath.get('pyodide/pyodide.mjs');
- if(!entry||!hashed(entry.sha256))throw Error('PYODIDE_MODULE_UNVERIFIED');
- await get(entry.path,entry.sha256);
- progress(id,'Загружаю оригинальную среду Pyodide…');
- const module=await import(new URL('pyodide/pyodide.mjs',base).href);
+ progress(id,'Загружаю Pyodide 314.0.7 для оригинального Python…');
+ const runtimeUrl='https://cdn.jsdelivr.net/pyodide/v314.0.7/full/';
+ const module=await import(runtimeUrl+'pyodide.mjs');
  if(module.version!=='314.0.7')throw Error('PYODIDE_VERSION_MISMATCH');
- const py=await module.loadPyodide({indexURL:new URL('pyodide/',base).href});
- progress(id,'Загружаю исходные зависимости Python…');
+ const py=await module.loadPyodide({indexURL:runtimeUrl});
+ progress(id,'Устанавливаю Python-зависимости PianoMotion…');
  await py.loadPackage(['micropip','numpy','packaging','six'],{checkIntegrity:true});
- const wheels=[],allowed=['pretty-midi','mido','importlib-resources'];
- py.FS.mkdirTree('/pm-wheels');
- for(const name of allowed){
-  const wheel=assets.purePythonWheels.find(x=>x.name===name);
-  if(!wheel||!sane(wheel.file)||wheel.file.includes('/')||!hashed(wheel.sha256))
-   throw Error('PINNED_PYTHON_WHEEL_MISSING');
-  const destination='/pm-wheels/'+wheel.file;
-  py.FS.writeFile(destination,new Uint8Array(await get('pyodide/wheels/'+wheel.file,wheel.sha256)));
-  wheels.push('emfs:'+destination);
- }
- py.globals.set('__pm_wheels',JSON.stringify(wheels));
- try{
-  await py.runPythonAsync('import json\nimport micropip\nawait micropip.install(json.loads(__pm_wheels),deps=False)');
- }finally{py.globals.delete('__pm_wheels')}
- progress(id,'Проверяю оригинальный код PianoMotion…');
- py.FS.mkdirTree('/python-core');
+ await py.runPythonAsync(`import micropip
+await micropip.install(["pretty-midi==0.2.11.post0","mido==1.3.3","importlib-resources==7.1.0"])`);
  py.FS.mkdirTree('/python-core/handthesia_core');
- for(const [path,hash] of entries){
-  py.FS.writeFile('/python-core/'+path,new Uint8Array(await get('python-core/'+path,hash)));
+ progress(id,'Проверяю SHA-256 оригинальных файлов PianoMotion…');
+ for(const [file,hash] of entries){
+  const bytes=await get('python-core/'+file,hash);
+  py.FS.writeFile('/python-core/'+file,new Uint8Array(bytes));
  }
  py.FS.writeFile('/python-core/handthesia_core/source_manifest.json',
   new TextEncoder().encode(JSON.stringify(core)));
- await py.runPythonAsync('import sys\nsys.path.insert(0,"/python-core")\nimport handthesia_core.api');
+ await py.runPythonAsync('import sys\\nsys.path.insert(0,"/python-core")\\nimport handthesia_core.api');
  return {py,engineVersion:core.engineVersion};
 }
 const ORIGINAL_ANALYSIS=[
@@ -138,7 +117,7 @@ async function analyze(id,bytes){
    engineVersion,rawMidiSha256:hash,total:assignments.length,
    playable:assignments.filter(n=>n.disposition==='played').length,
    unresolved:assignments.filter(n=>n.disposition!=='played').length,
-   suggestions:assignments.slice(0,60),
+   suggestions:assignments,
    researchOnly:true,productionEligible:false,sourceNoteMappingVerified:false,
    expertValidated:false
   }});
