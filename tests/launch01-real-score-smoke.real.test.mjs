@@ -70,6 +70,21 @@ try{
      window.__libraryV08?.songFromBuffer&&window.__prototypeTest,{timeout:20000});
    const observed=await page.evaluate(async ({id,xml,smf})=>{
     const score=window.__libraryV08.readMusicXML(xml,id+'.musicxml');
+    const artificialPorts=(a,b)=>{
+     const header='<score-partwise version="4.0"><part-list>';
+     const def=(p,port)=>'<score-part id="'+p+'"><part-name>Piano</part-name>'+
+      '<midi-device port="'+port+'"/></score-part>';
+     const part=p=>'<part id="'+p+'"><measure number="1">'+
+      '<attributes><divisions>480</divisions></attributes>'+
+      '<note><pitch><step>C</step><octave>4</octave></pitch>'+
+      '<duration>480</duration></note></measure></part>';
+     return header+def('P1',a)+def('P2',b)+'</part-list>'+
+      part('P1')+part('P2')+'</score-partwise>';
+    };
+    const onePortWarnings=window.__libraryV08.readMusicXML(
+      artificialPorts('1','1'),'one-port.musicxml').warnings;
+    const mixedPortWarnings=window.__libraryV08.readMusicXML(
+      artificialPorts('1','2'),'mixed-ports.musicxml').warnings;
     const bytes=Uint8Array.from(smf);
     const midi=await window.__libraryV08.songFromBuffer(id+'.mid',bytes.buffer);
     const summarize=song=>({
@@ -120,7 +135,7 @@ try{
     const after=JSON.stringify(midi.tracks.map(t=>t.notes.map(n=>
      [n.pitch,n.start,n.duration,n.velocity,n.channel,n.finger??null])));
     window.Worker=OriginalWorker;
-    return {first,second,
+    return {first,second,onePortWarnings,mixedPortWarnings,
       alignmentNotes:{
        score:notesXml.map(n=>({pitch:n.pitch,start:n.start,duration:n.duration})),
        midi:notesMidi.map(n=>({pitch:n.pitch,start:n.start,duration:n.duration}))
@@ -135,6 +150,11 @@ try{
    assert.ok(observed.first.notes>40,'real MusicXML has genuine playable notes');
    assert.ok(observed.second.notes>40,'real MIDI has genuine playable notes');
    assert.equal(observed.first.badTiming,false,'MusicXML importer must not make negative/zero notes');
+   assert.deepEqual(observed.warnings,[],'one declared port-1 does not mean a cross-port collision');
+   assert.equal(observed.onePortWarnings.some(w=>w.includes('Порты MusicXML')),false,
+    'two piano parts on one port must not warn about inter-port mixing');
+   assert.equal(observed.mixedPortWarnings.some(w=>w.includes('Порты MusicXML')),true,
+    'independent port 1 and 2 must still warn about potential mixed instruments');
    assert.equal(observed.second.badTiming,false,'MIDI importer must not make negative/zero notes');
    assert.ok(observed.second.audioEvents>0,'MIDI playback events preserved');
    assert.equal(observed.launches,1,'real imported piano song must start exactly one Worker');
