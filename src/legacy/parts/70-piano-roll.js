@@ -186,6 +186,9 @@ function fingerGuidanceSteps(){
  return fingerGuidanceTimeline(events);
 }
 function fingerGuidanceFrame(steps,now){
+ // In active Listen transport, hands follow the keys actually depressed by
+ // the source notation, never the NEXT note merely because it is upcoming.
+ if(state.mode==='listen'&&isPlaying)return fingerGuidancePlayingFrame(steps,now,loop);
  const available=loop.enabled&&loop.start!==null&&loop.end!==null
   ?steps.filter(g=>g.start>=loop.start-.001&&g.start<loop.end-.001):steps;
  const empty={current:null,next:null};
@@ -249,7 +252,7 @@ function drawFingerGuidanceBadge(c,keyY,keyboardH,k,finger,hand,{preview=false,p
  c.beginPath();c.arc(k.center,y,r,0,2*Math.PI);
  c.fillStyle=preview?'#121820':color.ink;c.fill();c.stroke();
  c.fillStyle='#fff';c.font='bold 12px system-ui';c.textAlign='center';c.textBaseline='middle';
- c.fillText(String(finger),k.center,y+.5);c.restore();
+ c.fillText(Number.isInteger(finger)&&finger>=1&&finger<=5?String(finger):'?',k.center,y+.5);c.restore();
 }
 // FG-01A: original user-provided hand poses: 7 for LH and 7 for RH.
 // Each finger silhouette is a distinct PNG. Finger contact markers remain
@@ -370,10 +373,52 @@ function drawFingerGuidance(c,geom,keyY,keyboardH,handsAllowed,handTail=0){
    (corrected.length?' · правки пользователя: '+corrected.length:'')+
    (unassigned?' · рука не указана: только номера':''):
   'PianoMotion: аппликатура ('+steps.flatMap(g=>g.notes).filter(n=>n.finger).length+'/'+total+' нот)';
- if(status&&status.textContent!==message)status.textContent=message;
- if(!steps.length)return;
- const {current:group,next}=fingerGuidanceFrame(steps,pos);
- if(!group)return;
+ const behavior=state.mode==='wait'?'Wait: показываю клавиши следующего задания':
+  state.mode==='listen'?'Слушать: руки повторяют физические нажатия исходных нот':'Tempo: подготовка к следующей ноте';
+ if(status&&status.textContent!==(mode==='off'?'':behavior+' · '+message))
+  status.textContent=mode==='off'?'':behavior+' · '+message;
+ if(!steps.length){
+  if(mode!=='off'&&state.mode==='wait'&&practice){
+   for(const n of practice.nextGroup()?.notes||[]){
+    if(n.hit||n.miss||n.skipped)continue;
+    const k=geom.byPitch.get(n.pitch);
+    if(k)drawFingerGuidanceBadge(c,keyY,keyboardH,k,null,null);
+   }
+  }
+  return;
+ }
+ const frame=fingerGuidanceFrame(steps,pos);
+ const {current:group,next}=frame;
+ // Wait shows all remaining targets. Unknown fingering produces a neutral '?',
+ // not an invented finger/hand and not an incorrectly pressed hand silhouette.
+ if(mode!=='off'&&state.mode==='wait'&&practice){
+  const labelled=new Set(group?.notes.map(n=>n.pitch)||[]);
+  for(const n of practice.nextGroup()?.notes||[]){
+   if(n.hit||n.miss||n.skipped||labelled.has(n.pitch))continue;
+   const k=geom.byPitch.get(n.pitch);
+   if(k)drawFingerGuidanceBadge(c,keyY,keyboardH,k,null,null);
+  }
+ }
+ if(!group){
+  // In the rests between physical key releases, no key looks pressed.
+  // Ghost mode may move a translucent hand toward the NEXT source onset.
+  if(mode==='ghost'&&state.mode==='listen'&&next?.complete){
+   const ghost=fingerGuidanceGhostWindow({nextOnset:next.start,now:pos,
+    leadMs:state.fingerLookaheadMs,speedPercent:state.speed,mode:state.mode,loop});
+   if(ghost.visible){
+    const movement=fingerGuidanceMotionState(frame.previous,next,geom,keyboardH,handTail,ghost,isPlaying);
+    for(const hand of ['LH','RH']){
+     const plan=movement.plans[hand];
+     if(plan.kind!=='markers')drawFingerGuidanceHand(c,geom,keyY,keyboardH,next.notes,hand,ghost.alpha,handTail,plan.x);
+     for(const n of next.notes.filter(n=>n.hand===hand)){
+      const key=geom.byPitch.get(n.pitch);
+      if(key)drawFingerGuidanceBadge(c,keyY,keyboardH,key,n.finger,hand,{preview:true,previewAlpha:ghost.alpha});
+     }
+    }
+   }
+  }
+  return;
+ }
  // A partially authored chord is NOT evidence of a complete hand pose.
  // Numeric marks may still be shown for its individually authored notes.
  if(mode==='numbers'||!group.complete||!handsAllowed||group.notes.every(n=>!n.hand)){

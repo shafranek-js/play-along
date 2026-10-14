@@ -100,6 +100,9 @@ try{
  assert.deepEqual(paused.targets.RH,[{pitch:79,finger:5}]);
  await page.screenshot({path:path.join(output,'fg03b2-shift-paused.png')});
  // Playback now waits for the selected SoundFont's asynchronous readiness.
+ // Start while the FIRST physical note is still depressed: active Listen hands
+ // should press the current note while Ghost prepares the next.
+ await page.evaluate(()=>window.__prototypeTest.seek(1.05));
  // Start through the real trusted control, then read the animated guidance
  // only after the transport has actually begun and its first frames render.
  await page.locator('#playBtn').click();

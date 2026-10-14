@@ -42,6 +42,32 @@ export function fingerGuidanceTimeline(events){
 }
 
 /**
+ * LAUNCH-02: during actual LISTEN playback, fingers follow physically held
+ * score keys, not the next onset. Sustain CC64 is deliberately ignored:
+ * a pianist lifts the finger at original NoteOff even if pedal sustains sound.
+ * Overlapping voices from DIFFERENT onsets stay visible together.
+ * Pure presentation function: no score/audio/practice mutation.
+ */
+export function fingerGuidancePlayingFrame(steps,now,loop=null){
+ const empty={current:null,next:null};
+ if(!Array.isArray(steps)||!Number.isFinite(now)||now<0)return empty;
+ const looping=loop?.enabled&&Number.isFinite(loop.start)&&Number.isFinite(loop.end)&&
+  loop.end>loop.start;
+ const available=looping?steps.filter(g=>g.start>=loop.start-.001&&g.start<loop.end-.001):steps;
+ if(!available.length)return empty;
+ const next=available.find(g=>g.start>now+.001)||(looping?available[0]:null);
+ const previous=available.filter(g=>g.start<=now+.001).at(-1)||null;
+ const overlapping=available.filter(g=>g.start<=now+.001&&
+  g.notes?.some(n=>n.start<=now+.001&&now<n.start+n.duration-.001));
+ const playing=overlapping.flatMap(g=>g.notes.filter(n=>
+  n.start<=now+.001&&now<n.start+n.duration-.001));
+ if(!playing.length)return {current:null,next,previous};
+ return {current:{start:Math.min(...playing.map(n=>n.start)),
+  notes:playing,totalNotes:overlapping.reduce((count,g)=>count+g.totalNotes,0),
+  complete:overlapping.every(g=>g.complete)},next,previous};
+}
+
+/**
  * FG-03B: presentation-only secondary Ghost preview schedule.
  * Musical events remain in score seconds, whereas lookahead is wall-clock
  * milliseconds; the user's tempo multiplier converts between them.

@@ -1,4 +1,12 @@
-# Play Along — Piano Practice App (v0.10.108)
+# Play Along — Piano Practice App (v0.10.109)
+
+## LAUNCH-02 — distinct hand guidance in Listen vs Wait (v0.10.109)
+
+**Requested behavior:** with hand/finger guidance enabled, **Listen** depicts hands on notes that are *physically depressed by the original score at the current playback time*, including simultaneously held notes from earlier and later onsets; it stops showing a pressed finger at physical NoteOff, even if CC64 pedal sustains the audible tail. This fixes the former Listen behavior that pointed to the *next* note as soon as its onset was upcoming, incorrectly removing an actually held hand pose. During rests the active hand/key-contact overlay is cleared. Optional **Ghost** lookahead is visibly translucent and separate from the active fingers; it never advances the actual score or pretends an upcoming note is already pressed.
+
+**Wait** remains instructional: while the current practice note/chord is unfinished, only keys the learner still needs to press are targeted. Wrong MIDI notes do not move the hand hint; partially completed chords retain the remaining required keys, and the hint moves to the next task after the final correct NoteOn. Original authored or explicitly user-applied hand/finger assignments are used when available; for unannotated MIDI the required key is marked with a neutral **?** rather than inventing a hand/finger. Selecting the existing `Руки` or `Опережение` guidance mode enables the hand PNGs (an explicit `Выкл` preference remains respected).
+
+**Implementation:** pure `fingerGuidancePlayingFrame()` separates actual physical note contacts from upcoming groups. The existing Wait/Tempo scoring semantics, original source note timings, audio engine, piano key geometry, and all fourteen original transparent PNG hand assets remain unchanged. The sprites are still static PNG pose translations, **not physically joint-articulated real 3D hands**. Node tests and a new actual-production Chromium flow check Listen held keys/rests, Wait wrong-key/chord progress, and missing finger metadata; the full preexisting regression suite and deployment gate remain mandatory.
 
 ## LAUNCH-02 — source-protecting fingering review (v0.10.108)
 

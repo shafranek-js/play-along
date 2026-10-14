@@ -249,10 +249,11 @@ window.__fingerGuideTest={
   const frame=fingerGuidanceFrame(fingerGuidanceSteps(),pos);
   const ghostTime=fingerGuidanceGhostWindow({nextOnset:frame.next?.start,now:pos,
    leadMs:state.fingerLookaheadMs,speedPercent:state.speed,mode:state.mode,loop});
-  if(state.fingerGuidanceMode!=='ghost'||!frame.current?.complete||
+  const starting=frame.current||frame.previous;
+  if(state.fingerGuidanceMode!=='ghost'||!starting?.complete||
    !frame.next?.complete||!ghostTime.visible||!pianoGeom)
    return {visible:false,crossing:false,plans:null};
-  const motion=fingerGuidanceMotionState(frame.current,frame.next,pianoGeom,
+  const motion=fingerGuidanceMotionState(starting,frame.next,pianoGeom,
    keyboardBottom-keyboardTop,lastCanvasSize.h-keyboardBottom,ghostTime,isPlaying);
   return {visible:true,crossing:motion.crossing,plans:motion.plans,
    targets:Object.fromEntries(['LH','RH'].map(h=>[h,frame.next.notes.filter(n=>n.hand===h)
@@ -290,6 +291,12 @@ window.__fingerGuideTest={
  get steps(){return fingerGuidanceSteps().map(g=>({start:g.start,totalNotes:g.totalNotes,complete:g.complete,notes:g.notes.map(n=>({...n}))}))},
  get frame(){const f=fingerGuidanceFrame(fingerGuidanceSteps(),pos);return {current:f.current?.start??null,next:f.next?.start??null}},
  get preview(){return fingerGuidanceFrame(fingerGuidanceSteps(),pos).current?.notes.map(n=>({pitch:n.pitch,hand:n.hand,finger:n.finger}))||[]},
+ get waitTargets(){if(state.mode!=='wait'||!practice?.nextGroup())return [];
+  const known=fingerGuidanceFrame(fingerGuidanceSteps(),pos).current?.notes||[];
+  return practice.nextGroup().notes.filter(n=>!n.hit&&!n.miss&&!n.skipped).map(n=>{
+   const marked=known.find(k=>k.pitch===n.pitch);
+   return {pitch:n.pitch,hand:marked?.hand??null,finger:marked?.finger??null};
+  });},
  get layout(){return {keyboardTop,keyboardBlackH,canvasHeight:lastCanvasSize.h}},
 };
 window.__prototypeTest.audio={
