@@ -34,7 +34,7 @@ async function initialize(id){
    typeof core.files!=='object'||Array.isArray(core.files))throw Error('PIANOMOTION_MANIFEST_INVALID');
  const entries=Object.entries(core.files).sort(([a],[b])=>a<b?-1:a>b?1:0);
  if(entries.length<8||entries.some(([file,hash])=>
-   !/^handthesia_core\\/[a-z_]+\\.py$/.test(file)||!hashed(hash)))
+   !/^handthesia_core\/[a-z_]+\.py$/.test(file)||!hashed(hash)))
   throw Error('PIANOMOTION_FILE_LIST_INVALID');
  if(await sha(new TextEncoder().encode(JSON.stringify({files:Object.fromEntries(entries)})))!==core.engineVersion)
   throw Error('PIANOMOTION_ENGINE_DIGEST_MISMATCH');
