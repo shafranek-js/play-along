@@ -2,6 +2,10 @@
 
 **Project-owner decision:** The two highest priorities are (1) improving automatic piano fingering using the already available PianoMotion Studio algorithm and (2) an optional procedural hand renderer based on PianoMotion Studio's IK, **alongside—not instead of—the existing fourteen owner PNG hand poses**. Historical dataset audits are not a current feature priority. This supersedes the previous ordering of discretionary FG-04B research and 3D-only future work, but does not waive correctness, rights or UAT gates.
 
+## Launch scope decision (2026-10-14)
+
+The project owner does **not** have access to an expert piano evaluation team before release. Ship an honest **optional beta fingering suggestion workflow** using the existing algorithms and user correction capabilities after software UAT and legal/rights review. P0-A2b expert-review recruitment, independent consensus and held-out pianist-accuracy claims are **post-launch, optional improvements**, not blockers to publishing the app. No model may claim expert certification without evidence. See [Launch readiness](LAUNCH-READINESS.md) and the current [roadmap](ROADMAP-FINGER-GUIDANCE.md).
+
 ## P0-A — compare and improve the fingering algorithm
 
 **Owned reference:** private [PianoMotion Studio](https://github.com/shafranek-js/pianomotion-studio), `python-core/handthesia_core/{fingering,figures,hand_split,pianist}.py`, `python-core/handthesia_core/source_manifest.json`, and its Python/WebAssembly bridge. Owner permits reuse of their application in Play Along, subject to rights inherited from third-party/adapted sources.
