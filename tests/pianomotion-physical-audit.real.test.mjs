@@ -54,6 +54,9 @@ try{
   calculate.click();await new Promise(resolve=>setTimeout(resolve,30));
   const warning=document.getElementById('pianoMotionStatus').textContent;
   const flagCount=document.querySelectorAll('.pianoMotionReviewRow.physicalConflict').length;
+  const blockedApplyDisabled=apply.disabled;
+  const checkedBlocked=[...document.querySelectorAll('.pianoMotionReviewRow.physicalConflict input')]
+   .every(input=>input.disabled&&!input.checked);
   apply.click();
   const afterBlocked=song.tracks[0].notes.filter(n=>n.finger!=null).length;
   const blockedExplanation=document.getElementById('pianoMotionStatus').textContent;
@@ -67,7 +70,7 @@ try{
   const sourceUnchanged=source===JSON.stringify(song.tracks.map(t=>
    t.notes.map(n=>[n.pitch,n.start,n.duration])));
   window.Worker=Native;
-  return {noteCount:song.tracks[0].notes.length,warning,flagCount,afterBlocked,
+  return {noteCount:song.tracks[0].notes.length,warning,flagCount,blockedApplyDisabled,checkedBlocked,afterBlocked,
    blockedExplanation,blockedExport,clear,afterSafe,safeExport,sourceUnchanged};
  });
  assert.deepEqual(browserErrors,[]);
@@ -75,7 +78,9 @@ try{
  assert.match(result.warning,/Физические противоречия: 2/);
  assert.equal(result.flagCount,2);
  assert.equal(result.afterBlocked,0);
- assert.match(result.blockedExplanation,/конфликтных 2/);
+ assert.equal(result.blockedApplyDisabled,true,'all-conflicted batch must disable Apply');
+ assert.equal(result.checkedBlocked,true,'physical conflicts cannot be checked');
+ assert.match(result.blockedExplanation,/Физические противоречия: 2/);
  assert.equal(result.blockedExport,true);
  assert.equal(result.clear,0);
  assert.equal(result.afterSafe,2);

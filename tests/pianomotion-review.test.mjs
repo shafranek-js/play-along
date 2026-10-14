@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
  pianoMotionEmptyHistory,pianoMotionNoteState,pianoMotionProposeBatch,
- pianoMotionCommitBatch,pianoMotionTravelHistory,pianoMotionWindow
+ pianoMotionCommitBatch,pianoMotionTravelHistory,pianoMotionWindow,
+ pianoMotionReviewEligibility,pianoMotionReviewSummary
 }from '../src/core/pianomotion-review.mjs';
 const note=(pitch,start)=>({pitch,start,duration:.2});
 const aligned=(notes)=>({ok:true,matches:notes.map((n,i)=>({
@@ -78,4 +79,39 @@ test('bounded per-song Undo history stores 40 atomic batches maximum',()=>{
  }
  assert.equal(h.past.length,40);
  assert.equal(h.future.length,0);
+});
+
+test('LAUNCH-02 selection exactly matches safe writable proposals across pages',()=>{
+ const notes=Array.from({length:30},(_,i)=>({...note(50+i,i*.2),noteId:'note-'+i}));
+ notes[1].finger=2;notes[1].fingeringSource='musicxml';
+ notes[2].finger=5;notes[2].fingeringSource='user';
+ const alignment=aligned(notes),edits={'note-3':{hand:'RH',finger:3}};
+ alignment.matches[4].suggestion.finger=null;
+ const audit={ok:true,total:30,blocked:[5,6],issues:[]};
+ const snapshot=JSON.stringify(notes);
+ let summary=pianoMotionReviewSummary(alignment,edits,audit);
+ assert.equal(summary.ok,true);
+ assert.deepEqual(summary.eligibility.slice(0,8),[
+  'eligible','protected','protected','protected','unresolved',
+  'conflict','conflict','eligible'
+ ]);
+ assert.deepEqual(summary.counts,{eligible:24,protected:3,unresolved:1,
+  conflict:2,applied:0,invalid:0});
+ assert.equal(summary.eligibleIndices.includes(29),true,'last preview page remains included');
+ const batch=pianoMotionProposeBatch(alignment,summary.eligibleIndices,edits,audit);
+ assert.equal(batch.ok,true);assert.equal(batch.patches.length,24);
+ assert.equal(JSON.stringify(notes),snapshot,'dry-run selection must not change score');
+ const applied=pianoMotionCommitBatch(pianoMotionEmptyHistory(),batch);
+ assert.equal(applied.ok,true);
+ summary=pianoMotionReviewSummary(alignment,edits,audit);
+ assert.equal(summary.counts.applied,24);
+ assert.equal(summary.counts.eligible,0);
+ assert.deepEqual(summary.eligibleIndices,[]);
+ assert.equal(pianoMotionReviewEligibility(notes[29],alignment.matches[29].suggestion,29,edits,new Set(audit.blocked)),'applied');
+ const undo=pianoMotionTravelHistory(applied.history,'undo');
+ assert.equal(undo.ok,true);
+ assert.equal(JSON.stringify(notes),snapshot,'Undo restores exact original note states');
+ summary=pianoMotionReviewSummary(alignment,edits,audit);
+ assert.equal(summary.counts.eligible,24,'Undo re-enables the formerly applied proposals');
+ assert.equal(pianoMotionReviewSummary(alignment,edits,{ok:false,total:30,blocked:[]}).ok,false);
 });

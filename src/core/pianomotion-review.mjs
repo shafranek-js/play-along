@@ -21,6 +21,41 @@ function restore(note,s){
  if(s.hasHand)note.hand=s.hand;else delete note.hand;
  if(s.hasSource)note.fingeringSource=s.source;else delete note.fingeringSource;
 }
+/** What is actually safe and useful to apply to this exact source note?
+ * Same rules as batch commit; unresolved and known physical conflicts
+ * cannot become selectable simply because a checkbox was checked.
+ */
+export function pianoMotionReviewEligibility(note,suggestion,index,userEdits={},blocked=new Set()){
+ if(!note||!suggestion||!['RH','LH'].includes(suggestion.hand)||
+    !(suggestion.finger===null||Number.isInteger(suggestion.finger)&&
+      suggestion.finger>=1&&suggestion.finger<=5))return 'invalid';
+ if(suggestion.finger===null)return 'unresolved';
+ if(blocked.has(index))return 'conflict';
+ if(note.noteId&&own(userEdits,note.noteId)||
+    note.fingeringSource!=='pianomotion'&&
+    (note.finger!=null||note.fingeringSource==='musicxml'||note.fingeringSource==='user'))
+  return 'protected';
+ const after={hasFinger:true,finger:suggestion.finger,hasHand:true,hand:suggestion.hand,
+  hasSource:true,source:'pianomotion'};
+ return pianoMotionStateEqual(pianoMotionNoteState(note),after)?'applied':'eligible';
+}
+/** Pure selection summary for all review pages, not just the visible 24.
+ * This is explanatory UI; the batch validator still gates the actual write.
+ */
+export function pianoMotionReviewSummary(alignment,userEdits={},audit=null){
+ if(!alignment?.ok||!Array.isArray(alignment.matches)||!userEdits||
+  typeof userEdits!=='object'||!audit?.ok||audit.total!==alignment.matches.length||
+  !Array.isArray(audit.blocked))return {ok:false,reason:'INVALID_REVIEW_SUMMARY'};
+ const blocked=new Set(audit.blocked),counts={
+  eligible:0,protected:0,unresolved:0,conflict:0,applied:0,invalid:0
+ };
+ const eligibility=alignment.matches.map(({note,suggestion},index)=>{
+  const reason=pianoMotionReviewEligibility(note,suggestion,index,userEdits,blocked);
+  counts[reason]++;return reason;
+ });
+ return {ok:true,counts,eligibility,
+  eligibleIndices:eligibility.flatMap((reason,i)=>reason==='eligible'?[i]:[])};
+}
 export function pianoMotionProposeBatch(alignment,indices,userEdits={},audit=null){
  const fail=reason=>({ok:false,reason});
  if(!alignment?.ok||!Array.isArray(alignment.matches)||!Array.isArray(indices)||
@@ -35,20 +70,15 @@ export function pianoMotionProposeBatch(alignment,indices,userEdits={},audit=nul
  const patches=[];let protectedCount=0,unresolved=0,unchanged=0,blockedCount=0;
  for(const i of unique){
   const {note:n,suggestion:s}=alignment.matches[i]||{};
-  if(!n||!s||!['RH','LH'].includes(s.hand)||
-    !(s.finger===null||Number.isInteger(s.finger)&&s.finger>=1&&s.finger<=5))
-   return fail('INVALID_REVIEW_NOTE');
-  if(s.finger===null){unresolved++;continue;}
-  if(blocked.has(i)){blockedCount++;continue;}
-  if(n.noteId&&own(userEdits,n.noteId)||
-     n.fingeringSource!=='pianomotion'&&
-     (n.finger!=null||n.fingeringSource==='musicxml'||n.fingeringSource==='user')){
-   protectedCount++;continue;
-  }
+  const reason=pianoMotionReviewEligibility(n,s,i,userEdits,blocked);
+  if(reason==='invalid')return fail('INVALID_REVIEW_NOTE');
+  if(reason==='unresolved'){unresolved++;continue;}
+  if(reason==='conflict'){blockedCount++;continue;}
+  if(reason==='protected'){protectedCount++;continue;}
+  if(reason==='applied'){unchanged++;continue;}
   const before=pianoMotionNoteState(n);
   const after={hasFinger:true,finger:s.finger,hasHand:true,hand:s.hand,
     hasSource:true,source:'pianomotion'};
-  if(pianoMotionStateEqual(before,after)){unchanged++;continue;}
   patches.push({note:n,before,after,index:i});
  }
  return {ok:true,patches,protectedCount,unresolved,unchanged,blockedCount};

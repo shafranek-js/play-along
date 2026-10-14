@@ -1,4 +1,12 @@
-# Play Along — Piano Practice App (v0.10.107)
+# Play Along — Piano Practice App (v0.10.108)
+
+## LAUNCH-02 — source-protecting fingering review (v0.10.108)
+
+**Improve the existing PianoMotion suggestion review, not the Python algorithm:** the preview now gives a whole-score count of *eligible* notes, original author/manual **protected** notes, **physical conflicts** rejected by the independent audit, **unresolved** suggestions without an assigned finger, and **already applied** notes. These statuses are explicit on each preview row. Unavailable notes have disabled checkboxes, muted note blocks and explanatory tooltips; they cannot be selected from the canvas either. No expert pianist approval is implied.
+
+**Review actions are honest:** “Выбрать применимые” selects eligible proposals across *all* pages (not only the 24 visible notes); “Применить все доступные” applies the same safe subset. The existing per-note selection and “Применить выбранные” remain. After application, the applied notes are clearly marked and no longer offered for duplicate application; Undo makes their proposals eligible again. Both the UI and the atomic batch validator use the same source-bound eligibility function, while the batch validator retains its independent fresh-state check. Manual and author fingering, original MIDI pitches/timing, raw MusicXML and PNG hands are never overwritten by this UI.
+
+**QA:** pure Node tests compare entire-score eligible selection with actual batch patches, all five eligibility categories, Undo and source invariance. A new real production Chromium test uses a deterministic fake Python Worker to exercise a 5-note MIDI source with overlapping conflicting fingers, protected author marking, unresolved note, safe selection, one-note Apply, Undo/Redo, and original note/event timing unchanged. The existing full browser matrix, physical audit, 547-note Apply/Export/reimport and genuine Python/Pyodide gates remain required. **No claim of piano-technique validation or actual keyboard testing.**
 
 ## LAUNCH-01 F2 — MIDI source ownership and All Notes Off (v0.10.107)
 
@@ -22,7 +30,7 @@ A new actual production Chromium test (`tests/launch01-sustain-visual.real.test.
 
 ## Current owner decision — deferred F0, continue functional development (2026-10-14)
 
-The project owner has **deferred the unresolved upstream Hand-thesia/PianoMotion source-rights decision to the final release**. No new licensing research or replacement effort is scheduled in the current development sprint. This is a priority change **only**: rights are **not cleared** and public GitHub Pages/public beta distributions still require consideration of third-party permissions. Engineering continues with LAUNCH-01 F2 transport, Wait/Seek/Loop, pedal/MIDI controller/audio QA, then LAUNCH-02/03 usability and source-safe fingering. The final release requires an explicit upstream grant, compatible license, cleared replacement, or adjusted distribution. See [current launch policy](docs/LAUNCH-READINESS.md). This owner's F0 decision remains unchanged in v0.10.107; F2 MIDI ownership/hotplug/CC64 fixes are separate engineering changes.
+The project owner has **deferred the unresolved upstream Hand-thesia/PianoMotion source-rights decision to the final release**. No new licensing research or replacement effort is scheduled in the current development sprint. This is a priority change **only**: rights are **not cleared** and public GitHub Pages/public beta distributions still require consideration of third-party permissions. Engineering continues with LAUNCH-01 F2 transport, Wait/Seek/Loop, pedal/MIDI controller/audio QA, then LAUNCH-02/03 usability and source-safe fingering. The final release requires an explicit upstream grant, compatible license, cleared replacement, or adjusted distribution. See [current launch policy](docs/LAUNCH-READINESS.md). This owner's F0 decision remains unchanged in v0.10.108; F2 repairs and LAUNCH-02 review UX remain separate engineering changes.
 
 ## LAUNCH-01 — real MXL corruption refusal and 1,050-note multi-track MIDI stress (v0.10.104)
 
