@@ -147,13 +147,40 @@ try{
    assert.deepEqual(pageErrors,[],'no browser JavaScript errors');
    const parity=auditScoreMidiParity(observed.alignmentNotes.score,
     observed.alignmentNotes.midi,{toleranceSeconds:.02});
+   // Aggregate gate-duration residuals by source-pitch ordinal, never publish
+   // original score note lists or MIDI bytes.
+   const x=observed.alignmentNotes.score,m=observed.alignmentNotes.midi;
+   const q=rows=>{
+    const by=new Map();
+    for(const n of rows){if(!by.has(n.pitch))by.set(n.pitch,[]);
+     by.get(n.pitch).push(n)}
+    for(const a of by.values())a.sort((x,y)=>x.start-y.start||x.duration-y.duration);
+    return by;
+   };
+   const xm=q(x),mm=q(m),gateDeltas=new Map();
+   if(parity.pitchHistogramEqual)for(const [pitch,notes] of xm){
+    const other=mm.get(pitch);
+    for(let i=0;i<notes.length;i++){
+     const delta=(other[i].start+other[i].duration)-
+      (notes[i].start+notes[i].duration);
+     const key=(Math.round(delta*1000)/1000).toFixed(3);
+     gateDeltas.set(key,(gateDeltas.get(key)||0)+1);
+    }
+   }
+   const portDeclarationSummary={
+    ports:[...new Set([...xml.matchAll(/<midi-device\\b[^>]*\\bport=["'](\\d+)["']/g)]
+      .map(v=>v[1]))].sort(),
+    references:(xml.match(/<midi-device\\b[^>]*\\bport=/g)||[]).length
+   };
+   const gateDeltaHistogram=[...gateDeltas].sort((a,b)=>b[1]-a[1])
+    .slice(0,8).map(([delta,count])=>({deltaSeconds:Number(delta),count}));
    assert.equal(parity.ok,true);
    assert.equal(parity.noteCountScore,observed.first.notes);
    assert.equal(parity.noteCountMidi,observed.second.notes);
    cases.push({caseId:id,musicXmlNotes:observed.first.notes,midiNotes:observed.second.notes,
     musicXmlWarnings:observed.first.warnings,
     warningReasons:observed.warnings,alignmentDiagnostics:observed.alignmentDiagnostics,
-    noteTimeParity:parity,
+    noteTimeParity:parity,gateDeltaHistogram,portDeclarationSummary,
     midiSourceProtected:true,workerRetryAfterError:true});
   }finally{await page.close()}
  }
