@@ -189,3 +189,14 @@ test('audio sidecar ships the pinned bank, complete GM inventory, and notices bi
   assert.equal(path.posix.basename(manifestUrl.pathname),path.posix.basename(bank.filename));
  }
 });
+
+test('FG-04C9 deployed Python core includes prominent Hand-thesia provenance notice',()=>{
+ const source=read('THIRD_PARTY_NOTICES.md');
+ const deployed=read('dist/THIRD_PARTY_NOTICES.md');
+ assert.equal(deployed,source,'distribution must keep original third-party source notice');
+ assert.match(source,/V9011N\/pygame-piano-animator/);
+ assert.match(source,/Not established for public redistribution/);
+ const html=read('dist/index.html');
+ assert.match(html,/Hand-thesia \(V9011N\)/);
+ assert.match(html,/THIRD_PARTY_NOTICES\.md/);
+});
