@@ -1,5 +1,7 @@
 # Play Along — Piano Practice App (v0.10.89)
 
+**FG-04C8 (research foundation):** Opening an original .mid/.midi through the existing library parser now retains a byte-identical original MIDI snapshot **in memory** for that specific song. The future PianoMotion worker can use a copy for the source-verified FG-04C7 conversion without a second file upload. The snapshot is bounded, never placed in browser backup/storage, safely copied and eventually garbage-collected. This change does not yet run the Python algorithm in browser or enable automatic teaching fingers. [Implementation and tests](docs/FG-04C8-ORIGINAL-MIDI-BYTES.md).
+
 **FG-04C7 — true PianoMotion output for original MIDI (research adapter):** Added the conservative MIDI-only source-provenance bridge: hash-locked original MIDI bytes, exact PianoMotion source-event identity, hand/finger assignment, note-on/off timing and refusal of ambiguous or repaired streams. No original PianoMotion Python core is shipped or run by the browser yet; no learner auto-fingers are enabled. [Implementation and next runtime gate](docs/FG-04C7-PIANOMOTION-NATIVE-MIDI-BRIDGE.md). No app version or Hand-thesia completion change.
 
 ## FG-04C6 — One-click fingering for the already open MusicXML (v0.10.89)
