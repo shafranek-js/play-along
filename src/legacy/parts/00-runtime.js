@@ -186,6 +186,7 @@ function syncSongSettingsUI(){
  $('accompany').checked=state.accompany;$('allTracks').checked=state.allTracks;
  $('displayRange').value=state.displayRange;
  $('fingerGuideMode').value=state.fingerGuidanceMode;
+ $('fingerBrowserHandSize').value=state.fingerBrowserHandSize;
  $('fingerGuideLookahead').value=String(state.fingerLookaheadMs);
  $('fingerGuideLookahead').disabled=state.fingerGuidanceMode!=='ghost';
  $('sheetZoomLabel').textContent=state.sheetZoom+'%';$('sheetFollow').checked=state.sheetFollow!==false;
