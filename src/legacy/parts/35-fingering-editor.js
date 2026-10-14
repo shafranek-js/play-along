@@ -688,85 +688,105 @@ $('pianoMotionCalculate').onclick=()=>{
  pianoMotionStop();
  const song=current;
  if(!song){$('pianoMotionStatus').textContent='Сначала выбери мелодию в библиотеке.';return}
- const original=originalMidiForSong(song);
- const derived=original?null:makePianoMotionMidiFromSong(song);
- if(!original&&!derived?.ok){
-  $('pianoMotionStatus').textContent='Не могу подготовить MIDI для расчёта: '+(derived?.reason||'нет нот')+'.';return;
- }
- const midi=original||derived.midiBytes;
- if(midi.length>4000000){
-  $('pianoMotionStatus').textContent='MIDI больше допустимого ограничения 4 МБ.';return;
- }
  if(!window.Worker){
   $('pianoMotionStatus').textContent='Браузер не поддерживает Web Worker.';return;
  }
- const id=++pianoMotionGeneration;
- const exact=!!original;
- $('pianoMotionStatus').textContent=exact?
-  'Подготовлен исходный MIDI; загружаю оригинальный Python-алгоритм PianoMotion…':
-  'Создан временный MIDI из нот текущей партитуры; загружаю Python-алгоритм…';
- let worker;
- try{worker=new Worker('./assets/pianomotion-engine-worker.js',{type:'module'});}
- catch{
-  pianoMotionStop('Не удалось запустить модульный Web Worker.');return;
- }
- pianoMotionRun=worker;
- $('pianoMotionCalculate').disabled=true;
- const cancel=()=>{
-  if(pianoMotionGeneration!==id)return false;
-  if(current!==song){
-   pianoMotionStop('Произведение изменилось. Расчёт отменён.');return false;
+ function startRun(useExactOriginal){
+  const original=useExactOriginal?originalMidiForSong(song):null;
+  const derived=!original?makePianoMotionMidiFromSong(song):null;
+  if(!original&&!derived?.ok){
+   $('pianoMotionStatus').textContent='Не могу подготовить MIDI для расчёта: '+(derived?.reason||'нет нот')+'.';return;
   }
-  return true;
- };
- worker.onmessage=event=>{
-  const data=event.data;
-  if(!data||data.id!==id||!cancel())return;
-  if(data.type==='progress'){
-   $('pianoMotionStatus').textContent=data.message;return;
+  const midi=original||derived.midiBytes;
+  if(midi.length>4000000){
+   $('pianoMotionStatus').textContent='MIDI больше допустимого ограничения 4 МБ.';return;
   }
-  worker.terminate();pianoMotionRun=null;
-  $('pianoMotionCalculate').disabled=false;
-  if(data.type==='error'){
-   const hint=data.reason==='PIANOMOTION_RUNTIME_FAILED'
-    ?'. Проверь подключение к сети и консоль браузера (F12).'
-    :' (подробности в консоли F12).';
-   $('pianoMotionStatus').textContent='PianoMotion: '+data.reason+hint;return;
+  const id=++pianoMotionGeneration;
+  const exact=!!original;
+  $('pianoMotionStatus').textContent=exact?
+   'Подготовлен исходный MIDI; загружаю оригинальный Python-алгоритм PianoMotion…':
+   (useExactOriginal?'Создан временный MIDI из нот текущей партитуры; загружаю Python-алгоритм…':
+    'Исходный MIDI содержит не-фортепианные данные; рассчитываю аппликатуру по нотам мелодии…');
+  let worker;
+  try{worker=new Worker('./assets/pianomotion-engine-worker.js',{type:'module'});}
+  catch{
+   pianoMotionStop('Не удалось запустить модульный Web Worker.');return;
   }
-  if(data.type!=='result'||!data.result)return;
-  const result=data.result;
-  const list=$('pianoMotionResult');list.replaceChildren();
-  if(!Array.isArray(result.suggestions)||result.suggestions.length!==result.total){
-   $('pianoMotionStatus').textContent='PianoMotion вернул неполную последовательность. Предложения отклонены.';return;
-  }
-  $('pianoMotionStatus').textContent='Оригинальный PianoMotion Python · '+result.total+
-   ' нот · '+result.playable+' пальцев · '+result.unresolved+' не определено. '+
-   (exact?'Исходный MIDI без изменений.':'Расчёт по временному MIDI из текущей партитуры.')+
-   ' Предложения не заменяют авторскую аппликатуру.';
-  const title=document.createElement('p');title.className='small';
-  title.textContent='Первые 120 предложений для проверки (правой/левой рукой).';
-  list.append(title);
-  const ol=document.createElement('ol');
-  for(const n of result.suggestions.slice(0,120)){
-   if(!Number.isInteger(n.pitch)||!Number.isFinite(n.start)||
-      !['RH','LH'].includes(n.hand)||n.finger!=null&&(!Number.isInteger(n.finger)||n.finger<1||n.finger>5)){
-    pianoMotionStop('Недопустимые данные аппликатуры от движка.');return;
+  pianoMotionRun=worker;
+  $('pianoMotionCalculate').disabled=true;
+  const cancel=()=>{
+   if(pianoMotionGeneration!==id)return false;
+   if(current!==song){
+    pianoMotionStop('Произведение изменилось. Расчёт отменён.');return false;
    }
-   const li=document.createElement('li');
-   li.textContent=n.hand+' · '+nameOf(n.pitch)+' · '+n.start.toFixed(2)+
-    ' c → '+(n.finger===null?'не определён':'палец '+n.finger);
-   ol.append(li);
-  }
-  list.append(ol);
-  $('pianoMotionClear').disabled=false;
- };
- worker.onerror=event=>{
-  console.error('PianoMotion worker onerror:',event);
-  if(cancel())pianoMotionStop('Ошибка браузерного Python Worker. Проверь консоль.');
- };
- // Defensive copy is transferred, never the in-memory source MIDI buffer.
- const transferable=midi.slice().buffer;
- worker.postMessage({id,type:'analyze-midi',midiBytes:transferable},[transferable]);
+   return true;
+  };
+  worker.onmessage=event=>{
+   const data=event.data;
+   if(!data||data.id!==id||!cancel())return;
+   if(data.type==='progress'){
+    $('pianoMotionStatus').textContent=data.message;return;
+   }
+   worker.terminate();pianoMotionRun=null;
+   $('pianoMotionCalculate').disabled=false;
+   if(data.type==='error'){
+    if(exact){
+     const fallback=makePianoMotionMidiFromSong(song);
+     if(fallback?.ok){
+      console.warn('PianoMotion exact MIDI failed ('+data.reason+'); retrying with clean song notes as piano.');
+      startRun(false);
+      return;
+     }
+    }
+    const hint=data.reason==='PIANOMOTION_RUNTIME_FAILED'
+     ?'. Проверь подключение к сети и консоль браузера (F12).'
+     :' (подробности в консоли F12).';
+    $('pianoMotionStatus').textContent='PianoMotion: '+data.reason+hint;return;
+   }
+   if(data.type!=='result'||!data.result)return;
+   const result=data.result;
+   const list=$('pianoMotionResult');list.replaceChildren();
+   if(!Array.isArray(result.suggestions)||result.suggestions.length!==result.total){
+    $('pianoMotionStatus').textContent='PianoMotion вернул неполную последовательность. Предложения отклонены.';return;
+   }
+   $('pianoMotionStatus').textContent='Оригинальный PianoMotion Python · '+result.total+
+    ' нот · '+result.playable+' пальцев · '+result.unresolved+' не определено. '+
+    (exact?'Исходный MIDI без изменений.':'Расчёт по нотам мелодии как фортепиано.')+
+    ' Предложения не заменяют авторскую аппликатуру.';
+   const title=document.createElement('p');title.className='small';
+   title.textContent='Первые 120 предложений для проверки (правой/левой рукой).';
+   list.append(title);
+   const ol=document.createElement('ol');
+   for(const n of result.suggestions.slice(0,120)){
+    if(!Number.isInteger(n.pitch)||!Number.isFinite(n.start)||
+       !['RH','LH'].includes(n.hand)||n.finger!=null&&(!Number.isInteger(n.finger)||n.finger<1||n.finger>5)){
+     pianoMotionStop('Недопустимые данные аппликатуры от движка.');return;
+    }
+    const li=document.createElement('li');
+    li.textContent=n.hand+' · '+nameOf(n.pitch)+' · '+n.start.toFixed(2)+
+     ' c → '+(n.finger===null?'не определён':'палец '+n.finger);
+    ol.append(li);
+   }
+   list.append(ol);
+   $('pianoMotionClear').disabled=false;
+  };
+  worker.onerror=event=>{
+   console.error('PianoMotion worker onerror:',event);
+   if(cancel()){
+    if(exact){
+     const fallback=makePianoMotionMidiFromSong(song);
+     if(fallback?.ok){
+      startRun(false);
+      return;
+     }
+    }
+    pianoMotionStop('Ошибка браузерного Python Worker. Проверь консоль.');
+   }
+  };
+  const transferable=midi.slice().buffer;
+  worker.postMessage({id,type:'analyze-midi',midiBytes:transferable},[transferable]);
+ }
+ startRun(true);
 };
 /** FG-04A: local, read-only comparison against an external generator's XML.
  * Never turn these suggestions into teacher hints or saved user overrides.

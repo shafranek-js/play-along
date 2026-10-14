@@ -17,6 +17,7 @@ export function makePianoMotionMidiFromSong(song){
  const items=[];
  for(const [trackIndex,track]of song.tracks.entries()){
   for(const [ordinal,n]of (track.notes||[]).entries()){
+   if(n.channel===9||n.isDrum)continue;
    if(!Number.isInteger(n.pitch)||n.pitch<0||n.pitch>127||
       !Number.isFinite(n.start)||n.start<0||
       !Number.isFinite(n.duration)||n.duration<=0||
@@ -33,7 +34,7 @@ export function makePianoMotionMidiFromSong(song){
  for(const [i,n]of items.entries()){
   const start=Math.round(n.start*1000),end=Math.round(n.end*1000);
   if(end<=start)return {ok:false,reason:'NOTE_TOO_SHORT_FOR_MIDI'};
-  const channel=n.trackIndex%16;
+  const channel=n.trackIndex%16===9?0:(n.trackIndex%16);
   events.push({tick:start,order:2,data:[0x90|channel,n.pitch,90]});
   events.push({tick:end,order:1,data:[0x80|channel,n.pitch,0]});
   index.push({...n,startSeconds:start/1000,endSeconds:end/1000,index:i});
