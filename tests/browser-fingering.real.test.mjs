@@ -35,6 +35,25 @@ try{
  assert.equal(await page.locator('#pianoMotionMidiPanel').isHidden(),true,
   'Public build must not expose PianoMotion private runtime without explicit local staging');
  assert.equal(await page.locator('#fingerSpanToggle').isVisible(),true,'Calibration is available even without a MusicXML file');
+ // FG-04C8: MIDI loaded ONCE into the selected song retains exact bytes
+ // in memory for the future actual PianoMotion WebAssembly worker.
+ const originalMidi=Uint8Array.from([
+  77,84,104,100,0,0,0,6,0,0,0,1,1,224,
+  77,84,114,107,0,0,0,13,
+  0,0x90,60,90,0x83,0x60,0x80,60,0,0,0xff,0x2f,0
+ ]);
+ const snap=await page.evaluate(async bytes=>{
+  const original=new Uint8Array(bytes);
+  const song=await window.__libraryV08.songFromBuffer('one.mid',original.buffer);
+  window.__prototypeTest.loadSong(song);
+  const copy=window.__prototypeTest.originalMidiBytes;
+  const before=[...copy];copy[0]=0;
+  return {before,after:[...window.__prototypeTest.originalMidiBytes],
+   trackCount:song.tracks.length};
+ },[...originalMidi]);
+ assert.deepEqual(snap.before,[...originalMidi]);
+ assert.deepEqual(snap.after,[...originalMidi],'A transferred copy never damages the original in-memory MIDI');
+ assert.equal(snap.trackCount,1);
  const before=await page.evaluate(xml=>{
   const song=window.__libraryV08.readMusicXML(xml,'browser-finger.musicxml');
   window.__prototypeTest.loadSong(song);

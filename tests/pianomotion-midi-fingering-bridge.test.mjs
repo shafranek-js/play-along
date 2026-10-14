@@ -66,3 +66,6 @@ test('FG-04C7 missing or changed original MIDI is never silently matched',()=>{
  assert.equal(run({midiBytes:new Uint8Array(5),analysis:baseline()}).reason,'ORIGINAL_MIDI_REQUIRED');
  assert.equal(run({midiBytes:bytes,analysis:null}).reason,'PIANOMOTION_RESULT_UNAVAILABLE_OR_REPAIRED');
 });
+
+// FG-04C8 session isolates the exact original MIDI for a future browser engine.
+import './original-midi-session.test.mjs';
