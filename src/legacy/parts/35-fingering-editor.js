@@ -674,7 +674,7 @@ $('fingerBrowserCalculate').onclick=()=>{
  * Pyodide browser worker. Runs on the currently selected song; never uploads
  * a second file, rewrites source notes or presents guesses as author fingers.
  */
-let pianoMotionRun=null,pianoMotionGeneration=0,pianoMotionLastResult=null,pianoMotionLastSong=null,pianoMotionLastAlignment=null,pianoMotionLastPlan=null;
+let pianoMotionRun=null,pianoMotionGeneration=0,pianoMotionLastResult=null,pianoMotionLastSong=null,pianoMotionLastAlignment=null,pianoMotionLastPlan=null,pianoMotionLastApplied=false;
 function pianoMotionStop(message){
  pianoMotionGeneration++;
  if(pianoMotionRun){pianoMotionRun.terminate();pianoMotionRun=null;}
@@ -682,6 +682,7 @@ function pianoMotionStop(message){
  pianoMotionLastSong=null;
  pianoMotionLastAlignment=null;
  pianoMotionLastPlan=null;
+ pianoMotionLastApplied=false;
  $('pianoMotionResult').replaceChildren();
  $('pianoMotionClear').disabled=true;
  if($('pianoMotionApply'))$('pianoMotionApply').disabled=true;
@@ -784,7 +785,7 @@ $('pianoMotionCalculate').onclick=()=>{
    pianoMotionLastAlignment=alignment.ok?alignment:null;
    pianoMotionLastPlan=alignment.ok?plan:null;
    if($('pianoMotionApply'))$('pianoMotionApply').disabled=!alignment.ok;
-   if($('pianoMotionExportXML'))$('pianoMotionExportXML').disabled=!alignment.ok;
+   if($('pianoMotionExportXML'))$('pianoMotionExportXML').disabled=true; // Export only after Apply.
    $('pianoMotionClear').disabled=false;
   };
   worker.onerror=event=>{
@@ -800,6 +801,17 @@ if($('pianoMotionApply'))$('pianoMotionApply').onclick=()=>{
  const song=current,alignment=pianoMotionLastAlignment;
  if(!song||pianoMotionLastSong!==song||!alignment?.ok){
   $('pianoMotionStatus').textContent='Нет однозначно сопоставленных нот. Пересчитайте аппликатуру.';return;
+ }
+ // Check again at click time: the score may have been edited since calculation.
+ const checked=pianoMotionAlignSuggestions(song,pianoMotionLastResult.suggestions,{
+  trackIndices:pianoMotionLastPlan.trackIndices,channel:pianoMotionLastPlan.channel??null,
+  tolerance:pianoMotionLastPlan.mode==='original'?.025:.005
+ });
+ if(!checked.ok||checked.matches.some((entry,i)=>entry.note!==alignment.matches[i]?.note)){
+  $('pianoMotionStatus').textContent='Ноты изменились после расчёта. Рассчитайте аппликатуру заново.';
+  $('pianoMotionApply').disabled=true;
+  $('pianoMotionExportXML').disabled=true;
+  return;
  }
  let applied=0,protectedCount=0,unresolved=0;
  // All mapping checks completed before the first source note is modified.
@@ -819,6 +831,8 @@ if($('pianoMotionApply'))$('pianoMotionApply').onclick=()=>{
   state.fingerGuidanceMode='numbers';
   if($('fingerGuideMode'))$('fingerGuideMode').value='numbers';
  }
+ pianoMotionLastApplied=true;
+ if($('pianoMotionExportXML'))$('pianoMotionExportXML').disabled=false;
  persist();
  renderCanvas();
  if(state.scoreView==='sheet'&&typeof scoreEnsureRendered==='function'){
@@ -831,8 +845,16 @@ if($('pianoMotionApply'))$('pianoMotionApply').onclick=()=>{
 };
 if($('pianoMotionExportXML'))$('pianoMotionExportXML').onclick=()=>{
  const song=current;
- if(!song||pianoMotionLastSong!==song||!pianoMotionLastAlignment?.ok){
-  notify('Сначала выполните расчёт и проверку соответствия нот');return;
+ if(!song||pianoMotionLastSong!==song||!pianoMotionLastAlignment?.ok||!pianoMotionLastApplied){
+  notify('Сначала рассчитайте и примените аппликатуру');return;
+ }
+ const refreshed=pianoMotionAlignSuggestions(song,pianoMotionLastResult.suggestions,{
+  trackIndices:pianoMotionLastPlan.trackIndices,channel:pianoMotionLastPlan.channel??null,
+  tolerance:pianoMotionLastPlan.mode==='original'?.025:.005
+ });
+ if(!refreshed.ok||refreshed.matches.some((entry,i)=>
+     entry.note!==pianoMotionLastAlignment.matches[i]?.note)){
+  notify('Партия изменилась. Повторите расчёт перед экспортом.');return;
  }
  let xml=null;
  if(song.format==='MusicXML'&&song.notationXML&&typeof sheetFingeringOverlay==='function'){
