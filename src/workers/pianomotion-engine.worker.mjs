@@ -136,13 +136,19 @@ async function analyze(id,bytes){
     hand:item.hand==='right'?'RH':'LH',finger:item.finger,
     disposition:item.disposition==='played'?'played':'unresolved'});
   }
-  if(assignments.length!==docs.size)throw Error('PIANOMOTION_NOTE_IDENTITY_LOST');
+  if(assignments.length!==docs.size||
+   docs.size!==result.fingeringPlan.assignments.length||
+   assignments.length>2500)throw Error('PIANOMOTION_NOTE_IDENTITY_LOST');
   self.postMessage({id,type:'result',result:{
    engine:'PianoMotion Studio · original Python/Pyodide',
    engineVersion,rawMidiSha256:hash,total:assignments.length,
    playable:assignments.filter(n=>n.disposition==='played').length,
    unresolved:assignments.filter(n=>n.disposition!=='played').length,
    suggestions:assignments.slice(0,60),
+   // Do not strip exact identity: the browser must verify the complete source
+   // event provenance before it can display a candidate on a user note.
+   analysis:{rawBaseline:result.rawBaseline,
+    document:result.document,fingeringPlan:result.fingeringPlan},
    researchOnly:true,productionEligible:false,sourceNoteMappingVerified:false,
    expertValidated:false
   }});
