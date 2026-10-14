@@ -272,7 +272,14 @@ window.__fingerGuideTest={
   ['thumb','index','middle','ring','pinky','rest','spread'])fingerGuidanceGetImage(h,p)},
  get spritePlacements(){const notes=fingerGuidanceFrame(fingerGuidanceSteps(),pos).current?.notes||[];
   return Object.fromEntries(['LH','RH'].map(h=>[h,fingerGuidanceSpritePlacement(notes,h,pianoGeom,keyboardBottom-keyboardTop,lastCanvasSize.h-keyboardBottom)]))},
- get nextSpritePlacements(){const notes=fingerGuidanceFrame(fingerGuidanceSteps(),pos).next?.notes||[];
+ get passivePlacements(){
+  if(!['hands','ghost'].includes(state.fingerGuidanceMode)||!pianoGeom||
+   lastCanvasSize.h<360)return {LH:null,RH:null};
+  const steps=fingerGuidanceSteps(),frame=fingerGuidanceFrame(steps,pos);
+  return fingerGuidancePassivePlacements(steps,frame.current,pos,pianoGeom,
+   keyboardBottom-keyboardTop);
+ },
+  get nextSpritePlacements(){const notes=fingerGuidanceFrame(fingerGuidanceSteps(),pos).next?.notes||[];
   return Object.fromEntries(['LH','RH'].map(h=>[h,fingerGuidanceSpritePlacement(notes,h,pianoGeom,keyboardBottom-keyboardTop,lastCanvasSize.h-keyboardBottom)]))},
 
  get demoDuet(){return demoSongs.find(s=>s.id==='demo-finger-duet')},
