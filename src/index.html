@@ -171,7 +171,27 @@
      <p class="small">Расчёт оригинальным Python-алгоритмом прямо в браузере для уже открытой мелодии. MIDI используется без изменений; MusicXML и остальные нотные форматы преобразуются временно. Первый запуск загрузит Python WebAssembly из интернета.</p>
      <button type="button" class="btn primary" id="pianoMotionCalculate">🧠 Рассчитать пальцы текущей мелодии</button>
      <p class="small" id="pianoMotionStatus" role="status" aria-live="polite">Открой мелодию в библиотеке.</p>
-     <div id="pianoMotionResult" class="fingerBrowserCandidates" aria-label="Предложения оригинального алгоритма PianoMotion"></div>
+     <div id="pianoMotionReview" class="pianoMotionReview" hidden>
+      <div class="pianoMotionReviewToolbar">
+       <strong id="pianoMotionReviewCount">Проверка предложений</strong>
+       <button type="button" id="pianoMotionSelectAll" class="btn tiny">Выбрать все</button>
+       <button type="button" id="pianoMotionSelectNone" class="btn tiny ghost">Снять выбор</button>
+      </div>
+      <p class="small">Нажми на нотный блок или отметь строку в списке. Цвет показывает предложенную руку. Выбор не изменяет мелодию до применения.</p>
+      <div class="pianoMotionRollHead">
+       <button type="button" id="pianoMotionPrev" class="btn tiny ghost" disabled aria-label="Предыдущие 24 ноты">←</button>
+       <span id="pianoMotionRollRange" aria-live="polite"></span>
+       <button type="button" id="pianoMotionNext" class="btn tiny ghost" disabled aria-label="Следующие 24 ноты">→</button>
+      </div>
+      <canvas id="pianoMotionRoll" class="pianoMotionRoll" width="640" height="152" tabindex="0" role="img" aria-label="Предлагаемая аппликатура: высота по вертикали, время по горизонтали; щелчок выбирает ноту"></canvas>
+      <div id="pianoMotionReviewList" class="pianoMotionReviewList" role="group" aria-label="Все предложения, выбор по нотам"></div>
+      <div class="pianoMotionReviewToolbar">
+       <button type="button" id="pianoMotionApplySelected" class="btn tiny primary" disabled>Применить выбранные</button>
+       <button type="button" id="pianoMotionUndo" class="btn tiny ghost" disabled>↶ Отменить</button>
+       <button type="button" id="pianoMotionRedo" class="btn tiny ghost" disabled>↷ Повторить</button>
+      </div>
+     </div>
+     <div id="pianoMotionResult" class="fingerBrowserCandidates hidden" aria-label="Технические предложения оригинального алгоритма PianoMotion"></div>
      <div style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0">
       <button type="button" class="btn tiny primary" id="pianoMotionApply" disabled title="Применить рассчитанную аппликатуру к нотам текущей мелодии">✋ Применить к текущей мелодии</button>
       <button type="button" class="btn tiny" id="pianoMotionExportXML" disabled title="Экспортировать ноты с аппликатурой в файл MusicXML">↓ Экспорт в MusicXML</button>
