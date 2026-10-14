@@ -32,6 +32,7 @@ try{
  const failures=[];page.on('pageerror',e=>failures.push(e.message));
  await page.goto('http://127.0.0.1:'+server.address().port);
  await page.waitForFunction(()=>window.__libraryV08&&window.__prototypeTest&&window.__fingerGuideTest);
+ assert.equal(await page.locator('#fingerSpanToggle').isVisible(),true,'Calibration is available even without a MusicXML file');
  const before=await page.evaluate(xml=>{
   const song=window.__libraryV08.readMusicXML(xml,'browser-finger.musicxml');
   window.__prototypeTest.loadSong(song);
@@ -45,6 +46,8 @@ try{
  await page.locator('#viewFingerEditor').click();
  await page.locator('#fingerResearchPanel > summary').click();
  await page.locator('#fingerBrowserToggle').click();
+ await page.locator('#fingerSpanEditorOpen').click();
+ assert.equal(await page.locator('#fingerSpanContents').isVisible(),true,'Editor shortcut opens global Practice calibration');
  await page.locator('#fingerBrowserCalculate').click();
  await page.waitForFunction(()=>document.querySelector('#fingerBrowserStatus').textContent.includes('Рука некоторых нот'),null,{timeout:8000});
  await page.locator('#fingerBrowserAssumeStaves').check();
@@ -66,7 +69,6 @@ try{
  await page.locator('#fingerBrowserCalculate').click();
  await page.waitForFunction(()=>document.querySelector('#fingerBrowserStatus').textContent.includes('Вычислено локально'),null,{timeout:15000});
  // FG-04C5: interactive two-hand self-report and persistent application.
- await page.locator('#fingerSpanToggle').click();
  await page.locator('#fingerSpanRH').selectOption('tenth');
  await page.locator('#fingerSpanLH').selectOption('tenth');
  await page.locator('#fingerSpanRecommend').click();
