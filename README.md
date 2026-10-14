@@ -1,6 +1,6 @@
 # Play Along — Piano Practice App (v0.10.89)
 
-## FG-04C6 — One-click fingering for the already open MusicXML
+## FG-04C6 — One-click fingering for the already open MusicXML (v0.10.89)
 
 **No second file needed.** Open any supported original MusicXML, select **Аппликатура**, then click **🧠 Рассчитать для текущего произведения** at the top of the editor. The dedicated offline browser worker computes Play Along's current FG-02I / FG-04C3 research models for the **currently selected** score and current calibrated hand size. Missing original hands require explicit consent for a **research-only** staff 1→RH / staff 2→LH assumption; original MIDI remains unsupported by this browser solver. The Python algorithm from PianoMotion Studio is **not** installed or executed by this feature.
 
