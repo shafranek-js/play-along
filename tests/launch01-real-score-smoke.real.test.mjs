@@ -81,6 +81,21 @@ try{
      warnings:score===song?song.warnings?.length||0:undefined
     });
     const first=summarize(score),second=summarize(midi);
+    // Aggregate-only diagnostics: note multiplicity and event-clock variation.
+    // This does NOT imply MusicXML/MIDI note identity.
+    const scan=song=>song.tracks.flatMap(t=>t.notes).slice().sort((a,b)=>
+      a.pitch-b.pitch||a.start-b.start||a.duration-b.duration);
+    const notesXml=scan(score),notesMidi=scan(midi);
+    const byPitch=notes=>Object.fromEntries([...new Set(notes.map(n=>n.pitch))]
+      .sort((a,b)=>a-b).map(p=>[p,notes.filter(n=>n.pitch===p).length]));
+    const clocks=notes=>({first:Math.min(...notes.map(n=>n.start)),
+      last:Math.max(...notes.map(n=>n.start)),
+      endsAt:Math.max(...notes.map(n=>n.start+n.duration))});
+    const alignmentDiagnostics={pitchHistEqual:JSON.stringify(byPitch(notesXml))===
+       JSON.stringify(byPitch(notesMidi)),
+      xmlClock:clocks(notesXml),midiClock:clocks(notesMidi),
+      firstPitchDifferences:Object.keys(byPitch(notesXml)).filter(k=>
+        (byPitch(notesXml)[k]||0)!==(byPitch(notesMidi)[k]||0)).slice(0,10)};
     const before=JSON.stringify(midi.tracks.map(t=>t.notes.map(n=>
      [n.pitch,n.start,n.duration,n.velocity,n.channel,n.finger??null])));
     window.__prototypeTest.loadSong(midi);
@@ -104,7 +119,8 @@ try{
     const after=JSON.stringify(midi.tracks.map(t=>t.notes.map(n=>
      [n.pitch,n.start,n.duration,n.velocity,n.channel,n.finger??null])));
     window.Worker=OriginalWorker;
-    return {first,second,launches,status,disabledApply,disabledExport,
+    return {first,second,alignmentDiagnostics,warnings:score.warnings,
+      launches,status,disabledApply,disabledExport,
       calculateAgainEnabled,sourceUnchanged:before===after,
       betaWarning:document.getElementById('pianoMotionBetaNotice')?.textContent||''};
    },{id,xml,smf:[...midiBytes]});
@@ -125,6 +141,7 @@ try{
    assert.deepEqual(pageErrors,[],'no browser JavaScript errors');
    cases.push({caseId:id,musicXmlNotes:observed.first.notes,midiNotes:observed.second.notes,
     musicXmlWarnings:observed.first.warnings,
+    warningReasons:observed.warnings,alignmentDiagnostics:observed.alignmentDiagnostics,
     midiSourceProtected:true,workerRetryAfterError:true});
   }finally{await page.close()}
  }
