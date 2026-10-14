@@ -221,8 +221,8 @@ try{
     'source raw MIDI physical note-on ticks must survive browser import');
    assert.equal(independentMidiParity.releaseWithinTolerance,raw.items.length,
     'source raw MIDI note-off ticks must survive browser import');
-   assert.equal(independentMidiParity.ambiguousRepeatedPitchContacts,0,
-    'must not claim raw MIDI ordinal matching when same-key unisons are ambiguous');
+   assert.equal(independentMidiParity.sourceIdentityProven,false,
+    'same-pitch coincidences cannot be treated as exact cross-format source IDs');
    cases.push({caseId:id,musicXmlNotes:observed.first.notes,midiNotes:observed.second.notes,
     musicXmlWarnings:observed.first.warnings,
     warningReasons:observed.warnings,alignmentDiagnostics:observed.alignmentDiagnostics,
@@ -232,7 +232,9 @@ try{
       inferredSecondsPerTick:secondsPerTick,
       onsetMaxResidualSeconds:independentMidiParity.maxOnsetResidualSeconds,
       releaseMaxResidualSeconds:independentMidiParity.maxReleaseResidualSeconds,
-      rawTicksMatchImportedNoteEvents:true
+      rawTicksConsistentWithImportedEvents:true,
+      ambiguousSamePitchContacts:independentMidiParity.ambiguousRepeatedPitchContacts,
+      sourceNoteIdentityProven:false
     },gateDeltaHistogram,portDeclarationSummary,
     midiSourceProtected:true,workerRetryAfterError:true});
   }finally{await page.close()}
