@@ -59,7 +59,7 @@ export async function runP0A2bLocal(args){
     ...(role==='adjudicator'?{rationale:''}:{})}))};
   try{
    const out=await open(resolve(destination),'wx',0o600);
-   try{await out.writeFile(JSON.stringify(review,null,2)+'\\n');}
+   try{await out.writeFile(JSON.stringify(review,null,2)+'\n');}
    finally{await out.close();}
   }catch{return error('TEMPLATE_EXISTS_OR_UNWRITABLE');}
   return {ok:true,status:'BLIND_REVIEW_TEMPLATE_CREATED',
