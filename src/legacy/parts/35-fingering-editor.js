@@ -498,13 +498,18 @@ function fingerBrowserShow(report){
  const summary=model=>model.status==='computed'?
   model.proposed+' предложений'+(model.omittedCount?' · '+model.omittedCount+' сложных нот без расчёта':''):
   'Отказ: '+model.reason;
+ const modelCoverage=model=>model.status==='computed'?
+  model.coveragePercent.toFixed(1)+'% ('+model.eligibleCount+'/'+report.noteCount+' нот)':
+  'Не рассчитано';
  const rows=[
   ['Всего нот',report.noteCount],
   ['После проверки унисонов',report.eligibleCount??report.noteCount],
   ['Потребуют ручной проверки (выбранная модель)',totalManual],
   ['Авторских/ручных обозначений',report.anchored],
   ['Обычная модель',summary(l)],
+  ['Охват обычной модели',modelCoverage(l)],
   ['Анатомическая модель',summary(a)],
+  ['Охват анатомической модели',modelCoverage(a)],
   ['Различающихся пальцев',report.disagreements??'Невозможно сравнить'],
   ['Экспертная проверка','Не выполнена']
  ];
@@ -545,10 +550,46 @@ function fingerBrowserShow(report){
     n.hand+' · '+nameOf(n.pitch)+' · '+n.start.toFixed(2)+
     ' с'+(n.staff?' · стан '+n.staff:'')+
     (n.voice?' · голос '+n.voice:'')+
-    ' · '+(n.reason==='NO_VALID_PATH'?'модель не нашла физически допустимых пальцев':
+    ' · '+(n.reason==='NO_VALID_PATH'?'ограниченный поиск не нашёл допустимого пути':
      n.reason==='TOO_MANY_SIMULTANEOUS_KEYS'?'более пяти одновременно удерживаемых клавиш':
      'перекрывающееся повторное нажатие')+
     ' · проверить вручную';
+   list.append(li);
+  }
+  candidates.append(list);
+ }
+ // This is evidence of why a bounded algorithm pruned its candidates,
+ // never a diagnosis of physical impossibility for a human pianist.
+ const cause=(counts)=>{
+  if(!counts)return 'конкретное ограничение не установлено';
+  const labels=[
+   ['spanOrFingerOrder','охват кисти или порядок пальцев'],
+   ['noFingerCombination','не осталось свободной комбинации пальцев'],
+   ['rapidFingerReuse','слишком быстрое повторное использование пальца'],
+   ['heldHandRelocation','перемещение руки при удерживаемой клавише']
+  ];
+  const ranked=labels.filter(([key])=>counts[key]>0)
+   .sort((a,b)=>counts[b[0]]-counts[a[0]]);
+  return ranked.length?ranked.slice(0,2)
+   .map(([key,label])=>label+' ('+counts[key]+')').join('; '):
+   'ограничение поиска без сохранённой классификации';
+ };
+ for(const [label,model]of [['Обычная',l],['Анатомическая',a]]){
+  const groups=model.omittedGroups||[];
+  if(!groups.length)continue;
+  const title=document.createElement('strong');
+  title.textContent=label+' модель · '+groups.length+' проблемных участков';
+  candidates.append(title);
+  const list=document.createElement('ol');
+  for(const g of groups.slice(0,20)){
+   const li=document.createElement('li');
+   const at=g.failureAt;
+   const pitches=at?.pitches?.map(p=>nameOf(p)).join(', ')||'не определены';
+   li.textContent=g.hand+' · '+g.notes+' нот в группе'+
+    (Number.isFinite(at?.start)?' · '+at.start.toFixed(2)+' с':'')+
+    ' · ноты при отказе: '+pitches+
+    ' · '+(g.reason==='NO_VALID_PATH'?cause(at?.pruned):g.reason)+
+    ' · варианты эвристики, не оценка навыка пианиста';
    list.append(li);
   }
   candidates.append(list);
