@@ -416,9 +416,9 @@ function fingerGuidanceDrawBlendedHands(c,steps,group,geom,keyY,keyboardH,tail){
  if(reset)fingerGuidanceBlendState={LH:null,RH:null};
  fingerGuidanceBlendSong=current;fingerGuidanceBlendScope=scope;
  fingerGuidanceBlendLastPos=pos;
- const twoHands=['LH','RH'].every(hand=>
-  steps.some(g=>g.notes.some(n=>n.hand===hand)));
- const restBoth=!group&&state.mode==='listen'&&isPlaying&&twoHands;
+ // A verified solo hand should remain visible at REST during musical
+ // silence too. Only source-labelled hands are shown; do not invent a second.
+ const restingSilence=!group&&state.mode==='listen'&&isPlaying;
  const passive=group?fingerGuidancePassivePlacements(steps,group,pos,geom,keyboardH)
   :{LH:null,RH:null};
  const now=performance.now();
@@ -426,11 +426,13 @@ function fingerGuidanceDrawBlendedHands(c,steps,group,geom,keyY,keyboardH,tail){
   // No active silhouette for a source-incomplete chord or an unknown finger.
   const active=group?.complete?
    fingerGuidanceSpritePlacement(group.notes,hand,geom,keyboardH,tail):null;
-  const resting=passive[hand]||(restBoth?
+  const resting=passive[hand]||(restingSilence&&
+   steps.some(g=>g.notes.some(n=>n.hand===hand))?
    fingerGuidanceRestPlacement(steps,hand,pos,geom,keyboardH):null);
   const target=active||resting;
   const blended=fingerGuidanceHandTransition(fingerGuidanceBlendState[hand],
-   target,now,{durationMs:200,reset});
+   target,now,{durationMs:200,activeDurationMs:120,
+    allowActiveReposition:state.mode==='listen'&&isPlaying,reset});
   fingerGuidanceBlendState[hand]=blended.state;
   fingerGuidanceDrawBlend(c,blended.layers,keyY,keyboardH,tail);
  }
