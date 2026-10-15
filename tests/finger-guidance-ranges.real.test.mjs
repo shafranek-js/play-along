@@ -46,8 +46,10 @@ try{
  await page.locator('[data-layout="play"]').click();
  const matrix=[
   {key:'preview25',count:25,low:48,high:72},
+  {key:'preview37',count:37,low:48,high:84},
   {key:'preview49',count:49,low:36,high:84},
   {key:'preview61',count:61,low:36,high:96},
+  {key:'preview76',count:76,low:28,high:103},
   {key:'preview88',count:88,low:21,high:108}
  ];
  const reports=[];
@@ -124,9 +126,29 @@ try{
    assert.equal(snapshot.blackPitch,61,'black key wins key hit testing');
    assert.equal(snapshot.keyHits.black,61);
    assert.equal(snapshot.keyHits.inside,60);
-   assert.equal(snapshot.keyHits.outsideLow,null,'A0 outside short MIDI range is inactive');
+   assert.equal(snapshot.keyHits.outsideLow,config.count===88?21:null,
+    'A0 is inactive unless the controller spans the 88-key range');
    assert.equal(snapshot.keyHits.outsideHigh,
     config.count===88?108:null,'C8 is inactive outside 88-key controller');
+   const contrast=await page.evaluate(()=>{
+    const piano=window.__prototypeTest.pianoGeometry;
+    const canvas=document.getElementById('roll');
+    const context=canvas.getContext('2d');
+    const y=window.__fingerGuideTest.layout.keyboardTop+
+     (window.__fingerGuideTest.layout.keyboardBottom-
+      window.__fingerGuideTest.layout.keyboardTop)*.43;
+    const rgb=p=>{
+     const k=piano.byPitch.get(p),pixel=context.getImageData(
+      Math.floor(k.center),Math.floor(y),1,1).data;
+     return [...pixel.slice(0,3)];
+    };
+    return {outer:rgb(21),inside:rgb(60)};
+   });
+   const luma=rgb=>rgb[0]*.21+rgb[1]*.72+rgb[2]*.07;
+   if(config.count<88)assert.ok(luma(contrast.outer)<luma(contrast.inside)*.55,
+    'disabled unreachable white keys must be visibly darkened on Canvas');
+   else assert.ok(Math.abs(luma(contrast.outer)-luma(contrast.inside))<20,
+    '88-key controller keeps both extreme and central naturals active');
    assert.deepEqual(snapshot.sourceFuture,[
     {pitch:61,hand:'RH',finger:1},{pitch:65,hand:'RH',finger:3},
     {pitch:84,hand:'RH',finger:5},
@@ -156,7 +178,7 @@ try{
   version:'FG-03B2B-1',pianistApproved:false,calibratedMIDI:false,
   tests:reports
  },null,2));
- console.log('FULL88: 25/49/61/88 controller ranges × desktop/mobile, responsive piano, no scroll, disabled limits, score intact: PASS');
+ console.log('FULL88: 25/37/49/61/76/88 controller ranges × desktop/mobile, responsive piano, no scroll, disabled limits, score intact: PASS');
 }finally{
  if(browser)await browser.close();
  await new Promise(resolve=>server.close(resolve));
