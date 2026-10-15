@@ -259,9 +259,10 @@ body.onlyLibrary #leftPanel .sidebody>.panelSection:first-child{
  touch-action:manipulation}
 /* Focus mode hides the transport; the 88-key piano then meets the lower edge. */
 body.focus .rollWrap:not(.hidden){bottom:0}
-.shell:has(.rollWrap:not(.hidden)) .sidebar,
-.shell:has(.rollWrap:not(.hidden)) .splitter,
-.shell:has(.rollWrap:not(.hidden)) .center{
+/* Never reduce the independent Library/Progress workspace. */
+body:not(.onlyLibrary):not(.onlyProgress) .shell:has(.rollWrap:not(.hidden)) .sidebar,
+body:not(.onlyLibrary):not(.onlyProgress) .shell:has(.rollWrap:not(.hidden)) .splitter,
+body:not(.onlyLibrary):not(.onlyProgress) .shell:has(.rollWrap:not(.hidden)) .center{
  max-height:calc(100% - var(--full-piano-roll-height));
 }
 #displayRange{display:none!important}
