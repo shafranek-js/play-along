@@ -115,10 +115,16 @@ try{
  assert.match(wideMetrics,/Потребуют ручной проверки \(выбранная модель\): 2/);
  assert.match(wideMetrics,/Обычная модель: 2 предложений · 2 сложных нот без расчёта/);
  assert.match(wideMetrics,/Анатомическая модель: 2 предложений · 2 сложных нот без расчёта/);
+ assert.match(wideMetrics,/Охват обычной модели: 50\.0% \(2\/4 нот\)/);
+ assert.match(wideMetrics,/Охват анатомической модели: 50\.0% \(2\/4 нот\)/);
  const diagnostics=await page.locator('#fingerBrowserCandidates').innerText();
  assert.match(diagnostics,/B3/);
  assert.match(diagnostics,/F5/);
  assert.match(diagnostics,/Такт 2/);
+ assert.match(diagnostics,/Обычная модель · 1 проблемных участков/);
+ assert.match(diagnostics,/Анатомическая модель · 1 проблемных участков/);
+ assert.match(diagnostics,/ноты при отказе: B3, F5/);
+ assert.match(diagnostics,/охват кисти или порядок пальцев/);
  const wideAfter=await page.evaluate(()=>window.__prototypeTest.song.tracks.flatMap(t=>t.notes).map(n=>({
   noteId:n.noteId,pitch:n.pitch,start:n.start,duration:n.duration,
   staff:n.staff,voice:n.voice,finger:n.finger??null
