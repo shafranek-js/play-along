@@ -43,6 +43,7 @@ try{
  });
  await page.locator('#fingerGuideMode').selectOption('ghost');
  await page.waitForFunction(()=>window.__fingerGuideTest.steps.length===2);
+ await page.locator('#layoutMenuButton').click();
  await page.locator('[data-layout="play"]').click();
  const matrix=[
   {key:'preview25',count:25,low:48,high:72},
