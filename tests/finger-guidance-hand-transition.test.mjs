@@ -66,3 +66,44 @@ test('each hand keeps isolated state and source placement inputs remain immutabl
  assert.equal(l.state.from.hand,'LH');assert.equal(r.state.from,null);
  assert.deepEqual([lh,rh],inputs);
 });
+
+test('LAUNCH-02: adjacent active Listen notes keep new key exact and old pose a faint 120ms trail',()=>{
+ const first=pose('RH','index',250,340,110,170);
+ const next=pose('RH','middle',285,350,120,169);
+ const input=structuredClone([first,next]);
+ const start=blend(blend(null,first,0).state,next,1000,{
+  allowActiveReposition:true});
+ assert.equal(start.moving,true);
+ assert.equal(start.state.kind,'active');
+ assert.equal(start.layers[1].alpha,.87,
+  'new score contact must be fully visible at the exact NoteOn');
+ assert.equal(start.layers[1].x,next.x);
+ assert.ok(start.layers[0].alpha<=.12,
+  'old finger is visual trace only, not another sounding note');
+ const halfway=blend(start.state,next,1060,{allowActiveReposition:true});
+ assert.equal(halfway.progress,.5);
+ assert.equal(halfway.layers[1].x,next.x);
+ assert.equal(halfway.layers[1].y,next.y);
+ assert.ok(halfway.layers[0].x>first.x&&halfway.layers[0].x<next.x);
+ assert.ok(halfway.layers[0].alpha>0&&halfway.layers[0].alpha<.12);
+ const finished=blend(halfway.state,next,1121,{allowActiveReposition:true});
+ assert.equal(finished.moving,false);
+ assert.deepEqual(finished.layers,[{placement:next,x:next.x,y:next.y,alpha:.87}]);
+ assert.deepEqual([first,next],input,'source placements are immutable');
+});
+test('LAUNCH-02: active trace refuses long jumps, other hands, Wait and reduced motion',()=>{
+ const first=pose('RH','middle',250,340,120,170);
+ const nearby=pose('RH','pinky',305,350,115,169);
+ const remote=pose('RH','pinky',560,350,115,169);
+ const wrongHand=pose('LH','pinky',305,350,115,169);
+ const from=blend(null,first,0).state;
+ assert.equal(blend(from,nearby,100,{allowActiveReposition:false}).moving,false,
+  'Wait must not retain a fake previous finger');
+ assert.equal(blend(from,nearby,100,{allowActiveReposition:true,reset:true}).moving,false);
+ assert.equal(blend(from,nearby,100,{allowActiveReposition:true,activeDurationMs:0}).moving,false);
+ assert.equal(blend(from,remote,100,{allowActiveReposition:true}).moving,false);
+ assert.equal(blend(from,wrongHand,100,{allowActiveReposition:true}).moving,false);
+ const motion=blend(from,nearby,100,{allowActiveReposition:true});
+ assert.equal(blend(motion.state,nearby,120,{allowActiveReposition:false}).moving,false,
+  'disabling real Listen should snap any unfinished trace');
+});
