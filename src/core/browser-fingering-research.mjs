@@ -51,30 +51,33 @@ export function prepareBrowserFingeringUnisons(notes){
 const RECOVERABLE_ISLAND_FAILURES=new Set(['NO_VALID_PATH','TOO_MANY_SIMULTANEOUS_KEYS']);
 function solveModelWithIsolatedAbstentions(parts,{costModel,handSize}){
  const remaining={RH:parts.RH.slice(),LH:parts.LH.slice()};
- const excluded=[];
+ const excluded=[],excludedGroups=[];
  const maxPasses=Math.min(64,parts.RH.length+parts.LH.length);
  for(let pass=0;pass<=maxPasses;pass++){
   const result=proposeHybridScoreFingering(remaining,{costModel,handSize,beamWidth:40});
-  if(result.ok)return {ok:true,result,remaining,excluded};
+  if(result.ok)return {ok:true,result,remaining,excluded,excludedGroups};
   if(!RECOVERABLE_ISLAND_FAILURES.has(result.reason)||
      !['RH','LH'].includes(result.hand)||
      !Array.isArray(result.segmentNoteIds)||!result.segmentNoteIds.length)
-   return {ok:false,reason:result.reason,excluded};
+   return {ok:false,reason:result.reason,excluded,excludedGroups,
+    ...(result.failureAt?{failureAt:result.failureAt}:{})};
   const blocked=new Set(result.segmentNoteIds);
   const removed=remaining[result.hand].filter(n=>blocked.has(n.noteId));
   // Fail closed if the router did not identify one recoverable source island.
   if(!removed.length||removed.length!==blocked.size||pass===maxPasses)
-   return {ok:false,reason:'PARTIAL_ISLAND_MAPPING_FAILED',excluded};
+   return {ok:false,reason:'PARTIAL_ISLAND_MAPPING_FAILED',excluded,excludedGroups};
   remaining[result.hand]=remaining[result.hand].filter(n=>!blocked.has(n.noteId));
+  excludedGroups.push({hand:result.hand,reason:result.reason,notes:removed.length,
+   ...(result.failureAt?{failureAt:result.failureAt}:{})});
   excluded.push(...removed.map(n=>({
    noteId:n.noteId,pitch:n.pitch,start:n.start,duration:n.duration,
    hand:n.hand,staff:n.staff??'',voice:n.voice??'',
    reason:result.reason
   })));
   if(!remaining.RH.length&&!remaining.LH.length)
-   return {ok:false,reason:'NO_COMPUTABLE_ISLANDS',excluded};
+   return {ok:false,reason:'NO_COMPUTABLE_ISLANDS',excluded,excludedGroups};
  }
- return {ok:false,reason:'PARTIAL_ISLAND_PASS_LIMIT',excluded};
+ return {ok:false,reason:'PARTIAL_ISLAND_PASS_LIMIT',excluded,excludedGroups};
 }
 export function compareBrowserFingeringResearch({notes,handSize='M'}={}){
  if(!Array.isArray(notes)||notes.length<1||notes.length>2500)
@@ -110,7 +113,9 @@ export function compareBrowserFingeringResearch({notes,handSize='M'}={}){
   if(!attempt.ok){
    results[costModel]={status:'refused',reason:attempt.reason,
     proposed:0,physicalViolations:null,warnings:null,
-    omittedCount:attempt.excluded.length,omittedNotes:attempt.excluded};
+    omittedCount:attempt.excluded.length,omittedNotes:attempt.excluded,
+    omittedGroups:attempt.excludedGroups,
+    ...(attempt.failureAt?{failureAt:attempt.failureAt}:{})};
    continue;
   }
   const r=attempt.result,solved=attempt.remaining;
@@ -139,7 +144,8 @@ export function compareBrowserFingeringResearch({notes,handSize='M'}={}){
    warnings:(r.diagnostics?.warnings.RH?.length||0)+(r.diagnostics?.warnings.LH?.length||0),
    omittedCount:attempt.excluded.length,
    omittedNotes:attempt.excluded,
-   eligibleCount:eligible.length,
+   eligibleCount:eligible.length,omittedGroups:attempt.excludedGroups,
+   coveragePercent:Math.round(100*eligible.length/original.length*10)/10,
    candidates:proposed};
  }
  const l=results.legacy,a=results.anatomical;
