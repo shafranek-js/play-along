@@ -431,7 +431,8 @@ let fingerBrowserWorker=null,fingerBrowserSeq=0,fingerBrowserSong=null,
     fingerBrowserSnapshotKey=null,fingerBrowserPreview=null;
 function fingerBrowserUpdateActions(){
  const choices=fingerBrowserPreview&&[...fingerSelectedIds].filter(id=>fingerBrowserPreview.has(id)).length||0;
- $('fingerBrowserAcceptSelected').disabled=!choices||!$('fingerBrowserConfirm').checked;
+ $('fingerBrowserAcceptSelected').disabled=!choices||!$('fingerBrowserConfirm').checked||
+  $('fingerBrowserCompareSaved').checked;
  $('fingerBrowserReject').disabled=!fingerBrowserPreview;
 }
 
@@ -453,7 +454,8 @@ function fingerBrowserInput(){
    candidate.authorFinger=n.finger;
   return candidate;
  });
- return {notes,handSize:state.fingerBrowserHandSize};
+ return {notes,handSize:state.fingerBrowserHandSize,
+  compareWithoutSaved:$('fingerBrowserCompareSaved').checked};
 }
 function fingerBrowserAbort(message){
  fingerBrowserSeq++;
@@ -486,6 +488,9 @@ function fingerBrowserShow(report){
   return;
  }
  const l=report.models.legacy,a=report.models.anatomical;
+ const diagnostic=report.comparisonOnly===true;
+ const saved=report.savedFingerCount||0;
+ const author=report.authorFingerCount||0;
  const skipped=report.omittedCount||0;
  const chosen=a.status==='computed'?a:l.status==='computed'?l:null;
  const extra=chosen?.omittedCount||0;
@@ -496,7 +501,11 @@ function fingerBrowserShow(report){
   ' нот); проверка аппликатуры вручную обязательна.':'';
  const skipNotice=(skipped?' · '+skipped+' наложенных унисона для ручной проверки.':'')+
   (extra?' · '+extra+' нот в сложных участках исключены только из расчёта: нет допустимой комбинации пальцев.':'')+
-  (totalManual?' Исходная партитура не изменена.':'')+recoveryNotice;
+  (totalManual?' Исходная партитура не изменена.':'')+recoveryNotice+
+  (diagnostic?' · РЕЖИМ СРАВНЕНИЯ: сохранённые пальцы не ограничивают расчёт, предложения нельзя применить. Сохранённые правки не изменены.':
+   saved?' · '+saved+' пользовательских назначений уже сохранено. Повторный расчёт учитывает их как ограничения.':'')+
+  (!diagnostic&&l.reason==='AUTHOR_PHYSICAL_CONFLICT'&&saved?
+   ' · Legacy отклонила уже сохранённые пальцы по собственным геометрическим ограничениям. Для независимого сравнения включи режим диагностики.':'');
  status.textContent='Вычислено локально · '+report.engine+
   ' · Исходные события неизменны · Автоматические пальцы не приняты.'+skipNotice;
  const summary=model=>model.status==='computed'?
@@ -512,7 +521,9 @@ function fingerBrowserShow(report){
   ['Всего нот',report.noteCount],
   ['После проверки унисонов',report.eligibleCount??report.noteCount],
   ['Потребуют ручной проверки (выбранная модель)',totalManual],
-  ['Авторских/ручных обозначений',report.anchored],
+  ['Уже сохранено пользователем',saved],
+  ['Авторских обозначений',author],
+  ['Учитывается как закреплённое в расчёте',report.anchored],
   ['Обычная модель',summary(l)],
   ['Охват обычной модели',modelCoverage(l)],
   ['Анатомическая модель',summary(a)],
@@ -533,7 +544,7 @@ function fingerBrowserShow(report){
    'Обычная модель: '+l.reason+'; анатомическая: '+a.reason+
    '. Исходные ноты не изменены.'+skipNotice;
  }
- if(chosen&&Array.isArray(chosen.candidates)&&chosen.candidates.length&&
+ if(!diagnostic&&chosen&&Array.isArray(chosen.candidates)&&chosen.candidates.length&&
     fingerBrowserSong===current&&fingerBrowserSnapshotKey===JSON.stringify(fingerBrowserInput())){
   const target=new Map(fingerEditorNotes().map(n=>[n.noteId,n]));
   const allowed=chosen.candidates.every(n=>Number.isInteger(n.finger)&&n.finger>=1&&n.finger<=5&&
@@ -547,6 +558,12 @@ function fingerBrowserShow(report){
     ' нот показаны фиолетовым в редакторе. Выдели подходящие ноты и проверь номера до подтверждения.'+
     skipNotice;
   }
+ }
+ if(diagnostic){
+  // Diagnostic-only previews never color source notes or enable acceptance.
+  fingerBrowserPreview=null;
+  $('fingerBrowserConfirm').checked=false;
+  fingerBrowserUpdateActions();
  }
  const manual=[...(report.omittedNotes||[]),...(chosen?.omittedNotes||[])];
  if(manual.length){
@@ -652,11 +669,20 @@ $('fingerCurrentCalculate').onclick=()=>{
  $('fingerBrowserCalculate').click();
 };
 $('fingerBrowserConfirm').onchange=fingerBrowserUpdateActions;
+$('fingerBrowserCompareSaved').onchange=()=>{
+ fingerBrowserAbort('Режим сравнения изменён. Нажмите «Рассчитать и сравнить» заново. Сохранённые пальцы не изменены.');
+ $('fingerBrowserConfirm').disabled=$('fingerBrowserCompareSaved').checked;
+ fingerBrowserUpdateActions();
+};
 $('fingerBrowserReject').onclick=()=>{
  fingerBrowserAbort('Предложения скрыты. Оригинальная партитура и сохранённые исправления не изменены.');
  fingerEditorPaintSoon();
 };
 $('fingerBrowserAcceptSelected').onclick=()=>{
+ if($('fingerBrowserCompareSaved').checked){
+  $('fingerBrowserStatus').textContent='В режиме диагностики предложения не применяются. Отключи режим и пересчитай.';
+  return;
+ }
  if(!fingerBrowserPreview||!$('fingerBrowserConfirm').checked||!fingerEditorAvailable()||
    fingerBrowserSong!==current||fingerBrowserSnapshotKey!==JSON.stringify(fingerBrowserInput())){
   fingerBrowserAbort('Предложения устарели. Рассчитай аппликатуру заново.');return;
