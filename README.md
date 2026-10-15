@@ -1,4 +1,11 @@
-# Play Along — Piano Practice App (v0.10.115)
+# Play Along — Piano Practice App (v0.10.116)
+
+## LAUNCH-04 — Compact Workspace (v0.10.116)
+
+The former full-width 78px song information header is **removed** from Practice. The 88-key Piano Roll now fills the entire height between the topbar and playback transport, including formerly unused vertical space, while preserving the exact 5.5:1 natural-key proportions. On the topbar: Piano Roll / Sheet Music / Fingering view buttons (compact view selector on narrow windows), a single **Компоновка** dropdown (Изучение / Игра / Анализ), and a **Руки** popup containing the original hand/finger mode and lookahead controls. The 26px bottom status bar now contains the work title as a clickable metadata panel (source, author and track count); other live status indicators remain. Focus, hybrid docking, mobile, Library/Progress and keyboard reachability remain supported. All controls retain original IDs, MIDI events and fingering calculations are unchanged.
+
+Chromium integration coverage: `tests/compact-workspace.real.test.mjs`; legacy tests are adapted to open the new dropdown before selecting hidden choices.
+
 
 ## LAUNCH-03 — minimal bottom status bar (v0.10.115)
 

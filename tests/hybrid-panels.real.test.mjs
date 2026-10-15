@@ -26,6 +26,7 @@ try{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('http://127.0.0.1:'+server.address().port,{waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>window.__prototypeTest?.pianoGeometry?.keys.length===88);
+ await page.locator('#layoutMenuButton').click();
  await page.locator('[data-layout="learn"]').click();
  const geometry=()=>page.evaluate(()=>{
   const rect=id=>{const r=document.getElementById(id).getBoundingClientRect();

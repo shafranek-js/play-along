@@ -71,6 +71,7 @@ function scoreXMLFromSong(song){
 function scoreSetView(view){
  if(!['roll','sheet','editor'].includes(view))return;
  state.scoreView=view;
+ if($('compactViewSelect'))$('compactViewSelect').value=view;
  $('rollWrap').classList.toggle('hidden',view!=='roll');
  $('sheetWrap').classList.toggle('hidden',view!=='sheet');
  $('fingerEditorWrap').classList.toggle('hidden',view!=='editor');

@@ -1,3 +1,4 @@
+import {selectCompactFingerMode,selectCompactLookahead} from './compact-ui-helpers.mjs';
 /**
  * LAUNCH-02: both original REST PNG assets are actually rendered when
  * one of two source-annotated hands is inactive. Chromium tests the real
@@ -51,7 +52,7 @@ try{
   };
   return JSON.stringify(app.song.tracks[0].notes.map(n=>[n.pitch,n.start,n.duration,n.hand,n.finger]));
  });
- await page.locator('#fingerGuideMode').selectOption('hands');
+ await selectCompactFingerMode(page,'hands');
  await page.waitForFunction(()=>window.__fingerGuideTest.imageAssets.LH.rest.loaded,null,{timeout:15000});
  const initial=await page.evaluate(()=>{
   const f=window.__fingerGuideTest;

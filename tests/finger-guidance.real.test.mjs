@@ -1,3 +1,4 @@
+import {selectCompactFingerMode,selectCompactLookahead} from './compact-ui-helpers.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import http from 'node:http';
@@ -40,9 +41,9 @@ try{
  assert.equal(scale.length,15);
  assert.deepEqual(scale.slice(0,5).map(g=>g.notes[0].finger),[1,2,3,1,2]);
  assert.equal(scale[3].notes[0].pitch,65);
- await page.locator('#fingerGuideMode').selectOption('ghost');
+ await selectCompactFingerMode(page,'ghost');
  assert.equal(await page.locator('#fingerGuideLookahead').isEnabled(),true);
- await page.locator('#fingerGuideLookahead').selectOption('900');
+ await selectCompactLookahead(page,'900');
  assert.equal(await page.evaluate(()=>window.__fingerGuideTest.lookaheadMs),900);
  await page.waitForFunction(()=>document.querySelector('#fingerGuideStatus').textContent.includes('Демо-аппликатура'));
  const high=await page.evaluate(()=>window.__fingerGuideTest.layout);
@@ -57,14 +58,14 @@ try{
  assert.ok(Math.abs(third.current-1.38)<1e-6&&Math.abs(third.next-1.84)<1e-6);
  // The full 88-key keyboard must NEVER change key proportions when the
  // hands are toggled; only the guidance overlay is enabled/disabled.
- await page.locator('#fingerGuideMode').selectOption('off');
+ await selectCompactFingerMode(page,'off');
  assert.equal(await page.locator('#fingerGuideLookahead').isDisabled(),true);
  await page.waitForTimeout(50);
  const low=await page.evaluate(()=>window.__fingerGuideTest.layout);
  assert.ok(Math.abs(low.keyboardBlackH-high.keyboardBlackH)<.01,
   'virtual key geometry stays invariant when PNG guidance is toggled');
  // Return to a demo and confirm per-song guidance settings persist across reload.
- await page.locator('#fingerGuideMode').selectOption('hands');
+ await selectCompactFingerMode(page,'hands');
  await page.waitForTimeout(80);
  await page.reload({waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>window.__fingerGuideTest&&window.__prototypeTest);
@@ -84,7 +85,7 @@ try{
  assert.equal(duet.length,4);
  assert.deepEqual(duet[0].notes.filter(n=>n.hand==='RH').map(n=>n.finger),[1,3,5]);
  assert.deepEqual(duet[0].notes.filter(n=>n.hand==='LH').map(n=>n.finger),[5,3,1]);
- await page.locator('#fingerGuideMode').selectOption('ghost');
+ await selectCompactFingerMode(page,'ghost');
  await page.evaluate(()=>window.__prototypeTest.seek(1.8));
  assert.equal(await page.evaluate(()=>window.__fingerGuideTest.frame.current),3.6);
  assert.equal(await page.evaluate(()=>window.__fingerGuideTest.frame.next),5.4);

@@ -1,3 +1,4 @@
+import {selectCompactFingerMode,selectCompactLookahead} from './compact-ui-helpers.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import http from 'node:http';
@@ -101,7 +102,7 @@ try{
  assert.equal(new Set(result.tie.notes[0].sourceNoteIds).size,2);
  assert.equal(result.tie.notes[0].noteId,result.tie.notes[0].sourceNoteIds[0]);
  assert.ok(result.tie.warnings.some(w=>w.includes('лигой')));
- await page.locator('#fingerGuideMode').selectOption('hands');
+ await selectCompactFingerMode(page,'hands');
  await page.waitForFunction(()=>document.querySelector('#fingerGuideStatus').textContent.includes('MusicXML: авторская аппликатура'));
  await page.waitForFunction(()=>window.__fingerGuideTest.imageAssets.RH.thumb.loaded&&window.__fingerGuideTest.imageAssets.LH.pinky.loaded,{timeout:10000});
  const frame=await page.evaluate(()=>({
@@ -118,7 +119,7 @@ try{
  assert.equal(await page.evaluate(()=>window.__fingerGuideTest.steps.length),0);
  await page.evaluate(()=>window.__prototypeTest.setAdaptMode('original',0));
  await page.evaluate(xml=>window.__prototypeTest.loadSong(window.__libraryV08.readMusicXML(xml,'solo.musicxml')),solo);
- await page.locator('#fingerGuideMode').selectOption('hands');
+ await selectCompactFingerMode(page,'hands');
  await page.waitForFunction(()=>document.querySelector('#fingerGuideStatus').textContent.includes('рука не указана'));
  const single=await page.evaluate(()=>window.__fingerGuideTest.steps);
  assert.equal(single[0].notes[0].hand,null);

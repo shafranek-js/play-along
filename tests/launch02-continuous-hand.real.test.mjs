@@ -1,3 +1,4 @@
+import {selectCompactFingerMode,selectCompactLookahead} from './compact-ui-helpers.mjs';
 /**
  * LAUNCH-02 v0.10.112: real production Chromium, solo-rest continuity and
  * nearby active-to-active hand motion. No fake NoteOn or extra unknown hand.
@@ -59,7 +60,7 @@ try{
   window.__prototypeTest.seek(0);
   window.__fingerGuideTest.preloadAllPoses();
  });
- await page.locator('#fingerGuideMode').selectOption('hands');
+ await selectCompactFingerMode(page,'hands');
  await page.waitForFunction(()=>Object.values(window.__fingerGuideTest.imageAssets)
   .every(group=>Object.values(group).every(item=>item.loaded)),null,{timeout:25000});
  await page.locator('#playBtn').click();

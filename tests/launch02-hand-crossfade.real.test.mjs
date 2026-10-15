@@ -1,3 +1,4 @@
+import {selectCompactFingerMode,selectCompactLookahead} from './compact-ui-helpers.mjs';
 /** LAUNCH-02 real-browser test: actual original sprites fade/move in the canvas. */
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -52,7 +53,7 @@ try{
    return real.call(this,img,...args);
   };
  });
- await page.locator('#fingerGuideMode').selectOption('hands');
+ await selectCompactFingerMode(page,'hands');
  await page.waitForFunction(()=>Object.values(window.__fingerGuideTest.imageAssets)
   .every(poses=>Object.values(poses).every(p=>p.loaded)),null,{timeout:25000});
  assert.equal(await page.evaluate(()=>window.__fingerGuideTest.handBlends.LH.to),'rest');
