@@ -72,6 +72,7 @@ try{
  await page.evaluate(()=>window.__prototypeTest.loadSong(window.__fingerGuideTest.demoDuet));
  await page.locator('#fingerGuideMode').selectOption('hands');
  await page.setViewportSize({width:390,height:844});
+ await page.locator('#layoutMenuButton').click();
  await page.locator('[data-layout="play"]').click();
  await page.waitForFunction(()=>document.body.classList.contains('noLeft')&&document.body.classList.contains('noRight'));
  await page.screenshot({path:path.join(output,'mobile.png')});
