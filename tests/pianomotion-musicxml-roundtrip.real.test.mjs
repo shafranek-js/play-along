@@ -88,7 +88,7 @@ try{
        suggestions,sourceNoteMappingVerified:true}}}));
    }
   };
-  document.getElementById('pianoMotionCalculate').click();
+  // v0.10.118: open the actual Fingering workspace before clicking the sole\n  // calculation button. Otherwise its preview canvas is hidden and has zero bounds.\n  document.getElementById('viewFingerEditor').click();\n  document.getElementById('pianoMotionCalculate').click();
   await new Promise(ok=>setTimeout(ok,50));
   const statusBefore=document.getElementById('pianoMotionStatus').textContent;
   const apply=document.getElementById('pianoMotionApply');
