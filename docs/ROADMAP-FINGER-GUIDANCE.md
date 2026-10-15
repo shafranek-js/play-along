@@ -6,6 +6,10 @@
 
 **Active next task:** LAUNCH-01 F2 musical transport, MIDI controller, sustain pedal (CC64), Wait/Seek/Loop/Tempo, release timing and browser audio QA; then LAUNCH-02 source-safe editable fingering and LAUNCH-03 UX/stability. At final release, explicitly choose between documented legal permission, independent code replacement or an adjusted distribution scope. Earlier roadmap descriptions of F0 as a release gate are **not removed**, but the gate is no longer part of the current sprint. Expert pianist recruitment remains optional after launch.
 
+## LAUNCH-02 — continuous 2D hands, solo rest and nearby active reposition (v0.10.112)
+
+Delivered: original verified solo hand remains as its passive REST PNG between source NoteOff and following NoteOn (no fabricated opposite hand); strictly visual 120 ms low-opacity trail between nearby active positions in Listen only, with exact full-opacity NEW pose at NoteOn. Never infer fingers or hands from unannotated MIDI. No sound/event/scoring edits. Pure unit and live Chromium active-switch, solo-rest, unknown-MIDI and Seek QA required before merging. Rigged anatomical fingers and physical MIDI hardware remain future UAT.
+
 ## LAUNCH-01 — strict MXL ZIP parsing, corrupted input and real multi-track MIDI (v0.10.104)
 
 **Delivered:** browser importer now rejects inconsistent MXL ZIP catalogs/local headers, encrypted/multidisk archives, unsafe/duplicated entry names, unsupported compression, expanded-size mismatches, and bogus `META-INF/container.xml` rootfile targets rather than opening a different score. Genuine Chromium verified compressed and stored MXL, **9/9 malformed MXL refused**, imported **1,050 notes across three separate MIDI tracks**, **2,100 physical key events**, and refused **5/5 invalid MIDI** with the currently open song intact. [New source/negative QA](LAUNCH-01-MXL-MIDI-BOUNDARIES.md) and [successful workflow](https://github.com/shafranek-js/play-along/actions/runs/38620666234). Original MIDI note-off times, user/author fingering and audio remain untouched.
