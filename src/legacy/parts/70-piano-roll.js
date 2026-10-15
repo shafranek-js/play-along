@@ -890,4 +890,12 @@ function contextMenu(e){e.preventDefault();let n=noteHit(e);const opts=n?[['Св
 function showMenu(x,y,opts){const m=$('contextMenu');m.innerHTML='';for(const [label,fn] of opts){let b=document.createElement('button');b.textContent=label;b.onclick=()=>{hideMenu();fn()};m.append(b)}m.classList.add('show');let r=m.getBoundingClientRect();m.style.left=clamp(x,4,innerWidth-r.width-5)+'px';m.style.top=clamp(y,4,innerHeight-r.height-5)+'px'}function hideMenu(){$('contextMenu').classList.remove('show')}
 function ensureLoop(){if(loop.start!=null&&loop.end!=null){let a=Math.min(loop.start,loop.end),b=Math.max(loop.start,loop.end);loop.start=a;loop.end=b;loop.enabled=b>a+.1}updateUI()}
 function bookmark(at=pos){bookmarks.push(at);persist();notify('Закладка добавлена на '+fmt(at))}
-let alertTimeout=null;function notify(s){$('rollStatus').textContent=s;clearTimeout(alertTimeout);alertTimeout=setTimeout(()=>{if(!isPlaying)$('rollStatus').textContent='⏸ Готово к воспроизведению'},2600)}
+let alertTimeout=null;function notify(s){
+ const notice=$('rollStatus');
+ notice.textContent=s;notice.classList.remove('status-idle');
+ clearTimeout(alertTimeout);
+ alertTimeout=setTimeout(()=>{
+  notice.textContent='⏸ Готово к воспроизведению';
+  notice.classList.add('status-idle');
+ },3800);
+}
