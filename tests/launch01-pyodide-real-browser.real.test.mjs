@@ -67,6 +67,10 @@ try{
  },[...cohort.midiBytes]);
  assert.equal(initial.count,cohort.noteCount);
  assert.equal(initial.hasPreexistingFingers,false);
+ // v0.10.118: the original PianoMotion controls now live in the Fingering
+ // workspace, not the permanently open Practice sidebar.
+ await page.locator('#viewFingerEditor').click();
+ assert.equal(await page.locator('#fingerEditorWrap #pianoMotionCalculate').isVisible(),true);
  await page.locator('#pianoMotionCalculate').click();
  // This wait must not succeed for a synthetic Worker; the network request
  // list is also checked below. Abort on real UI errors with a useful code.
