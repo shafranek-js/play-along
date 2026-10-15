@@ -1,4 +1,12 @@
-# Play Along — Piano Practice App (v0.10.112)
+# Play Along — Piano Practice App (v0.10.113)
+
+## LAUNCH-02 — full-window 88-key proportional piano and reachable MIDI range (v0.10.113)
+
+**Mandatory A0–C8 (MIDI 21–108), all 88 keys:** the Play Along live Piano Roll now occupies a window-wide lower band above the transport, regardless of sidebar visibility. All 52 naturals and 36 accidentals are kept in the Canvas and the score lanes, with no horizontal scrolling. White keys retain **5.5:1 height/width**, black keys retain **0.61 white-key width**, and both dimensions derive from the same 52-white-key viewport-width scaling factor, including responsive desktop/mobile resizes. Neither device calibration nor an individual piece can crop the physical piano. The former visible-range dropdown is replaced with a brief explanatory label, while the previously saved setting remains backward-compatible.
+
+**Small physical controller support:** current calibrated MIDI controller range, or explicitly selected 25/37/49/61/76/88-key preview, is highlighted as the only interactive region of the virtual piano. Keys outside that range are visibly **darkened** (both naturals and accidentals), cannot be clicked, and do not show false played-key highlights. The entire 88-key outline and any genuine score notes remain visible; this does **not** silence out-of-range note audio, delete source MIDI, alter the adaptation/transpose algorithm, or silently remap physical MIDI events. If controller endpoints are unknown, all 88 keys are active until calibrated or a preview range is chosen.
+
+**Verification:** updated production Chromium range matrix for all six controller sizes at desktop and mobile widths, source finger identity, key count, edge-to-edge Canvas, invariant white-key aspect ratio, absence of horizontal scrolling, black-key priority, disabled-key hit-tests and sampled Canvas lightness. Existing real controller and other browser QA still required; 88 keys at small phone widths are correspondingly small to preserve accurate proportions. Extremal ultra-wide/short windows may have insufficient height for the full note-fall area, but the keyboard is never stretched out of ratio.
 
 ## LAUNCH-02 — continuous hand silhouettes during solo rests and adjacent chords (v0.10.112)
 
