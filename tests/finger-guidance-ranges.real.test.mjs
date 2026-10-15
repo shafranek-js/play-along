@@ -99,8 +99,6 @@ try{
      whiteWidth:geom.whites[0].w,
      blackPitch,
      sourceFuture:future.map(n=>({pitch:n.pitch,hand:n.hand,finger:n.finger})),
-     outsideController:future.filter(n=>n.pitch<window.__prototypeTest.state.targetKeyLow||
-      n.pitch>window.__prototypeTest.state.targetKeyHigh).map(n=>n.pitch),
      futureAllOnFullPiano:future.every(n=>geom.byPitch.has(n.pitch)),
      ghostVisible:chord.visible,
      canvasCssWidth:rect.width,
@@ -149,10 +147,13 @@ try{
     return {outer:rgb(21),inside:rgb(69)};
    });
    const luma=rgb=>rgb[0]*.21+rgb[1]*.72+rgb[2]*.07;
-   if(config.count<88)assert.ok(luma(contrast.outer)<luma(contrast.inside)*.55,
-    'disabled unreachable white keys must be visibly darkened on Canvas');
-   else assert.ok(luma(contrast.outer)>150,
-    '88-key controller keeps the extreme A0 white natural bright and active');
+   const edgeLuma=luma(contrast.outer);
+   const evidence=viewport.name+' / '+config.key+
+    ' A0='+JSON.stringify(contrast.outer)+' A4='+JSON.stringify(contrast.inside);
+   if(config.count<88)assert.ok(edgeLuma<110,
+    'unreachable A0 white key must be visibly darkened on Canvas: '+evidence);
+   else assert.ok(edgeLuma>150,
+    '88-key controller keeps the extreme A0 white natural bright: '+evidence);
    assert.deepEqual(snapshot.sourceFuture,[
     {pitch:61,hand:'RH',finger:1},{pitch:65,hand:'RH',finger:3},
     {pitch:84,hand:'RH',finger:5},
