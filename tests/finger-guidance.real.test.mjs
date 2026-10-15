@@ -46,7 +46,9 @@ try{
  assert.equal(await page.evaluate(()=>window.__fingerGuideTest.lookaheadMs),900);
  await page.waitForFunction(()=>document.querySelector('#fingerGuideStatus').textContent.includes('Демо-аппликатура'));
  const high=await page.evaluate(()=>window.__fingerGuideTest.layout);
- assert.ok(high.keyboardBlackH>75,'Hands should use enlarged existing canvas keyboard');
+ const expectedBlackH=await page.evaluate(()=>window.__prototypeTest.pianoGeometry.whites[0].w*5.5*.61);
+ assert.ok(Math.abs(high.keyboardBlackH-expectedBlackH)<.5,
+  'Black-key height follows proportional center width, including pinned panels');
  assert.deepEqual(await page.evaluate(()=>window.__fingerGuideTest.frame),{current:0,next:.46});
  await page.evaluate(()=>window.__prototypeTest.seek(.46));
  assert.ok(await page.evaluate(()=>{const f=window.__fingerGuideTest.frame;return Math.abs(f.current-.92)<1e-6&&Math.abs(f.next-1.38)<1e-6;}));
