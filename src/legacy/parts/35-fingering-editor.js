@@ -41,6 +41,7 @@ function fingeringWorkspaceSync(){
    'Сначала просмотрите результат, затем подтвердите нужные пальцы.':
    format+' · расчёт недоступен: '+(plan?.reason||'нет подходящих нот');
  $('fingeringAutoScroll').classList.toggle('fingeringAutoMidi',!original);
+ $('fingeringAutoScroll').classList.toggle('fingeringAutoXml',original);
  const midiResearch=$('fingeringMidiResearch');
  midiResearch.classList.toggle('hidden',!isMidi||
   $('pianoMotionMidiPanel').classList.contains('hidden'));
