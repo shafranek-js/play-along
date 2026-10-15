@@ -83,26 +83,28 @@ try{
  await page.waitForFunction(()=>window.__prototypeTest?.pianoGeometry?.keys?.length===88);
  assert.equal(await slider.inputValue(),'100');
 
- // Legacy installations missing the new key automatically get 50%.
- await page.evaluate(()=>{
-  const key='playalong:smart-practice:v07';
-  const stored=JSON.parse(localStorage.getItem(key)||'{}');
-  delete stored.gridVisibility;
-  localStorage.setItem(key,JSON.stringify(stored));
- });
- await page.reload({waitUntil:'domcontentloaded'});
- await page.waitForFunction(()=>window.__prototypeTest?.pianoGeometry?.keys?.length===88);
- assert.equal(await slider.inputValue(),'50');
- // A malformed persisted value is normalized (backups use the same validation).
- await page.evaluate(()=>{
-  const key='playalong:smart-practice:v07';
-  const stored=JSON.parse(localStorage.getItem(key)||'{}');
-  stored.gridVisibility=900;
-  localStorage.setItem(key,JSON.stringify(stored));
- });
- await page.reload({waitUntil:'domcontentloaded'});
- await page.waitForFunction(()=>window.__prototypeTest?.pianoGeometry?.keys?.length===88);
- assert.equal(await slider.inputValue(),'50');
+ // Seed a fresh browser context BEFORE the application initializes.
+ // Modifying localStorage immediately before reload is not reliable because
+ // the app persists its current settings in the pagehide handler.
+ const migrate=async badValue=>{
+  const context=await browser.newContext({viewport:{width:1440,height:900}});
+  await context.addInitScript(value=>{
+   const settings={layout:'play',left:false,right:false};
+   if(value!==null)settings.gridVisibility=value;
+   localStorage.setItem('playalong:smart-practice:v07',JSON.stringify(settings));
+  },badValue);
+  const other=await context.newPage();
+  try{
+   await other.goto('http://127.0.0.1:'+server.address().port,{waitUntil:'domcontentloaded'});
+   await other.waitForFunction(()=>window.__prototypeTest?.pianoGeometry?.keys?.length===88);
+   assert.equal(await other.locator('#gridVisibility').inputValue(),'50');
+   assert.equal(await other.evaluate(()=>window.__prototypeTest.state.gridVisibility),50);
+  }finally{await context.close();}
+ };
+ // Upgrading previous installs missing the field uses 50% by default.
+ await migrate(null);
+ // Persisted out-of-range values are rejected by the regular settings validator.
+ await migrate(900);
  assert.deepEqual(errors,[],'No runtime errors during opacity changes');
  console.log('ROLL GRID: 0% dark field, 50% blended lanes, 100% legacy, unchanged 88 keys, reload/migration/validation: PASS');
 }finally{
