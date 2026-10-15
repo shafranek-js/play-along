@@ -1,3 +1,4 @@
+import {selectCompactFingerMode,selectCompactLookahead} from './compact-ui-helpers.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import http from 'node:http';
@@ -29,7 +30,7 @@ try{
  };
  await page.goto('http://127.0.0.1:'+server.address().port);
  await page.waitForFunction(()=>window.__fingerGuideTest&&window.__prototypeTest);
- await page.locator('#fingerGuideMode').selectOption('hands');
+ await selectCompactFingerMode(page,'hands');
 
  // Anticipatory guidance in Listen: keep the first note at song start,
  // but never display a still-sounding note after its onset has passed.
@@ -39,12 +40,12 @@ try{
  assert.deepEqual(await frame(),{current:.46,next:.92});
  // At 100% playback .92 - .10 = 820ms. A short window must NOT draw
  // the second Ghost; extending it to 1000ms should expose it.
- await page.locator('#fingerGuideMode').selectOption('ghost');
- await page.locator('#fingerGuideLookahead').selectOption('500');
+ await selectCompactFingerMode(page,'ghost');
+ await selectCompactLookahead(page,'500');
  assert.equal(await page.evaluate(()=>window.__fingerGuideTest.ghostWindow.visible),false);
- await page.locator('#fingerGuideLookahead').selectOption('1000');
+ await selectCompactLookahead(page,'1000');
  assert.equal(await page.evaluate(()=>window.__fingerGuideTest.ghostWindow.visible),true);
- await page.locator('#fingerGuideLookahead').selectOption('750');
+ await selectCompactLookahead(page,'750');
  assert.equal(await page.evaluate(()=>window.__fingerGuideTest.ghostWindow.visible),false);
  // At 150% playback, the same 820 score-ms are about 547 wall-ms.
  await page.locator('#speed').evaluate(el=>{el.value='150';el.dispatchEvent(new Event('input',{bubbles:true}))});
