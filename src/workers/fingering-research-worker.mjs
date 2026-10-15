@@ -8,7 +8,8 @@ self.onmessage=(event)=>{
  let report;
  try{
   report=compareBrowserFingeringResearch({
-   notes:event.data?.notes,handSize:event.data?.handSize
+   notes:event.data?.notes,handSize:event.data?.handSize,
+   compareWithoutSaved:event.data?.compareWithoutSaved??false
   });
  }catch{
   report={ok:false,reason:'RESEARCH_WORKER_FAILED',researchOnly:true,

@@ -74,3 +74,45 @@ test('FG-04C4 exact length cap rejects excessive worker requests',()=>{
 
 // FG-04C5: hand span self-report calibration and refusal controls.
 import './hand-span-calibration.test.mjs';
+
+
+test('saved anatomical fingers are strict anchors by default, but independent comparison is read-only',()=>{
+ const notes=[
+  {...n('xml:c',60,null),userFinger:1},
+  {...n('xml:d',64,null),userFinger:1},
+  n('xml:g',67)
+ ];
+ const snapshot=structuredClone(notes);
+ const protectedResult=calc({notes});
+ assert.equal(protectedResult.ok,true,JSON.stringify(protectedResult));
+ assert.equal(protectedResult.savedFingerCount,2);
+ assert.equal(protectedResult.comparisonOnly,false);
+ assert.equal(protectedResult.anchored,2);
+ assert.equal(protectedResult.models.legacy.status,'refused');
+ const compared=calc({notes,compareWithoutSaved:true});
+ assert.equal(compared.ok,true,JSON.stringify(compared));
+ assert.equal(compared.comparisonOnly,true);
+ assert.equal(compared.savedFingerCount,2);
+ assert.equal(compared.anchored,0);
+ assert.equal(compared.models.legacy.status,'computed',JSON.stringify(compared));
+ assert.equal(compared.models.anatomical.status,'computed',JSON.stringify(compared));
+ assert.equal(compared.models.anatomical.proposed,3);
+ assert.deepEqual(notes,snapshot,'comparison may not change stored or authored finger data');
+});
+
+test('ignoring saved user fingers does not bypass original MusicXML author anchors',()=>{
+ const notes=[{...n('xml:c',60,1),userFinger:2},n('xml:e',64)];
+ const source=structuredClone(notes);
+ const report=calc({notes,compareWithoutSaved:true});
+ assert.equal(report.ok,true,JSON.stringify(report));
+ assert.equal(report.comparisonOnly,true);
+ assert.equal(report.savedFingerCount,1);
+ assert.equal(report.authorFingerCount,1);
+ assert.equal(report.anchored,1);
+ for(const mode of ['legacy','anatomical']){
+  assert.equal(report.models[mode].status,'computed',JSON.stringify(report));
+  assert.ok(report.models[mode].candidates.every(x=>x.noteId!=='xml:c'));
+ }
+ assert.deepEqual(notes,source);
+ assert.equal(calc({notes,compareWithoutSaved:'yes'}).reason,'INVALID_COMPARISON_MODE');
+});

@@ -1,5 +1,10 @@
 # Play Along — development roadmap: Finger Guidance and musical reliability
 
+## FG-02I — post-acceptance read-only model comparison (v0.10.124)
+
+User Bach MXL after applying 430 Anatomical suggestions: 430 saved manual anchors, Anatomical 0 new suggestions at 96.6% analyzed coverage, Legacy refused as AUTHOR_PHYSICAL_CONFLICT under its own tighter reach model. This is not a lost calculation or 430 new source-author annotations. Make saved/author anchor counts explicit and provide separate opt-in read-only research baseline excluding *user finger* constraints (not author finger constraints, not hand ownership), never updating stored overrides or allowing Apply. Maintain explicit mode-change invalidation, results from actual Worker, Undo and source protection. Repeat full CI with real Chromium.
+
+
 ## FG-02I Adaptive Beam Recovery (v0.10.123)
 
 For the Bach MXL v0.10.122 baseline, Anatomical covers 430/445 notes (96.6%), leaving three MusicXML overlapping unisons and two blocked polyphonic RH islands (4 and 8 source notes). Research whether beam width 40 accidentally prunes physically valid continuations. Run 40 → 80 → 128 **only on individual failed chord/overlap islands**, never relax reach or finger occupancy and never automatically move a note to the opposite hand. Keep source-note and held-key identity, independent physical audit and explicit manual review. Expose separate per-model retry success/remaining failures. Do not promise higher Bach coverage without user validation on the source file. Next optional phase: carefully review verified hand crossing or hand-sharing only with explicit score/source hand annotations.
