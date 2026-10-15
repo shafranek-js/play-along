@@ -97,8 +97,64 @@
   <div class="rollWrap" id="rollWrap"><canvas id="roll" tabindex="0" aria-label="Piano Roll: выбор нот мышью, Ctrl+A все, Shift диапазон, Ctrl произвольный выбор"></canvas><div class="rollHint">Клик — нота · Ctrl+клик — набор · Shift+клик — диапазон · рамка мышью · Ctrl+A — все · Space — Play/Pause</div></div>
   <div class="sheetWrap hidden" id="sheetWrap" role="region" aria-label="Интерактивная партитура OpenSheetMusicDisplay" tabindex="0"><div class="sheetContent" id="sheetContent"><div class="sheetInfo"><div><strong>♬ Нотная партитура</strong> · <span id="sheetStatus" aria-live="polite">Ожидание произведения</span></div><div class="sheetScrollControls"><label title="Автоматически прокручивать партитуру за курсором"><input type="checkbox" id="sheetFollow" checked> Следовать</label><button id="sheetBarBack" title="Предыдущий такт">⇤ Такт</button><button id="sheetBarNext" title="Следующий такт">Такт ⇥</button><button id="sheetZoomOut" title="Уменьшить ноты" aria-label="Уменьшить">−</button><span id="sheetZoomLabel">100%</span><button id="sheetZoomIn" title="Увеличить ноты" aria-label="Увеличить">＋</button></div></div><div id="sheetWaitStatus" class="sheetNotice hidden" aria-live="polite"></div><div id="sheetNotice" class="sheetNotice hidden"></div><div id="sheetFingerStatus" class="sheetFingerStatus hidden" aria-live="polite"></div><div class="sheetCanvas" id="sheetCanvas" aria-label="Нотная запись произведения"></div></div></div>
   <div class="fingerEditorWrap hidden" id="fingerEditorWrap" role="region" aria-label="Редактор аппликатуры всего произведения">
+   <div class="fingeringWorkspaceIntro" id="fingeringWorkspaceIntro">
+    <div><strong>Аппликатура</strong> <span id="fingeringFormatBadge">Формат не определён</span></div>
+    <p class="small" id="fingeringSourceHint" role="status" aria-live="polite">Выберите произведение в библиотеке для расчёта аппликатуры.</p>
+   </div>
+   <div class="fingeringAutoScroll" id="fingeringAutoScroll">
+    <div class="panelSection fingeringPrimary" id="pianoMotionPanel">
+     <div class="sectionLabel">Автоматический расчёт · PianoMotion</div>
+     <p class="small" id="fingeringAlgorithmHint">PianoMotion анализирует нотные события загруженного произведения. Авторская аппликатура и ручные исправления защищены.</p>
+     <p class="small" id="pianoMotionBetaNotice"><strong>Предложения требуют проверки.</strong> Автоматические пальцы не становятся авторскими и не применяются без подтверждения. Ноты и ритм не меняются.</p>
+     <button type="button" class="btn primary" id="pianoMotionCalculate" title="Показать предложения пальцев без автоматического применения">🧠 Рассчитать аппликатуру</button>
+     <button type="button" class="btn ghost" id="pianoMotionCancel" hidden disabled title="Остановить текущий Python-расчёт без изменения нот">✕ Отменить расчёт</button>
+     <p class="small" id="pianoMotionStatus" role="status" aria-live="polite">Открой мелодию в библиотеке.</p>
+     <div id="pianoMotionReview" class="pianoMotionReview" hidden>
+      <div class="pianoMotionReviewToolbar">
+       <strong id="pianoMotionReviewCount">Проверка предложений</strong>
+       <button type="button" id="pianoMotionSelectAll" class="btn tiny" title="Отметить только ноты с новым пальцем без конфликтов и защищённых правок">Выбрать применимые</button>
+       <button type="button" id="pianoMotionSelectNone" class="btn tiny ghost">Снять выбор</button>
+      </div>
+      <p class="small" id="pianoMotionReviewStats" role="status" aria-live="polite">После расчёта здесь появятся применимые и пропущенные предложения.</p>
+      <p class="small">Нажми на доступный нотный блок или отметь строку. Серые ноты защищены, уже применены либо не имеют пальца; красные отмечены аудитом. Только выбранные применимые предложения можно подтвердить. Изменения сохраняются как отдельное действие с Undo.</p>
+      <div class="pianoMotionRollHead">
+       <button type="button" id="pianoMotionPrev" class="btn tiny ghost" disabled aria-label="Предыдущие 24 ноты">←</button>
+       <span id="pianoMotionRollRange" aria-live="polite"></span>
+       <button type="button" id="pianoMotionNext" class="btn tiny ghost" disabled aria-label="Следующие 24 ноты">→</button>
+      </div>
+      <canvas id="pianoMotionRoll" class="pianoMotionRoll" width="640" height="152" tabindex="0" role="img" aria-label="Предлагаемая аппликатура: высота по вертикали, время по горизонтали; щелчок выбирает ноту"></canvas>
+      <div id="pianoMotionReviewList" class="pianoMotionReviewList" role="group" aria-label="Все предложения, выбор по нотам"></div>
+      <div class="pianoMotionReviewToolbar">
+       <button type="button" id="pianoMotionApplySelected" class="btn tiny primary" disabled>Применить выбранные</button>
+       <button type="button" id="pianoMotionUndo" class="btn tiny ghost" disabled>↶ Отменить</button>
+       <button type="button" id="pianoMotionRedo" class="btn tiny ghost" disabled>↷ Повторить</button>
+      </div>
+     </div>
+     <div id="pianoMotionResult" class="fingerBrowserCandidates hidden" aria-label="Технические предложения оригинального алгоритма PianoMotion"></div>
+     <div style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0">
+      <button type="button" class="btn tiny primary" id="pianoMotionApply" disabled title="Подтвердить предложенные пальцы самому; ошибки алгоритма возможны. Авторская и ручная аппликатура защищена">✋ Применить все доступные</button>
+      <button type="button" class="btn tiny" id="pianoMotionExportXML" disabled title="Экспортировать ноты с аппликатурой в файл MusicXML">↓ Экспорт в MusicXML</button>
+      <button type="button" class="btn tiny ghost" id="pianoMotionClear" disabled>Скрыть предложения</button>
+     </div>
+     <p class="small">Источник: <a href="https://github.com/shafranek-js/pianomotion-studio" target="_blank" rel="noopener noreferrer">PianoMotion Studio</a>; алгоритмы частично адаптированы из <a href="https://github.com/V9011N/pygame-piano-animator" target="_blank" rel="noopener noreferrer">Hand-thesia (V9011N)</a>. <a href="./THIRD_PARTY_NOTICES.md" target="_blank" rel="noopener noreferrer">Авторство и условия использования</a>.</p>
+    </div>
+
+    <details id="fingeringMidiResearch" class="fingerResearchPanel hidden">
+     <summary>🔬 Оригинальный MIDI-движок · локальное исследование</summary>
+    <div id="pianoMotionMidiPanel" class="panelSection hidden">
+     <div class="sectionLabel">PianoMotion · оригинальный MIDI-алгоритм (локальное исследование)</div>
+     <p class="small">Работает с уже открытым MIDI: запускает оригинальное Python-ядро PianoMotion в браузере через локальный Pyodide. Без повторной загрузки файла. Предложения не принимаются автоматически и не управляют учебными руками.</p>
+     <button type="button" id="pianoMotionMidiRun" class="btn tiny primary">🧠 Рассчитать MIDI в PianoMotion</button>
+     <p id="pianoMotionMidiStatus" class="small" role="status" aria-live="polite">Выбери MIDI-произведение, уже сохранённое в библиотеке.</p>
+     <div id="pianoMotionMidiResults" class="fingerBrowserCandidates"></div>
+    </div>
+
+    </details>
+   </div>
+   <div class="fingeringAuthorTools" id="fingeringAuthorTools">
+
    <div class="fingerEditorTop">
-    <div class="fingerEditorTopLine"><button type="button" id="fingerCurrentCalculate" class="btn tiny primary" title="Рассчитать аппликатуру уже открытого MusicXML без загрузки второго файла">🧠 Рассчитать аппликатуру</button><span id="fingerEditorCount" aria-live="polite">Ноты не выбраны</span><div class="fingerEditorSpacer"></div><label for="fingerEditorZoom">Масштаб времени</label><select id="fingerEditorZoom" aria-label="Масштаб временной шкалы"><option value="40">Мелкий</option><option value="72" selected>Средний</option><option value="120">Крупный</option><option value="200">Очень крупный</option></select></div>
+    <div class="fingerEditorTopLine"><button type="button" id="fingerCurrentCalculate" class="btn tiny ghost" title="Экспериментальный Beam Search для MusicXML — не заменяет основной PianoMotion">🔬 Beam Search</button><span id="fingerEditorCount" aria-live="polite">Ноты не выбраны</span><div class="fingerEditorSpacer"></div><label for="fingerEditorZoom">Масштаб времени</label><select id="fingerEditorZoom" aria-label="Масштаб временной шкалы"><option value="40">Мелкий</option><option value="72" selected>Средний</option><option value="120">Крупный</option><option value="200">Очень крупный</option></select></div>
     <div class="fingerEditorTopLine"><button id="fingerEditorAll" class="btn tiny">Выбрать все</button><button id="fingerEditorClear" class="btn tiny ghost">Снять выделение</button><label for="fingerEditorFinger">Палец</label><select id="fingerEditorFinger" aria-label="Палец для выбранных нот"><option value="keep">Не менять</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select><label for="fingerEditorHand">Рука</label><select id="fingerEditorHand" aria-label="Рука для выбранных нот"><option value="keep">Не менять</option><option value="RH">Правая</option><option value="LH">Левая</option><option value="null">Не определена</option></select><button id="fingerEditorApply" class="btn tiny primary">Применить</button><button id="fingerEditorReset" class="btn tiny ghost">Вернуть автора</button><button id="fingerEditorUndo" class="btn tiny ghost">↶ Отменить</button><button id="fingerEditorRedo" class="btn tiny ghost">↷ Повторить</button><button id="fingerEditorDownloadXML" class="btn tiny primary" type="button" disabled title="Скачать копию MusicXML с ручными номерами пальцев">↓ MusicXML с правками</button></div><p class="small" id="fingerEditorExportStatus" role="status" aria-live="polite">Экспорт сохраняет только ручные номера пальцев, не изменяя исходную партитуру. Изменения только руки не записываются.</p>
     <details id="fingerResearchPanel" class="fingerResearchPanel"><summary>🔬 Расчёт и сравнение аппликатуры (исследование)</summary>
     <section id="fingerBrowserPanel" class="fingerResearchPanel">
@@ -156,6 +212,7 @@
      </details>
     <div class="fingerEditorHelp">Прокрутка вправо — всё произведение · Ctrl+A — все · Shift+клик — диапазон · Ctrl+клик — произвольно · рамка мышью — область. <span class="fingerEditorLegend">RH правая · LH левая · <span class="fingerEditorAuthor">автор</span> · <span class="fingerEditorUser">правка пользователя</span> · ? без пальца</span></div>
    </div>
+   </div>
    <div class="fingerEditorScroller" id="fingerEditorScroller" tabindex="0" aria-label="Прокручиваемый список нот, выделение мышью">
     <div class="fingerEditorSurface" id="fingerEditorSurface"><canvas id="fingerEditorCanvas" tabindex="0" aria-label="Редактор: нотные блоки с обозначениями рук и пальцев"></canvas></div>
    </div>
@@ -179,42 +236,6 @@
   <input type="range" id="gridVisibility" min="0" max="100" step="1" value="50" aria-label="Видимость сетки и дорожек, процентов" aria-describedby="gridVisibilityHelp">
   <p class="small" id="gridVisibilityHelp">0% — тёмный фон без сетки · 100% — полная видимость. Ноты, клавиши и подсказки рук не изменяются.</p>
  </div><label class="switch">Показывать названия нот <input id="labels" type="checkbox" checked></label><label class="switch">Подсвечивать нажатые клавиши (MIDI + звук) <input id="highlight" type="checkbox" checked></label><div class="small" style="margin:-6px 0 16px"> <span style="color:#87b9fd">■</span> Звучит запись: голубые клавиши и светящиеся блоки · <span style="color:#f5a286">■</span> Играешь ты: оранжевые клавиши и контур блока. Подсветка держится до окончания звучания/отпускания.</div><label class="switch">Показать все MIDI-дорожки <input id="allTracks" type="checkbox" checked></label></div>
-    <div class="panelSection" id="pianoMotionPanel">
-     <div class="sectionLabel">Автоматическая аппликатура · PianoMotion</div>
-     <p class="small">Расчёт оригинальным Python-алгоритмом прямо в браузере для уже открытой мелодии. MIDI используется без изменений; MusicXML и остальные нотные форматы преобразуются временно. Первый запуск загрузит Python WebAssembly из интернета.</p>
-     <p class="small" id="pianoMotionBetaNotice"><strong>Режим бета:</strong> аппликатура рассчитывается автоматически и может содержать ошибки. Она не проверена профессиональным пианистом. Сначала просмотри предложенные пальцы, при необходимости исправь их и только затем нажми «Применить». Сами ноты и ритм не изменяются.</p>
-     <button type="button" class="btn primary" id="pianoMotionCalculate" title="Показать предложения пальцев без автоматического применения">🧠 Предложить аппликатуру текущей мелодии</button>
-     <button type="button" class="btn ghost" id="pianoMotionCancel" hidden disabled title="Остановить текущий Python-расчёт без изменения нот">✕ Отменить расчёт</button>
-     <p class="small" id="pianoMotionStatus" role="status" aria-live="polite">Открой мелодию в библиотеке.</p>
-     <div id="pianoMotionReview" class="pianoMotionReview" hidden>
-      <div class="pianoMotionReviewToolbar">
-       <strong id="pianoMotionReviewCount">Проверка предложений</strong>
-       <button type="button" id="pianoMotionSelectAll" class="btn tiny" title="Отметить только ноты с новым пальцем без конфликтов и защищённых правок">Выбрать применимые</button>
-       <button type="button" id="pianoMotionSelectNone" class="btn tiny ghost">Снять выбор</button>
-      </div>
-      <p class="small" id="pianoMotionReviewStats" role="status" aria-live="polite">После расчёта здесь появятся применимые и пропущенные предложения.</p>
-      <p class="small">Нажми на доступный нотный блок или отметь строку. Серые ноты защищены, уже применены либо не имеют пальца; красные отмечены аудитом. Только выбранные применимые предложения можно подтвердить. Изменения сохраняются как отдельное действие с Undo.</p>
-      <div class="pianoMotionRollHead">
-       <button type="button" id="pianoMotionPrev" class="btn tiny ghost" disabled aria-label="Предыдущие 24 ноты">←</button>
-       <span id="pianoMotionRollRange" aria-live="polite"></span>
-       <button type="button" id="pianoMotionNext" class="btn tiny ghost" disabled aria-label="Следующие 24 ноты">→</button>
-      </div>
-      <canvas id="pianoMotionRoll" class="pianoMotionRoll" width="640" height="152" tabindex="0" role="img" aria-label="Предлагаемая аппликатура: высота по вертикали, время по горизонтали; щелчок выбирает ноту"></canvas>
-      <div id="pianoMotionReviewList" class="pianoMotionReviewList" role="group" aria-label="Все предложения, выбор по нотам"></div>
-      <div class="pianoMotionReviewToolbar">
-       <button type="button" id="pianoMotionApplySelected" class="btn tiny primary" disabled>Применить выбранные</button>
-       <button type="button" id="pianoMotionUndo" class="btn tiny ghost" disabled>↶ Отменить</button>
-       <button type="button" id="pianoMotionRedo" class="btn tiny ghost" disabled>↷ Повторить</button>
-      </div>
-     </div>
-     <div id="pianoMotionResult" class="fingerBrowserCandidates hidden" aria-label="Технические предложения оригинального алгоритма PianoMotion"></div>
-     <div style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0">
-      <button type="button" class="btn tiny primary" id="pianoMotionApply" disabled title="Подтвердить предложенные пальцы самому; ошибки алгоритма возможны. Авторская и ручная аппликатура защищена">✋ Применить все доступные</button>
-      <button type="button" class="btn tiny" id="pianoMotionExportXML" disabled title="Экспортировать ноты с аппликатурой в файл MusicXML">↓ Экспорт в MusicXML</button>
-      <button type="button" class="btn tiny ghost" id="pianoMotionClear" disabled>Скрыть предложения</button>
-     </div>
-     <p class="small">Источник: <a href="https://github.com/shafranek-js/pianomotion-studio" target="_blank" rel="noopener noreferrer">PianoMotion Studio</a>; алгоритмы частично адаптированы из <a href="https://github.com/V9011N/pygame-piano-animator" target="_blank" rel="noopener noreferrer">Hand-thesia (V9011N)</a>. <a href="./THIRD_PARTY_NOTICES.md" target="_blank" rel="noopener noreferrer">Авторство и условия использования</a>.</p>
-    </div>
     <div class="panelSection"><div class="sectionLabel">Аппликатура · размер кисти</div>
      <section class="handSpanCalibration">
       <button id="fingerSpanToggle" type="button" class="btn tiny ghost" aria-controls="fingerSpanContents" aria-expanded="false">📏 Как определить мой размер кисти?</button>
@@ -261,13 +282,6 @@
     </div>
     <div class="panelSection"><div class="sectionLabel">Выбранная нота</div><div id="selection" class="metabox"><strong>Ничего не выбрано</strong><p>Нажми на цветную полоску в Piano Roll. Здесь появятся свойства ноты.</p></div></div>
     <div class="panelSection"><div class="sectionLabel">Навигация</div><div class="twocol"><button id="loopStartBtn" class="btn tiny">⟲ Начало Loop</button><button id="loopEndBtn" class="btn tiny">⟳ Конец Loop</button></div><div style="display:flex;gap:7px;margin-top:8px"><button id="loopClearBtn" class="btn tiny ghost" style="flex:1">Сброс Loop</button><button id="addBookmarkBtn" class="btn tiny ghost" style="flex:1">Закладка</button></div><div class="small" id="loopLabel" style="margin-top:10px">Повтор не выбран</div></div>
-    <div id="pianoMotionMidiPanel" class="panelSection hidden">
-     <div class="sectionLabel">PianoMotion · оригинальный MIDI-алгоритм (локальное исследование)</div>
-     <p class="small">Работает с уже открытым MIDI: запускает оригинальное Python-ядро PianoMotion в браузере через локальный Pyodide. Без повторной загрузки файла. Предложения не принимаются автоматически и не управляют учебными руками.</p>
-     <button type="button" id="pianoMotionMidiRun" class="btn tiny primary">🧠 Рассчитать MIDI в PianoMotion</button>
-     <p id="pianoMotionMidiStatus" class="small" role="status" aria-live="polite">Выбери MIDI-произведение, уже сохранённое в библиотеке.</p>
-     <div id="pianoMotionMidiResults" class="fingerBrowserCandidates"></div>
-    </div>
   </div>
   <div id="tabAdapt" class="hidden">
     <div class="panelSection"><div class="sectionLabel">Smart Song Adaptation v0.6</div>
