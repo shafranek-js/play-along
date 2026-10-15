@@ -29,12 +29,13 @@ test('all feature parts form exactly one valid JavaScript bundle',()=>{
  execFileSync(process.execPath,['--check',path.join(root,'tests/status-bar.real.test.mjs')]);
  execFileSync(process.execPath,['--check',path.join(root,'tests/compact-workspace.real.test.mjs')]);
  execFileSync(process.execPath,['--check',path.join(root,'tests/piano-roll-grid-opacity.real.test.mjs')]);
+ execFileSync(process.execPath,['--check',path.join(root,'tests/unified-fingering-workspace.real.test.mjs')]);
 });
 test('public beta fingering has explicit no-expert warning and does not gate user Apply',()=>{
  const original=read('src/index.html');
  assert.match(original,/id="pianoMotionBetaNotice"/);
  assert.match(original,/не проверена профессиональным пианистом/);
- assert.match(original,/id="pianoMotionCalculate"[^>]*>🧠 Предложить аппликатуру/);
+ assert.match(original,/id="pianoMotionCalculate"[^>]*>🧠 Рассчитать аппликатуру/);
  assert.match(original,/id="pianoMotionApply"/);
  assert.match(original,/id="pianoMotionExportXML"/);
  assert.match(js,/pianoMotionReviewApply\(/);
