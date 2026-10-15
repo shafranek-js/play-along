@@ -67,9 +67,20 @@ try{
  },[...cohort.midiBytes]);
  assert.equal(initial.count,cohort.noteCount);
  assert.equal(initial.hasPreexistingFingers,false);
- // v0.10.118: the original PianoMotion controls now live in the Fingering
- // workspace, not the permanently open Practice sidebar.
- await page.locator('#viewFingerEditor').click();
+ // v0.10.118: the original PianoMotion controls live in one central view.
+ // A narrower viewport uses the visible compact select, not the hidden
+ // desktop-only score-view button. Exercise the real user-facing control.
+ const desktopTab=page.locator('#viewFingerEditor');
+ const compactSelect=page.locator('#compactViewSelect');
+ if(await desktopTab.isVisible()){
+  await desktopTab.click();
+ }else{
+  assert.equal(await compactSelect.isVisible(),true,
+   'responsive score view selector must expose Fingering');
+  await compactSelect.selectOption('editor');
+ }
+ await page.waitForFunction(()=>
+  !document.getElementById('fingerEditorWrap')?.classList.contains('hidden'));
  assert.equal(await page.locator('#fingerEditorWrap #pianoMotionCalculate').isVisible(),true);
  await page.locator('#pianoMotionCalculate').click();
  // This wait must not succeed for a synthetic Worker; the network request
