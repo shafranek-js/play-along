@@ -1,3 +1,4 @@
+import {selectCompactFingerMode,selectCompactLookahead} from './compact-ui-helpers.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import http from 'node:http';
@@ -35,7 +36,7 @@ try{
  },xml);
  const originals=await load(),first=originals[0],second=originals[1];
  assert.deepEqual(originals.map(n=>n.finger),[1,null]);
- await page.locator('#fingerGuideMode').selectOption('numbers');
+ await selectCompactFingerMode(page,'numbers');
  const select=async noteId=>{
   assert.equal(await page.evaluate(id=>window.__fingerGuideTest.selectAuthoredNote(id),noteId),true);
   await page.locator('.fingerCorrection select').first().waitFor();
@@ -90,7 +91,7 @@ try{
  const importedAgain=await load();
  assert.deepEqual(importedAgain.map(n=>n.id),originals.map(n=>n.id),
   'Reimport preserves source IDs');
- await page.locator('#fingerGuideMode').selectOption('numbers');
+ await selectCompactFingerMode(page,'numbers');
  await select(second.id);
  assert.deepEqual(await correction(),{finger:2,hand:'RH',source:'user'},
   'Stored correction must survive a fresh page and identical XML import');
