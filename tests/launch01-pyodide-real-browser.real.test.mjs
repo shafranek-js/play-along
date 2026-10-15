@@ -82,6 +82,13 @@ try{
  await page.waitForFunction(()=>
   !document.getElementById('fingerEditorWrap')?.classList.contains('hidden'));
  assert.equal(await page.locator('#fingerEditorWrap #pianoMotionCalculate').isVisible(),true);
+ // Floating panels cover the score with a real pointer-intercepting scrim.
+ // Dismiss this user-visible overlay through its normal close action.
+ const scrim=page.locator('#panelScrim');
+ if(await scrim.isVisible()){
+  await scrim.click();
+  await scrim.waitFor({state:'hidden'});
+ }
  await page.locator('#pianoMotionCalculate').click();
  // This wait must not succeed for a synthetic Worker; the network request
  // list is also checked below. Abort on real UI errors with a useful code.
