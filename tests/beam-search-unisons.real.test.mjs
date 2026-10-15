@@ -117,6 +117,8 @@ try{
  assert.match(wideMetrics,/Анатомическая модель: 2 предложений · 2 сложных нот без расчёта/);
  assert.match(wideMetrics,/Охват обычной модели: 50\.0% \(2\/4 нот\)/);
  assert.match(wideMetrics,/Охват анатомической модели: 50\.0% \(2\/4 нот\)/);
+ assert.match(wideMetrics,/Расширенный поиск · обычная: 0 участков · 0 нот/);
+ assert.match(wideMetrics,/Расширенный поиск · анатомическая: 0 участков · 0 нот/);
  const diagnostics=await page.locator('#fingerBrowserCandidates').innerText();
  assert.match(diagnostics,/B3/);
  assert.match(diagnostics,/F5/);
@@ -125,6 +127,7 @@ try{
  assert.match(diagnostics,/Анатомическая модель · 1 проблемных участков/);
  assert.match(diagnostics,/ноты при отказе: B3, F5/);
  assert.match(diagnostics,/охват кисти или порядок пальцев/);
+ assert.match(diagnostics,/поиск при ширине 40 → 80 → 128 не помог/);
  const wideAfter=await page.evaluate(()=>window.__prototypeTest.song.tracks.flatMap(t=>t.notes).map(n=>({
   noteId:n.noteId,pitch:n.pitch,start:n.start,duration:n.duration,
   staff:n.staff,voice:n.voice,finger:n.finger??null
