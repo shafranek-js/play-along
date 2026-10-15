@@ -6,6 +6,10 @@
 
 **Active next task:** LAUNCH-01 F2 musical transport, MIDI controller, sustain pedal (CC64), Wait/Seek/Loop/Tempo, release timing and browser audio QA; then LAUNCH-02 source-safe editable fingering and LAUNCH-03 UX/stability. At final release, explicitly choose between documented legal permission, independent code replacement or an adjusted distribution scope. Earlier roadmap descriptions of F0 as a release gate are **not removed**, but the gate is no longer part of the current sprint. Expert pianist recruitment remains optional after launch.
 
+## LAUNCH-06 — unified contextual fingering (v0.10.118)
+
+Single central Fingering workspace for MIDI, MusicXML, MXL and MuseScore-converted songs. The unchanged production PianoMotion Python engine is available regardless of source, whereas original-score manual editing and Beam Search remain exclusive to original MusicXML. Move both the production flow and the isolated local-only MIDI research panel out of the sidebar. Maintain original source, author protection, selective apply, audit, source fingerprint/Undo history, MusicXML export and fail-closed restrictions. Acceptance: `tests/unified-fingering-workspace.real.test.mjs` plus the existing fingering review and score tests.
+
 ## LAUNCH-05 — Piano Roll background opacity slider (v0.10.117)
 
 User-requested grid/lane visibility at 0..100%, 50% default: 0% draws no pitch-lane strips, vertical grid borders or horizontal time guides; notes, 88-key piano and 2D hands are unaffected. The control lives in Practice settings and persists via safe app preference validation. Chromium test `tests/piano-roll-grid-opacity.real.test.mjs` exercises real canvas output at 0/50/100 and migration.
