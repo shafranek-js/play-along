@@ -53,12 +53,14 @@ try{
  await page.evaluate(()=>window.__prototypeTest.seek(.92));
  const third=await page.evaluate(()=>window.__fingerGuideTest.frame);
  assert.ok(Math.abs(third.current-1.38)<1e-6&&Math.abs(third.next-1.84)<1e-6);
- // Switching off restores the original keyboard dimensions.
+ // The full 88-key keyboard must NEVER change key proportions when the
+ // hands are toggled; only the guidance overlay is enabled/disabled.
  await page.locator('#fingerGuideMode').selectOption('off');
  assert.equal(await page.locator('#fingerGuideLookahead').isDisabled(),true);
  await page.waitForTimeout(50);
  const low=await page.evaluate(()=>window.__fingerGuideTest.layout);
- assert.ok(low.keyboardBlackH<high.keyboardBlackH);
+ assert.ok(Math.abs(low.keyboardBlackH-high.keyboardBlackH)<.01,
+  'virtual key geometry stays invariant when PNG guidance is toggled');
  // Return to a demo and confirm per-song guidance settings persist across reload.
  await page.locator('#fingerGuideMode').selectOption('hands');
  await page.waitForTimeout(80);
