@@ -95,6 +95,7 @@ try{
  await page.locator('#leftPin').click();
  assert.equal((await geometry()).dockLeft,true);
  await page.setViewportSize({width:390,height:844});
+ await page.waitForFunction(()=>innerWidth===390&&!document.getElementById('shell').classList.contains('dockLeft'));
  const mobile=await geometry();
  assert.equal(mobile.keys,88);
  assert.equal(mobile.dockLeft,false);
@@ -103,6 +104,7 @@ try{
  assert.ok(Math.abs(mobile.left.top-54)<=1,'drawer starts below mobile header');
  assert.ok(mobile.left.bottom>mobile.roll.top+100,'mobile drawer spans keyboard, not just header');
  await page.setViewportSize({width:1792,height:900});
+ await page.waitForFunction(()=>innerWidth===1792&&document.getElementById('shell').classList.contains('dockLeft'));
  assert.equal((await geometry()).dockLeft,true,'saved pin redocks when space returns');
 
  // Focus mode has an uninterrupted A0-C8 surface; independent full Library unaffected.
