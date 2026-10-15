@@ -43,6 +43,39 @@ export function prepareBrowserFingeringUnisons(notes){
  }
  return {ok:true,notes:kept,omitted};
 }
+// A non-computable chord / overlap island must not invalidate every independent
+// phrase of a 400+ note score. Keep all source identities and author labels,
+// remove only the WHOLE refused, temporally connected island from a COPY,
+// and rerun the original unmodified solver on the remainder. No fabricated
+// fingers, softened span thresholds, MIDI length edits or hidden fallback.
+const RECOVERABLE_ISLAND_FAILURES=new Set(['NO_VALID_PATH','TOO_MANY_SIMULTANEOUS_KEYS']);
+function solveModelWithIsolatedAbstentions(parts,{costModel,handSize}){
+ const remaining={RH:parts.RH.slice(),LH:parts.LH.slice()};
+ const excluded=[];
+ const maxPasses=Math.min(64,parts.RH.length+parts.LH.length);
+ for(let pass=0;pass<=maxPasses;pass++){
+  const result=proposeHybridScoreFingering(remaining,{costModel,handSize,beamWidth:40});
+  if(result.ok)return {ok:true,result,remaining,excluded};
+  if(!RECOVERABLE_ISLAND_FAILURES.has(result.reason)||
+     !['RH','LH'].includes(result.hand)||
+     !Array.isArray(result.segmentNoteIds)||!result.segmentNoteIds.length)
+   return {ok:false,reason:result.reason,excluded};
+  const blocked=new Set(result.segmentNoteIds);
+  const removed=remaining[result.hand].filter(n=>blocked.has(n.noteId));
+  // Fail closed if the router did not identify one recoverable source island.
+  if(!removed.length||removed.length!==blocked.size||pass===maxPasses)
+   return {ok:false,reason:'PARTIAL_ISLAND_MAPPING_FAILED',excluded};
+  remaining[result.hand]=remaining[result.hand].filter(n=>!blocked.has(n.noteId));
+  excluded.push(...removed.map(n=>({
+   noteId:n.noteId,pitch:n.pitch,start:n.start,duration:n.duration,
+   hand:n.hand,staff:n.staff??'',voice:n.voice??'',
+   reason:result.reason
+  })));
+  if(!remaining.RH.length&&!remaining.LH.length)
+   return {ok:false,reason:'NO_COMPUTABLE_ISLANDS',excluded};
+ }
+ return {ok:false,reason:'PARTIAL_ISLAND_PASS_LIMIT',excluded};
+}
 export function compareBrowserFingeringResearch({notes,handSize='M'}={}){
  if(!Array.isArray(notes)||notes.length<1||notes.length>2500)
   return fail('INVALID_NOTE_COUNT');
@@ -73,14 +106,17 @@ export function compareBrowserFingeringResearch({notes,handSize='M'}={}){
  for(const n of prepared.notes)parts[n.hand].push(n);
  const results={};
  for(const costModel of ['legacy','anatomical']){
-  const r=proposeHybridScoreFingering(parts,{costModel,handSize,beamWidth:40});
-  if(!r.ok){
-   results[costModel]={status:'refused',reason:r.reason,
-    proposed:0,physicalViolations:null,warnings:null};
+  const attempt=solveModelWithIsolatedAbstentions(parts,{costModel,handSize});
+  if(!attempt.ok){
+   results[costModel]={status:'refused',reason:attempt.reason,
+    proposed:0,physicalViolations:null,warnings:null,
+    omittedCount:attempt.excluded.length,omittedNotes:attempt.excluded};
    continue;
   }
+  const r=attempt.result,solved=attempt.remaining;
+  const eligible=[...solved.RH,...solved.LH];
   const items=[...r.hands.RH,...r.hands.LH];
-  const perHand=['RH','LH'].map(h=>auditFingeringAssignments(parts[h],r.hands[h],{
+  const perHand=['RH','LH'].map(h=>auditFingeringAssignments(solved[h],r.hands[h],{
    handSize,spanModel:costModel}));
   const physicalViolations=perHand.flatMap(x=>x.violations);
   if(physicalViolations.length){
@@ -89,30 +125,36 @@ export function compareBrowserFingeringResearch({notes,handSize='M'}={}){
    continue;
   }
   const byId=new Map(items.map(n=>[n.noteId,n]));
-  if(byId.size!==prepared.notes.length||prepared.notes.some(n=>!byId.has(n.noteId))){
+  if(byId.size!==eligible.length||eligible.some(n=>!byId.has(n.noteId))){
    results[costModel]={status:'refused',reason:'SOURCE_IDENTITY_LOST',
     proposed:0,physicalViolations:null,warnings:null};
    continue;
   }
-  const proposed=prepared.notes.filter(n=>n.finger==null).map(n=>({
+  const proposed=eligible.filter(n=>n.finger==null).map(n=>({
     noteId:n.noteId,hand:n.hand,pitch:n.pitch,start:n.start,
     finger:byId.get(n.noteId).finger
   }));
   results[costModel]={status:'computed',reason:null,
    proposed:proposed.length,physicalViolations:0,
    warnings:(r.diagnostics?.warnings.RH?.length||0)+(r.diagnostics?.warnings.LH?.length||0),
+   omittedCount:attempt.excluded.length,
+   omittedNotes:attempt.excluded,
+   eligibleCount:eligible.length,
    candidates:proposed};
  }
  const l=results.legacy,a=results.anatomical;
  let disagreements=null;
  if(l.status==='computed'&&a.status==='computed'){
   const amap=new Map(a.candidates.map(n=>[n.noteId,n.finger]));
-  disagreements=l.candidates.filter(n=>amap.get(n.noteId)!==n.finger).length;
+  disagreements=l.candidates.filter(n=>amap.has(n.noteId)&&
+   amap.get(n.noteId)!==n.finger).length;
  }
  return {ok:true,researchOnly:true,productionEligible:false,
   expertValidated:false,engine:'Play Along · FG-02I Beam Search',
   noteCount:original.length,eligibleCount:prepared.notes.length,
   omittedCount:prepared.omitted.length,omittedNotes:prepared.omitted,
+  // Model-specific physical abstentions are reported independently. The
+  // selected model owns its own review set; never pretend both agree.
   anchored:original.filter(n=>n.finger!=null).length,
   disagreements,models:results};
 }
