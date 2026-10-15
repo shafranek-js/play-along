@@ -1,3 +1,4 @@
+import {selectCompactFingerMode,selectCompactLookahead} from './compact-ui-helpers.mjs';
 /**
  * LAUNCH-02: Listen hands physically follow source NoteOn/NoteOff; Wait hands
  * target the next unfinished note/chord, without guessing missing fingers.
@@ -25,7 +26,7 @@ try{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('http://127.0.0.1:'+server.address().port);
  await page.waitForFunction(()=>window.__prototypeTest?.loadSong&&window.__fingerGuideTest?.frame,{timeout:15000});
- await page.locator('#fingerGuideMode').selectOption('hands');
+ await selectCompactFingerMode(page,'hands');
  const original=await page.evaluate(()=>{
   const notes=[
    {pitch:60,start:0,duration:.65,finger:1,hand:'RH',track:0,velocity:85,fingeringSource:'musicxml',noteId:'rh60'},
