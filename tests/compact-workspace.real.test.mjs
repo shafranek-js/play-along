@@ -77,7 +77,7 @@ try{
 
  await page.locator('#focusBtn').click();
  const focus=await measure();
- assert.ok(Math.abs(focus.piano.top)<=1,'focus rolls to top edge');
+ assert.ok(Math.abs(focus.piano.top)<=1,'focus rolls to top edge: '+JSON.stringify({focus,bodyClass:await page.locator('body').getAttribute('class'),top:await page.locator('#rollWrap').evaluate(el=>getComputedStyle(el).top)}));
  assert.ok(Math.abs(focus.piano.bottom-focus.status.top)<=1,'focus ends at persistent status');
  await page.keyboard.press('f');
 
