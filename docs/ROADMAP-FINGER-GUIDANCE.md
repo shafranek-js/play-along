@@ -1,5 +1,10 @@
 # Play Along — development roadmap: Finger Guidance and musical reliability
 
+## LAUNCH-06 follow-up — safe MusicXML polyphonic unison review (v0.10.119)
+
+For same-pitch overlapping notes in distinct MusicXML voices, reject silent note-off truncation or fabricated MIDI-channel repairs. Only the original-score workflow can opt into partial PianoMotion inference: exclude later simultaneous held-note re-attacks from temporary solver input and provide strict explicit source-note alignment for the remaining proposals. Show omitted-note count for manual editing; original score timing, voices and author fingering remain unchanged. Ambiguous same-onset duplicates remain blocked. Validation: source-safe Node tests, real multi-voice browser preview/review, genuine Pyodide regression and MusicXML export/reimport.
+
+
 ## Owner reprioritization — stop active upstream-licensing work until final release (2026-10-14)
 
 **Decision:** the Hand-thesia/PianoMotion upstream rights question is presently unresolved and cannot reasonably be advanced in this development cycle. Its **decision is deferred to the final-release milestone**; no more repeated licensing audits or attempts at permission are planned during ongoing feature work. Mark **F0: DEFERRED / RIGHTS NOT CLEARED**. This does not grant a right to publicly redistribute existing Python derivatives, including on today's GitHub Pages and any public beta.
