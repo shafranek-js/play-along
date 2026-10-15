@@ -244,3 +244,27 @@ body.onlyLibrary #leftPanel .sidebody>.panelSection:first-child{
 .pianoMotionReviewRow.unavailable input{cursor:not-allowed}
 .pianoMotionReviewRow[data-review-status="applied"] .pianoMotionReviewFinger{color:#9acbad}
 #pianoMotionReviewStats{border-left:2px solid #758fac;padding-left:8px;font-variant-numeric:tabular-nums;line-height:1.6}
+
+
+/* LAUNCH-02 v0.10.113 — genuine window-wide, scroll-free 88-key piano.
+   The active roll occupies a full-width band above the 70px transport.
+   Upper sidebars remain scrollable instead of being permanently covered.
+   All keys derive their height from one shared natural-key width scale. */
+:root{--full-piano-roll-height:min(clamp(270px,56dvh,720px),calc(100dvh - 140px))}
+.rollWrap:not(.hidden){position:fixed;left:0;right:0;bottom:70px;
+ width:100vw;height:var(--full-piano-roll-height);z-index:4;
+ overflow-x:hidden;overflow-y:hidden;scrollbar-width:none;
+ border-top:1px solid #405068}
+.rollWrap:not(.hidden) canvas{width:100%!important;height:100%;
+ touch-action:manipulation}
+.shell:has(.rollWrap:not(.hidden)) .sidebar,
+.shell:has(.rollWrap:not(.hidden)) .splitter,
+.shell:has(.rollWrap:not(.hidden)) .center{
+ max-height:calc(100% - var(--full-piano-roll-height));
+}
+#displayRange{display:none!important}
+@media(max-width:520px){
+ .rollWrap:not(.hidden) .rollHint{display:none}
+ .rollWrap:not(.hidden) .rollStatus{top:5px;left:6px;max-width:calc(100vw - 12px);
+   font-size:10px;padding:4px 6px}
+}
