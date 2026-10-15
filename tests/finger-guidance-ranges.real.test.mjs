@@ -1,3 +1,4 @@
+import {selectCompactFingerMode,selectCompactLookahead} from './compact-ui-helpers.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import http from 'node:http';
@@ -41,7 +42,7 @@ try{
     mk(50,.55,5,'LH'),mk(57,.55,1,'LH')]}
   ]
  });
- await page.locator('#fingerGuideMode').selectOption('ghost');
+ await selectCompactFingerMode(page,'ghost');
  await page.waitForFunction(()=>window.__fingerGuideTest.steps.length===2);
  await page.locator('#layoutMenuButton').click();
  await page.locator('[data-layout="play"]').click();
