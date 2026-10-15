@@ -369,7 +369,7 @@ body.focus:not(.onlyLibrary):not(.onlyProgress) .shell.hybridMode #rollWrap:not(
 .centerHead{display:none!important}
 
 /* Topbar view switcher, layout and finger controls. Keep controls in one row. */
-#topbar{gap:10px}
+#topbar{gap:10px;z-index:20}
 #topbar .scoreViewSwitcher{min-width:0;gap:2px;padding:2px;border-radius:8px;margin-left:4px}
 #topbar .scoreViewSwitcher button{font-size:11px;padding:6px 8px}
 #topbar .scoreViewSwitcher button:focus-visible{outline:2px solid var(--accent2)}
