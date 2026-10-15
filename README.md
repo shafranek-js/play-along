@@ -1,4 +1,9 @@
-# Play Along — Piano Practice App (v0.10.118)
+# Play Along — Piano Practice App (v0.10.119)
+
+## LAUNCH-06 — source-safe overlapping-unison MusicXML fingering recovery (v0.10.119)
+
+In polyphonic original MusicXML, distinct voices can sustain and re-attack the **same pitch** before its first note ends. Exporting these overlapping note-ons to one MIDI channel cannot preserve their identity; the original PianoMotion Python normalizer truncates same-pitch overlapping notes even across channels. The production calculation therefore uses a **MusicXML-only explicit partial calculation**: leave every score note, voice, author finger and duration completely unchanged; omit only the later overlapping same-pitch event from temporary solver MIDI; run the genuine original Python on the unambiguous remainder. Show the precise omission count and require users to assign fingers manually to omitted notes in the score editor. Review/Apply/Undo/Redo/MusicXML export validate the solver's exact source-note whitelist so suggestions can never attach to omitted or changed notes. Ambiguous same-onset duplicate notes remain blocked rather than guessed. For non-MusicXML inputs the previous strict rejection is preserved. Example from customer-submitted Air on the G String MXL: 445 playable score notes, 3 distinct-time overlapping unisons, 442 eligible solver notes (the original score file is never redistributed in the repository). Regression: pure adapter/source-selection unit tests and real Chromium multi-voice fingering review, plus existing real Pyodide and source-safe export suites.
+
 
 ## LAUNCH-06 — Responsive real-Pyodide CI correction (v0.10.118)
 

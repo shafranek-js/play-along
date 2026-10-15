@@ -54,7 +54,11 @@ export function pianoMotionCanRetry(reason){
  return ['ORIGINAL_MIDI_PROVENANCE_UNVERIFIED','NOT_A_STANDARD_MIDI_FILE',
   'ORIGINAL_MIDI_STRUCTURE_UNSUPPORTED','PIANOMOTION_MIDI_STRUCTURE_UNSUPPORTED'].includes(String(reason));
 }
-export function makePianoMotionMidiFromSong(song,{trackIndices,channel=null}={}){
+export function makePianoMotionMidiFromSong(song,{trackIndices,channel=null,overlapPolicy='reject'}={}){
+ // Only opt-in MusicXML review may omit repeated attacks; never rewrite
+ // a note's pitch, onset, release, or the original source document.
+ if(!['reject','omit-later'].includes(overlapPolicy))
+  return {ok:false,reason:'INVALID_OVERLAP_POLICY'};
  if(!song||!Array.isArray(song.tracks)||!song.tracks.length)
   return {ok:false,reason:'NO_SELECTED_SONG'};
  const chosen=trackIndices==null?null:new Set(trackIndices);
@@ -76,44 +80,77 @@ export function makePianoMotionMidiFromSong(song,{trackIndices,channel=null}={})
   }
  }
  if(!items.length||items.length>10000)return {ok:false,reason:'UNSUPPORTED_NOTE_COUNT'};
- // One piano channel is enough for analysis. Same-pitch overlapping note-ons
- // cannot be represented reliably on one channel; reject instead of truncating.
- const byPitch=new Map();
+ // PianoMotion's own sanitize_notes() truncates overlapping same-pitch
+ // re-strikes, even across MIDI channels/tracks. Multi-channel splitting
+ // would therefore destroy note identity. In opt-in MusicXML mode, send
+ // only the first unambiguous event for each overlapping interval, leaving
+ // later events in the original score for explicit manual review.
+ // Exact same-onset duplicates are never selected: their output cannot be
+ // mapped unambiguously to a source note by pitch/onset/end.
+ const byPitch=new Map(),omittedSet=new Set(),omittedNotes=[];
  for(const n of [...items].sort((a,b)=>a.startTick-b.startTick||a.endTick-b.endTick)){
-  if(n.startTick<(byPitch.get(n.pitch)??-1))
-   return {ok:false,reason:'OVERLAPPING_UNISON_REQUIRES_REVIEW'};
-  byPitch.set(n.pitch,n.endTick);
+  const prior=byPitch.get(n.pitch);
+  if(prior&&n.startTick<prior.endTick){
+   if(overlapPolicy!=='omit-later'||n.startTick===prior.startTick)
+    return {ok:false,reason:'OVERLAPPING_UNISON_REQUIRES_REVIEW'};
+   omittedSet.add(n);
+   omittedNotes.push({trackIndex:n.trackIndex,ordinal:n.ordinal,pitch:n.pitch,
+    startSeconds:n.start,endSeconds:n.end});
+   continue;
+  }
+  byPitch.set(n.pitch,n);
  }
+ const prepared=items.filter(n=>!omittedSet.has(n));
+ if(!prepared.length)return {ok:false,reason:'NO_UNAMBIGUOUS_NOTES'};
  const events=[{tick:0,order:0,data:[0xff,0x51,0x03,0x0f,0x42,0x40]}];
  const index=[];
- for(const [i,n]of items.entries()){
+ for(const [i,n]of prepared.entries()){
   events.push({tick:n.startTick,order:2,data:[0x90,n.pitch,90]});
   events.push({tick:n.endTick,order:1,data:[0x80,n.pitch,0]});
   index.push({trackIndex:n.trackIndex,ordinal:n.ordinal,pitch:n.pitch,
    startSeconds:n.startTick/1000,endSeconds:n.endTick/1000,index:i});
  }
- events.push({tick:Math.max(...items.map(n=>n.endTick))+1,order:3,data:[0xff,0x2f,0]});
+ events.push({tick:Math.max(...prepared.map(n=>n.endTick))+1,order:3,data:[0xff,0x2f,0]});
  events.sort((a,b)=>a.tick-b.tick||a.order-b.order);
  const body=[];let prev=0;
  for(const e of events){body.push(...vlq(e.tick-prev),...e.data);prev=e.tick}
  const result=Uint8Array.from([...four('MThd'),...u32(6),...u16(0),...u16(1),...u16(1000),
   ...four('MTrk'),...u32(body.length),...body]);
  return {ok:true,midiBytes:result,source:'derived-from-open-song',
-  exactOriginalMidi:false,sourceNotes:index,trackIndices:chosen?[...chosen]:null,
-  tempoAutomationPreserved:false};
+  exactOriginalMidi:false,sourceNotes:index,omittedNotes,fullNoteCount:items.length,
+  trackIndices:chosen?[...chosen]:null,tempoAutomationPreserved:false};
 }
 /** Independent, strict note alignment. No in-place edits on ambiguous mappings. */
-export function pianoMotionAlignSuggestions(song,suggestions,{trackIndices,channel=null,tolerance=.025}={}){
+export function pianoMotionAlignSuggestions(song,suggestions,{trackIndices,channel=null,tolerance=.025,sourceNotes=null}={}){
  if(!song||!Array.isArray(song.tracks)||!Array.isArray(suggestions)||!suggestions.length)
   return {ok:false,reason:'NO_NOTE_MAPPING'};
  const selected=trackIndices==null?null:new Set(trackIndices);
+ // The explicit source whitelist is needed only for a MusicXML partial
+ // calculation. Revalidate original note values each time we apply/export;
+ // a source changed after preview must fail closed.
+ const allowed=sourceNotes===null?null:new Map();
+ if(allowed){
+  if(!Array.isArray(sourceNotes)||!sourceNotes.length)return {ok:false,reason:'INVALID_SOURCE_SELECTION'};
+  for(const s of sourceNotes){
+   const key=s.trackIndex+':'+s.ordinal;
+   const n=song.tracks[s.trackIndex]?.notes?.[s.ordinal];
+   if(!Number.isInteger(s.trackIndex)||!Number.isInteger(s.ordinal)||
+      allowed.has(key)||!n||!Number.isInteger(s.pitch)||
+      n.pitch!==s.pitch||Math.abs(n.start-s.startSeconds)>.001||
+      Math.abs(n.start+n.duration-s.endSeconds)>.001)
+    return {ok:false,reason:'SOURCE_SELECTION_CHANGED'};
+   allowed.set(key,true);
+  }
+ }
  const source=[];
  for(const [trackIndex,track]of song.tracks.entries()){
   if(selected&&!selected.has(trackIndex))continue;
   for(const [ordinal,n]of (track.notes||[]).entries()){
-   if(!drumNote(track,n)&&(channel===null||n.channel===channel))source.push({note:n,trackIndex,ordinal});
+   if(!drumNote(track,n)&&(channel===null||n.channel===channel)&&
+      (!allowed||allowed.has(trackIndex+':'+ordinal)))source.push({note:n,trackIndex,ordinal});
   }
  }
+ if(allowed&&source.length!==allowed.size)return {ok:false,reason:'SOURCE_SELECTION_CHANGED'};
  if(source.length!==suggestions.length)return {ok:false,reason:'NOTE_COUNT_MISMATCH',expected:source.length,actual:suggestions.length};
  const used=new Set(),matches=[];
  for(const s of suggestions){

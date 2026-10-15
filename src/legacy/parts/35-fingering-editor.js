@@ -891,11 +891,19 @@ $('pianoMotionCalculate').onclick=()=>{
  function startRun(useExactOriginal){
   // Never feed a guitar/percussion MIDI directly to the two-hand piano solver.
   const original=useExactOriginal&&plan.mode==='original'?originalMidiForSong(song):null;
-  const derived=!original?makePianoMotionMidiFromSong(song,{trackIndices:plan.trackIndices,channel:plan.channel??null}):null;
+  const derived=!original?makePianoMotionMidiFromSong(song,{
+   trackIndices:plan.trackIndices,channel:plan.channel??null,
+   // Original score is untouched. Same-pitch overlapping re-attacks are
+   // excluded from solver input and must receive a manual finger instead.
+   overlapPolicy:song.format==='MusicXML'?'omit-later':'reject'
+  }):null;
   if(!original&&!derived?.ok){
    $('pianoMotionStatus').textContent='Не могу подготовить MIDI для расчёта: '+(derived?.reason||'нет нот')+'.';return;
   }
   const midi=original||derived.midiBytes;
+  const omittedCount=derived?.omittedNotes?.length||0;
+  const skippedMessage=omittedCount?
+   ' · '+omittedCount+' перекрывающихся унисонных нот исключены только из расчёта; назначьте им пальцы вручную. Исходная партитура не изменена.':'';
   const diagnostic=pianoMotionPlayableDiagnostic(song,plan.trackIndices,plan.channel??null);
   if(midi.length>4000000){
    $('pianoMotionStatus').textContent='MIDI больше допустимого ограничения 4 МБ.';return;
@@ -904,7 +912,7 @@ $('pianoMotionCalculate').onclick=()=>{
   const exact=!!original;
   $('pianoMotionStatus').textContent=exact?
    'Подготовлен исходный MIDI; загружаю оригинальный Python-алгоритм PianoMotion…':
-   plan.description+' · рассчитываю пальцы для фортепиано…';
+   plan.description+' · рассчитываю пальцы для фортепиано…'+skippedMessage;
   let worker;
   try{worker=new Worker('./assets/pianomotion-engine-worker.js',{type:'module'});}
   catch{
@@ -949,13 +957,14 @@ $('pianoMotionCalculate').onclick=()=>{
     $('pianoMotionStatus').textContent='PianoMotion вернул неполную последовательность. Предложения отклонены.';return;
    }
    const alignment=pianoMotionAlignSuggestions(song,result.suggestions,{
-    trackIndices:plan.trackIndices,channel:plan.channel??null,tolerance:exact?.025:.005
+    trackIndices:plan.trackIndices,channel:plan.channel??null,tolerance:exact?.025:.005,
+    sourceNotes:exact?null:derived.sourceNotes
    });
    const audit=alignment.ok?pianoMotionAuditFingers(alignment):null;
    pianoMotionReviewAudit=audit;
    $('pianoMotionStatus').textContent='Оригинальный PianoMotion Python · '+result.total+
     ' нот · '+result.playable+' пальцев · '+result.unresolved+' не определено. '+
-    (exact?'Исходный MIDI без изменений.':plan.description+'.')+
+    (exact?'Исходный MIDI без изменений.':plan.description+'.')+skippedMessage+
     (diagnostic.possiblyUnplayable?' ВНИМАНИЕ: одновременно удерживается до '+diagnostic.maxHeld+' нот (больше 10).':'')+
     (!alignment.ok?' Применение заблокировано: '+alignment.reason+'.':
      audit&&!audit.ok?' Аудит отказал: '+audit.reason+'.':
@@ -972,7 +981,9 @@ $('pianoMotionCalculate').onclick=()=>{
    pianoMotionLastResult=result;
    pianoMotionLastSong=song;
    pianoMotionLastAlignment=alignment.ok&&audit?.ok?alignment:null;
-   pianoMotionLastPlan=alignment.ok&&audit?.ok?plan:null;
+   pianoMotionLastPlan=alignment.ok&&audit?.ok?{
+    ...plan,sourceNotes:exact?null:derived.sourceNotes,omittedCount,exactOriginalMidi:exact
+   }:null;
    if($('pianoMotionApply'))$('pianoMotionApply').disabled=!alignment.ok||!audit?.ok;
    if($('pianoMotionExportXML'))$('pianoMotionExportXML').disabled=true; // Export only after Apply.
    $('pianoMotionClear').disabled=false;
@@ -1000,7 +1011,7 @@ function pianoMotionReviewValidate(){
  if(!song||pianoMotionLastSong!==song||!alignment?.ok||!plan)return false;
  const checked=pianoMotionAlignSuggestions(song,pianoMotionLastResult.suggestions,{
   trackIndices:plan.trackIndices,channel:plan.channel??null,
-  tolerance:plan.mode==='original'?.025:.005
+  tolerance:plan.exactOriginalMidi?.025:.005,sourceNotes:plan.sourceNotes??null
  });
  if(!checked.ok||checked.matches.some((entry,i)=>entry.note!==alignment.matches[i]?.note)){
   $('pianoMotionStatus').textContent='Ноты изменились после расчёта. Рассчитайте аппликатуру заново.';
@@ -1044,6 +1055,8 @@ function pianoMotionReviewApply(indices){
  $('pianoMotionStatus').textContent='Применено '+result.count+
   ' пальцев · защищено '+batch.protectedCount+
   ' · без пальца '+batch.unresolved+' · конфликтных пропущено '+batch.blockedCount+
+   (pianoMotionLastPlan?.omittedCount?' · '+pianoMotionLastPlan.omittedCount+
+     ' перекрывающихся нот остаются для ручной аппликатуры.':'')+
    ' · предложения не являются авторскими.';
 }
 $('pianoMotionApply').onclick=()=>pianoMotionReviewApply(
@@ -1069,7 +1082,8 @@ if($('pianoMotionExportXML'))$('pianoMotionExportXML').onclick=()=>{
  }
  const refreshed=pianoMotionAlignSuggestions(song,pianoMotionLastResult.suggestions,{
   trackIndices:pianoMotionLastPlan.trackIndices,channel:pianoMotionLastPlan.channel??null,
-  tolerance:pianoMotionLastPlan.mode==='original'?.025:.005
+  tolerance:pianoMotionLastPlan.exactOriginalMidi?.025:.005,
+  sourceNotes:pianoMotionLastPlan.sourceNotes??null
  });
  if(!refreshed.ok||refreshed.matches.some((entry,i)=>
      entry.note!==pianoMotionLastAlignment.matches[i]?.note)){

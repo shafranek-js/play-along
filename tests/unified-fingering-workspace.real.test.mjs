@@ -81,6 +81,41 @@ try{
   'preview does not silently alter notes or author fingering');
  await page.evaluate(()=>window.Worker=window.__unifiedTestWorker);
 
+ // Real multi-voice MusicXML overlap: safely preview all other notes.
+ const overlapXml='<score-partwise version="4.0"><part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list><part id="P1"><measure number="1"><attributes><divisions>480</divisions><staves>2</staves><time><beats>4</beats><beat-type>4</beat-type></time></attributes><note><pitch><step>C</step><octave>4</octave></pitch><duration>480</duration><voice>1</voice><type>quarter</type><staff>1</staff></note><note><pitch><step>D</step><octave>4</octave></pitch><duration>480</duration><voice>1</voice><type>quarter</type><staff>1</staff></note><note><pitch><step>E</step><octave>4</octave></pitch><duration>960</duration><voice>1</voice><type>half</type><staff>1</staff></note><backup><duration>1920</duration></backup><note><pitch><step>D</step><octave>4</octave></pitch><duration>1920</duration><voice>2</voice><type>whole</type><staff>1</staff></note></measure></part></score-partwise>';
+ const overlapLoaded=await page.evaluate(xml=>{
+  const loaded=window.__libraryV08.readMusicXML(xml,'polyphony.musicxml');
+  window.__prototypeTest.loadSong(loaded);
+  return loaded.tracks.flatMap(t=>t.notes).length;
+ },overlapXml);
+ assert.equal(overlapLoaded,4);
+ await page.locator('#viewFingerEditor').click();
+ const overlapOriginal=await page.evaluate(()=>JSON.stringify(window.__prototypeTest.song.tracks));
+ await page.evaluate(()=>{
+  const RealWorker=window.Worker;
+  window.__overlapRealWorker=RealWorker;
+  window.Worker=class{
+   postMessage(message){
+    const all=window.__prototypeTest.song.tracks.flatMap(t=>t.notes);
+    const filtered=all.filter(n=>!(n.pitch===62&&n.voice==='1'));
+    const suggestions=filtered.map(n=>({pitch:n.pitch,start:n.start,
+     end:n.start+n.duration,hand:'RH',finger:n.pitch===60?1:n.pitch===62?2:3}));
+    queueMicrotask(()=>this.onmessage?.({data:{id:message.id,type:'result',result:{
+     total:suggestions.length,playable:suggestions.length,unresolved:0,suggestions}}}));
+   }
+   terminate(){}
+  };
+ });
+ await page.locator('#pianoMotionCalculate').click();
+ await page.waitForFunction(()=>/3 нот/.test(document.getElementById('pianoMotionStatus').textContent),null,{timeout:15000});
+ assert.match(await page.locator('#pianoMotionStatus').textContent(),
+  /1 перекрывающихся унисонных нот исключены только из расчёта/);
+ assert.equal(await page.locator('#pianoMotionReview').isVisible(),true);
+ assert.equal(await page.locator('#pianoMotionApply').isEnabled(),true);
+ assert.equal(await page.evaluate(()=>JSON.stringify(window.__prototypeTest.song.tracks)),overlapOriginal,
+  'preview must never alter any of the source MusicXML notes, including omitted unisons');
+ await page.evaluate(()=>window.Worker=window.__overlapRealWorker);
+ 
  // MusicXML: original author controls and research become available in same tab.
  const score=await page.evaluate(xml=>{
   const song=window.__libraryV08.readMusicXML(xml,'fingering-score.musicxml');
