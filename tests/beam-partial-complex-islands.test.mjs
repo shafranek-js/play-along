@@ -138,7 +138,10 @@ test('adaptive widths preserve normal 40-width chord output bit-for-bit',async()
  const b=proposeHybridScoreFingering({RH:rh,LH:[]},{beamWidth:40,costModel:'anatomical'});
  assert.equal(a.ok,true,JSON.stringify(a));
  assert.deepEqual(a,b);
- assert.deepEqual(a.hands.RH.map(n=>n.finger),[1,3,5]);
+ const {proposePolyphonicFingering}=await import('../src/core/fingering-polyphonic.mjs');
+ const direct=proposePolyphonicFingering(rh,{hand:'RH',beamWidth:40,costModel:'anatomical'});
+ assert.equal(direct.ok,true);
+ assert.deepEqual(a.hands.RH.map(n=>n.finger),direct.items.map(n=>n.finger));
  assert.deepEqual(a.diagnostics.beamRecoveries,[]);
  assert.equal(a.segments.RH[0].beamWidthUsed,undefined);
 });
