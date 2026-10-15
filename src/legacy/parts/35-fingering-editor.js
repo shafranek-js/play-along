@@ -72,6 +72,9 @@ function fingerEditorRender(){
    id==='fingerEditorRedo'?!fingerOverrideHistoryCurrent().future.length:
    !selectedCount);
  const userWork=fingerGuideWorkKey(),userEdits=userWork?state.fingerOverrides?.[userWork]||{}:{};
+ $('fingerEditorResetFingering').disabled=!fingerEditorAvailable()||
+  !Object.values(userEdits).some(change=>
+   Number.isInteger(change?.finger)&&change.finger>=1&&change.finger<=5);
  $('fingerEditorDownloadXML').disabled=!fingerEditorAvailable()||!!current?.originalNotationXML||
   !Object.keys(userEdits).length;
  const doc=notes.length>0;
@@ -232,6 +235,40 @@ $('fingerEditorApply').onclick=()=>{
 };
 $('fingerEditorReset').onclick=()=>{
  fingerOverrideCommitGroup([...fingerSelectedIds],{reset:true});fingerEditorRender();
+};
+// An explicit whole-score reset strips ONLY user finger numbers. Retain any
+// user-set hand ownership so the next Beam run need not silently infer hands.
+// This is one atomic, undoable user edit; original MusicXML and author fingers
+// are never changed. No action on unrelated works.
+$('fingerEditorResetFingering').onclick=()=>{
+ if(!fingerEditorAvailable()||!current)return;
+ const key=fingerGuideWorkKey(),song=current,edits=state.fingerOverrides?.[key]||{};
+ const sources=new Map(fingerEditorNotes().map(n=>[n.noteId,n]));
+ const entries=[];
+ for(const [id,before]of Object.entries(edits)){
+  if(!Number.isInteger(before?.finger)||before.finger<1||before.finger>5)continue;
+  if(!sources.has(id)){
+   notify('Сброс отклонён: сохранённая нота больше не принадлежит текущему произведению.');
+   return;
+  }
+  const hand=before.hand==='RH'||before.hand==='LH'?before.hand:null;
+  entries.push({id,before:{finger:before.finger,hand:before.hand},
+   after:hand?{finger:null,hand}:null});
+ }
+ if(!entries.length){notify('Нет пользовательских номеров пальцев для сброса.');return;}
+ if(!window.confirm('Сбросить '+entries.length+
+  ' пользовательских номеров пальцев текущего произведения?\n'+
+  'Авторская аппликатура и назначения рук сохранятся.\n'+
+  'Действие можно отменить одной кнопкой «Отменить».'))return;
+ if(current!==song||fingerGuideWorkKey()!==key){
+  notify('Произведение изменилось. Сброс отменён.');return;
+ }
+ const ok=fingerOverrideCommit(null,null,{action:'batch',batch:entries});
+ if(!ok){notify('Сброс аппликатуры не выполнен.');return;}
+ fingerBrowserAbort('Сброшено '+entries.length+
+  ' пользовательских номеров пальцев. Можно рассчитать новую аппликатуру или отменить сброс через Undo.');
+ fingerEditorRender();
+ notify('Сброшено '+entries.length+' номеров пальцев · одно действие Undo');
 };
 $('fingerEditorUndo').onclick=()=>{fingerOverrideCommit(null,null,{action:'undo'});fingerEditorRender()};
 $('fingerEditorRedo').onclick=()=>{fingerOverrideCommit(null,null,{action:'redo'});fingerEditorRender()};

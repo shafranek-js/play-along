@@ -1,5 +1,10 @@
 # Play Along — development roadmap: Finger Guidance and musical reliability
 
+## FG-03C2: score-level fingering reset and reapply (v0.10.125)
+
+After applying 430 Anatomical fingers to the Bach MXL, the user needs an explicit one-click "Сброс аппликатуры" rather than manually selecting all notes. Reset only saved user finger numbers in the active score; preserve independently assigned hands and original author fingers, confirm and make a single Undo step. The existing selected-note "Вернуть автора" remains a separate operation. Real Chromium regression verifies confirmation, atomic update, no source edits and fresh post-reset Beam suggestions.
+
+
 ## FG-02I — post-acceptance read-only model comparison (v0.10.124)
 
 User Bach MXL after applying 430 Anatomical suggestions: 430 saved manual anchors, Anatomical 0 new suggestions at 96.6% analyzed coverage, Legacy refused as AUTHOR_PHYSICAL_CONFLICT under its own tighter reach model. This is not a lost calculation or 430 new source-author annotations. Make saved/author anchor counts explicit and provide separate opt-in read-only research baseline excluding *user finger* constraints (not author finger constraints, not hand ownership), never updating stored overrides or allowing Apply. Maintain explicit mode-change invalidation, results from actual Worker, Undo and source protection. Repeat full CI with real Chromium.

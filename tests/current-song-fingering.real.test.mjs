@@ -83,6 +83,41 @@ try{
  assert.deepEqual(await page.evaluate(()=>window.__prototypeTest.song.tracks.flatMap(t=>t.notes).map(n=>({
   id:n.noteId,pitch:n.pitch,start:n.start,duration:n.duration,finger:n.finger??null
  }))),src,'source remains unchanged after user confirms');
+ // One-button all-note fingering reset does not require selecting notes.
+ // Dismissing confirmation must not write data or grow Undo history.
+ await page.locator('#fingerEditorClear').click();
+ assert.equal(await page.locator('#fingerEditorResetFingering').isEnabled(),true);
+ const historyBefore=await page.evaluate(()=>window.__fingerGuideTest.history);
+ page.once('dialog',async dialog=>{
+  assert.match(dialog.message(),/4 пользовательских номеров/);
+  await dialog.dismiss();
+ });
+ await page.locator('#fingerEditorResetFingering').click();
+ assert.deepEqual(await page.evaluate(()=>window.__fingerGuideTest.userCorrections),saved);
+ assert.deepEqual(await page.evaluate(()=>window.__fingerGuideTest.history),historyBefore);
+ // Confirm removes only fingers, preserving each explicitly accepted RH/LH
+ // hand for another calculation and retaining the authored MusicXML source.
+ page.once('dialog',async dialog=>{await dialog.accept()});
+ await page.locator('#fingerEditorResetFingering').click();
+ const cleared=await page.evaluate(()=>window.__fingerGuideTest.userCorrections);
+ assert.equal(Object.keys(cleared).length,4,'saved hand assignments are preserved');
+ assert.ok(Object.values(cleared).every(x=>x.finger===null&&(x.hand==='RH'||x.hand==='LH')));
+ assert.equal(await page.locator('#fingerEditorResetFingering').isDisabled(),true);
+ assert.deepEqual(await page.evaluate(()=>window.__prototypeTest.song.tracks.flatMap(t=>t.notes).map(n=>({
+  id:n.noteId,pitch:n.pitch,start:n.start,duration:n.duration,finger:n.finger??null
+ }))),src,'bulk reset must not edit original score');
+ const resetHistory=await page.evaluate(()=>window.__fingerGuideTest.history);
+ assert.equal(resetHistory.past,historyBefore.past+1,'all four notes reset in one Undo step');
+ await page.locator('#fingerCurrentCalculate').click();
+ await page.waitForFunction(()=>/Предложения для 4 нот/.test(document.querySelector('#fingerBrowserStatus')?.textContent||''),null,{timeout:20000});
+ assert.match(await page.locator('#fingerBrowserMetrics').innerText(),/Уже сохранено пользователем: 0/);
+ assert.match(await page.locator('#fingerBrowserMetrics').innerText(),/Анатомическая модель: 4 предложений/);
+ assert.equal(await page.locator('#fingerBrowserAcceptSelected').isDisabled(),true,
+  'reset does not auto-confirm the next generation');
+ // Single Undo must reinstate the full saved set, not rewind the source.
+ await page.locator('#fingerEditorUndo').click();
+ assert.deepEqual(await page.evaluate(()=>window.__fingerGuideTest.userCorrections),saved);
+ assert.equal(await page.locator('#fingerEditorResetFingering').isEnabled(),true);
  await page.locator('#fingerEditorUndo').click();
  assert.deepEqual(await page.evaluate(()=>window.__fingerGuideTest.userCorrections),{},
   'one undo reverts entire batch');
