@@ -9,8 +9,28 @@ function switchRightTab(tab,save=true){state.rightTab=tab;document.querySelector
 function renderLibrary(){const query=$('librarySearch').value.trim().toLowerCase();const songs=[...demoSongs,...imports,...folderIndex.map(e=>e.song).filter(Boolean)].filter(s=>(s.title+' '+s.author).toLowerCase().includes(query));$('libraryCount').textContent=songs.length+' / '+(demoSongs.length+imports.length+folderIndex.filter(e=>e.song).length);$('songList').textContent='';if(!songs.length){$('songList').innerHTML='<div class="empty">Ничего не найдено</div>';return}for(let s of songs){let b=document.createElement('button');b.className='songRow'+(state.selected===s.id?' active':'');b.innerHTML='<strong></strong><span></span>';b.firstElementChild.textContent=s.title;b.lastElementChild.textContent=s.author+' · '+(s.type==='demo'?'демо':'MIDI-файл');b.onclick=()=>{if(s.folderPath){loadFolderSong(s.folderPath);return}loadSong(s);state.page='practice';applyPage();};$('songList').append(b)}}
 function loadSong(song){if(smart.active)smartStop(false);if(current&&!startupSongRestorePending)captureSongSettings(current);stop();current=song;fingerResearchReset();scoreOnSongChanged();currentSongKey=songFingerprint(song);state.selected=song.id;applySongSettings(song.id);selectedNote=null;fingerSelectedIds.clear();fingerSelectionAnchor=null;fingerSelectionPointer=null;syncSongSettingsUI();$('songName').textContent=song.title;$('songMeta').textContent=song.author+' · '+song.tracks.length+' '+(song.tracks.length===1?'дорожка':'дорожек');$('songType').textContent=song.type==='demo'?'ДЕМО ДЛЯ ПРОВЕРКИ ИНТЕРФЕЙСА':'ЗАГРУЖЕННАЯ ПАРТИТУРА · '+(song.format||'MIDI');$('playModeChip').textContent='MIDI · '+({listen:'Слушать',wait:'Wait',tempo:'Tempo'}[state.mode]||'Слушать');$('trackSelect').innerHTML='';song.tracks.forEach((t,i)=>{let o=document.createElement('option');o.value=i;o.textContent=(i+1)+'. '+t.name+' ('+t.notes.length+' нот)';$('trackSelect').append(o)});const previousTrack=Number(state.track);state.track=Number.isInteger(previousTrack)&&previousTrack>=0&&previousTrack<song.tracks.length?previousTrack:Math.max(0,song.tracks.findIndex(t=>t.notes.some(isPlayableNote)));$('trackSelect').value=String(state.track);renderCapability();rebuildPerfLast();resetPractice();renderLibrary();updateUI();persist();resizeCanvas();renderReview();scoreSetView(state.scoreView);}
 function notesToShow(){if(!current)return[];const chosen=selectedPlaybackNotes();return state.allTracks?current.tracks.flatMap((t,i)=>i===state.track?chosen:t.notes):chosen}
-function noteRange(){const actual=getProfile(),preview=targetKeyboard(),active=actual||preview;if(state.displayRange==='device'&&active)return{min:active.low,max:active.high,calibrated:true,virtual:!actual};let notes=notesToShow(),lo=notes.length?Math.min(...notes.map(x=>x.pitch)):48,hi=notes.length?Math.max(...notes.map(x=>x.pitch)):84;const extra=3;return{min:clamp(lo-extra,0,127),max:clamp(hi+extra,0,127),calibrated:false,virtual:false}}
-function updateRange(){const r=noteRange();$('keyboardRangeText').textContent=(r.calibrated?'Клавиатура: ':'Экран: ')+nameOf(r.min)+' — '+nameOf(r.max);$('deviceRangeText').textContent=r.calibrated?'· '+(r.max-r.min+1)+' клавиш'+(r.virtual?' (предпросмотр)':''):'· диапазон записи';$('pitchChip').textContent=(r.max-r.min+1)+' нот на экране';$('statRange').textContent=getProfile()?(getProfile().high-getProfile().low+1):'—';}
+// A0 (MIDI 21) through C8 (MIDI 108) are always drawn at every viewport.
+// A connected/calibrated or explicitly previewed smaller instrument only
+// changes which on-screen keys can be clicked; it never crops the piano roll.
+function noteRange(){return {min:21,max:108,calibrated:false,virtual:false}}
+function keyboardPlayableRange(){
+ const range=targetKeyboard();
+ return range&&Number.isInteger(range.low)&&Number.isInteger(range.high)&&
+  range.low>=0&&range.high<=127&&range.low<=range.high?
+  {low:Math.max(21,range.low),high:Math.min(108,range.high),
+   virtual:!!range.virtual}:null;
+}
+function updateRange(){
+ const playable=keyboardPlayableRange(),total=playable?
+  Math.max(0,playable.high-playable.low+1):88;
+ $('keyboardRangeText').textContent='Фортепиано: A0 — C8 · 88 клавиш';
+ $('deviceRangeText').textContent=playable?
+  '· доступно '+total+' ('+nameOf(playable.low)+' — '+nameOf(playable.high)+')'+
+  (playable.virtual?' · предпросмотр':' · MIDI-контроллер'):
+  '· полный диапазон активен (калибровка не задана)';
+ $('pitchChip').textContent='88 клавиш · A0–C8'+(playable&&total<88?' · активны '+total:'');
+ $('statRange').textContent=getProfile()?getProfile().high-getProfile().low+1:'—';
+}
 function updateUI(){let d=duration();pos=clamp(pos,0,d);$('timeNow').textContent=fmt(pos);$('timeTotal').textContent=fmt(d);$('seek').value=Math.round(pos/d*1000);$('statNotes').textContent=noteCount;$('statPosition').textContent=fmt(pos);$('statTrack').textContent=current?.tracks[state.track]?.notes.length||0;const playButton=$('playBtn'),pendingPlay=typeof audioGetStatus==='function'&&audioGetStatus()?.transport?.pendingPlay===true;playButton.textContent=pendingPlay?'…':isPlaying?'Ⅱ':'▶';playButton.setAttribute('aria-busy',pendingPlay?'true':'false');const playLabel=pendingPlay?'Отменить подготовку звука · Пробел':isPlaying?'Пауза · Пробел':'Воспроизвести · Пробел';playButton.setAttribute('aria-label',playLabel);playButton.title=playLabel;updateModeStatus();$('speedLabel').textContent=state.speed+'%';$('speed').value=state.speed;$('loopBtn').classList.toggle('on',loop.enabled);$('loopLabel').textContent=loop.start!==null&&loop.end!==null?'Фрагмент: '+fmt(loop.start)+' — '+fmt(loop.end)+(loop.enabled?' · Loop включён':' · Loop выключен'):'Повтор не выбран';updateRange();}
 
 // SF-04 SoundFont controls live in the existing MIDI sidebar. The audio engine
