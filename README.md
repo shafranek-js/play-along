@@ -1,4 +1,13 @@
-# Play Along — Piano Practice App (v0.10.124)
+# Play Along — Piano Practice App (v0.10.125)
+
+## FG-03C2 — one-click undoable score fingering reset (v0.10.125)
+
+The original MusicXML Fingering editor now offers a distinct **«Сброс аппликатуры»** button beside **«Вернуть автора (выбранные)»**. The new action targets all saved user **finger numbers in the current score** without needing a selection. Existing selected-note restore remains untouched. With zero saved finger numbers, Reset is disabled; a count-based native confirmation ensures Cancel makes no changes.
+
+On confirmation, all affected fingers are cleared atomically via the existing batch and single-step Undo/Redo mechanism. Any user-selected LH/RH hand is retained as a hand-only override (finger null). Original MusicXML, authored fingering, other scores, note event timing and pitches remain unchanged; a fresh Beam run can propose fingers again. No silent auto-acceptance. The Worker preview is invalidated after reset.
+
+Node and real Chromium QA cover the four-note accepted-fingers scenario, Cancel, Confirm, no source edits, preserved hand ownership, regenerated suggestions, and one-step Undo.
+
 
 ## FG-02I — safe model comparison after applying fingers (v0.10.124)
 
