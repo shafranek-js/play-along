@@ -15,6 +15,7 @@ import {proposePolyphonicFingering} from './fingering-polyphonic.mjs';
 import {auditFingeringAssignments} from './fingering-audit.mjs';
 
 const REST_BREAK=.8;
+const ADAPTIVE_BEAM_WIDTHS=Object.freeze([40,80,128]);
 const EPS=.002;
 const MAX_NOTES=2500;
 const err=(reason,extra={})=>({ok:false,reason,...extra});
@@ -103,29 +104,48 @@ function slidingWarnings(items){
  return warnings;
 }
 function oneHand(notes,hand,handSize,beamWidth,costModel){
- if(!notes.length)return {ok:true,items:[],methods:[],warnings:[],segments:[]};
+ if(!notes.length)return {ok:true,items:[],methods:[],warnings:[],segments:[],beamRecoveries:[]};
  const allAnchored=notes.every(ownsFinger);
  if(allAnchored){
   const a=auditAnchored(notes,hand,handSize,costModel);
   if(!a.ok)return {...a,hand};
   return {ok:true,items:a.items,methods:['author-validated'],warnings:slidingWarnings(a.items),
-   segments:[{kind:'author-validated',notes:notes.length,sourceAnchors:notes.length}]};
+   segments:[{kind:'author-validated',notes:notes.length,sourceAnchors:notes.length}],
+   beamRecoveries:[]};
  }
  const groups=segment(notes),items=Array(notes.length);
- const methods=[],warnings=[],segmentReport=[];
+ const methods=[],warnings=[],segmentReport=[],beamRecoveries=[];
  let previous=null;
  for(const group of groups){
   const sorted=group.notes.slice().sort(compare);
   const input=sorted.map(({index,...n})=>n);
   const fullyPinned=input.every(ownsFinger);
   let r;
+  const attemptedWidths=[];
   if(fullyPinned)r=auditAnchored(input,hand,handSize,costModel);
-  else if(group.kind==='polyphonic')
+  else if(group.kind==='polyphonic'){
+   // Only this independent overlapping island is retried. The original
+   // scoring, anatomy, global source note IDs and audit stay unchanged.
+   // Retry only when the bounded beam has no path, not for input, anchor,
+   // structural or truly over-full keyboard conflicts.
    r=proposePolyphonicFingering(input,{hand,handSize,beamWidth,costModel});
-  else r=proposeContextualMonophonicFingering(input,{hand,handSize});
+   attemptedWidths.push(beamWidth);
+   if(!r.ok&&r.reason==='NO_VALID_PATH'&&beamWidth===ADAPTIVE_BEAM_WIDTHS[0]){
+    for(const width of ADAPTIVE_BEAM_WIDTHS.slice(1)){
+     attemptedWidths.push(width);
+     r=proposePolyphonicFingering(input,{hand,handSize,beamWidth:width,costModel});
+     if(r.ok||r.reason!=='NO_VALID_PATH')break;
+    }
+   }
+  }else r=proposeContextualMonophonicFingering(input,{hand,handSize});
   if(!r.ok)return err(r.reason,{hand,segmentKind:group.kind,
    segmentNoteIds:input.map(idOf),...(r.violations?{violations:r.violations}:{}),
-   ...(r.failureAt?{failureAt:r.failureAt}:{})});
+   ...(r.failureAt?{failureAt:r.failureAt}:{}),
+   ...(attemptedWidths.length>1?{beamAttemptWidths:attemptedWidths}:{})});
+  if(attemptedWidths.length>1)beamRecoveries.push({
+   hand,firstNoteId:idOf(input[0]),notes:input.length,
+   attemptedWidths,usedWidth:attemptedWidths.at(-1)
+  });
   const placed=r.items.map((n,i)=>sourceFields(input[i],hand,n.finger,ownsFinger(input[i])));
   for(let i=0;i<sorted.length;i++)items[sorted[i].index]=placed[i];
   methods.push(fullyPinned?'author-validated':
@@ -136,6 +156,7 @@ function oneHand(notes,hand,handSize,beamWidth,costModel){
   segmentReport.push({kind:group.kind,notes:input.length,
    firstNoteId:idOf(input[0]),lastNoteId:idOf(input.at(-1)),
    sourceAnchors:input.filter(ownsFinger).length,
+   ...(attemptedWidths.length>1?{beamWidthUsed:attemptedWidths.at(-1)}:{}),
    solver:methods.at(-1)});
   if(previous){
    // We do not yet optimize finger/hand posture jointly across different
@@ -150,7 +171,7 @@ function oneHand(notes,hand,handSize,beamWidth,costModel){
  if(items.some(x=>!x))return err('INTERNAL_ASSIGNMENT_GAP',{hand});
  const independent=auditFingeringAssignments(notes,items,{handSize,spanModel:costModel});
  if(!independent.valid)return err('COMBINED_PHYSICAL_CONFLICT',{hand,violations:independent.violations});
- return {ok:true,items,methods,warnings,segments:segmentReport};
+ return {ok:true,items,methods,warnings,segments:segmentReport,beamRecoveries};
 }
 /**
  * Explicitly-hand-split part data. Does not infer the hand from staff/pitch.
@@ -173,6 +194,7 @@ export function proposeHybridScoreFingering(parts,{handSize='M',beamWidth=40,cos
   segments:{RH:rh.segments,LH:lh.segments},
   diagnostics:{warnings:{RH:rh.warnings,LH:lh.warnings},
    boundaryWarnings:[...rh.warnings,...lh.warnings].filter(x=>
-     x.code==='SEGMENT_BOUNDARY_HAND_CONTINUITY_UNVERIFIED').length},
+     x.code==='SEGMENT_BOUNDARY_HAND_CONTINUITY_UNVERIFIED').length,
+   beamRecoveries:[...rh.beamRecoveries,...lh.beamRecoveries]},
   expertValidated:false,productionEligible:false,confidence:null};
 }
