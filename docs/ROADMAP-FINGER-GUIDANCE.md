@@ -6,6 +6,10 @@
 
 **Active next task:** LAUNCH-01 F2 musical transport, MIDI controller, sustain pedal (CC64), Wait/Seek/Loop/Tempo, release timing and browser audio QA; then LAUNCH-02 source-safe editable fingering and LAUNCH-03 UX/stability. At final release, explicitly choose between documented legal permission, independent code replacement or an adjusted distribution scope. Earlier roadmap descriptions of F0 as a release gate are **not removed**, but the gate is no longer part of the current sprint. Expert pianist recruitment remains optional after launch.
 
+## LAUNCH-02 — full-window 88-key piano and small controller shading (v0.10.113)
+
+Fixed A0–C8 across the entire browser viewport for both notebook and desktop, 52 naturals plus 36 accidentals, no horizontal piano scroll, single-scale 5.5:1 white-key aspect ratio. Small calibrated controller or preview 25/37/49/61/76/88 darkens the out-of-range key region and makes it non-clickable while retaining original MIDI notes and score/hand provenance. Unknown calibration leaves 88 keys interactive, no instrument guesses. Chromium desktop/mobile screenshot evidence and RGB/hit-test acceptance in `tests/finger-guidance-ranges.real.test.mjs`. Does not imply physical controller UAT.
+
 ## LAUNCH-02 — continuous 2D hands, solo rest and nearby active reposition (v0.10.112)
 
 Delivered: original verified solo hand remains as its passive REST PNG between source NoteOff and following NoteOn (no fabricated opposite hand); strictly visual 120 ms low-opacity trail between nearby active positions in Listen only, with exact full-opacity NEW pose at NoteOn. Never infer fingers or hands from unannotated MIDI. No sound/event/scoring edits. Pure unit and live Chromium active-switch, solo-rest, unknown-MIDI and Seek QA required before merging. Rigged anatomical fingers and physical MIDI hardware remain future UAT.

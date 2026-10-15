@@ -310,7 +310,7 @@ window.__fingerGuideTest={
    const marked=known.find(k=>k.pitch===n.pitch);
    return {pitch:n.pitch,hand:marked?.hand??null,finger:marked?.finger??null};
   });},
- get layout(){return {keyboardTop,keyboardBlackH,canvasHeight:lastCanvasSize.h}},
+ get layout(){return {keyboardTop,keyboardBottom,keyboardBlackH,canvasHeight:lastCanvasSize.h}},
 };
 window.__prototypeTest.audio={
  getStatus:audioGetStatus,
