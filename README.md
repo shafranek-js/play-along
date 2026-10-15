@@ -1,4 +1,13 @@
-# Play Along — Piano Practice App (v0.10.123)
+# Play Along — Piano Practice App (v0.10.124)
+
+## FG-02I — safe model comparison after applying fingers (v0.10.124)
+
+After accepting a Beam Search batch into **user overrides**, its fingers become user-locked anchors for future research calculations; consequently the Anatomical model may legitimately report 0 *new* suggestions, whereas Legacy may refuse a conflicting set under `AUTHOR_PHYSICAL_CONFLICT` due to **different reach thresholds**. The original XML and existing saved overrides are not damaged.
+
+The research panel now explicitly displays previously saved user fingers, original author annotations and the number of effective solver anchors. A new **opt-in, read-only** checkbox ("compare Legacy and Anatomical without my saved fingers") lets the user rerun both solvers without user-confirmed finger anchors, while retaining original author MusicXML fingering restrictions and the user's explicit hand choices. The source document and all saved override objects are untouched. **No editable, applicable candidate preview is created in comparison mode:** purple editable suggestions, confirmation and Apply stay disabled. Returning to normal mode requires a fresh calculation, which again honors every saved user finger and every author annotation.
+
+This mode is for evaluating baseline algorithm differences, not changing the active fingering, determining pianist correctness or editing source notes. The previously implemented source-ID validation, notes-for-manual-review exclusions and independent physical audit remain unchanged. Node and real Chromium regression verify saved proposals, repeat calculation, independent read-only recomparison, strict no-apply, unchanged overrides and Undo.
+
 
 ## FG-02I Adaptive Beam Recovery (v0.10.123)
 
