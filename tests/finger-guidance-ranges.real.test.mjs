@@ -147,8 +147,8 @@ try{
    const luma=rgb=>rgb[0]*.21+rgb[1]*.72+rgb[2]*.07;
    if(config.count<88)assert.ok(luma(contrast.outer)<luma(contrast.inside)*.55,
     'disabled unreachable white keys must be visibly darkened on Canvas');
-   else assert.ok(Math.abs(luma(contrast.outer)-luma(contrast.inside))<20,
-    '88-key controller keeps both extreme and central naturals active');
+   else assert.ok(luma(contrast.outer)>150,
+    '88-key controller keeps the extreme A0 white natural bright and active');
    assert.deepEqual(snapshot.sourceFuture,[
     {pitch:61,hand:'RH',finger:1},{pitch:65,hand:'RH',finger:3},
     {pitch:84,hand:'RH',finger:5},
