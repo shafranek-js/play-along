@@ -446,11 +446,18 @@ body.focus:not(.onlyLibrary):not(.onlyProgress) .shell.hybridMode #rollWrap:not(
 .fingeringAutoScroll{flex:0 1 37vh;overflow:auto;min-height:132px;scrollbar-width:thin;
  border-bottom:1px solid #334254;background:#111a27}
 .fingeringAutoScroll.fingeringAutoMidi{flex:1 1 auto;min-height:120px}
+/* Original MusicXML keeps the editable note timeline central; the calculation
+   toolbar scrolls within a small region and expands only for actual proposals. */
+.fingeringAutoScroll.fingeringAutoXml{flex:0 0 auto;max-height:160px;min-height:0}
+.fingeringAutoScroll.fingeringAutoXml:has(#pianoMotionReview:not([hidden])){
+ max-height:34vh;max-height:34dvh;
+}
+
 .fingeringAutoScroll #pianoMotionPanel{padding:9px 12px;border:0;margin:0}
 .fingeringAutoScroll #pianoMotionPanel .sectionLabel{font-size:12px}
 .fingeringAutoScroll #pianoMotionPanel #pianoMotionCalculate{min-height:33px}
 .fingeringAutoScroll #pianoMotionReview{max-width:100%}
-.fingeringAuthorTools{flex:0 1 auto;max-height:33vh;overflow:auto;
+.fingeringAuthorTools{flex:0 1 auto;max-height:22vh;overflow:auto;
  scrollbar-width:thin;background:#1b2431}
 .fingeringAuthorTools[hidden],.fingerEditorScroller[hidden],#fingeringMidiResearch.hidden{display:none!important}
 .fingeringAuthorTools .fingerEditorTop{border-top:1px solid #45546b}
@@ -459,5 +466,5 @@ body.focus:not(.onlyLibrary):not(.onlyProgress) .shell.hybridMode #rollWrap:not(
 @media(max-width:820px){
  .fingeringWorkspaceIntro{padding:8px 10px}
  .fingeringAutoScroll{flex-basis:32vh;min-height:115px}
- .fingeringAuthorTools{max-height:37vh}
+ .fingeringAuthorTools{max-height:24vh}
 }
