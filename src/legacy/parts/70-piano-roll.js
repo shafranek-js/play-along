@@ -588,11 +588,10 @@ function drawFingerGuidance(c,geom,keyY,keyboardH,handsAllowed,handTail=0){
 }
 
 function resizeCanvas(){
- const wrap=$('rollWrap'),r=wrap.getBoundingClientRect(),visibleW=Math.max(1,Math.floor(r.width));
- const range=noteRange(),naturalCount=Array.from({length:range.max-range.min+1},(_,i)=>range.min+i).filter(p=>!isBlackPitch(p)).length;
- // With a large instrument, prefer horizontal scroll to unreadable 3px keys.
- const minWidth=Math.max(visibleW,naturalCount*21);
- const cssW=Math.ceil(minWidth),cssH=Math.max(1,Math.round(r.height));
+ const wrap=$('rollWrap'),r=wrap.getBoundingClientRect();
+ // All 52 naturals and 36 black keys must fit between both WINDOW edges.
+ // No horizontal scroll or minimum per-key width may crop a controller.
+ const cssW=Math.max(1,Math.floor(r.width)),cssH=Math.max(1,Math.round(r.height));
  if(roll.style.width!==cssW+'px')roll.style.width=cssW+'px';
  const dpr=Math.min(2,devicePixelRatio||1);
  if(roll.width!==Math.round(cssW*dpr)||roll.height!==Math.round(cssH*dpr)){roll.width=Math.round(cssW*dpr);roll.height=Math.round(cssH*dpr);}
@@ -603,11 +602,17 @@ function renderCanvas(){
  if(!current)return;
  const {w,h}=resizeCanvas();lastCanvasSize={w,h};const c=roll.getContext('2d');
  c.clearRect(0,0,w,h);c.fillStyle='#111720';c.fillRect(0,0,w,h);
- const r=noteRange(),notes=notesToShow(),handsAllowed=h>=360&&['hands','ghost'].includes(state.fingerGuidanceMode),handTail=handsAllowed?Math.max(48,Math.min(82,h*.13)):0,keyboardH=handsAllowed?Math.max(174,Math.min(220,h*.35)):Math.min(90,Math.max(64,h*.22)),keyY=h-keyboardH-handTail,strikeY=keyY-10,pxPerSec=Math.max(8,(strikeY-14)/6);
+ const r=noteRange(),notes=notesToShow(),
+  handsAllowed=h>=360&&['hands','ghost'].includes(state.fingerGuidanceMode);
+ // A piano white key has an invariant length/width ratio (5.5:1).
+ // Resize both dimensions from a SINGLE 52-key width scale; never stretch
+ // the key height independently to fill a tall or short browser window.
+ const geom=pianoGeom=pianoKeyGeometry(21,108,w);
+ const keyboardH=geom.whites[0].w*5.5;
+ const handTail=handsAllowed?Math.min(82,keyboardH*.42):0;
+ const keyY=h-keyboardH-handTail,strikeY=keyY-10;
+ const pxPerSec=Math.max(8,(strikeY-14)/6);
  keyboardTop=keyY;keyboardBottom=keyY+keyboardH;keyboardBlackH=keyboardH*.61;
- const pad=4,geom=pianoGeom=pianoKeyGeometry(r.min,r.max,w-2*pad);
- // Shift computed geometry into the padded canvas coordinate system.
- geom.keys.forEach(k=>{k.x+=pad;k.center+=pad;});
  // Full natural-key columns. Black-key strips overlay the white ones.
  for(const k of geom.whites){c.fillStyle='#1c2735';c.fillRect(k.x,0,k.w,keyY);c.strokeStyle='#324253';c.lineWidth=.65;c.strokeRect(k.x+.35,.3,k.w-.7,keyY-.5);}
  for(const k of geom.blacks){c.fillStyle='#0c121c';c.fillRect(k.x,0,k.w,keyY);c.strokeStyle='#3d4555';c.lineWidth=.65;c.strokeRect(k.x+.4,.3,Math.max(0,k.w-.8),keyY-.5);}
@@ -682,24 +687,36 @@ function renderCanvas(){
  // above the whites. Both are driven by the calibrated MIDI note range.
  c.fillStyle='#090d13';c.fillRect(0,keyY,w,keyboardH);
  if(handTail){const gradient=c.createLinearGradient(0,keyboardBottom,0,h);gradient.addColorStop(0,'#17212e');gradient.addColorStop(1,'#101724');c.fillStyle=gradient;c.fillRect(0,keyboardBottom,w,handTail);c.strokeStyle='#3b4555';c.beginPath();c.moveTo(0,keyboardBottom);c.lineTo(w,keyboardBottom);c.stroke();}
+ const reachable=keyboardPlayableRange();
+ const playable=p=>!reachable||(p>=reachable.low&&p<=reachable.high);
  for(const k of geom.whites){
-  const physical=state.highlight&&midiHeld.has(k.pitch),audible=state.highlight&&playbackHeld.has(k.pitch);
+  const enabled=playable(k.pitch);
+  const physical=enabled&&state.highlight&&midiHeld.has(k.pitch);
+  const audible=enabled&&state.highlight&&playbackHeld.has(k.pitch);
   const down=physical||audible,offset=down?2:0;
-  c.fillStyle=physical?'#f0b198':audible?'#90bcf3':'#e7eaf1';c.fillRect(k.x+.5,keyY+2+offset,Math.max(.6,k.w-1),keyboardH-4-offset);
-  c.fillStyle=physical?'#cc775f':audible?'#4e89d5':'#b7bfcb';c.fillRect(k.x+1,keyY+keyboardH-9,Math.max(0,k.w-2),6);
-  c.strokeStyle=physical?'#e47e62':audible?'#5c9fe9':'#777f8c';c.lineWidth=down?1.7:1;c.strokeRect(k.x+.5,keyY+1.5+offset,Math.max(.5,k.w-1),keyboardH-3-offset);
+  c.fillStyle=!enabled?'#424854':physical?'#f0b198':audible?'#90bcf3':'#e7eaf1';
+  c.fillRect(k.x+.5,keyY+2+offset,Math.max(.6,k.w-1),keyboardH-4-offset);
+  c.fillStyle=!enabled?'#252d39':physical?'#cc775f':audible?'#4e89d5':'#b7bfcb';
+  c.fillRect(k.x+1,keyY+keyboardH-9,Math.max(0,k.w-2),6);
+  c.strokeStyle=!enabled?'#242d37':physical?'#e47e62':audible?'#5c9fe9':'#777f8c';
+  c.lineWidth=down?1.7:1;c.strokeRect(k.x+.5,keyY+1.5+offset,Math.max(.5,k.w-1),keyboardH-3-offset);
   if(k.w>17&&(k.pitch%12===0||k.pitch===r.min)){
    c.textAlign='center';c.font='bold 10px system-ui';c.fillStyle='#566174';c.fillText(nameOf(k.pitch),k.center,keyY+keyboardH-15);c.textAlign='left';
   }
  }
  for(const k of geom.blacks){
-  const physical=state.highlight&&midiHeld.has(k.pitch),audible=state.highlight&&playbackHeld.has(k.pitch),down=physical||audible;
+  const enabled=playable(k.pitch);
+  const physical=enabled&&state.highlight&&midiHeld.has(k.pitch);
+  const audible=enabled&&state.highlight&&playbackHeld.has(k.pitch);
+  const down=physical||audible;
   const y=keyY+2+(down?3:0),ht=keyboardBlackH-(down?3:0);
-  c.shadowColor='#03060b';c.shadowBlur=5;c.shadowOffsetY=3;
-  c.fillStyle=physical?'#db8b74':audible?'#568bcd':'#171b24';c.fillRect(k.x,y,k.w,ht);
+  c.shadowColor=enabled?'#03060b':'transparent';c.shadowBlur=enabled?5:0;c.shadowOffsetY=enabled?3:0;
+  c.fillStyle=!enabled?'#0a1017':physical?'#db8b74':audible?'#568bcd':'#171b24';c.fillRect(k.x,y,k.w,ht);
   c.shadowColor='transparent';c.shadowBlur=0;c.shadowOffsetY=0;
-  c.fillStyle=physical?'#edac92':audible?'#a1caff':'#505a6c';c.fillRect(k.x+1,y+2,Math.max(0,k.w-2),Math.min(3,ht/8));
-  c.fillStyle=physical?'#bb6c5b':audible?'#3876c5':'#0c1018';c.fillRect(k.x+1,y+ht-8,Math.max(0,k.w-2),6);
+  c.fillStyle=!enabled?'#161e28':physical?'#edac92':audible?'#a1caff':'#505a6c';
+  c.fillRect(k.x+1,y+2,Math.max(0,k.w-2),Math.min(3,ht/8));
+  c.fillStyle=!enabled?'#080d14':physical?'#bb6c5b':audible?'#3876c5':'#0c1018';
+  c.fillRect(k.x+1,y+ht-8,Math.max(0,k.w-2),6);
  }
  c.strokeStyle='#e5997f';c.lineWidth=2;c.beginPath();c.moveTo(0,strikeY);c.lineTo(w,strikeY);c.stroke();
  drawFingerGuidance(c,geom,keyY,keyboardH,handsAllowed,handTail);
@@ -717,9 +734,14 @@ function virtualKeyAt(e){
  const rect=roll.getBoundingClientRect(),x=e.clientX-rect.left,y=e.clientY-rect.top;
  if(y<keyboardTop||y>keyboardBottom)return null;
  // Black keys win hit-testing only over their actual short raised section.
- if(y<=keyboardTop+keyboardBlackH+3){const black=pianoGeom.blacks.find(k=>x>=k.x&&x<k.x+k.w);if(black)return black.pitch;}
+ const usable=keyboardPlayableRange();
+ const allowed=p=>!usable||(p>=usable.low&&p<=usable.high);
+ if(y<=keyboardTop+keyboardBlackH+3){
+  const black=pianoGeom.blacks.find(k=>x>=k.x&&x<k.x+k.w);
+  if(black)return allowed(black.pitch)?black.pitch:null;
+ }
  const natural=pianoGeom.whites.find(k=>x>=k.x&&x<k.x+k.w);
- return natural?.pitch??null;
+ return natural&&allowed(natural.pitch)?natural.pitch:null;
 }
 // Selection gestures only in the NOTE AREA; the keyboard below remains a
 // sounding virtual MIDI instrument. Capture on canvas avoids losing drag.
