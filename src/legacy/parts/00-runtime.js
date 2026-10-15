@@ -1,7 +1,7 @@
 const $=id=>document.getElementById(id);
 const STORE='playalong:smart-practice:v07';const V06_STORE='playalong:performance-analyzer:v06';const PREV_STORE='playalong:smart-phrasing:v05';const PREV2_OLD_STORE='playalong:real-piano:v04';const PREV2_STORE='playalong:keyboard-engine:v03';const OLD_STORE='playalong:music-engine:v02';const OLDER_STORE='playalong:ui-prototype:v1';
 const defaultAudioSettings=()=>({backend:'soundfont',bankId:null,livePreset:{bankMSB:0,bankLSB:0,program:0,isDrum:false},useFilePrograms:true});
-const defaults={layout:'learn',page:'practice',left:true,right:true,leftWidth:286,rightWidth:318,rightTab:'practice',mode:'listen',accompany:true,accompanyExplicit:false,autoMidi:true,preferredMidiName:'',speed:100,displayRange:'song',labels:true,highlight:true,allTracks:true,volume:40,selected:'demo-scale',track:0,deviceProfiles:{},audioSettings:defaultAudioSettings(),targetRange:'device',adaptMode:'original',adaptShift:0,auditionAdapted:false,showReviewMarkers:true,scoreView:'roll',sheetZoom:100,sheetFollow:true,fingerGuidanceMode:'off',fingerLookaheadMs:750,fingerBrowserHandSize:'M',fingerOverrides:{},librarySections:librarySectionLayoutNormalize()};
+const defaults={layout:'learn',page:'practice',left:true,right:true,leftPinned:true,rightPinned:true,leftWidth:286,rightWidth:318,rightTab:'practice',mode:'listen',accompany:true,accompanyExplicit:false,autoMidi:true,preferredMidiName:'',speed:100,displayRange:'song',labels:true,highlight:true,allTracks:true,volume:40,selected:'demo-scale',track:0,deviceProfiles:{},audioSettings:defaultAudioSettings(),targetRange:'device',adaptMode:'original',adaptShift:0,auditionAdapted:false,showReviewMarkers:true,scoreView:'roll',sheetZoom:100,sheetFollow:true,fingerGuidanceMode:'off',fingerLookaheadMs:750,fingerBrowserHandSize:'M',fingerOverrides:{},librarySections:librarySectionLayoutNormalize()};
 // Treat backups AND older localStorage snapshots as untrusted input.
 // Invalid restored values are rejected in strict backup mode; legacy
 // localStorage uses safe defaults to preserve normal upgrades.
@@ -18,7 +18,7 @@ const SETTING_NUMBERS={
  leftWidth:[210,520],rightWidth:[240,550],speed:[25,150],volume:[0,100],
  sheetZoom:[65,150],fingerLookaheadMs:[500,1000],track:[0,1000],adaptShift:[-72,72],position:[0,864000]
 };
-const SETTING_BOOLS=new Set(['left','right','accompany','accompanyExplicit','autoMidi','labels','highlight','allTracks','auditionAdapted','showReviewMarkers','sheetFollow']);
+const SETTING_BOOLS=new Set(['left','right','leftPinned','rightPinned','accompany','accompanyExplicit','autoMidi','labels','highlight','allTracks','auditionAdapted','showReviewMarkers','sheetFollow']);
 const SETTING_STRINGS={preferredMidiName:200,selected:250};
 const settingPlainObject=v=>v!==null&&typeof v==='object'&&!Array.isArray(v)&&
  (Object.getPrototypeOf(v)===Object.prototype||Object.getPrototypeOf(v)===null);
@@ -147,7 +147,12 @@ function sanitizePlayAlongSettings(value,{strict=false}={}){
  return safe;
 }
 let stored={};try{stored=JSON.parse(localStorage.getItem(STORE)||localStorage.getItem(V06_STORE)||localStorage.getItem(PREV_STORE)||localStorage.getItem(PREV2_OLD_STORE)||localStorage.getItem(PREV2_STORE)||localStorage.getItem(OLD_STORE)||localStorage.getItem(OLDER_STORE)||'{}')||{}}catch{}
-const state=sanitizePlayAlongSettings(stored);if(!['roll','sheet','editor'].includes(state.scoreView))state.scoreView='roll';state.sheetZoom=Math.max(65,Math.min(150,Number(state.sheetZoom)||100));state.deviceProfiles=typeof state.deviceProfiles==='object'&&state.deviceProfiles!==null?state.deviceProfiles:{};
+const state=sanitizePlayAlongSettings(stored);
+// Old mobile sessions never had dock/overlay preferences: start with drawers closed
+// instead of covering the whole score on the first upgraded visit.
+if(window.innerWidth<=820&&!Object.hasOwn(stored,'leftPinned')&&!Object.hasOwn(stored,'rightPinned')){
+ state.left=false;state.right=false;
+}if(!['roll','sheet','editor'].includes(state.scoreView))state.scoreView='roll';state.sheetZoom=Math.max(65,Math.min(150,Number(state.sheetZoom)||100));state.deviceProfiles=typeof state.deviceProfiles==='object'&&state.deviceProfiles!==null?state.deviceProfiles:{};
 // Device configuration and panels are global; practice preferences are independent per piece.
 const newSongDefaults=Object.fromEntries(SONG_PREF_FIELDS.map(k=>[k,defaults[k]]));
 state.songSettings=(state.songSettings&&typeof state.songSettings==='object'&&!Array.isArray(state.songSettings))?state.songSettings:{};

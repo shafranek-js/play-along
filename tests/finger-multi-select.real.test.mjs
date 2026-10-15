@@ -71,7 +71,9 @@ try{
  const second=(await getBoxes()).find(b=>b.id===ids[1]);
  await page.mouse.move(rect.x+first.x-3,rect.y+Math.min(first.y,second.y)-3);
  await page.mouse.down();
- await page.mouse.move(rect.x+second.x+second.w+3,rect.y+Math.max(first.y+first.h,second.y+second.h)+3,{steps:9});
+ // End inside note 2, never past its edge: proportional docked keys may leave
+ // less than 3 CSS pixels before the adjacent third note.
+ await page.mouse.move(rect.x+second.x+second.w/2,rect.y+Math.max(first.y+first.h,second.y+second.h)+3,{steps:9});
  await page.mouse.up();
  assert.deepEqual(new Set(await selected()),new Set([ids[0],ids[1]]),'Drag marquee selects first two');
  await page.locator('#roll').focus();

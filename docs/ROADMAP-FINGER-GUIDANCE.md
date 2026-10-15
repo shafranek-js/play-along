@@ -6,6 +6,10 @@
 
 **Active next task:** LAUNCH-01 F2 musical transport, MIDI controller, sustain pedal (CC64), Wait/Seek/Loop/Tempo, release timing and browser audio QA; then LAUNCH-02 source-safe editable fingering and LAUNCH-03 UX/stability. At final release, explicitly choose between documented legal permission, independent code replacement or an adjusted distribution scope. Earlier roadmap descriptions of F0 as a release gate are **not removed**, but the gate is no longer part of the current sprint. Expert pianist recruitment remains optional after launch.
 
+## LAUNCH-02 — adaptive full-height hybrid side panels (v0.10.114)
+
+Library and Tools may pin/dock (shrink the central 88-key rail proportionally) or float over it (no shrink). Floating drawers are full-height below the topbar down to transport, close with Escape/backdrop and avoid permanently truncating sidebar content beneath the Piano Roll. At narrow widths pins temporarily float while their settings persist for wider windows. Full Library/Progress workspaces are isolated. Chromium regression: `tests/hybrid-panels.real.test.mjs`.
+
 ## LAUNCH-02 — full-window 88-key piano and small controller shading (v0.10.113)
 
 Fixed A0–C8 across the entire browser viewport for both notebook and desktop, 52 naturals plus 36 accidentals, no horizontal piano scroll, single-scale 5.5:1 white-key aspect ratio. Small calibrated controller or preview 25/37/49/61/76/88 darkens the out-of-range key region and makes it non-clickable while retaining original MIDI notes and score/hand provenance. Unknown calibration leaves 88 keys interactive, no instrument guesses. Chromium desktop/mobile screenshot evidence and RGB/hit-test acceptance in `tests/finger-guidance-ranges.real.test.mjs`. Does not imply physical controller UAT.

@@ -1,4 +1,9 @@
-# Play Along — Piano Practice App (v0.10.113)
+# Play Along — Piano Practice App (v0.10.114)
+
+## LAUNCH-02 — hybrid side panels (v0.10.114)
+
+Practice now supports independently closable, pinnable Library and Tools drawers. A pinned panel docks and shrinks the 88-key Piano Roll only when at least 700–820 px remain for the center; when the window becomes narrower, that panel automatically floats over the roll without changing its stored pin preference. A floating drawer spans the full available height (down to the transport), remains above the 88-key keyboard, and closes with its × button, Escape or by clicking the dimmed backdrop. Resize pinned panels by dragging their existing divider; open/closed status, pin preference and sizes persist. Shift+L/R toggle the drawers, and F enters keyboard-first focus mode. Docked panels never sit under the fixed roll; closed panels restore a window-wide A0–C8 piano. In Library/Progress full-page workspaces, the original full-width layouts remain unchanged. No changes to MIDI note events or audio/fingering interpretation.
+
 
 ## LAUNCH-02 — full-window 88-key proportional piano and reachable MIDI range (v0.10.113)
 
