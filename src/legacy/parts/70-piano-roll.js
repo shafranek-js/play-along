@@ -618,10 +618,26 @@ function renderCanvas(){
  // At 0% the rolling area is uniformly #111720 with no lane or guide lines.
  const gridAlpha=clamp(state.gridVisibility/100,0,1);
  if(gridAlpha>0){
-  c.save();c.globalAlpha=gridAlpha;
-  for(const k of geom.whites){c.fillStyle='#1c2735';c.fillRect(k.x,0,k.w,keyY);c.strokeStyle='#324253';c.lineWidth=.65;c.strokeRect(k.x+.35,.3,k.w-.7,keyY-.5);}
-  for(const k of geom.blacks){c.fillStyle='#0c121c';c.fillRect(k.x,0,k.w,keyY);c.strokeStyle='#3d4555';c.lineWidth=.65;c.strokeRect(k.x+.4,.3,Math.max(0,k.w-.8),keyY-.5);}
+  // Blend each lane FILL against the actual dark background instead of stacking
+  // translucent white and black passes. Otherwise the white layer leaks into
+  // half-visible black lanes and 50% isn't mathematically half intensity.
+  const laneColor=(r,g,b)=>'rgb('+
+   Math.round(17+(r-17)*gridAlpha)+','+
+   Math.round(23+(g-23)*gridAlpha)+','+
+   Math.round(32+(b-32)*gridAlpha)+')';
+  const whiteFill=laneColor(28,39,53),blackFill=laneColor(12,18,28);
+  for(const k of geom.whites){
+   c.fillStyle=whiteFill;c.fillRect(k.x,0,k.w,keyY);
+   c.globalAlpha=gridAlpha;c.strokeStyle='#324253';c.lineWidth=.65;
+   c.strokeRect(k.x+.35,.3,k.w-.7,keyY-.5);c.globalAlpha=1;
+  }
+  for(const k of geom.blacks){
+   c.fillStyle=blackFill;c.fillRect(k.x,0,k.w,keyY);
+   c.globalAlpha=gridAlpha;c.strokeStyle='#3d4555';c.lineWidth=.65;
+   c.strokeRect(k.x+.4,.3,Math.max(0,k.w-.8),keyY-.5);c.globalAlpha=1;
+  }
   // Shared seconds guide; top of falling note is note-off, bottom is note-on.
+  c.save();c.globalAlpha=gridAlpha;
   for(let delta=0;delta<=8;delta++){
    const y=strikeY-delta*pxPerSec;if(y<0)break;
    c.strokeStyle=delta===0?'#f2a18399':'#9aa7b333';c.lineWidth=delta===0?2:1;
