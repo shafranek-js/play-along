@@ -65,6 +65,10 @@ try{
     display.value='device';display.dispatchEvent(new Event('change',{bubbles:true}));
    },config.key);
    await page.evaluate(()=>window.__prototypeTest.seek(0));
+   // The controller select changes immediately; Canvas repaint is one RAF
+   // later. Pixel sampling MUST wait for the newly drawn reachability state.
+   await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>
+    requestAnimationFrame(resolve))));
    await page.waitForFunction(()=>{
     const g=window.__prototypeTest.pianoGeometry;
     return g&&g.min===21&&g.max===108&&g.keys.length===88;
