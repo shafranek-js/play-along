@@ -124,7 +124,8 @@ function oneHand(notes,hand,handSize,beamWidth,costModel){
    r=proposePolyphonicFingering(input,{hand,handSize,beamWidth,costModel});
   else r=proposeContextualMonophonicFingering(input,{hand,handSize});
   if(!r.ok)return err(r.reason,{hand,segmentKind:group.kind,
-   segmentNoteIds:input.map(idOf),...(r.violations?{violations:r.violations}:{})});
+   segmentNoteIds:input.map(idOf),...(r.violations?{violations:r.violations}:{}),
+   ...(r.failureAt?{failureAt:r.failureAt}:{})});
   const placed=r.items.map((n,i)=>sourceFields(input[i],hand,n.finger,ownsFinger(input[i])));
   for(let i=0;i<sorted.length;i++)items[sorted[i].index]=placed[i];
   methods.push(fullyPinned?'author-validated':
