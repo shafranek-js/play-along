@@ -422,9 +422,13 @@ body.focus .shell.hybridMode #rollWrap:not(.hidden){
  .statusSongButton{max-width:28vw;min-width:60px;flex-basis:150px}
 }
 @media(max-width:520px){
+ #topbar .brand>div:last-child{display:none}
+ #topbar .brand{gap:0}
  #topbar .handsMenuTrigger span{display:none}
- #topbar .layoutMenu .topMenuTrigger{max-width:94px;overflow:hidden;text-overflow:ellipsis}
+ #topbar .layoutMenu .topMenuTrigger{width:35px;max-width:35px;font-size:0;padding:7px 5px}
+ #topbar .layoutMenu .topMenuTrigger::before{content:"▦";font-size:15px}
  #topbar #commandsBtn{display:none}
  #topbar .compactViewSelect{max-width:84px}
+ #topbar .iconbtn{width:32px}
  .statusSongButton{max-width:28vw}
 }
