@@ -1,5 +1,9 @@
 # Play Along — Piano Practice App (v0.10.118)
 
+## LAUNCH-06 — Pyodide QA navigation alignment (v0.10.118)
+
+The real Playwright/Pyodide worker end-to-end regression opens the central **Аппликатура** view before pressing its single visible PianoMotion calculation button. This matches the v0.10.118 relocation from the Practice sidebar. All assertions remain unchanged: real pinned Pyodide+Python worker, protected apply, source-note preservation, MusicXML export and score re-import. This is a test-only alignment; no production source, algorithm, or release version change.
+
 ## LAUNCH-06 — Unified Fingering Workspace (v0.10.118)
 
 The **Аппликатура** score view is now the single place for fingering calculation and reviewing proposals. The existing production PianoMotion Python calculate/review/apply/Undo/Redo/MusicXML export panel is moved from the right Practice sidebar to the central Fingering view **without cloning its algorithm or handlers**. The workspace detects the loaded source format and displays only eligible actions: MIDI and other supported note streams offer protected PianoMotion proposals/review/export; original MusicXML additionally offers manual author-fingering editing, Beam Search research/compare and correction transfer, all with existing safeguards. A separate original-MIDI-only experimental feature (available only to approved local research builds) is relocated under a collapsed research disclosure in the same view; it never claims to apply pedagogical fingering. Original source notes, source-authored fingerings, physical audit, selected apply and Undo/Redo remain unchanged. Browser regression: `tests/unified-fingering-workspace.real.test.mjs` plus existing real Python/Pyodide/MusicXML tests.
