@@ -26,6 +26,7 @@ test('all feature parts form exactly one valid JavaScript bundle',()=>{
  execFileSync(process.execPath,['--check',path.join(root,'tests/launch02-continuous-hand.real.test.mjs')]);
  execFileSync(process.execPath,['--check',path.join(root,'tests/finger-guidance-ranges.real.test.mjs')]);
  execFileSync(process.execPath,['--check',path.join(root,'tests/hybrid-panels.real.test.mjs')]);
+ execFileSync(process.execPath,['--check',path.join(root,'tests/status-bar.real.test.mjs')]);
 });
 test('public beta fingering has explicit no-expert warning and does not gate user Apply',()=>{
  const original=read('src/index.html');
