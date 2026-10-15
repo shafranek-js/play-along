@@ -1,4 +1,9 @@
-# Play Along — Piano Practice App (v0.10.114)
+# Play Along — Piano Practice App (v0.10.115)
+
+## LAUNCH-03 — minimal bottom status bar (v0.10.115)
+
+An always-on **26px bottom status line**, below the transport, consolidates practice mode (`MIDI · Слушать / Wait / Tempo`), permanent piano coverage (`88 клавиш · A0–C8 · активны 25` for a 25-key range, up to 88), live MIDI readiness, current finger-guidance status, transient notifications, and sounding-note count. The cluttered keyboard information row is removed; the actual finger-guidance selectors remain in the center header. The duplicate A0–C8 header chip is hidden. Information-only notices no longer cover the Piano Roll. Practice, focus, drawers, Library and Progress each reserve space for the fixed status bar, so the 88-key piano retains exact proportional geometry above transport. No changes to MIDI events or fingering calculations. Responsive status trims secondary details rather than shrinking the piano.
+
 
 ## LAUNCH-02 — hybrid side panels (v0.10.114)
 

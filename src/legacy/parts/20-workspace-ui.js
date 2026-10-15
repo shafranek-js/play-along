@@ -94,15 +94,16 @@ function keyboardPlayableRange(){
 function updateRange(){
  const playable=keyboardPlayableRange(),total=playable?
   Math.max(0,playable.high-playable.low+1):88;
- $('keyboardRangeText').textContent='Фортепиано: A0 — C8 · 88 клавиш';
- $('deviceRangeText').textContent=playable?
-  '· доступно '+total+' ('+nameOf(playable.low)+' — '+nameOf(playable.high)+')'+
-  (playable.virtual?' · предпросмотр':' · MIDI-контроллер'):
-  '· полный диапазон активен (калибровка не задана)';
+ $('keyboardRangeText').textContent='88 клавиш · A0–C8';
+ $('deviceRangeText').textContent=' · активны '+total;
+ $('statusKeyboard').title=playable?
+  'Активный диапазон '+nameOf(playable.low)+'–'+nameOf(playable.high)+
+   (playable.virtual?' · предпросмотр':' · MIDI-контроллер'):
+  'A0–C8: полный диапазон, ограничение контроллера не задано';
  $('pitchChip').textContent='88 клавиш · A0–C8'+(playable&&total<88?' · активны '+total:'');
  $('statRange').textContent=getProfile()?getProfile().high-getProfile().low+1:'—';
 }
-function updateUI(){let d=duration();pos=clamp(pos,0,d);$('timeNow').textContent=fmt(pos);$('timeTotal').textContent=fmt(d);$('seek').value=Math.round(pos/d*1000);$('statNotes').textContent=noteCount;$('statPosition').textContent=fmt(pos);$('statTrack').textContent=current?.tracks[state.track]?.notes.length||0;const playButton=$('playBtn'),pendingPlay=typeof audioGetStatus==='function'&&audioGetStatus()?.transport?.pendingPlay===true;playButton.textContent=pendingPlay?'…':isPlaying?'Ⅱ':'▶';playButton.setAttribute('aria-busy',pendingPlay?'true':'false');const playLabel=pendingPlay?'Отменить подготовку звука · Пробел':isPlaying?'Пауза · Пробел':'Воспроизвести · Пробел';playButton.setAttribute('aria-label',playLabel);playButton.title=playLabel;updateModeStatus();$('speedLabel').textContent=state.speed+'%';$('speed').value=state.speed;$('loopBtn').classList.toggle('on',loop.enabled);$('loopLabel').textContent=loop.start!==null&&loop.end!==null?'Фрагмент: '+fmt(loop.start)+' — '+fmt(loop.end)+(loop.enabled?' · Loop включён':' · Loop выключен'):'Повтор не выбран';updateRange();}
+function updateUI(){let d=duration();pos=clamp(pos,0,d);$('timeNow').textContent=fmt(pos);$('timeTotal').textContent=fmt(d);$('seek').value=Math.round(pos/d*1000);$('statNotes').textContent=noteCount;$('statPosition').textContent=fmt(pos);$('statTrack').textContent=current?.tracks[state.track]?.notes.length||0;const playButton=$('playBtn'),pendingPlay=typeof audioGetStatus==='function'&&audioGetStatus()?.transport?.pendingPlay===true;playButton.textContent=pendingPlay?'…':isPlaying?'Ⅱ':'▶';playButton.setAttribute('aria-busy',pendingPlay?'true':'false');const playLabel=pendingPlay?'Отменить подготовку звука · Пробел':isPlaying?'Пауза · Пробел':'Воспроизвести · Пробел';playButton.setAttribute('aria-label',playLabel);playButton.title=playLabel;updateModeStatus();$('statusMode').textContent='MIDI · '+({listen:'Слушать',wait:'Wait',tempo:'Tempo'}[state.mode]||'Слушать');$('speedLabel').textContent=state.speed+'%';$('speed').value=state.speed;$('loopBtn').classList.toggle('on',loop.enabled);$('loopLabel').textContent=loop.start!==null&&loop.end!==null?'Фрагмент: '+fmt(loop.start)+' — '+fmt(loop.end)+(loop.enabled?' · Loop включён':' · Loop выключен'):'Повтор не выбран';updateRange();}
 
 // SF-04 SoundFont controls live in the existing MIDI sidebar. The audio engine
 // owns synthesis and bank replacement; this layer only reflects status and
