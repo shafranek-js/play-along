@@ -12,6 +12,39 @@ function fingerEditorAvailable(){
  return !!current&&current.format==='MusicXML'&&state.adaptMode==='original'&&
   !!fingerGuideWorkKey();
 }
+// LAUNCH-06: one fingering workspace for every supported imported source.
+// This only selects capabilities. The existing PianoMotion, MusicXML/manual,
+// research, audition and undo handlers retain their single original instances.
+function fingeringWorkspaceSync(){
+ const source=current;
+ const original=fingerEditorAvailable();
+ const format=source?.format||'—';
+ const isMidi=format==='MIDI';
+ const isScore=format==='MusicXML';
+ $('fingeringFormatBadge').textContent=source?format:'Нет произведения';
+ $('fingeringAuthorTools').hidden=!original;
+ $('fingerEditorScroller').hidden=!original;
+ $('fingerEditorFooter').textContent=!source?
+  'Выберите произведение в библиотеке.':
+  original?'Правки автора и пользователя сохраняются отдельно от предложений PianoMotion.':
+  isScore?'Редактор ручных исправлений работает в режиме «Оригинал». Расчёт PianoMotion доступен независимо от режима.':
+  'У MIDI нет достоверной авторской аппликатуры; предложения PianoMotion можно проверить, выборочно применить и экспортировать.';
+ const plan=source?pianoMotionSourcePlan(source,Number(state.track)||0):null;
+ const running=!!pianoMotionRun;
+ $('pianoMotionCalculate').disabled=running||!plan?.ok;
+ $('fingeringSourceHint').textContent=!source?
+  'Сначала выберите произведение в библиотеке.':
+  plan?.ok?
+   (isMidi?'MIDI · расчёт по исходным MIDI-событиям. ':
+    isScore?'MusicXML · сохранены исходные ноты и авторские обозначения. ':
+    format+' · расчёт по временным MIDI-событиям. ')+
+   'Сначала просмотрите результат, затем подтвердите нужные пальцы.':
+   format+' · расчёт недоступен: '+(plan?.reason||'нет подходящих нот');
+ $('fingeringAutoScroll').classList.toggle('fingeringAutoMidi',!original);
+ const midiResearch=$('fingeringMidiResearch');
+ midiResearch.classList.toggle('hidden',!isMidi||
+  $('pianoMotionMidiPanel').classList.contains('hidden'));
+}
 function fingerEditorPaintSoon(){
  if(fingerEditorPaintScheduled)return;
  fingerEditorPaintScheduled=true;
@@ -19,6 +52,7 @@ function fingerEditorPaintSoon(){
 }
 function fingerEditorNotes(){return fingerEditorAvailable()?fingerSelectionOrdered().map(x=>x.note):[]}
 function fingerEditorRender(){
+ fingeringWorkspaceSync();
  if(state.scoreView!=='editor'||state.page!=='practice')return;
  fingerResearchSync();
  fingerBrowserSync();
@@ -1220,7 +1254,7 @@ void fetch('./assets/pianomotion/staged-manifest.json',{cache:'no-store'})
  .then(r=>r.ok?r.json():null).then(manifest=>{
   if(manifest?.localOnly===true&&manifest?.runtimeVersion==='314.0.7'&&
       manifest?.publicRedistributionApproved===false)
-   $('pianoMotionMidiPanel').classList.remove('hidden');
+   {$('pianoMotionMidiPanel').classList.remove('hidden');fingeringWorkspaceSync();}
  }).catch(()=>{});
 $('pianoMotionMidiRun').onclick=async()=>{
  const status=$('pianoMotionMidiStatus'),host=$('pianoMotionMidiResults');
