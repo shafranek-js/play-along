@@ -54,7 +54,7 @@ try{
  await page.waitForFunction(()=>document.getElementById('deviceRangeText').textContent.includes('25'));
  assert.equal(await page.locator('#deviceRangeText').textContent(),' · активны 25');
  assert.equal(await page.evaluate(()=>window.__prototypeTest.pianoGeometry.keys.length),88);
- assert.match(await page.locator('#statusKeyboard').getAttribute('title'),/C4|C6/);
+ assert.match(await page.locator('#statusKeyboard').getAttribute('title'),/Активный диапазон .+–.+ · предпросмотр/);
 
  // Mode changes must flow into the status bar even when toolbar is disabled.
  await page.locator('#bottomMode').selectOption('wait');
