@@ -360,7 +360,7 @@ body:not(.onlyLibrary):not(.onlyProgress) .shell.hybridMode #rollWrap:not(.hidde
  top:var(--compact-header-height);bottom:calc(var(--compact-transport-height) + var(--app-status-height));
  height:auto!important;min-height:0;width:auto;z-index:4;
 }
-body.focus .shell.hybridMode #rollWrap:not(.hidden){
+body.focus:not(.onlyLibrary):not(.onlyProgress) .shell.hybridMode #rollWrap:not(.hidden){
  top:0;bottom:var(--app-status-height);left:0!important;right:0!important;width:100vw!important;
 }
 .shell.hybridMode .center>.sheetWrap:not(.hidden),
