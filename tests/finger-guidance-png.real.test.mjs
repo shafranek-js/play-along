@@ -1,3 +1,4 @@
+import {selectCompactFingerMode,selectCompactLookahead} from './compact-ui-helpers.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import http from 'node:http';
@@ -44,14 +45,14 @@ try{
  }
  assert.deepEqual(broken,[],'hand PNG network failures');
  await page.evaluate(()=>window.__prototypeTest.loadSong(window.__fingerGuideTest.demoDuet));
- await page.locator('#fingerGuideMode').selectOption('hands');
+ await selectCompactFingerMode(page,'hands');
  await page.waitForFunction(()=>window.__fingerGuideTest.steps.length===4);
  await page.screenshot({path:path.join(output,'two-hands.png')});
  const poses=await page.evaluate(()=>window.__fingerGuideTest.spritePlacements);
  assert.ok(poses.LH?.width>50&&poses.RH?.width>50,'hand placement requires both matched parts');
  assert.equal(poses.LH.pose,'spread');assert.equal(poses.RH.pose,'spread');
  assert.ok(poses.LH.error<=20&&poses.RH.error<=20,'finger placements within geometric tolerance');
- await page.locator('#fingerGuideMode').selectOption('ghost');
+ await selectCompactFingerMode(page,'ghost');
  await page.screenshot({path:path.join(output,'two-hands-ghost.png')});
  await page.evaluate(()=>window.__prototypeTest.seek(3.6));
  assert.equal(await page.evaluate(()=>window.__fingerGuideTest.frame.current),5.4);
@@ -70,7 +71,7 @@ try{
  await page.waitForFunction(()=>document.getElementById('fingerGuideStatus').textContent.includes('нет подтверждённой аппликатуры'));
  assert.equal(await page.evaluate(()=>window.__fingerGuideTest.spritePlacements.LH),null);
  await page.evaluate(()=>window.__prototypeTest.loadSong(window.__fingerGuideTest.demoDuet));
- await page.locator('#fingerGuideMode').selectOption('hands');
+ await selectCompactFingerMode(page,'hands');
  await page.setViewportSize({width:390,height:844});
  await page.locator('#layoutMenuButton').click();
  await page.locator('[data-layout="play"]').click();
@@ -92,8 +93,8 @@ try{
    {pitch:79,start:1.5,duration:.3,velocity:80,track:0,finger:5,hand:'RH',fingeringSource:'musicxml'}
   ]}]
  }));
- await page.locator('#fingerGuideMode').selectOption('ghost');
- await page.locator('#fingerGuideLookahead').selectOption('750');
+ await selectCompactFingerMode(page,'ghost');
+ await selectCompactLookahead(page,'750');
  await page.evaluate(()=>window.__prototypeTest.seek(.8));
  const paused=await page.evaluate(()=>window.__fingerGuideTest.ghostMotion);
  assert.equal(paused.visible,true);
