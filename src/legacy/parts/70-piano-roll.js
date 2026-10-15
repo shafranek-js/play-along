@@ -613,15 +613,38 @@ function renderCanvas(){
  const keyY=h-keyboardH-handTail,strikeY=keyY-10;
  const pxPerSec=Math.max(8,(strikeY-14)/6);
  keyboardTop=keyY;keyboardBottom=keyY+keyboardH;keyboardBlackH=keyboardH*.61;
- // Full natural-key columns. Black-key strips overlay the white ones.
- for(const k of geom.whites){c.fillStyle='#1c2735';c.fillRect(k.x,0,k.w,keyY);c.strokeStyle='#324253';c.lineWidth=.65;c.strokeRect(k.x+.35,.3,k.w-.7,keyY-.5);}
- for(const k of geom.blacks){c.fillStyle='#0c121c';c.fillRect(k.x,0,k.w,keyY);c.strokeStyle='#3d4555';c.lineWidth=.65;c.strokeRect(k.x+.4,.3,Math.max(0,k.w-.8),keyY-.5);}
- // Shared seconds guide; top of falling note is note-off, bottom is note-on.
- for(let delta=0;delta<=8;delta++){
-  const y=strikeY-delta*pxPerSec;if(y<0)break;
-  c.strokeStyle=delta===0?'#f2a18399':'#9aa7b333';c.lineWidth=delta===0?2:1;
-  c.beginPath();c.moveTo(0,y);c.lineTo(w,y);c.stroke();
-  if(delta){c.fillStyle='#98abc7';c.font='10px system-ui';c.fillText('+'+delta+'s',w-32,y-4)}
+ // Lanes, borders and time grid form ONE background layer. Opacity only
+ // affects this layer; notes, piano keys and finger sprites remain unchanged.
+ // At 0% the rolling area is uniformly #111720 with no lane or guide lines.
+ const gridAlpha=clamp(state.gridVisibility/100,0,1);
+ if(gridAlpha>0){
+  // Blend each lane FILL against the actual dark background instead of stacking
+  // translucent white and black passes. Otherwise the white layer leaks into
+  // half-visible black lanes and 50% isn't mathematically half intensity.
+  const laneColor=(r,g,b)=>'rgb('+
+   Math.round(17+(r-17)*gridAlpha)+','+
+   Math.round(23+(g-23)*gridAlpha)+','+
+   Math.round(32+(b-32)*gridAlpha)+')';
+  const whiteFill=laneColor(28,39,53),blackFill=laneColor(12,18,28);
+  for(const k of geom.whites){
+   c.fillStyle=whiteFill;c.fillRect(k.x,0,k.w,keyY);
+   c.globalAlpha=gridAlpha;c.strokeStyle='#324253';c.lineWidth=.65;
+   c.strokeRect(k.x+.35,.3,k.w-.7,keyY-.5);c.globalAlpha=1;
+  }
+  for(const k of geom.blacks){
+   c.fillStyle=blackFill;c.fillRect(k.x,0,k.w,keyY);
+   c.globalAlpha=gridAlpha;c.strokeStyle='#3d4555';c.lineWidth=.65;
+   c.strokeRect(k.x+.4,.3,Math.max(0,k.w-.8),keyY-.5);c.globalAlpha=1;
+  }
+  // Shared seconds guide; top of falling note is note-off, bottom is note-on.
+  c.save();c.globalAlpha=gridAlpha;
+  for(let delta=0;delta<=8;delta++){
+   const y=strikeY-delta*pxPerSec;if(y<0)break;
+   c.strokeStyle=delta===0?'#f2a18399':'#9aa7b333';c.lineWidth=delta===0?2:1;
+   c.beginPath();c.moveTo(0,y);c.lineTo(w,y);c.stroke();
+   if(delta){c.fillStyle='#98abc7';c.font='10px system-ui';c.fillText('+'+delta+'s',w-32,y-4)}
+  }
+  c.restore();
  }
  // Draw whites first, then blacks on top. Piano roll lanes have the exact
  // same center and widths as the physical-looking keyboard below.
@@ -718,7 +741,9 @@ function renderCanvas(){
   c.fillStyle=!enabled?'#080d14':physical?'#bb6c5b':audible?'#3876c5':'#0c1018';
   c.fillRect(k.x+1,y+ht-8,Math.max(0,k.w-2),6);
  }
- c.strokeStyle='#e5997f';c.lineWidth=2;c.beginPath();c.moveTo(0,strikeY);c.lineTo(w,strikeY);c.stroke();
+ if(gridAlpha>0){c.save();c.globalAlpha=gridAlpha;
+  c.strokeStyle='#e5997f';c.lineWidth=2;c.beginPath();c.moveTo(0,strikeY);c.lineTo(w,strikeY);c.stroke();
+  c.restore();}
  drawFingerGuidance(c,geom,keyY,keyboardH,handsAllowed,handTail);
  if(fingerSelectionPointer?.dragging){
   const p=fingerSelectionPointer;

@@ -1,4 +1,9 @@
-# Play Along — Piano Practice App (v0.10.116)
+# Play Along — Piano Practice App (v0.10.117)
+
+## LAUNCH-05 — adjustable Piano Roll grid/lane visibility (v0.10.117)
+
+The Practice settings now include **«Видимость сетки и дорожек» (0–100%, default 50%)**. The slider changes the drawing opacity of piano-roll background white/black pitch lanes, lane borders, horizontal second guides, labels and the strike guide line as one isolated Canvas layer. At 0%, the falling-note area has a uniform dark `#111720` background; at 100%, its grid matches the legacy rendering. Falling MIDI note blocks, loop/wait overlays, physical 88-key keyboard and animated hand/finger guidance retain their original opacity. Rendering updates immediately; a validated global preference is saved to localStorage and supported by existing backup and upgrade handling. Browser regression `tests/piano-roll-grid-opacity.real.test.mjs` samples real Chromium Canvas pixels and verifies saved value, 50% migration, normal 88-key display and invalid-value rejection.
+
 
 ## LAUNCH-04 — Compact Workspace (v0.10.116)
 
