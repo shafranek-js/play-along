@@ -246,28 +246,54 @@ body.onlyLibrary #leftPanel .sidebody>.panelSection:first-child{
 #pianoMotionReviewStats{border-left:2px solid #758fac;padding-left:8px;font-variant-numeric:tabular-nums;line-height:1.6}
 
 
-/* LAUNCH-02 v0.10.113 — genuine window-wide, scroll-free 88-key piano.
-   The active roll occupies a full-width band above the 70px transport.
-   Upper sidebars remain scrollable instead of being permanently covered.
-   All keys derive their height from one shared natural-key width scale. */
-:root{--full-piano-roll-height:min(clamp(270px,56dvh,720px),calc(100dvh - 140px))}
+/* LAUNCH-02 / v0.10.114: the 88-key rail owns the available CENTER width.
+   Docked sidebars take full usable height; floating drawers run ABOVE the rail.
+   At small widths pins remain saved but panels automatically float. */
+:root{--full-piano-roll-height:min(clamp(270px,56dvh,720px),calc(100dvh - 140px));
+ --dock-left:0px;--dock-right:0px}
 .rollWrap:not(.hidden){position:fixed;left:0;right:0;bottom:70px;
  width:100vw;height:var(--full-piano-roll-height);z-index:4;
- overflow-x:hidden;overflow-y:hidden;scrollbar-width:none;
- border-top:1px solid #405068}
-.rollWrap:not(.hidden) canvas{width:100%!important;height:100%;
- touch-action:manipulation}
-/* Focus mode hides the transport; the 88-key piano then meets the lower edge. */
-body.focus .rollWrap:not(.hidden){bottom:0}
-/* Never reduce the independent Library/Progress workspace. */
-body:not(.onlyLibrary):not(.onlyProgress) .shell:has(.rollWrap:not(.hidden)) .sidebar,
-body:not(.onlyLibrary):not(.onlyProgress) .shell:has(.rollWrap:not(.hidden)) .splitter,
-body:not(.onlyLibrary):not(.onlyProgress) .shell:has(.rollWrap:not(.hidden)) .center{
- max-height:calc(100% - var(--full-piano-roll-height));
-}
+ overflow-x:hidden;overflow-y:hidden;scrollbar-width:none;border-top:1px solid #405068}
+.rollWrap:not(.hidden) canvas{width:100%!important;height:100%;touch-action:manipulation}
+.shell.hybridMode #rollWrap:not(.hidden){left:var(--dock-left);right:var(--dock-right);width:auto}
+.shell.hybridMode:has(.rollWrap:not(.hidden)) .center{
+ max-height:calc(100% - var(--full-piano-roll-height));min-height:0}
+.shell.hybridMode .sidebar{max-height:none!important;min-height:0;overflow-y:auto}
+.shell.hybridMode .sidebar.is-docked{height:100%;position:relative;z-index:5;box-shadow:none}
+.shell.hybridMode .sidebar.left.is-docked{width:var(--left)}
+.shell.hybridMode .sidebar.right.is-docked{width:var(--right)}
+.shell.hybridMode .sidebar:not(.is-docked){
+ position:fixed;top:60px;bottom:70px;height:auto!important;
+ z-index:9;width:min(var(--left),92vw);box-shadow:0 15px 45px #000b;
+ border-color:#47566e}
+.shell.hybridMode .sidebar.left:not(.is-docked){left:0;right:auto;animation:drawerLeftIn .18s ease-out}
+.shell.hybridMode .sidebar.right:not(.is-docked){right:0;left:auto;width:min(var(--right),92vw);animation:drawerRightIn .18s ease-out}
+.shell.hybridMode:not(.dockLeft) #leftSplit,
+.shell.hybridMode:not(.dockRight) #rightSplit{display:none!important}
+.shell.hybridMode .splitter{height:100%;z-index:6}
+.panelScrim{position:fixed;inset:60px 0 70px;z-index:7;display:block;
+ width:100%;height:auto;border:0;padding:0;cursor:default;background:#04091180}
+.panelHeadActions{display:flex;align-items:center;justify-content:flex-end;min-width:0;gap:3px}
+.panelHeadActions small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.panelHeadActions .panelPin,.panelHeadActions .mobilePanelToggle{
+ width:30px;height:30px;font-size:15px;flex:none}
+.panelHeadActions .panelPin[aria-pressed="true"]{color:#ecb193;background:#342f36}
+.shell.hybridMode .mobilePanelToggle{display:inline-grid}
+body.onlyLibrary .panelHeadActions .panelPin,body.onlyLibrary .panelHeadActions .mobilePanelToggle,
+body.onlyProgress .panelHeadActions .panelPin,body.onlyProgress .panelHeadActions .mobilePanelToggle{display:none}
+body.focus .rollWrap:not(.hidden){bottom:0;left:0!important;right:0!important;width:100vw!important}
+body.focus .panelScrim{display:none!important}
 #displayRange{display:none!important}
+@keyframes drawerLeftIn{from{transform:translateX(-20px);opacity:.7}to{transform:translateX(0);opacity:1}}
+@keyframes drawerRightIn{from{transform:translateX(20px);opacity:.7}to{transform:translateX(0);opacity:1}}
+@media(max-width:820px){
+ .shell.hybridMode .sidebar:not(.is-docked){top:54px}
+ .panelScrim{top:54px}
+}
 @media(max-width:520px){
  .rollWrap:not(.hidden) .rollHint{display:none}
- .rollWrap:not(.hidden) .rollStatus{top:5px;left:6px;max-width:calc(100vw - 12px);
-   font-size:10px;padding:4px 6px}
+ .rollWrap:not(.hidden) .rollStatus{top:5px;left:6px;max-width:calc(100vw - 12px);font-size:10px;padding:4px 6px}
+}
+@media(prefers-reduced-motion:reduce){
+ .shell.hybridMode .sidebar:not(.is-docked){animation:none}
 }
