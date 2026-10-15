@@ -89,6 +89,7 @@ try{
  },xml);
  assert.equal(score.format,'MusicXML');assert.equal(score.notes,4);
  await page.waitForFunction(()=>document.getElementById('fingeringFormatBadge').textContent==='MusicXML');
+ await page.locator('#viewFingerEditor').click();
  assert.equal(await page.locator('#pianoMotionCalculate').isVisible(),true);
  assert.equal(await page.locator('#fingeringAuthorTools').isVisible(),true);
  assert.equal(await page.locator('#fingerEditorScroller').isVisible(),true);
@@ -111,6 +112,7 @@ try{
   const song=await window.__libraryV08.songFromBuffer('other.mid',Uint8Array.from(bytes).buffer);
   window.__prototypeTest.loadSong(song);
  },[...midi]);
+ await page.locator('#viewFingerEditor').click();
  assert.equal(await page.locator('#fingeringAuthorTools').isVisible(),false);
  assert.equal(await page.locator('#pianoMotionCalculate').isVisible(),true);
  assert.equal(await page.locator('#pianoMotionCalculate').count(),1);
