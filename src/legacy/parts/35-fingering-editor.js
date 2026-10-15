@@ -982,7 +982,7 @@ $('pianoMotionCalculate').onclick=()=>{
    pianoMotionLastSong=song;
    pianoMotionLastAlignment=alignment.ok&&audit?.ok?alignment:null;
    pianoMotionLastPlan=alignment.ok&&audit?.ok?{
-    ...plan,sourceNotes:exact?null:derived.sourceNotes,omittedCount
+    ...plan,sourceNotes:exact?null:derived.sourceNotes,omittedCount,exactOriginalMidi:exact
    }:null;
    if($('pianoMotionApply'))$('pianoMotionApply').disabled=!alignment.ok||!audit?.ok;
    if($('pianoMotionExportXML'))$('pianoMotionExportXML').disabled=true; // Export only after Apply.
@@ -1011,7 +1011,7 @@ function pianoMotionReviewValidate(){
  if(!song||pianoMotionLastSong!==song||!alignment?.ok||!plan)return false;
  const checked=pianoMotionAlignSuggestions(song,pianoMotionLastResult.suggestions,{
   trackIndices:plan.trackIndices,channel:plan.channel??null,
-  tolerance:plan.mode==='original'?.025:.005,sourceNotes:plan.sourceNotes??null
+  tolerance:plan.exactOriginalMidi?.025:.005,sourceNotes:plan.sourceNotes??null
  });
  if(!checked.ok||checked.matches.some((entry,i)=>entry.note!==alignment.matches[i]?.note)){
   $('pianoMotionStatus').textContent='Ноты изменились после расчёта. Рассчитайте аппликатуру заново.';
@@ -1055,7 +1055,7 @@ function pianoMotionReviewApply(indices){
  $('pianoMotionStatus').textContent='Применено '+result.count+
   ' пальцев · защищено '+batch.protectedCount+
   ' · без пальца '+batch.unresolved+' · конфликтных пропущено '+batch.blockedCount+
-   (plan.omittedCount?' · '+plan.omittedCount+
+   (pianoMotionLastPlan?.omittedCount?' · '+pianoMotionLastPlan.omittedCount+
      ' перекрывающихся нот остаются для ручной аппликатуры.':'')+
    ' · предложения не являются авторскими.';
 }
@@ -1082,7 +1082,7 @@ if($('pianoMotionExportXML'))$('pianoMotionExportXML').onclick=()=>{
  }
  const refreshed=pianoMotionAlignSuggestions(song,pianoMotionLastResult.suggestions,{
   trackIndices:pianoMotionLastPlan.trackIndices,channel:pianoMotionLastPlan.channel??null,
-  tolerance:pianoMotionLastPlan.mode==='original'?.025:.005,
+  tolerance:pianoMotionLastPlan.exactOriginalMidi?.025:.005,
   sourceNotes:pianoMotionLastPlan.sourceNotes??null
  });
  if(!refreshed.ok||refreshed.matches.some((entry,i)=>
