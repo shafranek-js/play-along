@@ -490,9 +490,13 @@ function fingerBrowserShow(report){
  const chosen=a.status==='computed'?a:l.status==='computed'?l:null;
  const extra=chosen?.omittedCount||0;
  const totalManual=skipped+extra;
+ const recovered=chosen?.beamRecoveries?.length||0;
+ const recoveryNotice=recovered?' · Расширенный Beam Search восстановил '+
+  recovered+' участков ('+(chosen.recoveredNotes||0)+
+  ' нот); проверка аппликатуры вручную обязательна.':'';
  const skipNotice=(skipped?' · '+skipped+' наложенных унисона для ручной проверки.':'')+
   (extra?' · '+extra+' нот в сложных участках исключены только из расчёта: нет допустимой комбинации пальцев.':'')+
-  (totalManual?' Исходная партитура не изменена.':'');
+  (totalManual?' Исходная партитура не изменена.':'')+recoveryNotice;
  status.textContent='Вычислено локально · '+report.engine+
   ' · Исходные события неизменны · Автоматические пальцы не приняты.'+skipNotice;
  const summary=model=>model.status==='computed'?
@@ -513,6 +517,10 @@ function fingerBrowserShow(report){
   ['Охват обычной модели',modelCoverage(l)],
   ['Анатомическая модель',summary(a)],
   ['Охват анатомической модели',modelCoverage(a)],
+  ['Расширенный поиск · обычная',l.status==='computed'?
+   (l.beamRecoveries?.length||0)+' участков · '+(l.recoveredNotes||0)+' нот':'Не рассчитано'],
+  ['Расширенный поиск · анатомическая',a.status==='computed'?
+   (a.beamRecoveries?.length||0)+' участков · '+(a.recoveredNotes||0)+' нот':'Не рассчитано'],
   ['Различающихся пальцев',report.disagreements??'Невозможно сравнить'],
   ['Экспертная проверка','Не выполнена']
  ];
@@ -590,10 +598,28 @@ function fingerBrowserShow(report){
    const pitches=at?.pitches?.map(p=>nameOf(p)).join(', ')||'не определены';
    li.textContent=g.hand+' · '+g.notes+' нот в группе'+
     (Number.isFinite(at?.start)?' · '+at.start.toFixed(2)+' с':'')+
+    (g.beamAttemptWidths?.length>1?' · поиск при ширине '+
+     g.beamAttemptWidths.join(' → ')+' не помог':'')+
     ' · ноты при отказе: '+pitches+
     ' · '+(g.reason==='NO_VALID_PATH'?cause(at?.pruned):g.reason)+
     ' · варианты эвристики, не оценка навыка пианиста';
    list.append(li);
+  }
+  candidates.append(list);
+ }
+ for(const [label,model]of [['Обычная',l],['Анатомическая',a]]){
+  if(!model.beamRecoveries?.length)continue;
+  const heading=document.createElement('strong');
+  heading.textContent=label+' модель · восстановлено расширенным поиском ('+
+   model.beamRecoveries.length+' участков)';
+  candidates.append(heading);
+  const list=document.createElement('ol');
+  for(const g of model.beamRecoveries.slice(0,20)){
+   const item=document.createElement('li');
+   item.textContent=g.hand+' · '+g.notes+' нот · ширина '+
+    g.attemptedWidths.join(' → ')+
+    ' · проверка пальцев вручную обязательна';
+   list.append(item);
   }
   candidates.append(list);
  }
