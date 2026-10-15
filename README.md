@@ -1,4 +1,13 @@
-# Play Along — Piano Practice App (v0.10.122)
+# Play Along — Piano Practice App (v0.10.123)
+
+## FG-02I Adaptive Beam Recovery (v0.10.123)
+
+The Legacy and Anatomical JavaScript Beam Search research models now attempt each polyphonic/chord island at normal **beam width 40**. Only when that local island returns `NO_VALID_PATH`, FG-02I retries **the same island** at widths 80 and 128 (in that order); retries stop immediately on success or a different error. Finger order, pair-specific reach, hand size, all physical constraints, source identities, author/user finger anchors, tempo and MusicXML are unchanged. Monophonic passages, successful 40-width chords, ambiguous hand ownership, six simultaneously held piano keys, and other structural errors never trigger additional search. The two models remain independent.
+
+Successful expanded-width segments are included in the ordinary independent physical audit and source-identity review, and the UI reports recovered-island and note counts **separately for each model**. When 128 still fails, the entire source-identified connected island continues to be excluded only from temporary research inference and is shown for manual review. The full adaptive attempt sequence 40 → 80 → 128 is explicitly reported on that refusal. No prior successful prediction is automatically confirmed. The result is not pianist-validated.
+
+Tests: baseline 40-width exact-equivalence, no-source-change protected exclusions, explicit width-80 calling behavior, and actual Chromium MusicXML review, in addition to all pinned real Pyodide/PianoMotion/MAESTRO release checks. The owner-provided Bach MXL is retained privately and is not redistributed in the repository. Any improved note coverage must be measured separately, rather than assumed merely from a wider search.
+
 
 ## FG-02I — auditable research Beam Search failure evidence (v0.10.122)
 

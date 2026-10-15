@@ -1,5 +1,10 @@
 # Play Along — development roadmap: Finger Guidance and musical reliability
 
+## FG-02I Adaptive Beam Recovery (v0.10.123)
+
+For the Bach MXL v0.10.122 baseline, Anatomical covers 430/445 notes (96.6%), leaving three MusicXML overlapping unisons and two blocked polyphonic RH islands (4 and 8 source notes). Research whether beam width 40 accidentally prunes physically valid continuations. Run 40 → 80 → 128 **only on individual failed chord/overlap islands**, never relax reach or finger occupancy and never automatically move a note to the opposite hand. Keep source-note and held-key identity, independent physical audit and explicit manual review. Expose separate per-model retry success/remaining failures. Do not promise higher Bach coverage without user validation on the source file. Next optional phase: carefully review verified hand crossing or hand-sharing only with explicit score/source hand annotations.
+
+
 ## FG-02I: explain partial-beam abstentions and actual coverage (v0.10.122)
 
 Do not report generic `NO_VALID_PATH` without actionable evidence after v0.10.121: instrument the unchanged FG-02B search to return the first rejected score onset, notes and constraint pruning counters. Propagate failure evidence through FG-02I's source-ID-locked refused-island metadata to the local browser research UI, separately for legacy and anatomical models. Display eligible-source-note coverage relative to the complete imported score and explicit technical reasons for omissions. Explain these are bounded heuristic search failures, not confirmed physical impossibility. Preserve original timing, annotations and all manual-confirmation gates. Keep older Worker response compatibility and cover Node/Chromium regression tests.

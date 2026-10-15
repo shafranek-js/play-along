@@ -68,7 +68,8 @@ function solveModelWithIsolatedAbstentions(parts,{costModel,handSize}){
    return {ok:false,reason:'PARTIAL_ISLAND_MAPPING_FAILED',excluded,excludedGroups};
   remaining[result.hand]=remaining[result.hand].filter(n=>!blocked.has(n.noteId));
   excludedGroups.push({hand:result.hand,reason:result.reason,notes:removed.length,
-   ...(result.failureAt?{failureAt:result.failureAt}:{})});
+   ...(result.failureAt?{failureAt:result.failureAt}:{}),
+   ...(result.beamAttemptWidths?{beamAttemptWidths:result.beamAttemptWidths}:{})});
   excluded.push(...removed.map(n=>({
    noteId:n.noteId,pitch:n.pitch,start:n.start,duration:n.duration,
    hand:n.hand,staff:n.staff??'',voice:n.voice??'',
@@ -145,6 +146,8 @@ export function compareBrowserFingeringResearch({notes,handSize='M'}={}){
    omittedCount:attempt.excluded.length,
    omittedNotes:attempt.excluded,
    eligibleCount:eligible.length,omittedGroups:attempt.excludedGroups,
+   beamRecoveries:r.diagnostics?.beamRecoveries||[],
+   recoveredNotes:(r.diagnostics?.beamRecoveries||[]).reduce((s,g)=>s+g.notes,0),
    coveragePercent:Math.round(100*eligible.length/original.length*10)/10,
    candidates:proposed};
  }
