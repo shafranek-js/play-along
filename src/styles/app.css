@@ -259,7 +259,7 @@ body.onlyLibrary #leftPanel .sidebody>.panelSection:first-child{
 .shell.hybridMode:has(.rollWrap:not(.hidden)) .center{
  max-height:calc(100% - var(--full-piano-roll-height));min-height:0}
 .shell.hybridMode .sidebar{max-height:none!important;min-height:0;overflow-y:auto}
-.shell.hybridMode .sidebar.is-docked{height:100%;position:relative;z-index:5;box-shadow:none}
+.shell.hybridMode .sidebar.is-docked{height:100%;position:relative;z-index:8;box-shadow:none}
 .shell.hybridMode .sidebar.left.is-docked{width:var(--left)}
 .shell.hybridMode .sidebar.right.is-docked{width:var(--right)}
 .shell.hybridMode .sidebar:not(.is-docked){
@@ -297,3 +297,9 @@ body.focus .panelScrim{display:none!important}
 @media(prefers-reduced-motion:reduce){
  .shell.hybridMode .sidebar:not(.is-docked){animation:none}
 }
+
+/* Narrow docks must keep the active controls legible without forcing a wider rail. */
+.shell.hybridMode .centerHead{flex-wrap:wrap;gap:7px;padding:10px 12px}
+.shell.hybridMode .scoreViewSwitcher{max-width:100%}
+.shell.hybridMode .keyboardInfo{flex-wrap:wrap;gap:6px;padding:7px 12px}
+.shell.hybridMode .fingerGuideControls{flex-wrap:wrap;min-width:0}
