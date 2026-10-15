@@ -257,6 +257,8 @@ body.onlyLibrary #leftPanel .sidebody>.panelSection:first-child{
  border-top:1px solid #405068}
 .rollWrap:not(.hidden) canvas{width:100%!important;height:100%;
  touch-action:manipulation}
+/* Focus mode hides the transport; the 88-key piano then meets the lower edge. */
+body.focus .rollWrap:not(.hidden){bottom:0}
 .shell:has(.rollWrap:not(.hidden)) .sidebar,
 .shell:has(.rollWrap:not(.hidden)) .splitter,
 .shell:has(.rollWrap:not(.hidden)) .center{
