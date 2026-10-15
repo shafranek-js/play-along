@@ -54,6 +54,32 @@ try{
  const saved=await page.evaluate(()=>window.__fingerGuideTest.userCorrections);
  assert.equal(Object.keys(saved).length,4,'all four suggestions saved only as user corrections');
  assert.ok(Object.values(saved).every(x=>Number.isInteger(x.finger)&&x.finger>=1&&x.finger<=5));
+ // Re-running after confirming fingers must not manufacture "new" fingers.
+ // It must explain existing anchors, and keep a separate non-applicable
+ // comparison path for users who want to compare original models again.
+ await page.locator('#fingerCurrentCalculate').click();
+ await page.waitForFunction(()=>document.querySelector('#fingerBrowserStatus')?.textContent?.includes('Вычислено локально'),null,{timeout:20000});
+ assert.match(await page.locator('#fingerBrowserMetrics').innerText(),/Уже сохранено пользователем: 4/);
+ assert.match(await page.locator('#fingerBrowserMetrics').innerText(),/Учитывается как закреплённое в расчёте: 4/);
+ assert.match(await page.locator('#fingerBrowserMetrics').innerText(),/Анатомическая модель: 0 предложений/);
+ assert.equal(await page.locator('#fingerBrowserAcceptSelected').isDisabled(),true);
+ await page.locator('#fingerBrowserCompareSaved').check();
+ assert.match(await page.locator('#fingerBrowserStatus').innerText(),/Режим сравнения изменён/);
+ await page.locator('#fingerCurrentCalculate').click();
+ await page.waitForFunction(()=>document.querySelector('#fingerBrowserStatus')?.textContent?.includes('РЕЖИМ СРАВНЕНИЯ'),null,{timeout:20000});
+ const comparison=await page.locator('#fingerBrowserMetrics').innerText();
+ assert.match(comparison,/Уже сохранено пользователем: 4/);
+ assert.match(comparison,/Учитывается как закреплённое в расчёте: 0/);
+ assert.match(comparison,/Обычная модель: 4 предложений/);
+ assert.match(comparison,/Анатомическая модель: 4 предложений/);
+ assert.equal(await page.locator('#fingerBrowserAcceptSelected').isDisabled(),true);
+ assert.equal(await page.locator('#fingerBrowserConfirm').isDisabled(),true);
+ assert.equal(await page.locator('#fingerBrowserReject').isDisabled(),true);
+ assert.deepEqual(await page.evaluate(()=>window.__fingerGuideTest.userCorrections),saved,
+  'diagnostics must preserve all previously saved fingers byte for byte');
+ await page.locator('#fingerBrowserCompareSaved').uncheck();
+ assert.equal(await page.locator('#fingerBrowserConfirm').isEnabled(),true);
+
  assert.deepEqual(await page.evaluate(()=>window.__prototypeTest.song.tracks.flatMap(t=>t.notes).map(n=>({
   id:n.noteId,pitch:n.pitch,start:n.start,duration:n.duration,finger:n.finger??null
  }))),src,'source remains unchanged after user confirms');
