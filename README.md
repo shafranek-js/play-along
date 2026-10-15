@@ -1,4 +1,11 @@
-# Play Along — Piano Practice App (v0.10.120)
+# Play Along — Piano Practice App (v0.10.121)
+
+## FG-02I — source-safe partial Beam Search recovery from NO_VALID_PATH (v0.10.121)
+
+When the research-only JavaScript Beam Search cannot find a permitted physical fingering for a **single connected chord/held-note island**, it previously rejected the entire MusicXML piece. Now each model first runs the unchanged full-score FG-02I solver. For a recoverable isolated `NO_VALID_PATH` or `TOO_MANY_SIMULTANEOUS_KEYS` with exact source note IDs, it removes **only the whole refused island from temporary research input**, retries the original solver, and keeps the refused notes **unaltered in the actual score** for explicit manual review. Non-isolatable errors, contradictory authored annotations, cross-hand same-key co-onsets, invalid input, audit violations and missing source IDs still fail closed. No span thresholds or original MIDI/MusicXML onsets, durations, pitches, voices, ties or author/user numbers are changed.
+
+Both normal (legacy) and anatomical models report their **own** physical abstentions. UI shows original / unison-cleared / manually reviewed counts, exact original note locations (measure, staff, voice, pitch/time where available), and lists eligible source-ID-based suggestions only. The anatomical model remains the default preview if successful; otherwise the successful legacy one. User selection/confirmation, source snapshot invalidation and Undo still protect commits. Research results are not expert-validated or automatically applied to practice. Testing: pure recovery cases with an unsolvable B3–F5 held chord, pinned browser multi-voice and difficult-chord MusicXML test, full PR suite + real Pyodide verification. User-supplied Bach MXL stays outside the repository.
+
 
 ## LAUNCH-06 — Beam Search polyphonic unison review (v0.10.120)
 

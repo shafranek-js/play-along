@@ -487,17 +487,24 @@ function fingerBrowserShow(report){
  }
  const l=report.models.legacy,a=report.models.anatomical;
  const skipped=report.omittedCount||0;
- const skipNotice=skipped?' · '+skipped+
-  ' перекрывающихся унисонных нот исключены ТОЛЬКО из расчёта; для них нужна ручная проверка.':'';
+ const chosen=a.status==='computed'?a:l.status==='computed'?l:null;
+ const extra=chosen?.omittedCount||0;
+ const totalManual=skipped+extra;
+ const skipNotice=(skipped?' · '+skipped+' наложенных унисона для ручной проверки.':'')+
+  (extra?' · '+extra+' нот в сложных участках исключены только из расчёта: нет допустимой комбинации пальцев.':'')+
+  (totalManual?' Исходная партитура не изменена.':'');
  status.textContent='Вычислено локально · '+report.engine+
   ' · Исходные события неизменны · Автоматические пальцы не приняты.'+skipNotice;
+ const summary=model=>model.status==='computed'?
+  model.proposed+' предложений'+(model.omittedCount?' · '+model.omittedCount+' сложных нот без расчёта':''):
+  'Отказ: '+model.reason;
  const rows=[
   ['Всего нот',report.noteCount],
-  ['Для расчёта',report.eligibleCount??report.noteCount],
-  ['Для ручной проверки',skipped],
+  ['После проверки унисонов',report.eligibleCount??report.noteCount],
+  ['Потребуют ручной проверки (выбранная модель)',totalManual],
   ['Авторских/ручных обозначений',report.anchored],
-  ['Обычная модель',l.status==='computed'?l.proposed+' предложений':'Отказ: '+l.reason],
-  ['Анатомическая модель',a.status==='computed'?a.proposed+' предложений':'Отказ: '+a.reason],
+  ['Обычная модель',summary(l)],
+  ['Анатомическая модель',summary(a)],
   ['Различающихся пальцев',report.disagreements??'Невозможно сравнить'],
   ['Экспертная проверка','Не выполнена']
  ];
@@ -505,7 +512,6 @@ function fingerBrowserShow(report){
   const span=document.createElement('span');span.className='fingerResearchMetric';
   span.textContent=label+': '+value;metrics.append(span);
  }
- const chosen=a.status==='computed'?a:l.status==='computed'?l:null;
  if(!chosen){
   status.textContent='Beam Search не смог построить допустимую аппликатуру. '+
    'Обычная модель: '+l.reason+'; анатомическая: '+a.reason+
@@ -526,25 +532,32 @@ function fingerBrowserShow(report){
     skipNotice;
   }
  }
- if(skipped&&Array.isArray(report.omittedNotes)){
+ const manual=[...(report.omittedNotes||[]),...(chosen?.omittedNotes||[])];
+ if(manual.length){
   const title=document.createElement('strong');
-  title.textContent='Не рассчитаны · повторные нажатия удерживаемой клавиши';
+  title.textContent='Ноты для ручной проверки ('+manual.length+') · без автоматического пальца';
   candidates.append(title);
   const list=document.createElement('ol');
-  for(const n of report.omittedNotes.slice(0,30)){
+  for(const n of manual.slice(0,60)){
    const li=document.createElement('li');
-   li.textContent=n.hand+' · '+nameOf(n.pitch)+' · '+n.start.toFixed(2)+
+   const bar=/^xml:.*:[0-9]+:([0-9]+):[0-9]+$/.exec(n.noteId||'');
+   li.textContent=(bar?'Такт '+(Number(bar[1])+1)+' · ':'')+
+    n.hand+' · '+nameOf(n.pitch)+' · '+n.start.toFixed(2)+
     ' с'+(n.staff?' · стан '+n.staff:'')+
-    (n.voice?' · голос '+n.voice:'')+' · назначить вручную';
+    (n.voice?' · голос '+n.voice:'')+
+    ' · '+(n.reason==='NO_VALID_PATH'?'модель не нашла физически допустимых пальцев':
+     n.reason==='TOO_MANY_SIMULTANEOUS_KEYS'?'более пяти одновременно удерживаемых клавиш':
+     'перекрывающееся повторное нажатие')+
+    ' · проверить вручную';
    list.append(li);
   }
   candidates.append(list);
  }
- if(a.status==='computed'&&a.candidates.length){
+ if(chosen?.status==='computed'&&chosen.candidates.length){
   const title=document.createElement('strong');title.textContent='Первые 30 предложений · только для просмотра';
   candidates.append(title);
   const list=document.createElement('ol');
-  for(const n of a.candidates.slice(0,30)){
+  for(const n of chosen.candidates.slice(0,30)){
    const li=document.createElement('li');
    li.textContent=n.hand+' · '+nameOf(n.pitch)+' · '+n.start.toFixed(2)+
     ' с → палец '+n.finger+' (не подтверждён)';

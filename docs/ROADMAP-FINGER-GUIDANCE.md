@@ -1,5 +1,10 @@
 # Play Along — development roadmap: Finger Guidance and musical reliability
 
+## FG-02I / LAUNCH-06 — partial Beam Search on physically unsolved islands (v0.10.121)
+
+An unresolvable passage like a held B3–F5 chord in the reported Bach piano arrangement can cause both FG-02I beam models to return `NO_VALID_PATH` and previously blocked all 445 notes. Keep the original full-score attempt, but on a source-identified recoverable chord island abstain on that **whole component** (never assign made-up fingers or change source music) and retry the unchanged solver on other independent passages. Report which notes require manual review for each model; keep unison exclusions separate from geometric refusals. Protect author anchors and already saved manual edits. Never weaken physical checks; retain fail-closed behavior for ambiguous or unverified identity, mixed-hand collisions and unrelated validation failures. Regression gates: unit tests and real original MusicXML Chromium UI.
+
+
 ## LAUNCH-06 — independent Beam Search overlapping-key recovery (v0.10.120)
 
 Implement the same **source-safe partial review principle**, independently in the local FG-02I Beam Search browser comparison, without altering research solver physical constraints: omit only later, distinct-onset re-articulations while the same piano pitch remains sounding; cross-hand same-onset ambiguity remains an explicit refusal, and same-hand simultaneous unisons still share a physical key. The original score, author/user anchors and onsets/releases never change; omitted note IDs never receive automatic candidates. Always show omission count and clear model refusal statuses. Synthetic score and Chromium regressions required.
