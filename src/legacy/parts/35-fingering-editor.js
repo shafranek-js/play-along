@@ -540,7 +540,7 @@ function fingerBrowserShow(report){
   const list=document.createElement('ol');
   for(const n of manual.slice(0,60)){
    const li=document.createElement('li');
-   const bar=/^xml:.*:\\d+:(\\d+):\\d+$/.exec(n.noteId||'');
+   const bar=/^xml:.*:[0-9]+:([0-9]+):[0-9]+$/.exec(n.noteId||'');
    li.textContent=(bar?'Такт '+(Number(bar[1])+1)+' · ':'')+
     n.hand+' · '+nameOf(n.pitch)+' · '+n.start.toFixed(2)+
     ' с'+(n.staff?' · стан '+n.staff:'')+
