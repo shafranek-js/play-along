@@ -1,10 +1,81 @@
-function applyPage(){document.body.classList.toggle('onlyLibrary',state.page==='library');document.body.classList.toggle('onlyProgress',state.page==='progress');document.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===state.page)); if(state.page==='progress')switchRightTab('analysis',false); if(state.page==='practice'){renderCanvas();if(state.scoreView==='sheet')scoreEnsureRendered().catch(scoreError);if(state.scoreView==='editor')fingerEditorRender();}}
-function applyLayout(layout,save=true){state.layout=layout; if(save&&layout==='learn'){state.left=true;state.right=true;state.rightTab='practice';if(window.innerWidth<=820){state.left=false;state.right=false}}if(save&&layout==='play'){state.left=false;state.right=false}if(save&&layout==='analyze'){state.left=false;state.right=true;state.rightTab='analysis'}document.querySelectorAll('[data-layout]').forEach(b=>b.classList.toggle('active',b.dataset.layout===layout));switchRightTab(state.rightTab,false);applyPanels();if(save)persist();}
-function applyPanels(){document.documentElement.style.setProperty('--left',clamp(state.leftWidth,210,520)+'px');document.documentElement.style.setProperty('--right',clamp(state.rightWidth,240,550)+'px');document.body.classList.toggle('noLeft',!state.left);document.body.classList.toggle('noRight',!state.right);$('leftToggle').classList.toggle('on',state.left);$('rightToggle').classList.toggle('on',state.right);(()=>{const host=$('layoutState'),heading=document.createElement('strong'),details=document.createElement('p');
- heading.textContent=({'learn':'Изучение','play':'Игра','analyze':'Анализ'}[state.layout]||'Изучение');
- details.textContent='Левая панель: '+(state.left?'видна':'скрыта')+' ('+state.leftWidth+' px) · Правая панель: '+(state.right?'видна':'скрыта')+' ('+state.rightWidth+' px)';
- host.replaceChildren(heading,details)})();resizeCanvas();}
-function toggleSide(side){state[side]=!state[side];applyPanels();persist();}
+function applyPage(){
+ document.body.classList.toggle('onlyLibrary',state.page==='library');
+ document.body.classList.toggle('onlyProgress',state.page==='progress');
+ document.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===state.page));
+ applyPanels();
+ if(state.page==='progress')switchRightTab('analysis',false);
+ if(state.page==='practice'){renderCanvas();if(state.scoreView==='sheet')scoreEnsureRendered().catch(scoreError);if(state.scoreView==='editor')fingerEditorRender();}
+}
+function applyLayout(layout,save=true){
+ state.layout=layout;
+ if(save&&layout==='learn'){state.left=true;state.right=true;state.leftPinned=true;state.rightPinned=true;state.rightTab='practice';if(window.innerWidth<=820){state.left=false;state.right=false;}}
+ if(save&&layout==='play'){state.left=false;state.right=false;}
+ if(save&&layout==='analyze'){state.left=false;state.right=true;state.rightPinned=true;state.rightTab='analysis';}
+ document.querySelectorAll('[data-layout]').forEach(b=>b.classList.toggle('active',b.dataset.layout===layout));
+ switchRightTab(state.rightTab,false);applyPanels();if(save)persist();
+}
+// A pin is a user preference, not a guarantee: a narrow viewport must keep
+// enough room for 52 natural piano keys. Preserve preferences across resize.
+function applyPanels(){
+ const leftWidth=clamp(state.leftWidth,210,520),rightWidth=clamp(state.rightWidth,240,550);
+ const shell=$('shell'),practice=state.page==='practice';
+ const minCenter=Math.max(700,Math.min(820,Math.round(window.innerWidth*.53)));
+ const leftDock=practice&&state.left&&state.leftPinned&&window.innerWidth-leftWidth-5>=minCenter;
+ const rightDock=practice&&state.right&&state.rightPinned&&
+  window.innerWidth-(leftDock?leftWidth+5:0)-rightWidth-5>=minCenter;
+ const leftOverlay=practice&&state.left&&!leftDock,rightOverlay=practice&&state.right&&!rightDock;
+ document.documentElement.style.setProperty('--left',leftWidth+'px');
+ document.documentElement.style.setProperty('--right',rightWidth+'px');
+ document.documentElement.style.setProperty('--dock-left',(leftDock?leftWidth+5:0)+'px');
+ document.documentElement.style.setProperty('--dock-right',(rightDock?rightWidth+5:0)+'px');
+ shell.classList.toggle('hybridMode',practice);
+ shell.classList.toggle('dockLeft',leftDock);
+ shell.classList.toggle('dockRight',rightDock);
+ $('leftPanel').classList.toggle('is-docked',leftDock);
+ $('rightPanel').classList.toggle('is-docked',rightDock);
+ $('panelScrim').classList.toggle('hidden',!(leftOverlay||rightOverlay));
+ document.body.classList.toggle('noLeft',!state.left);
+ document.body.classList.toggle('noRight',!state.right);
+ for(const side of ['left','right']){
+  const open=!!state[side],pin=!!state[side+'Pinned'],name=side==='left'?'библиотеку':'инструменты';
+  $(side+'Toggle').classList.toggle('on',open);
+  $(side+'Toggle').setAttribute('aria-expanded',String(open));
+  const control=$(side+'Pin'),title=pin?'Открепить '+name:'Закрепить '+name;
+  control.textContent=pin?'📌':'◇';
+  control.title=title;control.setAttribute('aria-label',title);
+  control.setAttribute('aria-pressed',String(pin));
+ }
+ const host=$('layoutState');
+ if(host){
+  const heading=document.createElement('strong'),details=document.createElement('p');
+  heading.textContent=({'learn':'Изучение','play':'Игра','analyze':'Анализ'}[state.layout]||'Изучение');
+  details.textContent='Библиотека: '+(!state.left?'скрыта':leftDock?'закреплена':'выдвижная')+
+   ' ('+leftWidth+' px) · Инструменты: '+(!state.right?'скрыты':rightDock?'закреплены':'выдвижные')+
+   ' ('+rightWidth+' px)';
+  host.replaceChildren(heading,details);
+ }
+ resizeCanvas();
+}
+function toggleSide(side){
+ state[side]=!state[side];
+ // Only one floating drawer at a time: a click must not trap the workspace.
+ if(state[side] && state.page==='practice'){
+  const other=side==='left'?'right':'left';
+  if(state[other]&&!$(''+other+'Panel').classList.contains('is-docked'))state[other]=false;
+ }
+ applyPanels();persist();
+}
+function togglePin(side){state[side+'Pinned']=!state[side+'Pinned'];applyPanels();persist();}
+function closeFloatingPanels(){
+ const shell=$('shell');
+ let changed=false;
+ for(const side of ['left','right']){
+  const dock=side==='left'?'dockLeft':'dockRight';
+  if(state[side]&&!shell.classList.contains(dock)){state[side]=false;changed=true;}
+ }
+ if(changed){applyPanels();persist();}
+ return changed;
+}
 function switchRightTab(tab,save=true){state.rightTab=tab;document.querySelectorAll('[data-righttab]').forEach(b=>b.classList.toggle('active',b.dataset.righttab===tab));['Practice','Adapt','Midi','Review','Smart','Analysis'].forEach(t=>$('tab'+t).classList.toggle('hidden',t.toLowerCase()!==tab));if(tab==='review')renderReview();if(tab==='smart')smartRender();$('rightPanel').scrollTop=0;if(save)persist();}
 function renderLibrary(){const query=$('librarySearch').value.trim().toLowerCase();const songs=[...demoSongs,...imports,...folderIndex.map(e=>e.song).filter(Boolean)].filter(s=>(s.title+' '+s.author).toLowerCase().includes(query));$('libraryCount').textContent=songs.length+' / '+(demoSongs.length+imports.length+folderIndex.filter(e=>e.song).length);$('songList').textContent='';if(!songs.length){$('songList').innerHTML='<div class="empty">Ничего не найдено</div>';return}for(let s of songs){let b=document.createElement('button');b.className='songRow'+(state.selected===s.id?' active':'');b.innerHTML='<strong></strong><span></span>';b.firstElementChild.textContent=s.title;b.lastElementChild.textContent=s.author+' · '+(s.type==='demo'?'демо':'MIDI-файл');b.onclick=()=>{if(s.folderPath){loadFolderSong(s.folderPath);return}loadSong(s);state.page='practice';applyPage();};$('songList').append(b)}}
 function loadSong(song){if(smart.active)smartStop(false);if(current&&!startupSongRestorePending)captureSongSettings(current);stop();current=song;fingerResearchReset();scoreOnSongChanged();currentSongKey=songFingerprint(song);state.selected=song.id;applySongSettings(song.id);selectedNote=null;fingerSelectedIds.clear();fingerSelectionAnchor=null;fingerSelectionPointer=null;syncSongSettingsUI();$('songName').textContent=song.title;$('songMeta').textContent=song.author+' · '+song.tracks.length+' '+(song.tracks.length===1?'дорожка':'дорожек');$('songType').textContent=song.type==='demo'?'ДЕМО ДЛЯ ПРОВЕРКИ ИНТЕРФЕЙСА':'ЗАГРУЖЕННАЯ ПАРТИТУРА · '+(song.format||'MIDI');$('playModeChip').textContent='MIDI · '+({listen:'Слушать',wait:'Wait',tempo:'Tempo'}[state.mode]||'Слушать');$('trackSelect').innerHTML='';song.tracks.forEach((t,i)=>{let o=document.createElement('option');o.value=i;o.textContent=(i+1)+'. '+t.name+' ('+t.notes.length+' нот)';$('trackSelect').append(o)});const previousTrack=Number(state.track);state.track=Number.isInteger(previousTrack)&&previousTrack>=0&&previousTrack<song.tracks.length?previousTrack:Math.max(0,song.tracks.findIndex(t=>t.notes.some(isPlayableNote)));$('trackSelect').value=String(state.track);renderCapability();rebuildPerfLast();resetPractice();renderLibrary();updateUI();persist();resizeCanvas();renderReview();scoreSetView(state.scoreView);}
