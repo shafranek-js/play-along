@@ -105,3 +105,50 @@ test('both Beam models keep independent evidence and auditable partial coverage'
  }
  assert.deepEqual(notes,original);
 });
+
+
+test('adaptive 40->80->128 exhausts only blocked islands and keeps reach constraints',()=>{
+ const notes=[
+  note('start',60,0,.2),note('next',62,.3,.2),
+  note('wide-low',59,3,1.5),note('wide-high',77,3,1.5),
+  note('tail',65,6,.2),note('bass',48,0,.2,'LH')
+ ];
+ const before=structuredClone(notes);
+ const result=run({notes,handSize:'M'});
+ assert.equal(result.ok,true,JSON.stringify(result));
+ for(const mode of ['legacy','anatomical']){
+  const m=result.models[mode];
+  assert.equal(m.status,'computed',JSON.stringify(m));
+  assert.equal(m.omittedCount,2);
+  assert.equal(m.recoveredNotes,0);
+  assert.deepEqual(m.beamRecoveries,[]);
+  assert.deepEqual(m.omittedGroups[0].beamAttemptWidths,[40,80,128]);
+  assert.equal(m.eligibleCount,4);
+  assert.equal(m.coveragePercent,66.7);
+  assert.equal(m.candidates.length,4);
+  assert.ok(m.candidates.every(n=>!['xml:P1:0:0:wide-low','xml:P1:0:0:wide-high'].includes(n.noteId)));
+ }
+ assert.deepEqual(notes,before,'score notes and annotations may not change on retry');
+});
+
+test('adaptive widths preserve normal 40-width chord output bit-for-bit',async()=>{
+ const {proposeHybridScoreFingering}=await import('../src/core/fingering-score-router.mjs');
+ const rh=[note('C',60,0,.5),note('E',64,0,.5),note('G',67,0,.5)];
+ const a=proposeHybridScoreFingering({RH:rh,LH:[]},{beamWidth:40,costModel:'anatomical'});
+ const b=proposeHybridScoreFingering({RH:rh,LH:[]},{beamWidth:40,costModel:'anatomical'});
+ assert.equal(a.ok,true,JSON.stringify(a));
+ assert.deepEqual(a,b);
+ assert.deepEqual(a.hands.RH.map(n=>n.finger),[1,3,5]);
+ assert.deepEqual(a.diagnostics.beamRecoveries,[]);
+ assert.equal(a.segments.RH[0].beamWidthUsed,undefined);
+});
+
+test('explicit beamWidth 80 is a single direct run, not auto-expanded',async()=>{
+ const {proposeHybridScoreFingering}=await import('../src/core/fingering-score-router.mjs');
+ const rh=[note('low',59,0,1),note('high',77,0,1)];
+ const r=proposeHybridScoreFingering({RH:rh,LH:[]},{beamWidth:80,costModel:'anatomical'});
+ assert.equal(r.ok,false);
+ assert.equal(r.reason,'NO_VALID_PATH');
+ assert.equal(r.beamAttemptWidths,undefined);
+ assert.deepEqual(r.segmentNoteIds,rh.map(n=>n.noteId));
+});
