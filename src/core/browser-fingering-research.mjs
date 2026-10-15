@@ -80,12 +80,14 @@ function solveModelWithIsolatedAbstentions(parts,{costModel,handSize}){
  }
  return {ok:false,reason:'PARTIAL_ISLAND_PASS_LIMIT',excluded,excludedGroups};
 }
-export function compareBrowserFingeringResearch({notes,handSize='M'}={}){
+export function compareBrowserFingeringResearch({notes,handSize='M',compareWithoutSaved=false}={}){
+ if(typeof compareWithoutSaved!=='boolean')return fail('INVALID_COMPARISON_MODE');
  if(!Array.isArray(notes)||notes.length<1||notes.length>2500)
   return fail('INVALID_NOTE_COUNT');
  if(!['XXS','XS','S','M','L','XL','XXL'].includes(handSize))
   return fail('INVALID_HAND_SIZE');
  const ids=new Set(),original=[];
+ let savedFingerCount=0,authorFingerCount=0;
  for(const n of notes){
   if(!n||typeof n.noteId!=='string'||!n.noteId.startsWith('xml:')||
     ids.has(n.noteId))return fail('SOURCE_ID_REQUIRED_OR_DUPLICATE');
@@ -96,7 +98,13 @@ export function compareBrowserFingeringResearch({notes,handSize='M'}={}){
   if(!hand(n.hand))return fail('HAND_NOT_SOURCE_VERIFIED');
   if(n.authorFinger!=null&&!finger(n.authorFinger)||
      n.userFinger!=null&&!finger(n.userFinger))return fail('INVALID_ANCHOR');
-  const fixed=n.userFinger??n.authorFinger??null;
+  if(n.userFinger!=null)savedFingerCount++;
+  if(n.authorFinger!=null)authorFingerCount++;
+  // Research-only comparison is explicitly read-only in the UI. Honor
+  // ORIGINAL author annotations, but remove user-confirmed fingers only
+  // from the TEMPORARY solver input. Never mutate note/override objects.
+  const fixed=compareWithoutSaved?
+   (n.authorFinger??null):(n.userFinger??n.authorFinger??null);
   const copy={noteId:n.noteId,pitch:n.pitch,start:n.start,duration:n.duration,hand:n.hand,
    ...(fixed!==null?{finger:fixed}:{}),
    ...(typeof n.staff==='string'?{staff:n.staff}:{}),
@@ -160,6 +168,7 @@ export function compareBrowserFingeringResearch({notes,handSize='M'}={}){
  }
  return {ok:true,researchOnly:true,productionEligible:false,
   expertValidated:false,engine:'Play Along · FG-02I Beam Search',
+  comparisonOnly:compareWithoutSaved,savedFingerCount,authorFingerCount,
   noteCount:original.length,eligibleCount:prepared.notes.length,
   omittedCount:prepared.omitted.length,omittedNotes:prepared.omitted,
   // Model-specific physical abstentions are reported independently. The
