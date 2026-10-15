@@ -63,10 +63,10 @@ try{
     display.value='device';display.dispatchEvent(new Event('change',{bubbles:true}));
    },config.key);
    await page.evaluate(()=>window.__prototypeTest.seek(0));
-   await page.waitForFunction(c=>{
+   await page.waitForFunction(()=>{
     const g=window.__prototypeTest.pianoGeometry;
-    return g&&g.min===c.low&&g.max===c.high;
-   },config);
+    return g&&g.min===21&&g.max===108&&g.keys.length===88;
+   });
    const snapshot=await page.evaluate(()=>{
     const geom=window.__prototypeTest.pianoGeometry;
     const steps=window.__fingerGuideTest.steps;
@@ -79,46 +79,73 @@ try{
      clientX:rect.left+key.center,
      clientY:rect.top+window.__fingerGuideTest.layout.keyboardTop+5
     });
+    const hit=p=>{
+     const k=geom.byPitch.get(p);
+     return window.__prototypeTest.virtualKeyAt({
+      clientX:rect.left+k.center,
+      clientY:rect.top+window.__fingerGuideTest.layout.keyboardTop+5
+     });
+    };
     return {
-     range:{min:geom.min,max:geom.max,count:geom.keys.length},
+     range:{min:geom.min,max:geom.max,count:geom.keys.length,
+      whites:geom.whites.length,blacks:geom.blacks.length},
      displayedRange:window.__prototypeTest.state.displayRange,
-     whiteWidth:Math.min(...geom.whites.map(x=>x.w)),
+     whiteWidth:geom.whites[0].w,
      blackPitch,
      sourceFuture:future.map(n=>({pitch:n.pitch,hand:n.hand,finger:n.finger})),
-     outOfRange:future.filter(n=>!geom.byPitch.has(n.pitch)).map(n=>n.pitch),
-     rhPoseAvailable:placements.RH!==null,
+     outsideController:future.filter(n=>n.pitch<window.__prototypeTest.state.targetKeyLow||
+      n.pitch>window.__prototypeTest.state.targetKeyHigh).map(n=>n.pitch),
+     futureAllOnFullPiano:future.every(n=>geom.byPitch.has(n.pitch)),
      ghostVisible:chord.visible,
-     rhPlan:chord.plans?.RH?.kind??null,
-     crossing:chord.crossing,
      canvasCssWidth:rect.width,
+     canvasLeft:rect.left,
      viewportWidth:window.innerWidth,
+     scrollWidth:document.getElementById('rollWrap').scrollWidth,
+     clientWidth:document.getElementById('rollWrap').clientWidth,
+     keyHeight:window.__fingerGuideTest.layout.keyboardBottom-
+      window.__fingerGuideTest.layout.keyboardTop,
+     keyHits:{outsideLow:hit(21),inside:hit(60),outsideHigh:hit(108),
+      black:hit(61)},
      keyboardTop:window.__fingerGuideTest.layout.keyboardTop
     };
    });
-   assert.deepEqual(snapshot.range,{min:config.low,max:config.high,count:config.count});
-   assert.equal(snapshot.displayedRange,'device','Virtual preview range must work without MIDI profile');
-   assert.ok(snapshot.whiteWidth>=20,
-    'Wide virtual keyboard must preserve readable piano-key width with horizontal scrolling');
-   assert.equal(snapshot.blackPitch,61,'A raised black key still wins coordinate hit testing');
+   assert.deepEqual(snapshot.range,
+    {min:21,max:108,count:88,whites:52,blacks:36},
+    '88 piano keys are always present for ALL preview and calibration ranges');
+   assert.equal(snapshot.displayedRange,'device',
+    'legacy display preferences cannot crop the physical 88-key piano');
+   assert.equal(snapshot.canvasLeft,0,'piano roll begins at window edge');
+   assert.ok(Math.abs(snapshot.canvasCssWidth-snapshot.viewportWidth)<=1,
+    'full 88-key piano ends at opposite window edge');
+   assert.equal(snapshot.scrollWidth,snapshot.clientWidth,
+    'scroll-free full piano should never require horizontal travel');
+   assert.ok(Math.abs(snapshot.keyHeight/snapshot.whiteWidth-5.5)<.04,
+    'white-key height and width scale by one invariant ratio');
+   assert.equal(snapshot.blackPitch,61,'black key wins key hit testing');
+   assert.equal(snapshot.keyHits.black,61);
+   assert.equal(snapshot.keyHits.inside,60);
+   assert.equal(snapshot.keyHits.outsideLow,null,'A0 outside short MIDI range is inactive');
+   assert.equal(snapshot.keyHits.outsideHigh,
+    config.count===88?108:null,'C8 is inactive outside 88-key controller');
    assert.deepEqual(snapshot.sourceFuture,[
     {pitch:61,hand:'RH',finger:1},{pitch:65,hand:'RH',finger:3},
     {pitch:84,hand:'RH',finger:5},
     {pitch:50,hand:'LH',finger:5},{pitch:57,hand:'LH',finger:1}
-   ],'Changing the keyboard range must never change authored notes/fingers');
-   assert.equal(snapshot.ghostVisible,true,'Source-approved lookahead must remain available');
-   if(config.count===25){
-    assert.deepEqual(snapshot.outOfRange,[84],'25-key view omits the high RH target');
-    assert.equal(snapshot.rhPoseAvailable,false,
-     'Do not paint a complete PNG pose for a partially off-range source chord');
-    assert.equal(snapshot.rhPlan,'markers',
-     'Fixed in-range key markers must replace misleading 25-key clipped PNG motion');
-   }else assert.deepEqual(snapshot.outOfRange,[]);
-   // Keep the music visible near middle C in scrollable 88-key/mobile layouts.
-   await page.evaluate(()=>{
-    const wrap=document.getElementById('rollWrap');
-    const key=window.__prototypeTest.pianoGeometry.byPitch.get(60);
-    if(key)wrap.scrollLeft=Math.max(0,key.center-wrap.clientWidth/2);
+   ],'MIDI/MusicXML finger provenance never changes with controller selection');
+   assert.equal(snapshot.futureAllOnFullPiano,true,
+    'out-of-controller piano-roll notes remain visible; none are deleted');
+   assert.equal(snapshot.ghostVisible,true,'author-verified preview stays accessible');
+   // The legacy 25-key view previously hid pitch 84 entirely. It must now
+   // be visible above the piano but dimmed and unclickable on the keyboard.
+   const high84=await page.evaluate(()=>{
+    const k=window.__prototypeTest.pianoGeometry.byPitch.get(84);
+    const rect=document.getElementById('roll').getBoundingClientRect();
+    return window.__prototypeTest.virtualKeyAt({
+     clientX:rect.left+k.center,
+     clientY:rect.top+window.__fingerGuideTest.layout.keyboardTop+8
+    });
    });
+   assert.equal(high84,config.count===25?null:84);
    const png=config.key+'-'+viewport.name+'.png';
    await page.screenshot({path:path.join(out,png)});
    reports.push({...snapshot,viewport:viewport.name,keyCount:config.count,screenshot:png});
@@ -129,7 +156,7 @@ try{
   version:'FG-03B2B-1',pianistApproved:false,calibratedMIDI:false,
   tests:reports
  },null,2));
- console.log('FG-03B2B-1: 25/49/61/88 x desktop/mobile, author notes preserved, range safety, black keys: PASS');
+ console.log('FULL88: 25/49/61/88 controller ranges × desktop/mobile, responsive piano, no scroll, disabled limits, score intact: PASS');
 }finally{
  if(browser)await browser.close();
  await new Promise(resolve=>server.close(resolve));
