@@ -142,7 +142,7 @@ try{
       Math.floor(k.center),Math.floor(y),1,1).data;
      return [...pixel.slice(0,3)];
     };
-    return {outer:rgb(21),inside:rgb(60)};
+    return {outer:rgb(21),inside:rgb(69)};
    });
    const luma=rgb=>rgb[0]*.21+rgb[1]*.72+rgb[2]*.07;
    if(config.count<88)assert.ok(luma(contrast.outer)<luma(contrast.inside)*.55,
