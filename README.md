@@ -1,4 +1,12 @@
-# Play Along — Piano Practice App (v0.10.111)
+# Play Along — Piano Practice App (v0.10.112)
+
+## LAUNCH-02 — continuous hand silhouettes during solo rests and adjacent chords (v0.10.112)
+
+**Listen, source-annotated notes only:** after a verified single-hand note releases and before its next score NoteOn, the *same* right/left hand remains visible in its existing original `rest` PNG, even when the other hand is never used. The program **does not fabricate the missing second hand** and does not assign anatomy to ordinary unannotated MIDI. This extends v0.10.111's two-hand resting support to solo pieces.
+
+**Nearby active-to-active transitions:** changing two adjacent, sourced hand positions without an intervening rest may show a strictly cosmetic **120 ms** faint outgoing PNG silhouette (alpha ≤ 0.12), smoothly interpolated to the newly played location. The new actual source pitch/finger PNG is displayed at its *correct exact location and full alpha .87 immediately at NoteOn*; the prior PNG is a non-actionable motion trace, not an additional key press. Jumps greater than 1.25 hand widths, large vertical shifts, a different hand, untrusted or incomplete positions, reduced-motion, and Wait do **not** animate active-to-active motion. Explicit Seek, loop wrap, resizing, toggling mode or loss of score provenance continue to reset.
+
+**Verification:** Node unit checks cover exact onsets, bounded motion, alpha, immutable coordinates, and disallowed cases. Production Chromium tests verify original single-hand `rest` PNG during a real musical silence, source-accurate active-to-active hand sprites during natural playback, seek reset and no images for unlabeled MIDI. The original 14 PNG binaries, score timing, finger provenance, Wait scoring and audio remain untouched. Not anatomical finger-joint animation and not physical MIDI hardware UAT.
 
 ## LAUNCH-02 — smooth passive/playing hand PNG transitions (v0.10.111)
 
