@@ -499,7 +499,10 @@ function fingerBrowserShow(report){
   model.proposed+' предложений'+(model.omittedCount?' · '+model.omittedCount+' сложных нот без расчёта':''):
   'Отказ: '+model.reason;
  const modelCoverage=model=>model.status==='computed'?
-  model.coveragePercent.toFixed(1)+'% ('+model.eligibleCount+'/'+report.noteCount+' нот)':
+  Number.isFinite(model.eligibleCount)&&report.noteCount>0?
+   (100*model.eligibleCount/report.noteCount).toFixed(1)+'% ('+
+    model.eligibleCount+'/'+report.noteCount+' нот)':
+   'Нет данных об охвате':
   'Не рассчитано';
  const rows=[
   ['Всего нот',report.noteCount],
