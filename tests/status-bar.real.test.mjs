@@ -42,7 +42,8 @@ try{
  assert.equal(await page.locator('#keyboardRangeText').textContent(),'88 клавиш · A0–C8');
  assert.equal(await page.locator('#roll .rollStatus').count(),0,'transient notice no longer overlays piano');
  assert.equal(await page.locator('.keyboardInfo').count(),0,'old information strip removed');
- assert.equal(await page.locator('#fingerGuideMode').isVisible(),true,'finger guidance selector retained');
+ await page.locator('#handsMenuButton').click();
+ assert.equal(await page.locator('#fingerGuideMode').isVisible(),true,'finger guidance selector retained in topbar menu');
  assert.equal(await page.locator('#fingerGuideLookahead').isVisible(),true);
 
  // Status shows actual target reachability; existing source remains 88-key.
