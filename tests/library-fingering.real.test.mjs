@@ -1,3 +1,4 @@
+import {selectCompactFingerMode,selectCompactLookahead} from './compact-ui-helpers.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import http from 'node:http';
@@ -73,7 +74,7 @@ try{
   })();
   await window.__libraryV08.libraryLoadFile(meta.name,bin.data,id,{title:meta.title,author:meta.author,type:'saved'});
  },partial.id);
- await page.locator('#fingerGuideMode').selectOption('numbers');
+ await selectCompactFingerMode(page,'numbers');
  const id=await page.evaluate(()=>window.__prototypeTest.song.tracks[0].notes.find(n=>!n.finger).noteId);
  assert.equal(await page.evaluate(id=>window.__fingerGuideTest.selectAuthoredNote(id),id),true);
  await page.locator('.fingerCorrection select').first().selectOption('3');
