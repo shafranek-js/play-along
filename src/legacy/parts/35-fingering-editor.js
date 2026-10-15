@@ -446,7 +446,7 @@ function fingerBrowserInput(){
    (!change&&userDeclaredStaff&&String(n.staff)==='1'?'RH':
     !change&&userDeclaredStaff&&String(n.staff)==='2'?'LH':null);
   const candidate={noteId:n.noteId,pitch:n.pitch,start:n.start,
-   duration:n.duration,hand:h};
+   duration:n.duration,hand:h,staff:String(n.staff??''),voice:String(n.voice??'')};
   if(change){
    if(Number.isInteger(change.finger))candidate.userFinger=change.finger;
   }else if(n.fingeringSource==='musicxml'&&Number.isInteger(n.finger))
@@ -486,10 +486,16 @@ function fingerBrowserShow(report){
   return;
  }
  const l=report.models.legacy,a=report.models.anatomical;
+ const skipped=report.omittedCount||0;
+ const skipNotice=skipped?' · '+skipped+
+  ' перекрывающихся унисонных нот исключены ТОЛЬКО из расчёта; для них нужна ручная проверка.':'';
  status.textContent='Вычислено локально · '+report.engine+
-  ' · Исходные события неизменны · Автоматические пальцы не приняты.';
+  ' · Исходные события неизменны · Автоматические пальцы не приняты.'+skipNotice;
  const rows=[
-  ['Всего нот',report.noteCount],['Авторских/ручных обозначений',report.anchored],
+  ['Всего нот',report.noteCount],
+  ['Для расчёта',report.eligibleCount??report.noteCount],
+  ['Для ручной проверки',skipped],
+  ['Авторских/ручных обозначений',report.anchored],
   ['Обычная модель',l.status==='computed'?l.proposed+' предложений':'Отказ: '+l.reason],
   ['Анатомическая модель',a.status==='computed'?a.proposed+' предложений':'Отказ: '+a.reason],
   ['Различающихся пальцев',report.disagreements??'Невозможно сравнить'],
@@ -500,6 +506,11 @@ function fingerBrowserShow(report){
   span.textContent=label+': '+value;metrics.append(span);
  }
  const chosen=a.status==='computed'?a:l.status==='computed'?l:null;
+ if(!chosen){
+  status.textContent='Beam Search не смог построить допустимую аппликатуру. '+
+   'Обычная модель: '+l.reason+'; анатомическая: '+a.reason+
+   '. Исходные ноты не изменены.'+skipNotice;
+ }
  if(chosen&&Array.isArray(chosen.candidates)&&chosen.candidates.length&&
     fingerBrowserSong===current&&fingerBrowserSnapshotKey===JSON.stringify(fingerBrowserInput())){
   const target=new Map(fingerEditorNotes().map(n=>[n.noteId,n]));
@@ -510,8 +521,24 @@ function fingerBrowserShow(report){
    fingerBrowserPreview=new Map(chosen.candidates.map(n=>[n.noteId,n]));
    fingerBrowserUpdateActions();
    fingerEditorPaintSoon();
-   status.textContent='Вычислено локально · Предложения для '+fingerBrowserPreview.size+' нот показаны фиолетовым прямо в редакторе. Выдели подходящие ноты и проверь номера до подтверждения.';
+   status.textContent='Вычислено локально · Предложения для '+fingerBrowserPreview.size+
+    ' нот показаны фиолетовым в редакторе. Выдели подходящие ноты и проверь номера до подтверждения.'+
+    skipNotice;
   }
+ }
+ if(skipped&&Array.isArray(report.omittedNotes)){
+  const title=document.createElement('strong');
+  title.textContent='Не рассчитаны · повторные нажатия удерживаемой клавиши';
+  candidates.append(title);
+  const list=document.createElement('ol');
+  for(const n of report.omittedNotes.slice(0,30)){
+   const li=document.createElement('li');
+   li.textContent=n.hand+' · '+nameOf(n.pitch)+' · '+n.start.toFixed(2)+
+    ' с'+(n.staff?' · стан '+n.staff:'')+
+    (n.voice?' · голос '+n.voice:'')+' · назначить вручную';
+   list.append(li);
+  }
+  candidates.append(list);
  }
  if(a.status==='computed'&&a.candidates.length){
   const title=document.createElement('strong');title.textContent='Первые 30 предложений · только для просмотра';

@@ -1,5 +1,10 @@
 # Play Along — development roadmap: Finger Guidance and musical reliability
 
+## LAUNCH-06 — independent Beam Search overlapping-key recovery (v0.10.120)
+
+Implement the same **source-safe partial review principle**, independently in the local FG-02I Beam Search browser comparison, without altering research solver physical constraints: omit only later, distinct-onset re-articulations while the same piano pitch remains sounding; cross-hand same-onset ambiguity remains an explicit refusal, and same-hand simultaneous unisons still share a physical key. The original score, author/user anchors and onsets/releases never change; omitted note IDs never receive automatic candidates. Always show omission count and clear model refusal statuses. Synthetic score and Chromium regressions required.
+
+
 ## LAUNCH-06 follow-up — safe MusicXML polyphonic unison review (v0.10.119)
 
 For same-pitch overlapping notes in distinct MusicXML voices, reject silent note-off truncation or fabricated MIDI-channel repairs. Only the original-score workflow can opt into partial PianoMotion inference: exclude later simultaneous held-note re-attacks from temporary solver input and provide strict explicit source-note alignment for the remaining proposals. Show omitted-note count for manual editing; original score timing, voices and author fingering remain unchanged. Ambiguous same-onset duplicates remain blocked. Validation: source-safe Node tests, real multi-voice browser preview/review, genuine Pyodide regression and MusicXML export/reimport.
