@@ -96,6 +96,14 @@ try{
   }));
  },wideXml);
  assert.equal(wideBefore.length,4);
+ // Loading another piece resets the research panel state. Open the user-facing
+ // editor and the panel again, rather than force-clicking hidden controls.
+ await page.locator('#viewFingerEditor').click();
+ if(!await page.locator('#fingerResearchPanel').evaluate(e=>e.open))
+  await page.locator('#fingerResearchPanel > summary').click();
+ if(!await page.locator('#fingerBrowserContents').isVisible())
+  await page.locator('#fingerBrowserToggle').click();
+ await page.locator('#fingerBrowserAssumeStaves').check();
  await page.locator('#fingerBrowserCalculate').click();
  await page.waitForFunction(()=>
   /Предложения для 2 нот/.test(document.getElementById('fingerBrowserStatus')?.textContent||''),
