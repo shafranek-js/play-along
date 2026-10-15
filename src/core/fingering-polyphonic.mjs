@@ -19,7 +19,7 @@ const ANATOMICAL_PAIR_SPANS=Object.freeze({
 });
 const BLACK=new Set([1,3,6,8,10]);
 const START_EPS=.012,END_EPS=.002;
-const failure=(reason)=>({ok:false,reason});
+const failure=(reason,details={})=>({ok:false,reason,...details});
 const xpos=p=>Math.floor(p/12)*7+WHITE_X[p%12];
 const allowedFinger=f=>Number.isInteger(f)&&f>=1&&f<=5;
 const validHand=h=>h==='RH'||h==='LH';
@@ -60,15 +60,25 @@ export function proposePolyphonicFingering(notes,{hand,handSize='M',beamWidth=40
  const sounding=[];
  for(const group of groups){
   for(let i=sounding.length-1;i>=0;i--)if(sounding[i].end<=group.time+END_EPS)sounding.splice(i,1);
-  if(group.keys.some(k=>sounding.some(s=>s.pitch===k.pitch)))return failure('HELD_KEY_REARTICULATION_UNSUPPORTED');
+  if(group.keys.some(k=>sounding.some(s=>s.pitch===k.pitch)))
+   return failure('HELD_KEY_REARTICULATION_UNSUPPORTED',{
+    failureAt:{start:group.time,pitches:group.keys.map(k=>k.pitch),
+     noteIds:group.keys.flatMap(k=>k.notes.map(n=>n.noteId).filter(Boolean))}});
   for(const k of group.keys)sounding.push({pitch:k.pitch,end:k.end});
-  if(sounding.length>5)return failure('TOO_MANY_SIMULTANEOUS_KEYS');
+  if(sounding.length>5)return failure('TOO_MANY_SIMULTANEOUS_KEYS',{
+   failureAt:{start:group.time,pitches:group.keys.map(k=>k.pitch),
+    noteIds:group.keys.flatMap(k=>k.notes.map(n=>n.noteId).filter(Boolean)),
+    soundingCount:sounding.length}});
  }
  const width=HAND_SIZES[handSize],dir=hand==='RH'?1:-1;
  let beam=[{score:0,center:null,held:[],node:null,time:groups[0].time,previous:[]}];
  for(let gi=0;gi<groups.length;gi++){
   const g=groups[gi],keys=g.keys.slice().sort((a,b)=>a.pitch-b.pitch);
   const next=[];let serial=0;
+  // Diagnostic counters record pruned candidates, not proof of human
+  // impossibility. They never alter scoring, reach limits or beam width.
+  const pruned={noFingerCombination:0,spanOrFingerOrder:0,
+   rapidFingerReuse:0,heldHandRelocation:0};
   for(const state of beam){
    const held=state.held.filter(n=>n.end>g.time+END_EPS);
    const occupied=new Set(held.map(n=>n.finger));
@@ -83,6 +93,7 @@ export function proposePolyphonicFingering(notes,{hand,handSize='M',beamWidth=40
     }
    };
    enumerate(0,[],new Set(occupied));
+   if(!possible.length)pruned.noFingerCombination++;
    for(const selected of possible){
     const soundingNow=held.concat(selected).sort((a,b)=>a.pitch-b.pitch);
     let feasible=true,stretchPenalty=0;
@@ -97,7 +108,7 @@ export function proposePolyphonicFingering(notes,{hand,handSize='M',beamWidth=40
      if(fd<=0||fd>4||!reach||dist>reach*width+.00001){feasible=false;break}
      stretchPenalty+=.35*(dist/(reach*width))**4;
     }
-    if(!feasible)continue;
+    if(!feasible){pruned.spanOrFingerOrder++;continue}
     const centers=soundingNow.map(n=>xpos(n.pitch)-dir*OFFSETS[n.finger-1]*width);
     const center=centers.reduce((a,b)=>a+b,0)/centers.length;
     const posture=centers.reduce((a,x)=>a+(x-center)**2,0)/centers.length;
@@ -116,20 +127,26 @@ export function proposePolyphonicFingering(notes,{hand,handSize='M',beamWidth=40
      }
      if(!feasible)break;
     }
-    if(!feasible)continue;
+    if(!feasible){pruned.rapidFingerReuse++;continue}
     if(state.center!==null){
      const interval=g.time-state.time;
      const movement=Math.abs(center-state.center);
      cost+=movement*(interval<.22?1.8:.75);
      // A held key pins the hand sufficiently to forbid abrupt relocation.
-     if(held.length&&movement>2.3*width)continue;
+     if(held.length&&movement>2.3*width){pruned.heldHandRelocation++;continue}
     }
     const node={prev:state.node,selected,groupIndex:gi};
     next.push({score:state.score+cost,center,held:soundingNow,node,time:g.time,
      previous:selected,serial:serial++});
    }
   }
-  if(!next.length)return failure('NO_VALID_PATH');
+  if(!next.length)return failure('NO_VALID_PATH',{
+   failureAt:{
+    start:g.time,groupIndex:gi,pitches:keys.map(k=>k.pitch),
+    noteIds:keys.flatMap(k=>k.notes.map(n=>n.noteId).filter(Boolean)),
+    survivingBeamStates:beam.length,pruned
+   }
+  });
   // Beam deduplication avoids wasting width on geometrically identical paths.
   next.sort((a,b)=>a.score-b.score||a.serial-b.serial);
   const keysSeen=new Set(),dedup=[];

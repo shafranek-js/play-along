@@ -1,4 +1,13 @@
-# Play Along — Piano Practice App (v0.10.121)
+# Play Along — Piano Practice App (v0.10.122)
+
+## FG-02I — auditable research Beam Search failure evidence (v0.10.122)
+
+Each local FG-02B Beam model now records the **first search group where its finite beam becomes empty** and bounded counts of rejected candidate states: hand span/finger order, lack of free fingers, rapid finger reuse, and held-key hand relocation. This is algorithmic diagnostic evidence, **not** a conclusion that any passage is physically impossible for a pianist. The existing reach thresholds, optimizer, beamWidth and musical note data remain unchanged.
+
+The source-safe partial-island workflow carries a separate refusal trace per legacy/anatomical model. The Fingering editor now reports actual model coverage (eligible source notes / all original imported notes), lists each model's problematic islands and shows the first failed chord pitch/time plus leading rejected-constraint types. Notes excluded for overlapping unisons or for difficult islands are never given automatic candidates; manual edits, source-snapshot validation, author fingering, Undo and the original MusicXML remain unchanged. Missing coverage metadata in older test-worker responses is handled safely.
+
+Validation uses a synthetic unplayable-under-heuristic B3–F5 held chord and real Chromium MusicXML review. The user's original 37-measure Bach MXL is not redistributed in this repository. Structural diagnostics from that local MXL: 445 imported score notes, three overlapping same-pitch reattacks, and a maximum eight-note connected RH island after unison screening. These figures are *pre-solver*, not proof of final application coverage.
+
 
 ## FG-02I — source-safe partial Beam Search recovery from NO_VALID_PATH (v0.10.121)
 

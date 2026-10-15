@@ -1,5 +1,10 @@
 # Play Along — development roadmap: Finger Guidance and musical reliability
 
+## FG-02I: explain partial-beam abstentions and actual coverage (v0.10.122)
+
+Do not report generic `NO_VALID_PATH` without actionable evidence after v0.10.121: instrument the unchanged FG-02B search to return the first rejected score onset, notes and constraint pruning counters. Propagate failure evidence through FG-02I's source-ID-locked refused-island metadata to the local browser research UI, separately for legacy and anatomical models. Display eligible-source-note coverage relative to the complete imported score and explicit technical reasons for omissions. Explain these are bounded heuristic search failures, not confirmed physical impossibility. Preserve original timing, annotations and all manual-confirmation gates. Keep older Worker response compatibility and cover Node/Chromium regression tests.
+
+
 ## FG-02I / LAUNCH-06 — partial Beam Search on physically unsolved islands (v0.10.121)
 
 An unresolvable passage like a held B3–F5 chord in the reported Bach piano arrangement can cause both FG-02I beam models to return `NO_VALID_PATH` and previously blocked all 445 notes. Keep the original full-score attempt, but on a source-identified recoverable chord island abstain on that **whole component** (never assign made-up fingers or change source music) and retry the unchanged solver on other independent passages. Report which notes require manual review for each model; keep unison exclusions separate from geometric refusals. Protect author anchors and already saved manual edits. Never weaken physical checks; retain fail-closed behavior for ambiguous or unverified identity, mixed-hand collisions and unrelated validation failures. Regression gates: unit tests and real original MusicXML Chromium UI.

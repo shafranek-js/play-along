@@ -64,3 +64,44 @@ test('documented author fingering remains unchanged within omitted island',()=>{
  }
  assert.deepEqual(notes,old);
 });
+
+
+test('FG-02B bounded Beam Search explains rejected onset without changing constraints',async()=>{
+ const {proposePolyphonicFingering}=await import('../src/core/fingering-polyphonic.mjs');
+ const chord=[note(1,59,0,1),note(2,77,0,1)];
+ const original=structuredClone(chord);
+ const result=proposePolyphonicFingering(chord,{hand:'RH',handSize:'M'});
+ assert.equal(result.ok,false);
+ assert.equal(result.reason,'NO_VALID_PATH');
+ assert.equal(result.failureAt.start,0);
+ assert.deepEqual(result.failureAt.pitches,[59,77]);
+ assert.equal(result.failureAt.survivingBeamStates,1);
+ assert.ok(result.failureAt.pruned.spanOrFingerOrder>0,
+  JSON.stringify(result.failureAt));
+ assert.deepEqual(result.failureAt.noteIds,chord.map(n=>n.noteId));
+ assert.deepEqual(chord,original);
+});
+
+test('both Beam models keep independent evidence and auditable partial coverage',()=>{
+ const notes=[
+  note(1,60,0,.2),note(2,64,.3,.2),
+  note(3,59,2,1.4),note(4,77,2,1.4),
+  note(5,67,5,.2),note(6,48,0,.2,'LH')
+ ];
+ const original=structuredClone(notes),result=run({notes,handSize:'M'});
+ assert.equal(result.ok,true);
+ for(const mode of ['legacy','anatomical']){
+  const model=result.models[mode];
+  assert.equal(model.status,'computed',JSON.stringify(model));
+  assert.equal(model.coveragePercent,66.7);
+  assert.equal(model.eligibleCount,4);
+  assert.equal(model.omittedGroups.length,1);
+  assert.equal(model.omittedGroups[0].reason,'NO_VALID_PATH');
+  assert.equal(model.omittedGroups[0].hand,'RH');
+  assert.equal(model.omittedGroups[0].notes,2);
+  assert.deepEqual(model.omittedGroups[0].failureAt.pitches,[59,77]);
+  assert.ok(model.omittedGroups[0].failureAt.pruned.spanOrFingerOrder>0);
+  assert.ok(model.candidates.every(n=>n.noteId!==notes[2].noteId&&n.noteId!==notes[3].noteId));
+ }
+ assert.deepEqual(notes,original);
+});
