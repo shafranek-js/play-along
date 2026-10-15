@@ -6,6 +6,10 @@
 
 **Active next task:** LAUNCH-01 F2 musical transport, MIDI controller, sustain pedal (CC64), Wait/Seek/Loop/Tempo, release timing and browser audio QA; then LAUNCH-02 source-safe editable fingering and LAUNCH-03 UX/stability. At final release, explicitly choose between documented legal permission, independent code replacement or an adjusted distribution scope. Earlier roadmap descriptions of F0 as a release gate are **not removed**, but the gate is no longer part of the current sprint. Expert pianist recruitment remains optional after launch.
 
+## LAUNCH-05 — Piano Roll background opacity slider (v0.10.117)
+
+User-requested grid/lane visibility at 0..100%, 50% default: 0% draws no pitch-lane strips, vertical grid borders or horizontal time guides; notes, 88-key piano and 2D hands are unaffected. The control lives in Practice settings and persists via safe app preference validation. Chromium test `tests/piano-roll-grid-opacity.real.test.mjs` exercises real canvas output at 0/50/100 and migration.
+
 ## LAUNCH-04 — compact single-row topbar and full-height score (v0.10.116)
 
 Remove the redundant Practice song-information header; extend the roll from the top navigation edge to transport. Three view choices and the study/play/analyze workspace controls live in a compact topbar, with the existing hand guidance selectors in a dedicated popup. Track/title/source metadata are accessible from the 26px bottom status bar. Preserve 88 keys, physical key proportions, sheet/editor views, focus and hybrid sidebars. Real Chromium acceptance: `tests/compact-workspace.real.test.mjs`.
