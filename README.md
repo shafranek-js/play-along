@@ -1,4 +1,11 @@
-# Play Along — Piano Practice App (v0.10.119)
+# Play Along — Piano Practice App (v0.10.120)
+
+## LAUNCH-06 — Beam Search polyphonic unison review (v0.10.120)
+
+The local JavaScript FG-02I / FG-02B Beam Search is independent of PianoMotion and previously rejected the entire score when a voice re-attacked a still-sounding MIDI pitch. A separate *research-only* score screening now excludes **only later, distinct-onset same-key re-articulations from the temporary Beam Search input**, while leaving source MusicXML, all note identities, written voices, durations and author/user fingering untouched. Same-onset same-hand unisons are still treated as one physical key; ambiguous same-onset *cross-hand* unisons fail closed. The existing solver, its hard physical checks and both cost models are unchanged.
+
+The preview reports full, eligible and manually reviewed note counts, offers candidates only for eligible original note IDs, lists excluded notes by pitch/seconds/staff/voice, and never auto-applies a finger. User confirmation, source fingerprint invalidation, manual editing and Undo remain mandatory. When both Beam models refuse a passage for other physical reasons, the UI now reports each refusal instead of displaying a false success. Tested with synthetic multivoice MusicXML and dedicated source-preserving unit and Chromium checks. The user-provided Bach MXL is not committed or redistributed. Pianist validation is not claimed.
+
 
 ## LAUNCH-06 — source-safe overlapping-unison MusicXML fingering recovery (v0.10.119)
 
