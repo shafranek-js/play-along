@@ -1,5 +1,9 @@
 # Play Along — Piano Practice App (v0.10.118)
 
+## LAUNCH-06 — Responsive real-Pyodide CI correction (v0.10.118)
+
+The genuine Chromium + pinned Pyodide/Python worker end-to-end now selects the **visible** Fingering navigation control: desktop tab on wide screens, or the compact score-view dropdown on narrow screens. This corrects a test-only timeout exposed on GitHub's default Chromium viewport after moving the original calculation panel; musical source, engine, UI and output are unchanged. The dedicated real-browser Python workflow also runs on pertinent pull requests before merge (not only after merging to `main`). Acceptance requires `LAUNCH01_REAL_BROWSER_PYODIDE_PASS`, source-note preservation, and protected MusicXML export/reimport; regular PR CI alone is not evidence of real Pyodide execution.
+
 ## LAUNCH-06 — Pyodide QA navigation alignment (v0.10.118)
 
 The real Playwright/Pyodide worker end-to-end regression opens the central **Аппликатура** view before pressing its single visible PianoMotion calculation button. This matches the v0.10.118 relocation from the Practice sidebar. All assertions remain unchanged: real pinned Pyodide+Python worker, protected apply, source-note preservation, MusicXML export and score re-import. This is a test-only alignment; no production source, algorithm, or release version change.

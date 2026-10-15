@@ -1,12 +1,30 @@
 name: LAUNCH-01 genuine Pyodide browser end-to-end
 
 on:
+  pull_request:
+    paths:
+      - 'tests/launch01-pyodide-real-browser.real.test.mjs'
+      - 'tests/launch01-pyodide-offline.real.test.mjs'
+      - 'src/index.html'
+      - 'src/legacy/**'
+      - 'src/styles/**'
+      - 'scripts/build.mjs'
+      - 'src/app/**'
+      - 'src/ui/**'
+      - 'src/styles/**'
+      - 'src/workers/pianomotion-engine.worker.mjs'
+      - 'src/pianomotion-python/python-core/**'
+      - '.github/workflows/launch01-pyodide-browser.yml'
   push:
     branches: [main]
     paths:
       - 'tests/launch01-pyodide-real-browser.real.test.mjs'
       - 'tests/launch01-pyodide-offline.real.test.mjs'
       - 'package.json'
+      - 'src/index.html'
+      - 'src/legacy/**'
+      - 'src/styles/**'
+      - 'scripts/build.mjs'
       - 'src/workers/pianomotion-engine.worker.mjs'
       - 'src/pianomotion-python/python-core/**'
       - 'src/core/pianomotion-source-identity.mjs'
