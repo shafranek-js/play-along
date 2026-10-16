@@ -54,9 +54,10 @@ function sceneFingerAutoSync(){
   method==='pianomotion'?'pianoMotionStatus':'fingerBrowserStatus');
  const live=sceneFingerAutoStarted?.song===current&&
   sceneFingerAutoStarted.method===method;
- const message=live?source.textContent.trim():
-  'Нажми «Рассчитать». Предложения не применяются автоматически.';
  const preview=sceneFingerCandidatePreviewMap();
+ const message=live?source.textContent.trim():preview.size?
+  'Есть рассчитанные предложения · проверка обязательна.':
+  'Нажми «Рассчитать». Предложения не применяются автоматически.';
  const detailed=preview.size?message+' · На дорожке '+preview.size+
   ' неподтверждённых пальцев (фиолетовый пунктир).':message;
  $('sceneFingerAutoStatus').textContent=detailed;
