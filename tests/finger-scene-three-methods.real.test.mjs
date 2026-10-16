@@ -172,8 +172,8 @@ try{
   'new MIDI source must not inherit previous MusicXML proposal IDs');
  assert.equal(await page.locator('#sceneFingerMethod option[value="manual"]').evaluate(el=>el.disabled),false,
   'Manual supports a source-addressable MIDI');
- assert.equal(await page.locator('#sceneFingerMethod option[value="beam"]').evaluate(el=>el.disabled),true,
-  'Beam cannot be chosen for MIDI');
+ assert.equal(await page.locator('#sceneFingerMethod option[value="beam"]').evaluate(el=>el.disabled),false,
+  'Beam is selectable on original MIDI, but unknown hand assignments must be refused');
  assert.equal(await page.locator('#sceneFingerPianoMotionButton').isEnabled(),true);
  assert.equal(await page.locator('#sceneFingerManualButton').isEnabled(),true);
  assert.equal(await page.locator('#sceneFingerBeamButton').isDisabled(),true);
