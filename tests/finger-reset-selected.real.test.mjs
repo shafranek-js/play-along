@@ -69,15 +69,16 @@ try{
  })));
  assert.deepEqual((await read()).map(n=>n.finger),[4,3,5]);
  await page.locator('#sceneFingerMode').click();
+ await page.locator('#sceneFingerManualButton').click();
  const rectangles=await page.evaluate(()=>window.__fingerGuideTest.noteRects);
  assert.equal(rectangles.length,3);
  const canvas=await page.locator('#roll').boundingBox();
  const click=async(i,modifier=false)=>{
   const b=rectangles.find(r=>r.id===baseline.ids[i]);
   assert.ok(b,'visible source note '+i);
-  await page.mouse.click(canvas.x+b.x+b.w/2,canvas.y+b.y+b.h/2,{
-   modifiers:modifier?['Control']:[]
-  });
+  if(modifier)await page.keyboard.down('Control');
+  try{await page.mouse.click(canvas.x+b.x+b.w/2,canvas.y+b.y+b.h/2)}
+  finally{if(modifier)await page.keyboard.up('Control')}
  };
  await click(0);
  assert.deepEqual(await page.evaluate(()=>window.__fingerGuideTest.selectedNoteIds),[baseline.ids[0]]);
