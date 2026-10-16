@@ -1,4 +1,18 @@
-# Play Along — Piano Practice App (v0.10.125)
+# Play Along — Piano Practice App (v0.10.126)
+
+## Full fingering reset without changing original MusicXML (v0.10.126)
+
+The MusicXML Fingering editor's **«Сброс аппликатуры»** now opens one accessible confirmation dialog with two independently chosen scopes:
+
+- **Только пользовательская аппликатура** — removes all previously confirmed numeric user fingers in the current work, preserving explicit RH/LH hand-only choices and any author fingering that has not previously been hidden.
+- **Вся аппликатура, включая авторскую** — also hides all currently imported MusicXML author fingers from the editable score, learner fingering hints, Beam Search input and the displayed OSMD score copy, using a persistent, source-keyed `suppressAuthor:true` author-mask for exactly those source note identities.
+
+Nothing rewrites the original MusicXML, tie/timing/pitch data or other scores. Author masks and saved user fingers are validated through the same strict localStorage/backup guard, committed atomically in **one Undo/Redo step**, and survive browser reloads. Replacement user fingers can be reviewed and confirmed in normal Beam mode; author masks persist to avoid reviving old written numbers. `Вернуть автора (выбранные)` continues to restore original author fingerings explicitly for chosen source notes. A stale modal or changed score blocks reset. Diagnostic-only comparison remains read-only.
+
+The printed score is rendered from a verified detached XML clone: only `<fingering>` children are hidden while other score elements are untouched. The original score remains intact and author numbers can always be restored by Undo before reloading or by explicitly restoring selected notes afterward.
+
+QA: strict mask persistence and hostile backup rejection, reset/Undo/Redo state equality, original music unchanged, real Chromium user-only scope and full mask scope, reload, renewed Beam suggestions and explicit application on previously authored notes.
+
 
 ## FG-03C2 — one-click undoable score fingering reset (v0.10.125)
 
