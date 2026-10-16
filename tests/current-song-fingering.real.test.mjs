@@ -88,17 +88,16 @@ try{
  await page.locator('#fingerEditorClear').click();
  assert.equal(await page.locator('#fingerEditorResetFingering').isEnabled(),true);
  const historyBefore=await page.evaluate(()=>window.__fingerGuideTest.history);
- page.once('dialog',async dialog=>{
-  assert.match(dialog.message(),/4 пользовательских номеров/);
-  await dialog.dismiss();
- });
  await page.locator('#fingerEditorResetFingering').click();
+ assert.equal(await page.locator('#fingerResetDialog').evaluate(el=>el.open),true);
+ assert.match(await page.locator('#fingerResetCount').innerText(),/пользовательских номеров: 4/);
+ await page.locator('#fingerResetCancel').click();
  assert.deepEqual(await page.evaluate(()=>window.__fingerGuideTest.userCorrections),saved);
  assert.deepEqual(await page.evaluate(()=>window.__fingerGuideTest.history),historyBefore);
  // Confirm removes only fingers, preserving each explicitly accepted RH/LH
  // hand for another calculation and retaining the authored MusicXML source.
- page.once('dialog',async dialog=>{await dialog.accept()});
  await page.locator('#fingerEditorResetFingering').click();
+ await page.locator('#fingerResetConfirm').click();
  const cleared=await page.evaluate(()=>window.__fingerGuideTest.userCorrections);
  assert.equal(Object.keys(cleared).length,4,'saved hand assignments are preserved');
  assert.ok(Object.values(cleared).every(x=>x.finger===null&&(x.hand==='RH'||x.hand==='LH')));
