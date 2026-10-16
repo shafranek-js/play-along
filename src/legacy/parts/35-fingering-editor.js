@@ -808,9 +808,16 @@ function fingerBrowserInput(){
     userDeclaredStaff&&String(n.staff)==='2'?'LH':null);
   const candidate={noteId:n.noteId,pitch:n.pitch,start:n.start,
    duration:n.duration,hand:h,staff:String(n.staff??''),voice:String(n.voice??'')};
-  if(Number.isInteger(change?.finger))candidate.userFinger=change.finger;
-  else if(!change?.suppressAuthor&&n.fingeringSource==='musicxml'&&
-   Number.isInteger(n.finger))candidate.authorFinger=n.finger;
+  // Only user-selected replacement targets are released as finger ANCHORS
+  // for a fresh Beam calculation. All other author/user constraints remain.
+  // Source notes and saved corrections themselves are never modified.
+  const replace=sceneFingerReplacementValid('beam')&&
+   sceneFingerReplaceRequest.ids.has(n.noteId);
+  if(!replace){
+   if(Number.isInteger(change?.finger))candidate.userFinger=change.finger;
+   else if(!change?.suppressAuthor&&n.fingeringSource==='musicxml'&&
+    Number.isInteger(n.finger))candidate.authorFinger=n.finger;
+  }
   return candidate;
  });
  return {notes,handSize:state.fingerBrowserHandSize,pianoStaffHints,pianoExcluded,
