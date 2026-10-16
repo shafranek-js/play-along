@@ -82,6 +82,29 @@ try{
  await page.locator('#sceneFingerBeamButton').click();
  assert.match(await page.locator('#fingerBrowserStatus').innerText(),/Рука некоторых нот не определена/);
  assert.equal((await page.evaluate(()=>window.__fingerGuideTest.sceneCandidates)).count,0);
+ // A voice visiting BOTH staves in the same measure cannot be assumed to
+ // belong to RH on one note and LH on another merely from notation layout.
+ const crossingPart='<part id="P1"><measure number="1"><attributes><divisions>480</divisions><staves>2</staves>'+ 
+  '<time><beats>2</beats><beat-type>4</beat-type></time></attributes>'+ 
+  note('C',5,1,1)+note('E',4,2,1)+
+  '<backup><duration>960</duration></backup>'+ 
+  note('C',3,2,2)+note('G',3,2,2)+'</measure></part>';
+ const crossing=await page.evaluate(source=>{
+  const song=window.__libraryV08.readMusicXML(source,'cross-staff-piano.musicxml');
+  window.__prototypeTest.loadSong(song);
+  return {pianoParts:song.pianoGrandStaffParts,notes:song.tracks.flatMap(t=>t.notes).map(n=>({
+   noteId:n.noteId,partId:n.partId,staff:n.staff,voice:n.voice,hand:n.hand??null
+  }))};
+ },mix('Piano').replace(pianoPart('Piano'),crossingPart));
+ assert.deepEqual(crossing.pianoParts,['P1']);
+ assert.ok(crossing.notes.every(n=>n.hand===null));
+ if(await page.locator('#sceneFingerMode').getAttribute('aria-pressed')==='false')
+  await page.locator('#sceneFingerMode').click();
+ await page.locator('#sceneFingerBeamButton').click();
+ assert.match(await page.locator('#fingerBrowserStatus').innerText(),
+  /Перенос голоса между станами в одном такте: 2 нот/);
+ assert.equal((await page.evaluate(()=>window.__fingerGuideTest.sceneCandidates)).count,0);
+ assert.deepEqual(await page.evaluate(()=>window.__fingerGuideTest.userCorrections),{});
  assert.deepEqual(errors,[]);
  console.log('MusicXML piano grand staff => provisional two-hand Beam, nonpiano/orchestral excluded, source unchanged PASS');
 }finally{
