@@ -1571,6 +1571,9 @@ function pianoMotionReviewApply(indices){
   return;
  }
  pianoMotionReviewHistory=result.history;
+ // A newer direct Python Apply supersedes a previous manual replacement
+ // when deciding which action the automatic scene's Undo should reverse.
+ sceneFingerReplaceHistoryStep=null;
  pianoMotionLastApplied=true;
  pianoMotionReviewSelected.clear();
  if(state.fingerGuidanceMode==='off'){
