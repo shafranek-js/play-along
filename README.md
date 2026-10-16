@@ -1,4 +1,11 @@
-# Play Along — Piano Practice App (v0.10.140)
+# Play Along — Piano Practice App (v0.10.141)
+
+## FG-05 — selected-note reset on the shared piano roll (v0.10.141)
+
+The existing Manual **Снять · 0** action now clears **only selected source-identified notes**, including already accepted PianoMotion digits that formerly remained visible. A selected manual override and applied PianoMotion digit on the same note are removed as one reversible Undo/Redo gesture; other notes retain their accepted digits and remain eligible for MusicXML export. Resetting selected notes does **not** modify the source MIDI bytes, original MusicXML, playback events, time position, keyboard geometry or unrelated fingers. The main full-song reset remains separately confirmed. The old PianoMotion session stays available for the still-accepted notes; newly eligible proposals remain review-only and are not silently reapplied. The action also handles unverified user digits in reimported Play Along MusicXML without treating them as composer-authored.
+
+Real Chromium regression covers 3-note MIDI, 3 applied Python digits, 1 saved manual override, selective clear of only 2 notes, Undo/Redo, remaining export and exact unchanged source musical events.
+
 
 ## FG-05 — full fingering reset for Python and manual (v0.10.140)
 
