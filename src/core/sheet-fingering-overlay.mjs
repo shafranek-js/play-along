@@ -29,8 +29,10 @@ export function sheetFingeringOverlay(song,changes,{parse,serialize,exportMode=f
  for(const [id,c] of Object.entries(changes)){
   if(!playable.has(id)||!c||
    !(c.finger===null||Number.isInteger(c.finger)&&c.finger>=1&&c.finger<=5)||
-   ![null,'LH','RH'].includes(c.hand)||(c.finger===null&&c.hand===null)||
-   Object.keys(c).some(k=>!['finger','hand'].includes(k)))
+   ![null,'LH','RH'].includes(c.hand)||
+   (c.finger===null&&c.hand===null&&c.suppressAuthor!==true)||
+   (Object.hasOwn(c,'suppressAuthor')&&c.suppressAuthor!==true)||
+   Object.keys(c).some(k=>!['finger','hand','suppressAuthor'].includes(k)))
    return fail('Invalid or unrecognized corrected note');
  }
  const doc=parse(original);
@@ -65,16 +67,22 @@ export function sheetFingeringOverlay(song,changes,{parse,serialize,exportMode=f
     found.add(id);
     // Only the first written segment of a tie receives its corrected number.
     const correction=changes[source.noteId];
-    if(correction&&id===source.noteId)pending.push({node:el,value:correction.finger});
+    if(correction&&(id===source.noteId||correction.suppressAuthor===true))
+     pending.push({node:el,value:id===source.noteId?correction.finger:null,
+      suppress:correction.suppressAuthor===true});
    }
   }
  }
  if(found.size!==playable.size||[...playable.keys()].some(id=>!found.has(id)))
   return fail('Incomplete note/measure correspondence');
  // Verified first; only now modify the detached DOM. The import is pristine.
- let count=0,handOnly=0;
- for(const {node,value} of pending){
-  if(value===null){handOnly++;continue}
+ let count=0,handOnly=0,suppressed=0;
+ for(const {node,value,suppress} of pending){
+  if(suppress){
+   const t=direct(direct(node,'notations'),'technical');
+   for(const item of directAll(t,'fingering')){t.removeChild(item);suppressed++}
+  }
+  if(value===null){if(!suppress)handOnly++;continue}
   const ns=node.namespaceURI,create=name=>ns?doc.createElementNS(ns,name):doc.createElement(name);
   let notations=direct(node,'notations');
   if(!notations){
@@ -110,5 +118,5 @@ export function sheetFingeringOverlay(song,changes,{parse,serialize,exportMode=f
  const serialized=serialize(doc);
  const rendered=/^\s*<\?xml\b/i.test(serialized)?serialized:
   '<?xml version="1.0" encoding="utf-8"?>\n'+serialized;
- return {xml:rendered,status:'applied',count,handOnly,reason:null};
+ return {xml:rendered,status:'applied',count,handOnly,suppressed,reason:null};
 }
