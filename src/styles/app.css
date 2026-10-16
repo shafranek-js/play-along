@@ -304,6 +304,9 @@ body.focus .panelScrim{display:none!important}
 .shell.hybridMode .keyboardInfo{flex-wrap:wrap;gap:6px;padding:7px 12px}
 .shell.hybridMode .fingerGuideControls{flex-wrap:wrap;min-width:0}
 
+/* Last-song recovery masks only the temporary demo score while the user's
+   original file is being restored; the library remains available. */
+#startupSongLoading{position:absolute;inset:0;z-index:15;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;background:#10151c;color:#dce4f3;font-weight:600}
 /* v0.10.115 — fixed 26px information-only status line below transport.
    No duplicate cards over the Piano Roll; full keyboard and drawers stop ABOVE status. */
 :root{--app-status-height:26px}
