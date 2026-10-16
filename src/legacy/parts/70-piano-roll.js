@@ -446,6 +446,13 @@ function sceneFingerSetActive(active){
  if(active&&!current){
   notify('Сначала открой произведение в библиотеке.');return;
  }
+ // If real Python candidates were calculated in the developer workspace,
+ // opening the stage must show that pending result instead of resetting to
+ // the new MIDI-manual default. The learner can still choose Manual directly.
+ if(active&&!sceneFingerActive&&pianoMotionLastSong===current&&
+    pianoMotionLastAlignment?.ok&&
+    (pianoMotionReviewAvailable()?.eligibleIndices?.length||0)>0)
+  sceneFingerMethod='pianomotion';
  sceneFingerActive=!!active;
  if(!sceneFingerActive)sceneFingerReviewReset();
  if(sceneFingerActive&&state.scoreView!=='roll')scoreSetView('roll');
