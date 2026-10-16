@@ -121,6 +121,13 @@ try{
  assert.equal((await page.evaluate(()=>window.__fingerGuideTest.sceneCandidates)).count,0,
   'switching to Manual hides all automatic proposals without deleting them');
  assert.equal(await page.locator('#sceneFingerManual').isVisible(),true);
+ // The ordinary one-click reset opens the same two-scope confirmed workflow.
+ assert.equal(await page.locator('#sceneFingerReset').isEnabled(),true);
+ await page.locator('#sceneFingerReset').click();
+ assert.equal(await page.locator('#fingerResetDialog').evaluate(el=>el.open),true);
+ await page.locator('#fingerResetCancel').click();
+ assert.equal(await page.locator('#fingerResetDialog').evaluate(el=>el.open),false);
+ await page.locator('#sceneFingerMode').click();
  assert.deepEqual(await saved(),old);
  assert.equal(await page.evaluate(()=>window.__prototypeTest.song.notationXML),original);
 
