@@ -79,6 +79,17 @@ function sceneFingerCalculateSelected(){
  }
  if(method==='pianomotion'&&pianoMotionRun||
   method==='beam'&&fingerBrowserWorker)return;
+ // Original calculate buttons live in the advanced workspace and may
+ // have been disabled before the current song loaded. Refresh the single
+ // source-of-truth capability state before delegating the action.
+ if(method==='pianomotion'){
+  fingeringWorkspaceSync();
+  if($('pianoMotionCalculate').disabled){
+   const plan=pianoMotionSourcePlan(current,Number(state.track)||0);
+   $('sceneFingerAutoStatus').textContent='Недоступно: '+(plan?.reason||'нет подходящих нот');
+   return;
+  }
+ }
  sceneFingerAutoStarted={song:current,method};
  // Call the original, audited production handlers. NEVER mirror or bypass
  // their Worker validation, stale-input guards, review or confirmation.
