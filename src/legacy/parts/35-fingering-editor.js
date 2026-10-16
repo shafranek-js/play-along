@@ -777,12 +777,13 @@ function fingerBrowserShow(report){
    fingerBrowserUpdateActions();
    fingerEditorPaintSoon();
    status.textContent='Вычислено локально · Предложения для '+fingerBrowserPreview.size+
-    ' нот показаны фиолетовым в редакторе. Выдели подходящие ноты и проверь номера до подтверждения.'+
+    ' нот показаны фиолетовым на дорожке. Выдели подходящие ноты и проверь номера до подтверждения.'+
     (fingerBrowserInput()?.pianoStaffHints?
      ' · RH/LH предварительно по нотным станам фортепиано ('+
      fingerBrowserInput().pianoStaffHints+' нот). Проверь переходы рук и перекрещивания.':'')+
     (fingerBrowserInput()?.pianoExcluded?
-     ' · '+fingerBrowserInput().pianoExcluded+' нот других инструментов исключено из расчёта.':'')+
+     ' · Другие инструменты исключены из расчёта (нот: '+
+     fingerBrowserInput().pianoExcluded+').':'')+
     skipNotice;
   }
  }
