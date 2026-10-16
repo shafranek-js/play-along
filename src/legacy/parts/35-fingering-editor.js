@@ -285,14 +285,15 @@ function fingerResetPreview(){
   ' · Сброс можно отменить одним Undo.':
   'Не удалось сопоставить сохранённые правки с нотами. Сброс недоступен.';
 }
-$('fingerEditorResetFingering').onclick=()=>{
+function fingerResetOpen(){
  if(!fingerEditorAvailable()||!current||fingerResetDialog.open)return;
  fingerResetPending={song:current,key:fingerGuideWorkKey(),
   snapshot:JSON.stringify(state.fingerOverrides?.[fingerGuideWorkKey()]||{})};
  fingerResetDialog.querySelector('input[value="user"][name="fingerResetScope"]').checked=true;
  fingerResetPreview();
  fingerResetDialog.showModal();
-};
+}
+$('fingerEditorResetFingering').onclick=fingerResetOpen;
 for(const control of fingerResetDialog.querySelectorAll('input[name="fingerResetScope"]'))
  control.onchange=fingerResetPreview;
 $('fingerResetCancel').onclick=()=>fingerResetDialog.close();
