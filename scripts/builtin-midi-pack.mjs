@@ -41,8 +41,10 @@ export function inspectBuiltinMidiPack(raw){
   rawSha256:digest(raw),files};
 }
 export function writeBuiltinMidiPack(root,dist){
- const input=path.join(root,'src/assets/builtin-midi/collection.zlib.b64');
- const encoded=fs.readFileSync(input,'utf8').trim();
+ const sourceDir=path.join(root,'src/assets/builtin-midi/parts');
+ const parts=fs.readdirSync(sourceDir).filter(name=>/^part-[0-9]{2}\.b64$/.test(name)).sort();
+ if(parts.length!==6)throw Error('Expected six owner MIDI archive chunks');
+ const encoded=parts.map(name=>fs.readFileSync(path.join(sourceDir,name),'utf8').trim()).join('');
  if(!/^[A-Za-z0-9+/]+={0,2}$/.test(encoded)||encoded.length%4)
   throw Error('Invalid base64 source MIDI pack');
  const compressed=Buffer.from(encoded,'base64');
