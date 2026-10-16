@@ -147,11 +147,39 @@ function browseConnectedFolder(){
  $('libraryFavoritesOnly').checked=false;
  libraryPageLimit=60;
  state.page='library';applyPage();
- renderLibrary();
+ libraryFolderFiltersChanged();
  requestAnimationFrame(()=>{$('songList').closest('.panelSection')?.scrollIntoView({block:'start',behavior:'auto'})});
 }
-function libraryFolderFiltersChanged(){libraryPageLimit=60;renderLibrary()}
+// These are UI preferences, not song preferences: keep them across reloads
+// and include them in the existing validated settings backup.
+function libraryRestoreFilters(){
+ const filters=state.libraryFilters;
+ $('librarySourceSelect').value=filters.source;
+ $('librarySort').value=filters.sort;
+ $('libraryFingeringSelect').value=filters.fingering;
+ $('libraryFavoritesOnly').checked=filters.favoritesOnly;
+ $('librarySearch').value=filters.query;
+ $('mutopiaInstrument').value=filters.mutopiaInstrument;
+ // The composer choices are loaded asynchronously; the catalog applies this
+ // stored code once it has rebuilt the options.
+ if([...$('mutopiaComposer').options].some(option=>option.value===filters.mutopiaComposer))
+  $('mutopiaComposer').value=filters.mutopiaComposer;
+}
+function libraryRememberFilters(){
+ state.libraryFilters=settingLibraryFilters({
+  source:$('librarySourceSelect').value,
+  sort:$('librarySort').value,
+  fingering:$('libraryFingeringSelect').value,
+  favoritesOnly:$('libraryFavoritesOnly').checked,
+  query:$('librarySearch').value,
+  mutopiaComposer:$('mutopiaComposer').value,
+  mutopiaInstrument:$('mutopiaInstrument').value
+ },false);
+ persist();
+}
+function libraryFolderFiltersChanged(){libraryPageLimit=60;libraryRememberFilters();renderLibrary()}
 renderLibrary=renderLibraryV08;
+libraryRestoreFilters();
 void builtinMidiLoadCatalog().catch(error=>{
  console.error('Built-in MIDI catalog:',error);
  setLibraryStatus('Не удалось открыть встроенные MIDI: '+error.message);
