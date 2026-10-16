@@ -175,7 +175,18 @@ $('mutopiaInstrument').onchange=libraryFolderFiltersChanged;
 // Search is user-initiated: no GitHub request on application startup.
 const mutopiaOldFilter=$('filterMutopia').onclick;
 $('filterMutopia').onclick=()=>{mutopiaOldFilter();if(!mutopiaCatalogLoaded)mutopiaLoadIndex().catch(()=>{});};
-$('librarySourceSelect').addEventListener('change',()=>{if($('librarySourceSelect').value==='mutopia'&&!mutopiaCatalogLoaded)mutopiaLoadIndex().catch(()=>{});if($('librarySourceSelect').value==='musetrainer'&&!museTrainerLoaded)museTrainerLoadIndex().catch(()=>{});if($('librarySourceSelect').value==='asap'&&!asapLoaded)asapLoadIndex().catch(()=>{});if($('librarySourceSelect').value==='maestro'&&!maestroLoaded)maestroLoadIndex().catch(()=>{});});
+function libraryEnsureSelectedCatalog(){
+ const source=$('librarySourceSelect').value;
+ if(source==='mutopia'&&!mutopiaCatalogLoaded)mutopiaLoadIndex().catch(()=>{});
+ if(source==='musetrainer'&&!museTrainerLoaded)museTrainerLoadIndex().catch(()=>{});
+ if(source==='asap'&&!asapLoaded)asapLoadIndex().catch(()=>{});
+ if(source==='maestro'&&!maestroLoaded)maestroLoadIndex().catch(()=>{});
+}
+$('librarySourceSelect').addEventListener('change',libraryEnsureSelectedCatalog);
+// Restoring a previously chosen remote source must restore its actual rows,
+// not merely the dropdown label. Default "all" never starts a remote fetch.
+if(['mutopia','musetrainer','asap','maestro'].includes(state.libraryFilters.source))
+ queueMicrotask(libraryEnsureSelectedCatalog);
 const startupSelectedSongId=state.selected;
 startupSongRestorePending=true;
 const startupLibraryPromise=loadLibraryIndex();
