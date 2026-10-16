@@ -1,7 +1,8 @@
 const $=id=>document.getElementById(id);
 const STORE='playalong:smart-practice:v07';const V06_STORE='playalong:performance-analyzer:v06';const PREV_STORE='playalong:smart-phrasing:v05';const PREV2_OLD_STORE='playalong:real-piano:v04';const PREV2_STORE='playalong:keyboard-engine:v03';const OLD_STORE='playalong:music-engine:v02';const OLDER_STORE='playalong:ui-prototype:v1';
 const defaultAudioSettings=()=>({backend:'soundfont',bankId:null,livePreset:{bankMSB:0,bankLSB:0,program:0,isDrum:false},useFilePrograms:true});
-const defaults={layout:'learn',page:'practice',left:true,right:true,leftPinned:true,rightPinned:true,leftWidth:286,rightWidth:318,rightTab:'practice',mode:'listen',accompany:true,accompanyExplicit:false,autoMidi:true,preferredMidiName:'',speed:100,displayRange:'song',gridVisibility:50,labels:true,highlight:true,allTracks:true,volume:40,selected:'demo-scale',track:0,deviceProfiles:{},audioSettings:defaultAudioSettings(),targetRange:'device',adaptMode:'original',adaptShift:0,auditionAdapted:false,showReviewMarkers:true,scoreView:'roll',sheetZoom:100,sheetFollow:true,fingerGuidanceMode:'off',fingerLookaheadMs:750,fingerBrowserHandSize:'M',fingerOverrides:{},librarySections:librarySectionLayoutNormalize()};
+const defaultLibraryFilters=()=>({source:'all',sort:'source',fingering:'all',favoritesOnly:false,query:'',mutopiaComposer:'',mutopiaInstrument:''});
+const defaults={layout:'learn',page:'practice',left:true,right:true,leftPinned:true,rightPinned:true,leftWidth:286,rightWidth:318,rightTab:'practice',mode:'listen',accompany:true,accompanyExplicit:false,autoMidi:true,preferredMidiName:'',speed:100,displayRange:'song',gridVisibility:50,labels:true,highlight:true,allTracks:true,volume:40,selected:'demo-scale',track:0,deviceProfiles:{},audioSettings:defaultAudioSettings(),targetRange:'device',adaptMode:'original',adaptShift:0,auditionAdapted:false,showReviewMarkers:true,scoreView:'roll',sheetZoom:100,sheetFollow:true,fingerGuidanceMode:'off',fingerLookaheadMs:750,fingerBrowserHandSize:'M',fingerEditorZoom:72,fingerBrowserAssumeStaves:false,sceneFingerAutoAdvance:false,fingerOverrides:{},libraryFilters:defaultLibraryFilters(),librarySections:librarySectionLayoutNormalize()};
 // Treat backups AND older localStorage snapshots as untrusted input.
 // Invalid restored values are rejected in strict backup mode; legacy
 // localStorage uses safe defaults to preserve normal upgrades.
@@ -16,9 +17,9 @@ const SETTING_ENUMS={
 };
 const SETTING_NUMBERS={
  leftWidth:[210,520],rightWidth:[240,550],speed:[25,150],volume:[0,100],gridVisibility:[0,100],
- sheetZoom:[65,150],fingerLookaheadMs:[500,1000],track:[0,1000],adaptShift:[-72,72],position:[0,864000]
+ sheetZoom:[65,150],fingerLookaheadMs:[500,1000],fingerEditorZoom:[40,200],track:[0,1000],adaptShift:[-72,72],position:[0,864000]
 };
-const SETTING_BOOLS=new Set(['left','right','leftPinned','rightPinned','accompany','accompanyExplicit','autoMidi','labels','highlight','allTracks','auditionAdapted','showReviewMarkers','sheetFollow']);
+const SETTING_BOOLS=new Set(['left','right','leftPinned','rightPinned','accompany','accompanyExplicit','autoMidi','labels','highlight','allTracks','auditionAdapted','showReviewMarkers','sheetFollow','fingerBrowserAssumeStaves','sceneFingerAutoAdvance']);
 const SETTING_STRINGS={preferredMidiName:200,selected:250};
 const settingPlainObject=v=>v!==null&&typeof v==='object'&&!Array.isArray(v)&&
  (Object.getPrototypeOf(v)===Object.prototype||Object.getPrototypeOf(v)===null);
@@ -27,13 +28,35 @@ function settingValidated(key,value){
  if(Object.hasOwn(SETTING_NUMBERS,key)){
   const [min,max]=SETTING_NUMBERS[key];
   return typeof value==='number'&&Number.isFinite(value)&&value>=min&&value<=max
-   &&(!['track','fingerLookaheadMs','gridVisibility'].includes(key)||Number.isInteger(value))&&
-   (key!=='fingerLookaheadMs'||[500,600,750,900,1000].includes(value))?value:undefined;
+   &&(!['track','fingerLookaheadMs','gridVisibility','fingerEditorZoom'].includes(key)||Number.isInteger(value))&&
+   (key!=='fingerLookaheadMs'||[500,600,750,900,1000].includes(value))&&
+   (key!=='fingerEditorZoom'||[40,72,120,200].includes(value))?value:undefined;
  }
  if(SETTING_BOOLS.has(key))return typeof value==='boolean'?value:undefined;
  if(Object.hasOwn(SETTING_STRINGS,key))
   return typeof value==='string'&&value.length<=SETTING_STRINGS[key]?value:undefined;
  return undefined;
+}
+function settingLibraryFilters(value,strict){
+ const safe=defaultLibraryFilters();
+ if(!settingPlainObject(value)||Object.keys(value).length>Object.keys(safe).length)
+  return strict?undefined:safe;
+ const options={
+  source:['all','saved','folder','builtin','demo','repertoire','mutopia','musetrainer','asap','maestro','openscore'],
+  sort:['source','title','author','difficulty'],
+  fingering:['all','full','partial','none','unknown'],
+  mutopiaInstrument:['','piano','organ','guitar','violin','voice','flute','cello']
+ };
+ for(const [key,raw] of Object.entries(value)){
+  let valid=false;
+  if(Object.hasOwn(options,key))valid=options[key].includes(raw);
+  else if(key==='favoritesOnly')valid=typeof raw==='boolean';
+  else if(key==='query')valid=typeof raw==='string'&&raw.length<=300;
+  else if(key==='mutopiaComposer')valid=typeof raw==='string'&&raw.length<=100&&/^[a-z0-9_.-]*$/i.test(raw);
+  if(!valid){if(strict)return undefined;continue}
+  safe[key]=raw;
+ }
+ return safe;
 }
 function settingSafeProfiles(value,strict){
  if(!settingPlainObject(value)||Object.keys(value).length>100)return strict?undefined:{};
@@ -126,6 +149,10 @@ function sanitizePlayAlongSettings(value,{strict=false}={}){
   }else if(key==='librarySections'){
    try{safe.librarySections=librarySectionLayoutNormalize(raw,{strict})}
    catch(err){if(strict)throw err}
+  }else if(key==='libraryFilters'){
+   const parsed=settingLibraryFilters(raw,strict);
+   if(parsed===undefined&&strict)throw Error('Некорректные фильтры библиотеки');
+   if(parsed!==undefined)safe.libraryFilters=parsed;
   }else if(key==='songSettings'){
    const parsed=settingSongPrefs(raw,strict);
    if(parsed===undefined&&strict)throw Error('Некорректные настройки мелодий');
