@@ -49,6 +49,14 @@ let sceneFingerReviewOpen=false,sceneFingerReviewSelected=new Set();
 // Explicit per-note alternative calculation, scoped to the unchanged source.
 // Standard Beam/PianoMotion runs protect author/user fingers as before.
 let sceneFingerReplaceRequest=null;
+// Explicit source-bound last manual replacement step: the automatic stage
+// must undo this user-confirmed action before older Python history.
+let sceneFingerReplaceHistoryStep=null;
+function sceneFingerReplaceCanTravel(direction){
+ const h=fingerOverrideHistoryCurrent(),record=sceneFingerReplaceHistoryStep;
+ return !!record&&record.song===current&&
+  (direction==='undo'?h.past.at(-1):h.future.at(-1))===record.step;
+}
 function sceneFingerReplacementSnapshot(){
  if(!current||!fingerSelectionAvailable())return null;
  return JSON.stringify(fingerSelectionOrdered().map(e=>{
@@ -281,6 +289,7 @@ function sceneFingerReviewApply(){
   if(!entries.length){notify('Выбранные пальцы уже совпадают.');return}
   applied=fingerOverrideCommit(null,null,{action:'batch',batch:entries});
   if(applied){
+   sceneFingerReplaceHistoryStep={song:current,step:fingerOverrideHistoryCurrent().past.at(-1)};
    fingerBrowserAbort('Выборочная замена подтверждена · '+entries.length+' нот.');
    sceneFingerReplaceRequest=null;
    notify('Заменено пальцев: '+entries.length+' · одно Undo');
@@ -523,6 +532,7 @@ function sceneFingerControlsSync(){
    'pianomotion':fingerSelectionAvailable()?'manual':'pianomotion';
   sceneFingerAutoStarted=null;
   sceneFingerReplaceRequest=null;
+  sceneFingerReplaceHistoryStep=null;
   sceneFingerReviewReset();
  }
  const manualAvailable=fingerSelectionAvailable();
@@ -571,8 +581,10 @@ function sceneFingerControlsSync(){
  const pythonHistory=sceneFingerMethod==='pianomotion'&&pianoMotionLastSong===current?
   pianoMotionReviewHistory:null;
  $('sceneFingerUndo').disabled=!fingerResetCanTravel('undo')&&
+  !sceneFingerReplaceCanTravel('undo')&&
   !(pythonHistory?pythonHistory.past.length:history.past.length);
  $('sceneFingerRedo').disabled=!fingerResetCanTravel('redo')&&
+  !sceneFingerReplaceCanTravel('redo')&&
   !(pythonHistory?pythonHistory.future.length:history.future.length);
  $('sceneFingerAutoAdvance').checked=sceneFingerAutoAdvance;
  $('sceneFingerFollow').disabled=!on||sceneFingerFollow;
@@ -715,6 +727,8 @@ $('sceneFingerClear').onclick=()=>sceneFingerAssign('reset');
 for(const [button,direction] of [['sceneFingerUndo','undo'],['sceneFingerRedo','redo']]){
  $(button).onclick=()=>{
   if(fingerResetCanTravel(direction))fingerResetTravel(direction);
+  else if(sceneFingerReplaceCanTravel(direction))
+   fingerOverrideCommit(null,null,{action:direction});
   else if(sceneFingerActive&&sceneFingerMethod==='pianomotion')
    $('pianoMotion'+(direction==='undo'?'Undo':'Redo')).click();
   else fingerOverrideCommit(null,null,{action:direction});
