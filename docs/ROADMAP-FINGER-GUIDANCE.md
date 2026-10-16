@@ -1,3 +1,9 @@
+## FG-05 shared automatic-candidate preview — implementation PR (after v0.10.129)
+
+Both automatic solvers now PROJECT (not apply) their eligible fingers onto the same 88-key falling-note stage. Purple dashed outlines and optional separate numeric badges distinguish unconfirmed suggestions from source-author/user-confirmed labels. Only the original PianoMotion audited review eligibility or the original Beam snapshot+source-ID-validated preview may appear. Protected author digits, saved overrides, physical-conflict refusals, diagnostic-only model comparisons and unsupported MIDI Beam modes are never represented as editable proposals. Switching methods or sources clears the rendered preview; original candidate state stays with its source. Drawing never seeks playback or changes source notes, user edits or Undo/Redo. A separate real Chromium assertion covers Beam results, unmodified author numbers, method switch and MIDI source replacement.
+
+**Still outstanding:** source-safe selection/acceptance of candidate notes while remaining on the shared stage. The existing original confirmation, independent physical audit, history and export controls remain the only Apply workflow; the common stage offers the existing “Проверить / применить…” handoff until that UX is designed and validated. Browser/CI evidence must be green before marking released.
+
 # Play Along — development roadmap: Finger Guidance and musical reliability
 
 ## FG-05 shared scene method switch — P0 phase 3 (v0.10.129)
