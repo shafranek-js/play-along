@@ -1,12 +1,12 @@
-# Play Along — Piano Practice App (v0.10.129)
+# Play Along — Piano Practice App (v0.10.130)
 
-## FG-05 — protected automatic fingering candidate preview on shared stage (PR #132)
+## FG-05 — protected automatic fingering candidate preview on shared stage (v0.10.130, PR #132)
 
 Following the three methods introduced in v0.10.129, their **eligible, unconfirmed** finger suggestions can now be displayed on the same full-width 88-key Piano Roll. A **purple dashed border** around the corresponding source note and a separate lower finger-number badge (where large enough to read) distinguish a generated proposal from an already accepted or MusicXML-authored number. Original confirmed digits retain their appearance and priority. A count and legend are shown in the method toolbar.
 
 The **PianoMotion** preview reads only the independently audited, source-aligned eligible indices from the original genuine Python review state. **Beam Search** preview uses the existing source-note-ID validated snapshot, current constraints and user/author protection; diagnostic-only comparisons, conflicted/omitted notes and protected fingering never receive an actionable preview. Source/method changes remove the onscreen overlay without changing song data. No calculation, preview, song navigation or rendering action accepts a generated finger, seeks playback, moves a 2D hand or mutates MIDI/MusicXML.
 
-For now, **«Проверить / применить…»** continues into the existing complete review workflow; selective acceptance directly on this shared stage is the next separate feature. The original confirmation, physical audit, Undo/Redo and export remain unchanged. New Chromium checks cover real Beam proposals, source-authored protection and method/source switching, plus the original Python/Pyodide Worker finishing a real calculation and displaying live stage previews before explicit Apply. **Changes are in PR #132 until all CI gates pass; v0.10.129 remains the latest release.**
+For now, **«Проверить / применить…»** continues into the existing complete review workflow; selective acceptance directly on this shared stage is the next separate feature. The original confirmation, physical audit, Undo/Redo and export remain unchanged. New Chromium checks cover real Beam proposals, source-authored protection and method/source switching, plus the original Python/Pyodide Worker finishing a real calculation and displaying live stage previews before explicit Apply. **The v0.10.130 release is gated by PR #132's Chromium, Pyodide and MAESTRO checks.**
 
 ## FG-05 P0 — three explicit fingering methods on one live Piano Roll stage (v0.10.129)
 
