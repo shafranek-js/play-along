@@ -352,6 +352,106 @@ function fingerEditorDownloadMusicXML(){
   ' (без изменения). Оригинал не затронут; файл содержит отметку пользовательских правок.';
 }
 $('fingerEditorDownloadXML').onclick=fingerEditorDownloadMusicXML;
+// FG-05: original-MIDI manual fingers -> separate, explicitly APPROXIMATE
+// MusicXML copy. Do not silently use PianoMotion predictions or hand-only
+// corrections, and never serialize over the original MIDI bytes.
+function fingerManualMidiDownloadMusicXML(){
+ const song=current,key=fingerGuideWorkKey();
+ const reject=reason=>{notify('MusicXML не экспортирован: '+reason);return false};
+ if(!fingerSelectionAvailable()||song?.format!=='MIDI'||!key)
+  return reject('Нет исходного MIDI с доступными ручными правками.');
+ const raw=originalMidiForSong(song);
+ if(!raw||song.midiFingerWorkKey!==key||fingerMidiWorkKey(song,raw)!==key)
+  return reject('Не удалось подтвердить исходные байты MIDI.');
+ const notes=song.tracks.flatMap(t=>t.notes||[]);
+ const available=fingerSelectableNotes(song);
+ if(!notes.length||notes.length!==available.length||
+    notes.length>3500||song.tracks.filter(t=>t.notes?.length).length>6||
+    new Set(notes.map(n=>n.noteId)).size!==notes.length)
+  return reject('MIDI содержит слишком много нот, партий или неподтверждённые идентификаторы.');
+ const edits=state.fingerOverrides?.[key]||{};
+ const ids=new Set(notes.map(n=>n.noteId));
+ if(!Object.keys(edits).length||Object.keys(edits).some(id=>!ids.has(id)))
+  return reject('Исправления не совпадают с исходными нотами MIDI.');
+ let count=0,handOnly=0,invalid=false;
+ // Both candidate documents are derived from UNMODIFIED source MIDI notes.
+ // We deliberately erase any non-manual algorithm digits from these copies.
+ const cleanTracks=song.tracks.map(t=>({...t,notes:(t.notes||[]).map(n=>({
+  ...n,finger:null,hand:null,fingeringSource:null
+ }))}));
+ const patchedTracks=song.tracks.map(t=>({...t,notes:(t.notes||[]).map(n=>{
+  const saved=Object.hasOwn(edits,n.noteId)?fingerOverrideEffective(n,edits[n.noteId]):null;
+  if(Object.hasOwn(edits,n.noteId)&&!saved)invalid=true;
+  if(saved?.finger===null&&saved.hand)handOnly++;
+  if(Number.isInteger(saved?.finger))count++;
+  return {...n,finger:Number.isInteger(saved?.finger)?saved.finger:null,
+   hand:saved?.hand||null,fingeringSource:saved?'user':null};
+ })}));
+ if(invalid)return reject('Некорректная сохранённая правка аппликатуры.');
+ if(!count)return reject('Нет вручную назначенных номеров пальцев 1–5.');
+ const original=JSON.stringify(notes.map(n=>[n.noteId,n.pitch,n.start,n.duration,
+  n.velocity,n.channel,n.finger??null,n.hand??null]));
+ const normalize=score=>JSON.stringify({
+  notes:score.tracks.map(t=>t.notes.map(n=>[n.pitch,n.start,n.duration,
+   n.velocity,n.channel,n.partId,n.staff,n.voice,n.sourceTrack])),
+  events:score.audioEvents.map(e=>[e.type,e.time,e.track,e.sourceTrack,
+   e.noteId,e.pitch,e.velocity,e.channel,e.controller,e.value,e.program])
+ });
+ let xml;
+ try{
+  const unmarked=scoreXMLFromSong({...song,tracks:cleanTracks});
+  const updated=scoreXMLFromSong({...song,tracks:patchedTracks});
+  // Reimport both versions: changing finger digits must not alter even the
+  // QUANTIZED notation's musical notes, rests, channels, or audio events.
+  const baseline=readMusicXML(unmarked,'midi-baseline.musicxml');
+  const candidate=readMusicXML(updated,'midi-corrected.musicxml');
+  if(normalize(baseline)!==normalize(candidate))
+   return reject('Ручная аппликатура изменила структуру транскрипции.');
+  const doc=new DOMParser().parseFromString(updated,'application/xml');
+  const root=doc.documentElement;
+  if(!root||root.localName!=='score-partwise'||doc.querySelector('parsererror'))
+   return reject('Сформирован некорректный MusicXML.');
+  if(doc.getElementsByTagName('fingering').length!==count)
+   return reject('Не все выбранные номера пальцев попали в MusicXML.');
+  const ns=root.namespaceURI,make=name=>ns?doc.createElementNS(ns,name):doc.createElement(name);
+  const direct=(p,name)=>[...(p?.children||[])].find(x=>x.localName===name)||null;
+  let identification=direct(root,'identification');
+  if(!identification){
+   identification=make('identification');
+   root.insertBefore(identification,direct(root,'defaults')||direct(root,'part-list')||null);
+  }
+  let miscellaneous=direct(identification,'miscellaneous');
+  if(!miscellaneous){miscellaneous=make('miscellaneous');identification.append(miscellaneous)}
+  const marker=make('miscellaneous-field');
+  marker.setAttribute('name','play-along-user-fingering');
+  marker.textContent='User-entered fingers from source-verified MIDI, not composer-authored. '+
+   'MIDI-to-MusicXML notation is quantized/approximate; hand-only corrections excluded: '+handOnly;
+  miscellaneous.append(marker);
+  xml=new XMLSerializer().serializeToString(doc);
+  const final=readMusicXML(xml,'midi-manual-export.musicxml');
+  if(normalize(baseline)!==normalize(final)||
+     final.tracks.flatMap(t=>t.notes).filter(n=>
+      n.fingeringSource==='musicxml-user-export-unverified').length!==count)
+   return reject('Повторный импорт не подтвердил ноты или происхождение пальцев.');
+ }catch(error){return reject(error?.message||String(error))}
+ if(song!==current||key!==fingerGuideWorkKey()||
+    JSON.stringify(edits)!==JSON.stringify(state.fingerOverrides?.[key]||{})||
+    fingerMidiWorkKey(song,originalMidiForSong(song))!==key||
+    JSON.stringify(song.tracks.flatMap(t=>t.notes||[]).map(n=>[
+     n.noteId,n.pitch,n.start,n.duration,n.velocity,n.channel,
+     n.finger??null,n.hand??null]))!==original)
+  return reject('Исходный MIDI или правки изменились во время экспорта.');
+ const blob=new Blob([xml],{type:'application/vnd.recordare.musicxml+xml;charset=utf-8'});
+ const url=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=url;
+ a.download=(String(song.title||'midi').replace(/[\\/:*?"<>|\x00-\x1f]/g,'_').slice(0,80)||'midi')+
+  '-manual-fingering.musicxml';
+ document.body.append(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),1000);
+ notify('Скачан MusicXML с '+count+' ручными номерами. Нотная запись MIDI приблизительная; оригинал не изменён.');
+ return true;
+}
+
 // FG-03C2B5: user-confirmed transfer across uniquely matched XML measures.
 // The dry-run never applies its own results. All selected changes flow
 // through existing validated atomic batch Undo/Redo persistence.
