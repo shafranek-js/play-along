@@ -74,9 +74,12 @@ function fingerOverrideCommit(note,choice,{action='edit',batch=null}={}){
   if(!note?.noteId)return false;
   const previous=state.fingerOverrides?.[key]?.[note.noteId]??null;
   transition=fingerHistoryTransition(history,'edit',{id:note.noteId,before:previous,
-   after:choice===null?null:{finger:choice?.finger,hand:choice?.hand}});
+   after:choice===null?null:{finger:choice?.finger,hand:choice?.hand,
+    ...(previous?.suppressAuthor===true?{suppressAuthor:true}:{})}});
  }else if(action==='batch'){
-  transition=fingerHistoryTransition(history,'batch',{entries:batch});
+  transition=fingerHistoryTransition(history,'batch',{entries:
+   batch?.map(e=>({...e,after:e.after&&e.before?.suppressAuthor===true?
+    {...e.after,suppressAuthor:true}:e.after}))});
  }else transition=fingerHistoryTransition(history,action);
  if(!transition)return false;
  const changes=transition.changes||[];
@@ -96,7 +99,8 @@ function fingerOverrideCommit(note,choice,{action='edit',batch=null}={}){
  const work={...(state.fingerOverrides?.[key]||{})};
  for(const change of changes){
   if(change.value===null)delete work[change.id];
-  else work[change.id]={finger:change.value.finger,hand:change.value.hand};
+  else work[change.id]={finger:change.value.finger,hand:change.value.hand,
+   ...(change.value.suppressAuthor===true?{suppressAuthor:true}:{})};
  }
  const next={...state.fingerOverrides};
  if(Object.keys(work).length)next[key]=work;else delete next[key];
@@ -165,10 +169,11 @@ function fingerGuidanceSteps(){
      finger=(hand==='RH'?[1,3,5]:[5,3,1])[index%3];
     }
     source='demo';
-   }else if(fingerOverrideEffective(n,edits[n.noteId])){
+   }else if(fingerOverrideEffective(n,edits[n.noteId])?.finger!=null){
     const selected=fingerOverrideEffective(n,edits[n.noteId]);
-    finger=selected.finger;hand=selected.hand;source='user';
-   }else if(['musicxml','pianomotion','user'].includes(n.fingeringSource)&&
+    finger=selected.finger;hand=selected.hand??n.hand;source='user';
+   }else if(!fingerOverrideEffective(n,edits[n.noteId])?.suppressAuthor&&
+      ['musicxml','pianomotion','user'].includes(n.fingeringSource)&&
       Number.isInteger(n.finger)&&n.finger>=1&&n.finger<=5){
     // Keep trusted author fingers and only explicitly accepted session edits
     // (including user-applied PianoMotion suggestions). Never convert imported
