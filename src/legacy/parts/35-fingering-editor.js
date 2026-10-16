@@ -341,8 +341,9 @@ $('fingerEditorDownloadXML').onclick=()=>{
  a.href=url;a.download=(String(song.title||'score').replace(/[\\/:*?"<>|\x00-\x1f]/g,'_').slice(0,80)||'score')+'-user-fingering.musicxml';
  document.body.append(a);a.click();a.remove();
  setTimeout(()=>URL.revokeObjectURL(url),1000);
- status.textContent='Экспортировано '+result.count+' ручных номеров. Только рука: '+
-  result.handOnly+' (без изменения). Оригинал не затронут; файл содержит отметку пользовательских правок.';
+ status.textContent='Экспортировано '+result.count+' ручных номеров. Авторских номеров скрыто в копии: '+
+  (result.suppressed||0)+'. Только рука: '+result.handOnly+
+  ' (без изменения). Оригинал не затронут; файл содержит отметку пользовательских правок.';
 };
 // FG-03C2B5: user-confirmed transfer across uniquely matched XML measures.
 // The dry-run never applies its own results. All selected changes flow
