@@ -95,7 +95,7 @@ function onNoteOn(note,velocity=85,from='midi',timestamp){
  $('statNotes').textContent=noteCount;$('midiLive').textContent='MIDI: '+nameOf(note)+' · vel '+velocity;
  if(smart.waitingNext&&source==='midi'){midiHeld.delete(note);midiHeldSources.delete(note);smartGoNext();return}
  playLive(note,velocity);
- if(isPlaying&&practice){
+ if(isPlaying&&practice&&(!ctx||ctx.currentTime>=startAudioTime)){
   const wait=state.mode==='wait';
   // A fresh expected NoteOn leads the timeline in Wait. This accepts legato
   // (next key down before the old key up) and slightly early correct notes.
