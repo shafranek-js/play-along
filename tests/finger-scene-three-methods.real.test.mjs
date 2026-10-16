@@ -224,7 +224,7 @@ try{
     imported:notes.map(n=>[n.pitch,n.finger??null,n.fingeringSource??null]),
     warning:reloaded?.warnings.some(w=>w.includes('пользовательских правках')),
     format:window.__prototypeTest.song.format,
-    sameStage:document.getElementById('rollWrap').offsetParent!==null
+    sameStage:!document.getElementById('rollWrap').classList.contains('hidden')
    };
   }finally{
    URL.createObjectURL=oldCreate;
