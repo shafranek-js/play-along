@@ -2,7 +2,7 @@ const $=id=>document.getElementById(id);
 const STORE='playalong:smart-practice:v07';const V06_STORE='playalong:performance-analyzer:v06';const PREV_STORE='playalong:smart-phrasing:v05';const PREV2_OLD_STORE='playalong:real-piano:v04';const PREV2_STORE='playalong:keyboard-engine:v03';const OLD_STORE='playalong:music-engine:v02';const OLDER_STORE='playalong:ui-prototype:v1';
 const defaultAudioSettings=()=>({backend:'soundfont',bankId:null,livePreset:{bankMSB:0,bankLSB:0,program:0,isDrum:false},useFilePrograms:true});
 const defaultLibraryFilters=()=>({source:'all',sort:'source',fingering:'all',favoritesOnly:false,query:'',mutopiaComposer:'',mutopiaInstrument:''});
-const defaults={layout:'learn',page:'practice',left:true,right:true,leftPinned:true,rightPinned:true,leftWidth:286,rightWidth:318,rightTab:'practice',mode:'listen',accompany:true,accompanyExplicit:false,autoMidi:true,preferredMidiName:'',speed:100,leadInDuration:2,displayRange:'song',gridVisibility:50,labels:true,highlight:true,allTracks:true,volume:40,selected:'demo-scale',track:0,deviceProfiles:{},audioSettings:defaultAudioSettings(),targetRange:'device',adaptMode:'original',adaptShift:0,auditionAdapted:false,showReviewMarkers:true,scoreView:'roll',sheetZoom:100,sheetFollow:true,fingerGuidanceMode:'off',fingerLookaheadMs:750,fingerBrowserHandSize:'M',fingerEditorZoom:72,fingerBrowserAssumeStaves:false,sceneFingerAutoAdvance:false,fingerOverrides:{},libraryFilters:defaultLibraryFilters(),librarySections:librarySectionLayoutNormalize()};
+const defaults={layout:'learn',page:'practice',left:true,right:true,leftPinned:true,rightPinned:true,leftWidth:286,rightWidth:318,rightTab:'practice',mode:'listen',accompany:true,accompanyExplicit:false,autoMidi:true,preferredMidiName:'',speed:100,leadInDuration:2,displayRange:'song',gridVisibility:50,labels:true,highlight:true,allTracks:true,volume:40,selected:'demo-scale',track:0,deviceProfiles:{},audioSettings:defaultAudioSettings(),targetRange:'device',adaptMode:'original',adaptShift:0,auditionAdapted:false,showReviewMarkers:true,scoreView:'roll',sheetZoom:100,sheetFollow:true,fingerGuidanceMode:'off',fingerLookaheadMs:750,fingerBrowserHandSize:'M',fingerEditorZoom:72,fingerBrowserAssumeStaves:false,sceneFingerAutoAdvance:false,fingerOverrides:{},acceptedFingering:{},libraryFilters:defaultLibraryFilters(),librarySections:librarySectionLayoutNormalize()};
 // Treat backups AND older localStorage snapshots as untrusted input.
 // Invalid restored values are rejected in strict backup mode; legacy
 // localStorage uses safe defaults to preserve normal upgrades.
@@ -147,6 +147,9 @@ function sanitizePlayAlongSettings(value,{strict=false}={}){
   if(key==='fingerOverrides'){
    try{safe.fingerOverrides=fingerOverrideValidate(raw,{strict})}
    catch(err){if(strict)throw err}
+  }else if(key==='acceptedFingering'){
+   try{safe.acceptedFingering=fingerAcceptedValidate(raw,{strict})}
+   catch(err){if(strict)throw err}
   }else if(key==='librarySections'){
    try{safe.librarySections=librarySectionLayoutNormalize(raw,{strict})}
    catch(err){if(strict)throw err}
@@ -247,7 +250,16 @@ const allNotes=s=>s?.tracks.flatMap(t=>t.notes)||[];
 const duration=()=>Math.max(1,...allNotes(current).map(n=>n.start+n.duration))+.5;
 const persist=()=>{
  if(window.__playAlongRestoringBackup||(startupSongRestorePending&&!startupSongRestoreUserChosen))return;
- try{captureSongSettings();localStorage.setItem(STORE,JSON.stringify(state))}
+ try{
+  const snapshot=fingerAcceptedSnapshot(current);
+  if(snapshot){
+   const next={...state.acceptedFingering};
+   if(Object.keys(snapshot.entries).length)next[snapshot.key]=snapshot.entries;
+   else delete next[snapshot.key];
+   state.acceptedFingering=fingerAcceptedValidate(next,{strict:true});
+  }
+  captureSongSettings();localStorage.setItem(STORE,JSON.stringify(state));
+ }
  catch(e){console.warn('Cannot save Play Along settings',e);try{setLibraryStatus('Не удалось сохранить настройки браузера: '+e.message)}catch{}}
 };
 
