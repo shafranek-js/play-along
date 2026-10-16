@@ -35,6 +35,7 @@ try{
   return {notes:song.tracks.flatMap(t=>t.notes).map(n=>({id:n.noteId,finger:n.finger??null})),xml:song.notationXML};
  },xml);
  assert.equal(original.notes.length,64);
+ await page.locator('#developerToolsToggle').evaluate(el=>{if(!el.checked)el.click()});
  await page.locator('#viewFingerEditor').click();
  await page.waitForFunction(()=>window.__scoreTest.editor.visible&&window.__scoreTest.editor.notes===64);
  const first=await page.evaluate(()=>window.__scoreTest.editor);

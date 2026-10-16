@@ -42,6 +42,7 @@ try{
   return song.tracks.flatMap(t=>t.notes.map(n=>n.noteId));
  },oldXml);
  assert.equal(oldIds.length,3);
+ await page.locator('#developerToolsToggle').evaluate(el=>{if(!el.checked)el.click()});
  await page.locator('#viewFingerEditor').click();
  await page.locator('#fingerEditorAll').click();
  await page.locator('#fingerEditorFinger').selectOption('3');

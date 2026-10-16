@@ -155,6 +155,7 @@ try{
  assert.equal(await page.locator('#sceneFingerTools').isVisible(),false);
  assert.equal(await page.locator('#roll').evaluate(el=>el.dataset.keepSceneIdentity),rollCanvasBefore);
  // Advanced research/editing remains accessible; no duplicated Python actions.
+ await page.locator('#developerToolsToggle').evaluate(el=>{if(!el.checked)el.click()});
  await page.locator('#viewFingerEditor').click();
  assert.equal(await page.locator('#fingerEditorWrap').isVisible(),true);
  assert.equal(await page.locator('#fingerEditorCanvas').isVisible(),true);

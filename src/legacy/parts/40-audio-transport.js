@@ -103,6 +103,47 @@ function clockPos(){
 function silence(){for(const v of [...activeVoices]){if(v.o){try{v.g.gain.cancelScheduledValues(ctx.currentTime);v.g.gain.setValueAtTime(0,ctx.currentTime);v.o.stop(ctx.currentTime+.004)}catch{}}activeVoices.delete(v)}audioVisualByNoteId.clear();audioOffScheduled.clear();audioDroppedNoteIds.clear()}
 function sound(pitch,velocity,when,len,sourceNote=null){if(state.volume<=0)return null;let a=ensureAudio(),t=Math.max(a.currentTime+.003,when),dur=Math.max(.05,Math.min(35,len)),g=a.createGain(),o=a.createOscillator();o.type='triangle';o.frequency.value=440*2**((pitch-69)/12);const amp=clamp(state.volume/100,0,.9)*clamp(velocity/127,0,1)*.22;if(amp<=0)return null;
  g.gain.setValueAtTime(0,t);g.gain.exponentialRampToValueAtTime(amp,t+.009);g.gain.setValueAtTime(amp*.6,t+.045);g.gain.exponentialRampToValueAtTime(.00001,t+dur);o.connect(g);g.connect(a.destination);const voice={o,g,pitch,startTime:t,endTime:t+dur,source:'song',group:'file',sourceNote};activeVoices.add(voice);o.onended=()=>{activeVoices.delete(voice);o.disconnect();g.disconnect()};o.start(t);o.stop(t+dur+.04);return voice;}
+// A short note-block audition is NOT MIDI input and must not advance Wait,
+// scoring, the transport, or held-key state. SoundFont uses the same live
+// engine but a reserved audition channel; simple fallback uses the existing
+// short oscillator voice, without routing through onNoteOn / practice.
+let audioAuditionSerial=0;
+async function audioAuditionNote(note){
+ if(!note||!Number.isInteger(note.pitch)||note.pitch<0||note.pitch>127||
+    !current||state.volume<=0)return false;
+ const song=current,serial=++audioAuditionSerial;
+ const velocity=clamp(Math.round(Number(note.velocity)||85),1,127);
+ const length=clamp(Number(note.duration)||.38,.20,.75);
+ if(state.audioSettings?.backend==='simple'){
+  const a=ensureAudio();
+  sound(note.pitch,velocity,a.currentTime+.004,length);
+  return true;
+ }
+ try{
+  ensureAudio(); // synchronous user-gesture activation
+  await audioEnsureReady();
+  if(current!==song||serial!==audioAuditionSerial||
+     state.audioSettings?.backend!=='soundfont')return false;
+  const patch=audioResolvePatch(state.audioSettings?.livePreset,audioInventory).patch;
+  await audioPreparePatch(patch,[note.pitch],[velocity]);
+  if(current!==song||serial!==audioAuditionSerial||
+     state.audioSettings?.backend!=='soundfont')return false;
+  const engine=audioEngine,at=engine.context.currentTime+.009;
+  const noteId='note-audition-'+serial+'-'+note.pitch;
+  // Channel 1 avoids the virtual / USB piano's live channel 0.
+  engine.scheduleEvent({type:'programChange',group:'live',channel:1,at,
+   bankMSB:patch.bankMSB,bankLSB:patch.bankLSB,program:patch.program,isDrum:patch.isDrum});
+  engine.scheduleEvent({type:'noteOn',group:'live',channel:1,noteId,
+   pitch:note.pitch,velocity,at:at+.004});
+  engine.scheduleEvent({type:'noteOff',group:'live',channel:1,noteId,
+   pitch:note.pitch,at:at+length+.004});
+  return true;
+ }catch(error){
+  console.warn('Не удалось озвучить выбранную ноту',error);
+  if(current===song)notify('Не удалось озвучить ноту. Проверь настройки звука.');
+  return false;
+ }
+}
 function playLive(pitch,velocity=85,channel=0){if(!Number.isInteger(pitch)||pitch<0||pitch>127||liveVoices.has(pitch)||audioLiveNotes.has(pitch))return;const a=ensureAudio();const token=(audioLiveTokens.get(pitch)||0)+1;audioLiveTokens.set(pitch,token);const noteId='live-'+(++audioVoiceSequence)+'-'+pitch;if(state.audioSettings?.backend==='simple'){if(state.volume<=0)return;const t=a.currentTime,o=a.createOscillator(),g=a.createGain();o.type='triangle';o.frequency.value=440*2**((pitch-69)/12);const amp=clamp(state.volume/100,0,.9)*clamp(velocity/127,0,1)*.19;if(amp<=0)return;g.gain.setValueAtTime(0,t);g.gain.exponentialRampToValueAtTime(amp,t+.012);o.connect(g);g.connect(a.destination);o.start(t);liveVoices.set(pitch,{o,g});o.onended=()=>{if(liveVoices.get(pitch)?.o===o)liveVoices.delete(pitch);o.disconnect();g.disconnect()};return}const selectedPatch=state.audioSettings?.livePreset||{bankMSB:0,bankLSB:0,program:0,isDrum:false};const safeVelocity=clamp(Math.round(velocity),1,127);audioLiveNotes.set(pitch,{noteId,channel:0,token});audioEnsureReady().then(async()=>{if(state.audioSettings?.backend!=='soundfont'||audioLiveTokens.get(pitch)!==token||!midiHeld.has(pitch)||audioLiveNotes.get(pitch)?.noteId!==noteId)return;const activePatch=state.audioSettings?.livePreset||selectedPatch;await audioPreparePatch(activePatch,[pitch],[safeVelocity]);if(state.audioSettings?.backend!=='soundfont'||audioLiveTokens.get(pitch)!==token||!midiHeld.has(pitch)||audioLiveNotes.get(pitch)?.noteId!==noteId)return;audioEngine.scheduleEvent({type:'noteOn',group:'live',channel:0,noteId,pitch,velocity:safeVelocity,at:Math.max(audioEngine.context.currentTime+.003,a.currentTime+.003)})}).catch(error=>{if(audioLiveTokens.get(pitch)===token){audioLiveNotes.delete(pitch);audioError=String(error?.message||error);audioEmit()}})}
 function releaseLive(pitch,channel=0){audioLiveTokens.set(pitch,(audioLiveTokens.get(pitch)||0)+1);const simple=liveVoices.get(pitch);if(simple&&ctx){liveVoices.delete(pitch);try{simple.g.gain.cancelScheduledValues(ctx.currentTime);simple.g.gain.setTargetAtTime(.00001,ctx.currentTime,.04);simple.o.stop(ctx.currentTime+.20)}catch{}}const active=audioLiveNotes.get(pitch);if(active){audioLiveNotes.delete(pitch);if(audioEngine&&audioLifecycle==='ready'){try{audioEngine.scheduleEvent({type:'noteOff',group:'live',channel:active.channel??0,noteId:active.noteId,pitch,at:audioEngine.context.currentTime+.003})}catch(error){audioError=String(error?.message||error);audioEmit()}}}}
 function stopLiveAll(){audioPanic({group:'live'}).catch(()=>{})}

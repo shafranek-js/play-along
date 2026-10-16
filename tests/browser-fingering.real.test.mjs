@@ -96,6 +96,7 @@ try{
  },xml);
  assert.equal(before.length,4);
  assert.ok(before.every(n=>n.hand===null&&n.finger===null));
+ await page.locator('#developerToolsToggle').evaluate(el=>{if(!el.checked)el.click()});
  await page.locator('#viewFingerEditor').click();
  await page.locator('#fingerResearchPanel > summary').click();
  await page.locator('#fingerBrowserToggle').click();

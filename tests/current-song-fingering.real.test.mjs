@@ -43,6 +43,7 @@ try{
   return song.tracks.flatMap(t=>t.notes).map(n=>({id:n.noteId,pitch:n.pitch,start:n.start,duration:n.duration,finger:n.finger??null}));
  },xml);
  assert.equal(src.length,4);
+ await page.locator('#developerToolsToggle').evaluate(el=>{if(!el.checked)el.click()});
  await page.locator('#viewFingerEditor').click();
  await page.locator('#fingerCurrentCalculate').click();
  await page.waitForFunction(()=>document.querySelector('#fingerBrowserStatus')?.textContent?.includes('Вычислено локально'),null,{timeout:20000});

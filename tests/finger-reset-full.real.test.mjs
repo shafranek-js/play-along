@@ -51,6 +51,7 @@ try{
  const original=await load();
  assert.equal(original.length,4);
  assert.deepEqual(original.filter(n=>n.finger!==null).map(n=>n.finger),[1,2]);
+ await page.locator('#developerToolsToggle').evaluate(el=>{if(!el.checked)el.click()});
  await page.locator('#viewFingerEditor').click();
  const getSaved=()=>page.evaluate(()=>window.__fingerGuideTest.userCorrections);
  const hist=()=>page.evaluate(()=>window.__fingerGuideTest.history);
