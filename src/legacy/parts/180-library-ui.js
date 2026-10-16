@@ -94,7 +94,8 @@ function libraryCoverageStatusFor(e,category){
  return fingeringCoverageStatus(libraryCoverageFor(e,category));
 }
 function libRow(e,category){
- const wrap=document.createElement('div');wrap.className='libv8-row'+(state.selected===e.id?' current':'');
+ const matchesCurrent=state.selected===e.id||(category==='builtin'&&state.selected==='saved-sha256-'+e.sha256);
+ const wrap=document.createElement('div');wrap.className='libv8-row'+(matchesCurrent?' current':'');
  const main=document.createElement('button');main.className='libv8-main';const title=document.createElement('strong');title.textContent=e.title;const sub=document.createElement('span');sub.textContent=[e.author,e.source||category,e.instrument||'',e.license].filter(Boolean).join(' · ');main.append(title,sub);
  const coverage=libraryCoverageFor(e,category),coverageState=libraryCoverageStatusFor(e,category);
  const finger=document.createElement('span');finger.className='libFingerStatus';finger.dataset.state=coverageState;
