@@ -1,4 +1,14 @@
-# Play Along — Piano Practice App (v0.10.134)
+# Play Along — Piano Practice App (v0.10.135)
+
+## FG-05 — source-verified manual MIDI → MusicXML (v0.10.135)
+
+The shared 88-key Piano Roll can now **download an explicitly approximate MusicXML transcription with confirmed MANUAL MIDI finger numbers**, without opening the developer editor. The button is enabled only for a real original MIDI import with saved manual finger digits; hand-only edits and unaccepted PianoMotion/Beam previews cannot enable this export. Source bytes are rechecked against the original import fingerprint at download time, and MIDI remains untouched.
+
+The exporter builds both finger-free and corrected notation from independently cloned notes, reimports both with the current MusicXML importer and requires exact normalized playback equality before any download. It then marks the exported score as user-edited, verifies the marker and all digits after a further reimport, and refuses mismatches. MusicXML reimport must never promote these numeric annotations to original composer fingering. **The notation is quantized, not an exact transcription of expressive original MIDI timing**, and hand-only corrections are not encoded as individual-hand symbols in this version. Large, ambiguous, or unverifiable scores are rejected rather than silently truncated. Existing Python PianoMotion applied export is unchanged; simultaneous manual+Python merging is a separate follow-up.
+
+Real Chromium regression checks same-screen download, numeric fingers, provenance, reimport and source independence alongside MIDI manual Undo/Redo, reset and fingerprint isolation.
+
+
 
 ## FG-05 — source-safe manual MIDI fingering on the 88-key Piano Roll (v0.10.134)
 
