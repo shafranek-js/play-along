@@ -35,7 +35,7 @@ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 let browser;
 try{
  browser=await chromium.launch({headless:true,args:['--no-sandbox']});
- const page=await browser.newPage({viewport:{width:1440,height:900}});
+ const page=await browser.newPage({viewport:{width:1440,height:900},acceptDownloads:true});
  const errors=[];page.on('pageerror',err=>errors.push(err.message));
  await page.goto('http://127.0.0.1:'+server.address().port);
  await page.waitForFunction(()=>window.__libraryV08?.readMusicXML&&
@@ -84,6 +84,12 @@ try{
  assert.equal(preview.suppressed,2);
  assert.equal(preview.xml.split('<fingering>').length-1,0,
   'detached score overlay must hide original author fingering too');
+ const downloadPending=page.waitForEvent('download');
+ await page.locator('#fingerEditorDownloadXML').click();
+ const copy=fs.readFileSync(await (await downloadPending).path(),'utf8');
+ assert.equal(copy.split('<fingering>').length-1,0,
+  'downloaded MusicXML copy may omit original fingering but never modify source');
+ assert.match(copy,/source-author fingering hidden in downloaded copy: 2/);
  assert.deepEqual(await page.evaluate(()=>window.__prototypeTest.song.tracks.flatMap(t=>t.notes).map(n=>({
   id:n.noteId,pitch:n.pitch,start:n.start,duration:n.duration,
   finger:n.finger??null,hand:n.hand??null
