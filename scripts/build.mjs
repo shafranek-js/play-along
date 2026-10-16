@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { build as esbuild } from 'esbuild';
 import { validateSoundfontManifest } from './audio-assets.mjs';
+import { writeBuiltinMidiPack } from './builtin-midi-pack.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'scripts/manifest.json'), 'utf8'));
@@ -30,6 +31,8 @@ if (!body.includes("window.__playAlongVersion='0.9.1'")) throw Error('Missing or
 if (!js.includes(`window.__playAlongVersion='${version}'`)) throw Error('Failed to stamp version');
 const dist = path.join(root, 'dist');
 fs.mkdirSync(path.join(dist, 'assets'), {recursive:true});
+// Owner-provided MIDI recordings are copied byte-for-byte into an on-demand asset.
+const builtinMidiCatalog=writeBuiltinMidiPack(root,dist);
 fs.writeFileSync(path.join(dist, 'assets/app.js'), js);
 // FG-04C9: ship the owner's exact original PianoMotion Python computation
 // sources (not synthetic JS substitutes). Manifest is checked in the Worker.
@@ -179,4 +182,5 @@ if (audioBytes > audioBudgetBytes) throw Error(`SF-01 audio assets exceed the au
 
 execFileSync(process.execPath, ['--check', path.join(dist, 'assets/app.js')], {stdio:'inherit'});
 execFileSync(process.execPath, ['--check', path.join(audioDistRoot, 'index.js')], {stdio:'inherit'});
+console.log(`Built-in MIDI catalog verified: ${builtinMidiCatalog.count} files, original SMF bytes preserved`);
 console.log(`Built Play Along v${version}: ${names.length} feature source files, CSS + HTML + ${audioBytes} audio bytes -> dist/`);
