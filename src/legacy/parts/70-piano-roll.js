@@ -217,6 +217,13 @@ function sceneFingerReviewSync(candidates=null){
  for(const note of sceneFingerReviewSelected)
   if(!preview.has(note))sceneFingerReviewSelected.delete(note);
  const total=preview.size,selected=sceneFingerReviewSelected.size;
+ const replacing=sceneFingerReplacementValid();
+ $('sceneFingerReviewConfirm').parentElement.lastChild.textContent=replacing?
+  ' Я проверил(а) предложения и разрешаю заменить пальцы только выбранных нот':
+  ' Я проверил(а) выбранные пальцы и хочу их применить';
+ $('sceneFingerReviewHelp').textContent=replacing?
+  'Это альтернативные пальцы для ранее назначенных нот. Проверь каждую замену: исходные номера и остальные ноты сохраняются до явного подтверждения.':
+  'Фиолетовый пунктир — предложение, жёлтая рамка — выбрано. Нажимай на нотные блоки или выделяй их рамкой. Авторская и сохранённая аппликатура не заменяются автоматически.';
  $('sceneFingerReviewCounts').textContent=total?
   (sceneFingerReplacementValid()?
    'Замена назначенных пальцев · предложено '+total+' · выбрано '+selected+
