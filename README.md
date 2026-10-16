@@ -1,4 +1,11 @@
-# Play Along — Piano Practice App (v0.10.145)
+# Play Along — Piano Practice App (v0.10.146)
+
+## Transport — configurable lead-in and rewind (v0.10.146)
+
+Play now counts down before starting a song, with a **Lead-in Duration** slider in Playback Settings (0–10 seconds, 0.5-second steps, default **2.0 s**). The preference is validated, persisted in the existing browser settings and included in settings backups. Countdown occurs after the audio engine is ready, so it gives a real preparation interval before the first audible note. Both the SoundFont timeline and the simple audio fallback honor the interval, including notes already sustaining at the seek position; MIDI scoring is gated until the lead-in ends. Cancel/Pause during the countdown cancels queued playback. A seek or loop repeat during playback does **not** insert another lead-in.
+
+The footer now has independent **⏮ В начало мелодии** and **↶5 Назад 5 секунд** controls. The first stops and seeks to absolute song position 0, regardless of an active loop. When a song finishes normally, the transport stops and rewinds to position 0 automatically, updating the seek slider and score cursor without auto-playing again. Active loops continue their selected fragment as before. A dedicated real Chromium transport test covers these behaviors and reload-safe settings.
+
 
 ## UX — persistent user preferences after reload (v0.10.145)
 
