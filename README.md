@@ -1,4 +1,18 @@
-# Play Along — Piano Practice App (v0.10.128)
+# Play Along — Piano Practice App (v0.10.129)
+
+## FG-05 P0 — three explicit fingering methods on one live Piano Roll stage (v0.10.129)
+
+The existing **«✍ Аппликатура»** stage overlay now has an accessible **three-way method selector**:
+**Ручной**, **PianoMotion**, **Beam Search**.
+
+- **Ручной** retains direct note/hand editing on the SAME persistent 88-key scene with L/R, 1–5, keyboard shortcuts, selected-note Undo/Redo and off-playback viewport panning/zoom. No manual controls are exposed or hotkey-activated while one of the automatic methods is selected.
+- **PianoMotion** uses the **original** `pianoMotionCalculate` handler and Python Worker for the current supported MusicXML or MIDI song. Calculation is launched without navigating away from the scene. Its *actual original engine status* is mirrored in a concise on-stage status. The results are **not applied** until the user moves to the full advanced workspace and reviews/explicitly confirms a permitted selection (original physical audit, undo and MusicXML export retained).
+- **Beam Search** uses the **original** `fingerCurrentCalculate` / `fingerBrowserCalculate` Web Worker flow, for original MusicXML only. The author/user anchor guards, unknown-hand refusal, anatomical/legacy comparison, exclusion of impossible islands and full user-confirmation form are retained in the advanced workspace.
+
+Both automatic modes expose **«Рассчитать»** and **«Проверить / применить…»** on the unchanged Piano Roll, and a shared **«Все инструменты…»** link opens the corresponding original analysis/review panel. This is navigation, not a rewrite of the algorithms or their review controls. No automated suggestions are accepted by mode switches, calculation, or playback. Switching to MIDI disables the manual/Beam choices and uses the available PianoMotion method. Switching back to source MusicXML restores access to all three; changing songs clears the ephemeral pending stage status. Viewport/transport and 88-key geometry are unchanged.
+
+The original full Fingering editor, Python and research Workers, score model, strict source identity, physical-audit safeguards, user confirmation, and separate Undo semantics are preserved. On-scene per-note **automated preview overlays and acceptance** are *not* yet implemented; explicit review remains in the advanced workspace. Real Chromium regression verifies three-way selection, delegated Worker flow, MIDI support, unchanged original XML/overrides, unchanged transport and keyboard, and no automatic acceptance.
+
 
 ## FG-05 P0 — independent Fingering viewport and time zoom (v0.10.128)
 
