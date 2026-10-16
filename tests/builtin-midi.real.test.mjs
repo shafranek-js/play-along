@@ -76,7 +76,7 @@ try{
  // Simulate a confirmed Python Apply; actual calculation is separately tested.
  const pickedMidi=await page.evaluate(()=>{
   const app=window.__prototypeTest,n=app.song.tracks.flatMap(t=>t.notes)
-   .find(n=>n.noteId&&n.finger==null);
+   .find(n=>n.noteId&&n.finger==null&&!n.isDrum&&n.channel!==9);
   if(!n)throw Error('MIDI fixture has no eligible note');
   n.finger=4;n.hand='RH';n.fingeringSource='pianomotion';
   app.seek(1.5);
