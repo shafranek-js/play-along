@@ -50,3 +50,19 @@ test('FG-03C2A excess entries fail closed and legacy corrupt cache drops bad ent
  assert.equal(Object.keys(fingerOverrideValidate({[key]:work})).length,0);
  assert.equal(Object.keys(fingerOverrideValidate(null)).length,0);
 });
+
+
+test('source-author mask survives validated backup and does not change original XML',()=>{
+ const key=fingerOverrideWorkKey(song);
+ const raw={[key]:{[id]:{finger:null,hand:null,suppressAuthor:true}}};
+ const restored=fingerOverrideValidate(JSON.parse(JSON.stringify(raw)),{strict:true});
+ assert.deepEqual(JSON.parse(JSON.stringify(restored)),raw);
+ assert.deepEqual(fingerOverrideEffective({noteId:id,pitch:60,finger:1,fingeringSource:'musicxml'},raw[key][id]),
+  {finger:null,hand:null,source:'user',suppressAuthor:true});
+ const replacement={[key]:{[id]:{finger:5,hand:'RH',suppressAuthor:true}}};
+ assert.deepEqual(JSON.parse(JSON.stringify(fingerOverrideValidate(replacement,{strict:true}))),replacement);
+ assert.throws(()=>fingerOverrideValidate({[key]:{[id]:{finger:null,hand:null}}},{strict:true}));
+ assert.throws(()=>fingerOverrideValidate({[key]:{[id]:{finger:null,hand:null,suppressAuthor:'yes'}}},{strict:true}));
+ assert.throws(()=>fingerOverrideValidate({[key]:{[id]:{finger:null,hand:null,suppressAuthor:true,unexpected:1}}},{strict:true}));
+ assert.equal(song.notationXML.includes('<score-partwise>'),true);
+});
