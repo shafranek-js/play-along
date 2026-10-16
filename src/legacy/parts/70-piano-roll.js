@@ -445,8 +445,10 @@ function sceneFingerControlsSync(){
  $('sceneFingerClear').disabled=!on||!isManual||!count;
  const pythonHistory=sceneFingerMethod==='pianomotion'&&pianoMotionLastSong===current?
   pianoMotionReviewHistory:null;
- $('sceneFingerUndo').disabled=!(pythonHistory?pythonHistory.past.length:history.past.length);
- $('sceneFingerRedo').disabled=!(pythonHistory?pythonHistory.future.length:history.future.length);
+ $('sceneFingerUndo').disabled=!fingerResetCanTravel('undo')&&
+  !(pythonHistory?pythonHistory.past.length:history.past.length);
+ $('sceneFingerRedo').disabled=!fingerResetCanTravel('redo')&&
+  !(pythonHistory?pythonHistory.future.length:history.future.length);
  $('sceneFingerAutoAdvance').checked=sceneFingerAutoAdvance;
  $('sceneFingerFollow').disabled=!on||sceneFingerFollow;
  if(on&&!isManual)sceneFingerAutoSync();
@@ -586,7 +588,8 @@ for(const b of $('sceneFingerTools').querySelectorAll('[data-scene-hand]'))
 $('sceneFingerClear').onclick=()=>sceneFingerAssign('reset');
 for(const [button,direction] of [['sceneFingerUndo','undo'],['sceneFingerRedo','redo']]){
  $(button).onclick=()=>{
-  if(sceneFingerActive&&sceneFingerMethod==='pianomotion')
+  if(fingerResetCanTravel(direction))fingerResetTravel(direction);
+  else if(sceneFingerActive&&sceneFingerMethod==='pianomotion')
    $('pianoMotion'+(direction==='undo'?'Undo':'Redo')).click();
   else fingerOverrideCommit(null,null,{action:direction});
   sceneFingerReviewSync();sceneFingerControlsSync();renderCanvas();
@@ -625,6 +628,9 @@ function fingerSelectionShortcut(e){
 }
 function fingerOverrideCommit(note,choice,{action='edit',batch=null}={}){
  if(!fingerSelectionAvailable())return false;
+ if(!fingerResetRestoring&&['undo','redo'].includes(action)&&
+    fingerResetCanTravel(action))return fingerResetTravel(action);
+ if(!fingerResetRestoring&&['edit','batch'].includes(action))fingerResetComposite=null;
  const key=fingerGuideWorkKey(),history=fingerOverrideHistoryCurrent();
  let transition;
  if(action==='edit'){

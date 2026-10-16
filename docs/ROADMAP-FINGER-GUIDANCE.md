@@ -1,3 +1,11 @@
+## FG-05 — reset accepted PianoMotion and user/source fingering together · v0.10.140
+
+Reported: clicking Reset left visible fingering digits because accepted Python suggestions were stored on in-session notes, separate from persisted manual annotations. Update the same in-place reset dialog to account for both independent layers, cancel old preview calculations, include a verified count of affected notes, and support a one-step combined Undo/Redo. “User only” clears manual and applied PianoMotion digits, not author source. “All” additionally suppresses author source digits in the working overlay (without mutating original XML). MIDI source bytes, playable events and hands must stay identical; browser regression must reproduce applied PianoMotion → reset → undo → redo.
+
+## FG-05 — cross-staff voice safeguard · v0.10.140
+
+Identified piano grand-staff may have a voice move across upper/lower staves within the same written measure. Do not imply its staff is a physical hand. For the affected canonical note IDs only, do not fill Beam RH/LH from staff heuristics; request explicit per-note manual hand. Keep source/author/user fingers, other staff/voice/measure candidates and unrelated ensemble instruments separate. No extra learner toggle; same stage provides the needed instruction. Automatic Beam remains available for standard unambiguous piano scores. Verify in Node and real Chromium before merge.
+
 ## FG-05 — piano grand-staff MusicXML as provisional hand evidence · v0.10.139
 
 Owner clarification: piano scores with melody on upper staff and bass on lower staff provide a meaningful RH/LH **hint**, not an absolute rule or authored fingering. The score parser now marks only verified two-staff piano parts (piano name/explicit piano program; both 1 and 2 staves present). Beam Search automatically uses RH for staff 1 and LH for staff 2 in **temporary candidate calculations only**, while protecting explicit user corrections and author digits. Ensemble instruments outside those piano parts are not fingered in this mode. User-facing stage warns that crossing and hand swaps require manual checking. Non-piano grand staves and uncertain single-staff assignments remain opt-in / no-go.

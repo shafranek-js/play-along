@@ -68,13 +68,16 @@ function fingerEditorRender(){
  for(const id of actions)$(id).disabled=!fingerEditorAvailable()||
   (id==='fingerEditorAll'?!notes.length:
    id==='fingerEditorClear'?!selectedCount:
-   id==='fingerEditorUndo'?!fingerOverrideHistoryCurrent().past.length:
-   id==='fingerEditorRedo'?!fingerOverrideHistoryCurrent().future.length:
+   id==='fingerEditorUndo'?!fingerOverrideHistoryCurrent().past.length&&!fingerResetCanTravel('undo'):
+   id==='fingerEditorRedo'?!fingerOverrideHistoryCurrent().future.length&&!fingerResetCanTravel('redo'):
    !selectedCount);
  const userWork=fingerGuideWorkKey(),userEdits=userWork?state.fingerOverrides?.[userWork]||{}:{};
  $('fingerEditorResetFingering').disabled=!fingerEditorAvailable()||
   !(Object.values(userEdits).some(change=>Number.isInteger(change?.finger))||
    notes.some(n=>n.fingeringSource==='musicxml'&&Number.isInteger(n.finger)&&
+    !userEdits[n.noteId]?.suppressAuthor)||
+   notes.some(n=>['pianomotion','musicxml-user-export-unverified']
+    .includes(n.fingeringSource)&&Number.isInteger(n.finger)&&
     !userEdits[n.noteId]?.suppressAuthor));
  $('fingerEditorDownloadXML').disabled=!fingerEditorAvailable()||!!current?.originalNotationXML||
   !Object.keys(userEdits).length;
@@ -246,10 +249,66 @@ $('fingerEditorReset').onclick=()=>{
 // Two user-confirmed scopes share ONE atomic Undo/Redo history. The 'all'
 // scope masks authored XML fingering only in the persistent user overlay;
 // the source XML is immutable. Existing user hand ownership is preserved.
-let fingerResetPending=null;
+let fingerResetPending=null, fingerResetComposite=null, fingerResetRestoring=false;
+// Reset is one reversible gesture spanning saved manual annotations and
+// session-only applied PianoMotion digits. Do not touch source MIDI/XML.
+function fingerResetPianoPatches(notes){
+ return notes.filter(n=>n.fingeringSource==='pianomotion'&&
+  Number.isInteger(n.finger)&&n.finger>=1&&n.finger<=5).map(note=>{
+  const before=pianoMotionNoteState(note);
+  return {note,before,after:{...before,hasFinger:false,finger:null,
+   hasSource:false,source:null}};
+ });
+}
+function fingerResetRestorePiano(patches,side){
+ for(const patch of patches){
+  const state=patch[side],note=patch.note;
+  if(state.hasFinger)note.finger=state.finger;else delete note.finger;
+  if(state.hasHand)note.hand=state.hand;else delete note.hand;
+  if(state.hasSource)note.fingeringSource=state.source;else delete note.fingeringSource;
+ }
+}
+function fingerResetCanTravel(direction){
+ const t=fingerResetComposite;
+ if(!t||!['undo','redo'].includes(direction)||
+    t.phase!==(direction==='undo'?'after':'before')||
+    current!==t.song||fingerGuideWorkKey()!==t.key)return false;
+ if(t.manualStep){
+  const h=fingerOverrideHistoryCurrent();
+  if((direction==='undo'?h.past.at(-1):h.future.at(-1))!==t.manualStep)return false;
+ }
+ return t.piano.every(p=>pianoMotionStateEqual(
+  pianoMotionNoteState(p.note),p[direction==='undo'?'after':'before']));
+}
+function fingerResetTravel(direction){
+ if(!fingerResetCanTravel(direction))return false;
+ const t=fingerResetComposite;
+ if(t.manualStep){
+  fingerResetRestoring=true;
+  let ok=false;
+  try{ok=fingerOverrideCommit(null,null,{action:direction})}
+  finally{fingerResetRestoring=false}
+  if(!ok)return false;
+ }
+ fingerResetRestorePiano(t.piano,direction==='undo'?'before':'after');
+ if(direction==='undo'&&t.pianoSession?.song===current){
+  const p=t.pianoSession;
+  pianoMotionLastResult=p.result;pianoMotionLastSong=p.song;
+  pianoMotionLastAlignment=p.alignment;pianoMotionLastPlan=p.plan;
+  pianoMotionLastApplied=p.applied;pianoMotionReviewHistory=p.history;
+  pianoMotionReviewAudit=p.audit;
+  if(p.alignment?.ok){$('pianoMotionReview').hidden=false;pianoMotionReviewRender();}
+ }else if(direction==='redo')pianoMotionStop('Сброс аппликатуры повторён.');
+ t.phase=direction==='undo'?'before':'after';
+ renderCanvas();if(state.scoreView==='editor')fingerEditorRender();
+ sceneFingerControlsSync();
+ notify(direction==='undo'?'Сброс аппликатуры отменён':'Сброс аппликатуры повторён');
+ return true;
+}
 function fingerResetEntries(scope,notes,edits){
  const originals=new Map(notes.map(n=>[n.noteId,n]));
  const entries=[],userIds=new Set(),authorIds=new Set();
+ const piano=fingerResetPianoPatches(notes);
  for(const [id,previous]of Object.entries(edits)){
   if(Number.isInteger(previous?.finger)&&!originals.has(id))
    return {ok:false,reason:'SCORE_NOTE_IDENTITY_CHANGED'};
@@ -259,18 +318,24 @@ function fingerResetEntries(scope,notes,edits){
   const user=Number.isInteger(before?.finger)&&before.finger>=1&&before.finger<=5;
   const author=note.fingeringSource==='musicxml'&&Number.isInteger(note.finger)&&
    note.finger>=1&&note.finger<=5;
-  if(!user&&!(scope==='all'&&author))continue;
+  // Play Along-exported MusicXML has user-origin digits, not author
+  // notation. Clearing the user's layer must hide these too.
+  const importedUser=note.fingeringSource==='musicxml-user-export-unverified'&&
+   Number.isInteger(note.finger)&&note.finger>=1&&note.finger<=5&&
+   !before?.suppressAuthor;
+  if(!user&&!importedUser&&!(scope==='all'&&author))continue;
   const hand=before?.hand==='RH'||before?.hand==='LH'?before.hand:null;
-  const hideAuthor=scope==='all'&&author||before?.suppressAuthor===true;
+  const hideAuthor=scope==='all'&&author||importedUser||before?.suppressAuthor===true;
   const after=hideAuthor?{finger:null,hand,suppressAuthor:true}:
    hand?{finger:null,hand}:null;
   if(!fingerHistorySame(before,after)){
    entries.push({id,before,after});
-   if(user)userIds.add(id);
+   if(user||importedUser)userIds.add(id);
    if(scope==='all'&&author&&!before?.suppressAuthor)authorIds.add(id);
   }
  }
- return {ok:true,entries,userCount:userIds.size,authorCount:authorIds.size};
+ return {ok:true,entries,piano,userCount:userIds.size,authorCount:authorIds.size,
+  pianoCount:piano.length};
 }
 const fingerResetDialog=$('fingerResetDialog');
 // Shared confirmation dialog belongs to the document root so it stays
@@ -280,11 +345,12 @@ function fingerResetPreview(){
  if(!fingerResetPending)return;
  const mode=fingerResetDialog.querySelector('input[name="fingerResetScope"]:checked')?.value;
  const plan=fingerResetEntries(mode,fingerSelectionOrdered().map(x=>x.note),state.fingerOverrides?.[fingerResetPending.key]||{});
- $('fingerResetConfirm').disabled=!plan.ok||!plan.entries.length;
+ $('fingerResetConfirm').disabled=!plan.ok||!(plan.entries.length||plan.piano.length);
  $('fingerResetCount').textContent=plan.ok?
   'Будет сброшено пользовательских номеров: '+plan.userCount+
+  ' · Применённых PianoMotion: '+plan.pianoCount+
   (mode==='all'?' · Скрыто авторских номеров: '+plan.authorCount:'')+
-  ' · Итого изменено нот: '+plan.entries.length+
+  ' · Итого изменено нот: '+(plan.entries.length+plan.pianoCount)+
   ' · Сброс можно отменить одним Undo.':
   'Не удалось сопоставить сохранённые правки с нотами. Сброс недоступен.';
 }
@@ -313,15 +379,29 @@ $('fingerResetConfirm').onclick=()=>{
  const scope=fingerResetDialog.querySelector('input[name="fingerResetScope"]:checked')?.value;
  if(!['user','all'].includes(scope))return;
  const plan=fingerResetEntries(scope,fingerSelectionOrdered().map(x=>x.note),state.fingerOverrides?.[key]||{});
- if(!plan.ok||!plan.entries.length){fingerResetPreview();return}
- const ok=fingerOverrideCommit(null,null,{action:'batch',batch:plan.entries});
+ if(!plan.ok||!(plan.entries.length||plan.piano.length)){fingerResetPreview();return}
+ const pianoSession=plan.piano.length?{
+  song:pianoMotionLastSong,result:pianoMotionLastResult,
+  alignment:pianoMotionLastAlignment,plan:pianoMotionLastPlan,
+  applied:pianoMotionLastApplied,history:pianoMotionReviewHistory,
+  audit:pianoMotionReviewAudit
+ }:null;
+ const ok=!plan.entries.length||
+  fingerOverrideCommit(null,null,{action:'batch',batch:plan.entries});
  fingerResetDialog.close();
  if(!ok){notify('Сброс аппликатуры не выполнен.');return}
- fingerBrowserAbort('Сброшено пользовательских номеров: '+plan.userCount+
+ const manualStep=plan.entries.length?fingerOverrideHistoryCurrent().past.at(-1):null;
+ fingerResetRestorePiano(plan.piano,'after');
+ // Clear both algorithms' pending previews; old results are not accepted.
+ pianoMotionStop('Применённые номера PianoMotion сброшены.');
+ fingerBrowserAbort('Сброшено ручных номеров: '+plan.userCount+
+  ' · PianoMotion: '+plan.pianoCount+
   (scope==='all'?' · Авторских скрыто: '+plan.authorCount:'')+
-  '. Исходный файл не изменён. Можно рассчитать аппликатуру заново или отменить сброс через Undo.');
- fingerEditorRender();
- notify('Сброс аппликатуры: '+plan.entries.length+' нот · одно действие Undo');
+  '. Исходный файл не изменён. Можно рассчитать заново или отменить сброс одним Undo.');
+ fingerResetComposite={song,key,manualStep,piano:plan.piano,pianoSession,phase:'after'};
+ renderCanvas();fingerEditorRender();sceneFingerControlsSync();
+ notify('Сброс аппликатуры: '+(plan.entries.length+plan.pianoCount)+
+  ' изменений · одно действие Undo');
 };
 $('fingerEditorUndo').onclick=()=>{fingerOverrideCommit(null,null,{action:'undo'});fingerEditorRender()};
 $('fingerEditorRedo').onclick=()=>{fingerOverrideCommit(null,null,{action:'redo'});fingerEditorRender()};
@@ -656,16 +736,19 @@ function fingerBrowserInput(){
   fingerSelectionOrdered().length-fingerBrowserNotes().length:0;
  const explicitTrackHands=new Map(isMidi?current.tracks.flatMap(track=>
   (track.notes||[]).map(n=>[n,fingerMidiExplicitTrackHand(track)])):[]);
- let pianoStaffHints=0;
+ const crossStaffNotes=isMidi?new Set():fingerMusicXmlCrossStaffVoiceNotes(current);
+ let pianoStaffHints=0,crossStaffNeedsHand=0;
  const notes=fingerBrowserNotes().map(n=>{
   const change=fingerOverrideEffective(n,edits[n.noteId]);
   const userDeclaredStaff=$('fingerBrowserAssumeStaves').checked;
   // A real piano grand staff is a provisional hand clue, not an original
   // hand or an authored fingering. Explicit user/source hands win.
-  const pianoStaffHint=isMidi?null:fingerMusicXmlPianoStaffHand(current,n);
+  const pianoStaffHint=isMidi||crossStaffNotes.has(n.noteId)?null:
+   fingerMusicXmlPianoStaffHand(current,n);
   const writtenHand=change?.hand??n.hand??
    (isMidi?explicitTrackHands.get(n):pianoStaffHint);
   if(!change?.hand&&!n.hand&&pianoStaffHint)pianoStaffHints++;
+  if(!change?.hand&&!n.hand&&crossStaffNotes.has(n.noteId))crossStaffNeedsHand++;
   const h=(writtenHand==='RH'||writtenHand==='LH')?writtenHand:
    (userDeclaredStaff&&String(n.staff)==='1'?'RH':
     userDeclaredStaff&&String(n.staff)==='2'?'LH':null);
@@ -677,7 +760,7 @@ function fingerBrowserInput(){
   return candidate;
  });
  return {notes,handSize:state.fingerBrowserHandSize,pianoStaffHints,pianoExcluded,
-  compareWithoutSaved:$('fingerBrowserCompareSaved').checked};
+  crossStaffNeedsHand,compareWithoutSaved:$('fingerBrowserCompareSaved').checked};
 }
 function fingerBrowserAbort(message){
  fingerBrowserSeq++;
@@ -784,6 +867,9 @@ function fingerBrowserShow(report){
     (fingerBrowserInput()?.pianoExcluded?
      ' · Другие инструменты исключены из расчёта (нот: '+
      fingerBrowserInput().pianoExcluded+').':'')+
+    (fingerBrowserInput()?.crossStaffNeedsHand?
+     ' · Перенос голосов между станами: '+fingerBrowserInput().crossStaffNeedsHand+
+     ' нот требуют проверки назначенной руки.':'')+
     skipNotice;
   }
  }
@@ -1040,7 +1126,10 @@ $('fingerBrowserCalculate').onclick=()=>{
  if(!input.notes.every(n=>n.hand==='RH'||n.hand==='LH')){
   $('fingerBrowserStatus').textContent=current?.format==='MIDI'?
    'MIDI не определяет левую и правую руку. Выдели ноты на этой дорожке в режиме «Вручную» и назначь RH/LH (или открой MIDI с дорожками «Right Hand» / «Left Hand»), затем снова нажми Beam Search.':
-   'Рука некоторых нот не определена. Укажите руки вручную или явно подтвердите условное разделение по станам для эксперимента.';
+   input.crossStaffNeedsHand?
+    'Перенос голоса между станами в одном такте: '+input.crossStaffNeedsHand+
+    ' нот без подтверждённой руки. Укажи RH/LH для этих нот в режиме «Вручную», затем нажми Beam Search снова. Остальные ноты и сохранённая аппликатура не изменены.':
+    'Рука некоторых нот не определена. Укажите руки вручную или явно подтвердите условное разделение по станам для эксперимента.';
   return;
  }
  if(!window.Worker){
@@ -1442,6 +1531,7 @@ $('pianoMotionApply').onclick=()=>pianoMotionReviewApply(
 $('pianoMotionApplySelected').onclick=()=>pianoMotionReviewApply([...pianoMotionReviewSelected]);
 for(const [button,direction]of [['pianoMotionUndo','undo'],['pianoMotionRedo','redo']]){
  $(button).onclick=()=>{
+  if(fingerResetCanTravel(direction)){fingerResetTravel(direction);return}
   if(!pianoMotionReviewValidate())return;
   const result=pianoMotionTravelHistory(pianoMotionReviewHistory,direction);
   if(!result.ok){$('pianoMotionStatus').textContent='История недоступна: '+result.reason;return;}
