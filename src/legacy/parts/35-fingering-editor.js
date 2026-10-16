@@ -279,7 +279,7 @@ document.body.appendChild(fingerResetDialog);
 function fingerResetPreview(){
  if(!fingerResetPending)return;
  const mode=fingerResetDialog.querySelector('input[name="fingerResetScope"]:checked')?.value;
- const plan=fingerResetEntries(mode,fingerEditorNotes(),state.fingerOverrides?.[fingerResetPending.key]||{});
+ const plan=fingerResetEntries(mode,fingerSelectionOrdered().map(x=>x.note),state.fingerOverrides?.[fingerResetPending.key]||{});
  $('fingerResetConfirm').disabled=!plan.ok||!plan.entries.length;
  $('fingerResetCount').textContent=plan.ok?
   'Будет сброшено пользовательских номеров: '+plan.userCount+
@@ -289,7 +289,7 @@ function fingerResetPreview(){
   'Не удалось сопоставить сохранённые правки с нотами. Сброс недоступен.';
 }
 function fingerResetOpen(){
- if(!fingerEditorAvailable()||!current||fingerResetDialog.open)return;
+ if(!fingerSelectionAvailable()||!current||fingerResetDialog.open)return;
  fingerResetPending={song:current,key:fingerGuideWorkKey(),
   snapshot:JSON.stringify(state.fingerOverrides?.[fingerGuideWorkKey()]||{})};
  fingerResetDialog.querySelector('input[value="user"][name="fingerResetScope"]').checked=true;
@@ -302,7 +302,7 @@ for(const control of fingerResetDialog.querySelectorAll('input[name="fingerReset
 $('fingerResetCancel').onclick=()=>fingerResetDialog.close();
 fingerResetDialog.onclose=()=>{fingerResetPending=null};
 $('fingerResetConfirm').onclick=()=>{
- if(!fingerResetPending||!fingerEditorAvailable())return;
+ if(!fingerResetPending||!fingerSelectionAvailable())return;
  const {song,key,snapshot}=fingerResetPending;
  if(current!==song||fingerGuideWorkKey()!==key||
     JSON.stringify(state.fingerOverrides?.[key]||{})!==snapshot){
@@ -312,14 +312,14 @@ $('fingerResetConfirm').onclick=()=>{
  }
  const scope=fingerResetDialog.querySelector('input[name="fingerResetScope"]:checked')?.value;
  if(!['user','all'].includes(scope))return;
- const plan=fingerResetEntries(scope,fingerEditorNotes(),state.fingerOverrides?.[key]||{});
+ const plan=fingerResetEntries(scope,fingerSelectionOrdered().map(x=>x.note),state.fingerOverrides?.[key]||{});
  if(!plan.ok||!plan.entries.length){fingerResetPreview();return}
  const ok=fingerOverrideCommit(null,null,{action:'batch',batch:plan.entries});
  fingerResetDialog.close();
  if(!ok){notify('Сброс аппликатуры не выполнен.');return}
  fingerBrowserAbort('Сброшено пользовательских номеров: '+plan.userCount+
   (scope==='all'?' · Авторских скрыто: '+plan.authorCount:'')+
-  '. Исходный MusicXML не изменён. Можно рассчитать аппликатуру заново или отменить сброс через Undo.');
+  '. Исходный файл не изменён. Можно рассчитать аппликатуру заново или отменить сброс через Undo.');
  fingerEditorRender();
  notify('Сброс аппликатуры: '+plan.entries.length+' нот · одно действие Undo');
 };
