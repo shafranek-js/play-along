@@ -43,7 +43,7 @@ let fingerSelectedIds=new Set(),fingerSelectionAnchor=null,fingerSelectionPointe
 // hand sprites, source note IDs, selection and user override Undo/Redo.
 let sceneFingerActive=false,sceneFingerAutoAdvance=false;
 let sceneFingerFollow=true,sceneFingerViewTime=0;
-let sceneFingerWindowSeconds=EDITOR_WINDOW_DEFAULT;
+let sceneFingerWindowSeconds=EDITOR_WINDOW_DEFAULT,sceneFingerViewportSong=null;
 function sceneFingerTime(){
  return sceneFingerActive&&!sceneFingerFollow?
   clampEditorTime(sceneFingerViewTime,duration()):pos;
@@ -89,6 +89,12 @@ function sceneFingerOnWheel(e){
 roll.addEventListener('wheel',sceneFingerOnWheel,{passive:false});
 
 function sceneFingerControlsSync(){
+ // A newly imported score must never inherit the detached viewport position
+ // or zoom level of a previous song, even if both are MusicXML documents.
+ if(sceneFingerViewportSong!==current){
+  sceneFingerViewportSong=current;sceneFingerFollow=true;
+  sceneFingerViewTime=pos;sceneFingerWindowSeconds=EDITOR_WINDOW_DEFAULT;
+ }
  const available=fingerSelectionAvailable();
  if(sceneFingerActive&&!available)sceneFingerActive=false;
  const on=sceneFingerActive&&state.scoreView==='roll'&&state.page==='practice';
@@ -767,7 +773,8 @@ function resizeCanvas(){
 function renderCanvas(){
  if(!current)return;
  // Song-format changes can happen without an explicit view change.
- if($('sceneFingerMode').disabled===fingerSelectionAvailable()||
+ if(sceneFingerViewportSong!==current||
+    $('sceneFingerMode').disabled===fingerSelectionAvailable()||
     (sceneFingerActive&&!fingerSelectionAvailable()))sceneFingerControlsSync();
  const {w,h}=resizeCanvas();lastCanvasSize={w,h};const c=roll.getContext('2d');
  c.clearRect(0,0,w,h);c.fillStyle='#111720';c.fillRect(0,0,w,h);
