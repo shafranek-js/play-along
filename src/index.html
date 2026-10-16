@@ -212,11 +212,12 @@
       <button type="button" class="btn tiny primary" id="fingerResetConfirm">Подтвердить сброс</button>
      </div>
     </dialog>
-    <details id="fingerResearchPanel" class="fingerResearchPanel"><summary>🔬 Расчёт и сравнение аппликатуры (исследование)</summary>
+    <details id="fingerResearchPanel" class="fingerResearchPanel"><summary>Beam Search · проверка и сохранение предложений</summary>
     <section id="fingerBrowserPanel" class="fingerResearchPanel">
-     <button type="button" class="btn tiny ghost" id="fingerBrowserToggle" aria-controls="fingerBrowserContents" aria-expanded="false">🧠 Рассчитать аппликатуру в браузере · эксперимент</button>
+     <button type="button" class="btn tiny ghost" id="fingerBrowserToggle" aria-controls="fingerBrowserContents" aria-expanded="false">Показать предложения Beam Search</button>
      <div id="fingerBrowserContents" hidden>
-     <p class="small">Сравнить исходный Beam Search Play Along и экспериментальную модель растяжения пальцев. Работает локально в браузере без Python. Только для исходного MusicXML с определёнными руками. Предложения <strong>не применяются</strong> и не используются в подсказках; алгоритм PianoMotion здесь пока не запускается.</p>
+     <p class="small">Предложенные пальцы не заменяют авторскую или твою сохранённую аппликатуру без отдельного подтверждения. Неподходящие ноты можно оставить без изменения.</p>
+     <p class="small sceneFingerDeveloperOnly">Для разработчика: локальное сравнение двух моделей Beam Search, оценка геометрии, причин отказа и покрытия исходного MusicXML.</p>
      <div class="fingerResearchControls">
       <label for="fingerBrowserHandSize">Размер кисти</label>
       <select id="fingerBrowserHandSize" aria-label="Размер кисти для экспериментального расчёта"><option>XXS</option><option>XS</option><option>S</option><option selected>M</option><option>L</option><option>XL</option><option>XXL</option></select>
@@ -225,9 +226,9 @@
      <button id="fingerSpanEditorOpen" type="button" class="btn tiny ghost">📏 Настроить охват кисти</button>
 
      <label class="small"><input id="fingerBrowserAssumeStaves" type="checkbox"> Только для этого сравнения принять стан 1 = RH, стан 2 = LH там, где рука не указана (гипотеза, не учебная подсказка)</label>
-     <label class="small"><input id="fingerBrowserCompareSaved" type="checkbox"> Только диагностика: сравнить Legacy и Anatomical без учёта моих сохранённых пальцев. Авторские номера защищены; результаты нельзя применить в этом режиме. Сохранённые правки не удаляются.</label>
+     <label class="small sceneFingerDeveloperOnly"><input id="fingerBrowserCompareSaved" type="checkbox"> Только диагностика: сравнить Legacy и Anatomical без учёта моих сохранённых пальцев. Авторские номера защищены; результаты нельзя применить в этом режиме. Сохранённые правки не удаляются.</label>
      <p class="small" id="fingerBrowserStatus" role="status" aria-live="polite">Откройте исходный MusicXML и нажмите «Рассчитать».</p>
-     <div class="fingerBrowserMetrics" id="fingerBrowserMetrics"></div>
+     <div class="fingerBrowserMetrics sceneFingerDeveloperOnly" id="fingerBrowserMetrics"></div>
      <div id="fingerBrowserCandidates" class="fingerBrowserCandidates" aria-label="Экспериментальные предложения пальцев"></div>
      <div class="fingerBrowserDecision">
       <p class="small">Фиолетовые номера на нотах — предложения алгоритма, не подтверждённые преподавателем. Выдели подходящие ноты (Ctrl+A — все), проверь пальцы и нажми «Принять выбранные». Только после подтверждения они станут твоими ручными правками. Отмена доступна через Undo.</p>
