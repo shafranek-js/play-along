@@ -13,7 +13,8 @@ const server=http.createServer((req,res)=>{
  if(!f.startsWith(dist+path.sep)||!fs.existsSync(f)){
   res.writeHead(404);res.end('not found');return;
  }
- res.setHeader('content-type',f.endsWith('.js')?'application/javascript':
+ res.setHeader('content-type',f.endsWith('.html')?'text/html':
+  f.endsWith('.js')?'application/javascript':
   f.endsWith('.json')?'application/json':
   f.endsWith('.css')?'text/css':'application/octet-stream');
  res.end(fs.readFileSync(f));
