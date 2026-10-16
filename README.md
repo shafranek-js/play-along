@@ -1,4 +1,14 @@
-# Play Along — Piano Practice App (v0.10.137)
+# Play Along — Piano Practice App (v0.10.138)
+
+## FG-05 — Beam Search for MIDI with explicitly known hands (v0.10.138)
+
+The three main fingering actions now appear on the same 88-key scene for both source-verified MIDI and original MusicXML: Manual, PianoMotion, and Beam Search. MIDI **does not identify physical RH/LH fingers or hands by itself**. Beam only runs after every selected piano note has an explicit hand from the original track title (strict “Right Hand” / “Left Hand” or RH/LH) or a user-confirmed per-note hand assignment. No channel/pitch/register guessing. Unlabeled MIDI shows brief same-stage instructions, does not launch any worker, and never silently assigns fingers.
+
+The original source-validated Beam JS Web Worker, temporary candidate projection, per-note visual review, explicit Apply, atomic Undo/Redo, and the earlier MIDI → MusicXML approximate export are reused. All manual hands, author notation, underlying raw MIDI and accepted PianoMotion fingers are protected. Source note identity is verified again at the Apply boundary. This covers MIDI from “Встроенные MIDI” or any user-imported original file (within bounded source/complexity limits).
+
+**Next remaining work:** honest automatic RH/LH inference for arbitrary unlabeled MIDI must have independently validated evidence before becoming learner-facing; do not claim arbitrary MIDI can be fingered by Beam without hand information.
+
+
 
 ## FG-06 — «Встроенные MIDI»: owner-supplied 162-file collection (v0.10.137)
 
