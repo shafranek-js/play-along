@@ -1631,6 +1631,9 @@ function pianoMotionSavedAcceptanceValid(song=current){
  const persisted=snapshot&&state.acceptedFingering?.[snapshot.key];
  if(!snapshot||!persisted||!Object.keys(snapshot.entries).length||
     Object.keys(persisted).length!==Object.keys(snapshot.entries).length)return false;
+ if(song.format==='MIDI'&&song.tracks.some(t=>(t.notes||[]).some(n=>
+      Object.hasOwn(snapshot.entries,n.noteId)&&
+      (n.isDrum===true||n.channel===9))))return false;
  return Object.entries(snapshot.entries).every(([id,v])=>
   Object.hasOwn(persisted,id)&&
   ['pitch','start','duration','finger','hand'].every(k=>v[k]===persisted[id][k]));
