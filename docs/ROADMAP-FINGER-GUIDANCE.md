@@ -1,3 +1,9 @@
+## FG-05 source-verified manual MIDI export — v0.10.135
+
+Implemented in-place MusicXML download for original-source MIDI with manually entered numeric fingers, using the existing approximate 4/4 MIDI score serializer and source-byte fingerprint. The exporter clones data without mutating raw MIDI or accepted Python results, performs reimport parity checks against finger-free notation, requires identical pitched events, adds explicit unverified-user-provenance metadata and reimports it again. Only stored numbers 1–5 qualify; hand-only changes are not encoded in MusicXML. If a score is too large/complex or identity cannot be verified, export fails closed. The existing Python-applied export retains priority when the original Python Apply is active.
+
+Next: merge later manual overrides with independently accepted Python fingers in one final export without silently changing either; validate hand-aware native MIDI -> Beam before enabling its MIDI button; retain piano-specific scope and source copyright/licensing release gate.
+
 ## FG-05 original-source MIDI manual editing — v0.10.134
 
 MIDI: same on-stage Manual, LH/RH and 1–5 edits, history Undo/Redo and confirmed reset as MusicXML; content-hashed work key minted only at original MIDI import and per-source note IDs validated before restoring persisted corrections. No inference of fingers from MIDI itself; no source mutation. Original imported MIDI bytes survive separately in ephemeral session. Beam remains XML-only until proper score/hand inference. Manual-only MIDI MusicXML export must be implemented and round-trip-tested before enabling the download button for that case; do not claim existing PianoMotion export covers manual-only MIDI corrections. Tests check changed source bytes never adopt another MIDI's edits.

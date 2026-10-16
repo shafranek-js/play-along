@@ -367,12 +367,20 @@ function sceneFingerExportKind(){
     !current.originalNotationXML&&
     Object.keys(state.fingerOverrides?.[fingerGuideWorkKey()]||{}).length)
   return 'manual';
+ // MIDI imports never contain composer-authored finger numbers. Export only
+ // explicitly saved manual digits, not a hand-only entry or an unaccepted
+ // candidate. The download handler re-verifies the intact original bytes.
+ if(fingerSelectionAvailable()&&current.format==='MIDI'&&
+    Object.values(state.fingerOverrides?.[fingerGuideWorkKey()]||{})
+     .some(entry=>Number.isInteger(entry?.finger)&&entry.finger>=1&&entry.finger<=5))
+  return 'midi-manual';
  return null;
 }
 function sceneFingerDownloadMusicXML(){
  const kind=sceneFingerExportKind();
  if(kind==='pianomotion')pianoMotionDownloadMusicXML();
  else if(kind==='manual')fingerEditorDownloadMusicXML();
+ else if(kind==='midi-manual')fingerManualMidiDownloadMusicXML();
  else notify('Сначала примени аппликатуру или сохрани ручные исправления.');
 }
 
@@ -415,6 +423,8 @@ function sceneFingerControlsSync(){
   'Скачать MusicXML с применёнными пальцами PianoMotion и сохранёнными правками':
   exportKind==='manual'?
   'Скачать оригинальный MusicXML с пользовательскими правками в отдельной копии':
+  exportKind==='midi-manual'?
+  'Скачать приблизительную MusicXML-транскрипцию MIDI с сохранёнными ручными пальцами':
   'Сначала примени предложенные пальцы либо внеси ручные исправления';
  $('sceneFingerManual').hidden=!on||!isManual;
  $('sceneFingerAutomatic').hidden=!on||isManual;
