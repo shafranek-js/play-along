@@ -37,6 +37,34 @@ export function fingerMusicXmlPianoStaffHand(song,note){
  if(note.staff==='2')return 'LH';
  return null;
 }
+/** A MusicXML voice written on both piano staves within ONE measure may
+ * represent cross-staff beaming or a transferred melody. Staff number alone
+ * is not reliable RH/LH evidence for any note in that voice/measure.
+ * Return canonical source IDs for a temporary Beam input guard only.
+ * This never invents, writes or erases a player's actual hand.
+ */
+export function fingerMusicXmlCrossStaffVoiceNotes(song){
+ const ambiguous=new Set();
+ if(song?.format!=='MusicXML'||!Array.isArray(song.tracks)||
+    !Array.isArray(song.pianoGrandStaffParts))return ambiguous;
+ const piano=new Set(song.pianoGrandStaffParts),groups=new Map();
+ for(const track of song.tracks)for(const note of track?.notes||[]){
+  if(!piano.has(note.partId)||!['1','2'].includes(String(note.staff))||
+     typeof note.voice!=='string'||!note.voice.trim()||
+     typeof note.noteId!=='string')continue;
+  // Identity includes *part index* as MusicXML files can duplicate part IDs.
+  const m=/^xml:([^:]*):([0-9]+):([0-9]+):([0-9]+)$/.exec(note.noteId);
+  if(!m||Number(m[4])<1||m[1]!==encodeURIComponent(note.partId))continue;
+  const key=m[1]+':'+m[2]+':'+m[3]+':'+note.voice;
+  let group=groups.get(key);
+  if(!group){group={staves:new Set(),ids:[]};groups.set(key,group)}
+  group.staves.add(String(note.staff));
+  group.ids.push(note.noteId);
+ }
+ for(const group of groups.values())if(group.staves.size>1)
+  for(const id of group.ids)ambiguous.add(id);
+ return ambiguous;
+}
 export function fingerSelectUpdate(order,selected,id,anchor,{shift=false,toggle=false}={}){
  const ids=order.map(n=>typeof n==='string'?n:n.id);
  if(!ids.includes(id))return {selected:[...selected],anchor};
