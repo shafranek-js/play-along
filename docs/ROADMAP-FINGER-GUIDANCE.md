@@ -1,3 +1,7 @@
+## FG-05 original-source MIDI manual editing — v0.10.134
+
+MIDI: same on-stage Manual, LH/RH and 1–5 edits, history Undo/Redo and confirmed reset as MusicXML; content-hashed work key minted only at original MIDI import and per-source note IDs validated before restoring persisted corrections. No inference of fingers from MIDI itself; no source mutation. Original imported MIDI bytes survive separately in ephemeral session. Beam remains XML-only until proper score/hand inference. Manual-only MIDI MusicXML export must be implemented and round-trip-tested before enabling the download button for that case; do not claim existing PianoMotion export covers manual-only MIDI corrections. Tests check changed source bytes never adopt another MIDI's edits.
+
 ## FG-05 single-scene export — v0.10.133
 
 After same-scene Calculate → Review → explicit Apply, user can now **download MusicXML directly on the full 88-key stage**, for confirmed manually edited/Beam MusicXML or source-verified applied PianoMotion MIDI/MusicXML. No switch to developer/editor view. Reuse original structurally verified MusicXML override export and original Python-alignment-checked, provenance-marked export, never export mere previews. Developer-only exporter remains for advanced inspection. Next priorities: parity of source-safe manual editing for MIDI, genuine validated MIDI hand allocation before enabling Beam for MIDI, and replacing existing author/saved fingers selectively without accidental overwrite. Test current format capabilities honestly.

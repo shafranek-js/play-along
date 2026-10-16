@@ -1,4 +1,12 @@
-# Play Along — Piano Practice App (v0.10.133)
+# Play Along — Piano Practice App (v0.10.134)
+
+## FG-05 — source-safe manual MIDI fingering on the 88-key Piano Roll (v0.10.134)
+
+**Ordinary MIDI users can now choose «Вручную»**, select notes/regions on the existing 88-key roll, assign LH/RH and finger 1–5, and use the same atomic Undo/Redo and two-scope confirmed reset. MIDI and MusicXML manually edited notes use the same gesture and history pipeline. Existing author numbers are never created from MIDI pitch, track or MIDI messages.
+
+**Source identity:** only a real MIDI imported from its intact original raw bytes (up to 4MB) may mint a stable content fingerprint `mid:<byte count>:<two independent hash words>`, distinct from `xml:` keys. MIDI note IDs must follow the importer's original `midi:<source track>:<on serial>` contract, with no duplicate IDs or invalid note pitches/onsets. The key is attached non-enumerably only on successful source import; neither display name nor library ID affects the association. Stored and backup-restored overrides require strict work-prefix/note-prefix matching, bounded values, and explicit user fingers. Reimport of identical MIDI restores hand/finger overrides; a changed MIDI cannot inherit the prior file's corrections. Original MIDI notes and bytes are never mutated by manual editing. Source notes without a verified original MIDI byte key remain non-editable rather than producing unstable fingers.
+
+**Honest capability boundaries:** Beam Search still requires eligible original MusicXML with known hand assignments. MIDI's Python PianoMotion remains available and preserves manual overrides during its candidate eligibility checks. The new MIDI manual overrides are local/playback guidance; MIDI-manual-only MusicXML export is a separate next milestone, and the stage export button remains disabled for that unimplemented case rather than fabricating a file. Real Chromium tests exercise original MIDI parsing, manual edits, Undo/Redo, exact reimport, different-content isolation and confirm-reset with the 88-key roll staying visible.
 
 ## FG-05 — one-screen MusicXML export after fingering Apply (v0.10.133)
 
