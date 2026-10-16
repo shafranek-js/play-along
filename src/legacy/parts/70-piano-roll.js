@@ -64,7 +64,7 @@ $('developerToolsToggle').onchange=e=>{
 
 function sceneFingerMethodAvailable(method){
  if(method==='manual')return fingerSelectionAvailable();
- if(method==='beam')return fingerSelectionAvailable()&&current.format==='MusicXML';
+ if(method==='beam')return fingerSelectionAvailable();
  return method==='pianomotion'&&!!current;
 }
 function sceneFingerAutoSync(){
@@ -103,7 +103,8 @@ function sceneFingerCandidatePreviewMap(){
  const preview=new Map();
  if(!sceneFingerActive||state.scoreView!=='roll'||state.page!=='practice'||!current)return preview;
  if(sceneFingerMethod==='beam'){
-  if(!fingerSelectionAvailable()||!fingerBrowserPreview||
+  if(!fingerSelectionAvailable()||!fingerBrowserMidiSourceVerified()||
+     !fingerBrowserPreview||
      fingerBrowserSong!==current||$('fingerBrowserCompareSaved').checked||
      fingerBrowserSnapshotKey!==JSON.stringify(fingerBrowserInput()))return preview;
   const sources=new Map(fingerSelectionOrdered().map(entry=>[entry.id,entry.note]));
@@ -246,9 +247,7 @@ function sceneFingerReviewGesture(d){
 function sceneFingerStart(method){
  if(!current){notify('Сначала открой произведение.');return false}
  if(!sceneFingerMethodAvailable(method)){
-  notify(method==='beam'?
-   'Beam Search пока поддерживает исходный MusicXML с заданными руками. Для MIDI можно использовать PianoMotion.':
-   'Ручная правка пока доступна для исходного MusicXML. Для MIDI можно рассчитать PianoMotion.');
+  notify('Открой MIDI или MusicXML в режиме «Оригинал», чтобы редактировать аппликатуру.');
   return false;
  }
  // Research-only compare-without-saved is never an implicit learner
@@ -269,15 +268,20 @@ function sceneFingerCalculateSelected(){
  const method=sceneFingerMethod;
  sceneFingerReviewReset({close:false});
  if(!sceneFingerMethodAvailable(method)){
-  notify(method==='beam'?
-   'Beam Search доступен только для исходного MusicXML.':
-   'Открой поддерживаемое произведение.');return;
+  notify('Открой MIDI или MusicXML в режиме «Оригинал».');return;
  }
  if(method==='pianomotion'&&pianoMotionRun||
   method==='beam'&&fingerBrowserWorker)return;
  // Original calculate buttons live in the advanced workspace and may
  // have been disabled before the current song loaded. Refresh the single
  // source-of-truth capability state before delegating the action.
+ if(method==='beam'){
+  fingerBrowserSync();
+  if($('fingerBrowserCalculate').disabled){
+   $('sceneFingerAutoStatus').textContent='Beam Search недоступен для текущего файла.';
+   return;
+  }
+ }
  if(method==='pianomotion'){
   fingeringWorkspaceSync();
   if($('pianoMotionCalculate').disabled){
