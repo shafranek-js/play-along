@@ -16,7 +16,7 @@ const parts = names.map(name => fs.readFileSync(path.join(partsDir, name), 'utf8
 const body = parts.join('');
 // Transitional bridge: a genuine, independently importable ES module is
 // included in the legacy IIFE without duplicating its musical math.
-const coreModules=['music-time.mjs','music-bars.mjs','finger-guidance-timeline.mjs','finger-guidance-hand-transition.mjs','musicxml-note-identity.mjs','finger-overrides.mjs','finger-override-history.mjs','finger-note-selection.mjs','sheet-fingering-overlay.mjs','external-fingering-evaluation.mjs','musicxml-fingering-export.mjs','fingering-edition-reconcile.mjs','finger-editor-geometry.mjs','finger-scene-viewport.mjs','fingering-coverage.mjs','pianomotion-song-to-midi.mjs','pianomotion-review.mjs','pianomotion-physical-audit.mjs','original-midi-session.mjs','hand-span-calibration.mjs','library-section-layout.mjs'];
+const coreModules=['music-time.mjs','music-bars.mjs','finger-guidance-timeline.mjs','finger-guidance-hand-transition.mjs','musicxml-note-identity.mjs','finger-overrides.mjs','finger-override-history.mjs','finger-note-selection.mjs','sheet-fingering-overlay.mjs','external-fingering-evaluation.mjs','musicxml-fingering-export.mjs','fingering-edition-reconcile.mjs','finger-editor-geometry.mjs','finger-scene-viewport.mjs','fingering-coverage.mjs','pianomotion-song-to-midi.mjs','pianomotion-review.mjs','pianomotion-export-composition.mjs','pianomotion-physical-audit.mjs','original-midi-session.mjs','hand-span-calibration.mjs','library-section-layout.mjs'];
 const musicPrelude=coreModules.map(filename=>{
  const source=fs.readFileSync(path.join(root,'src/core',filename),'utf8');
  const adapted=source.replace(/^export /gm,'');

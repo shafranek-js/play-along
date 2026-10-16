@@ -1,3 +1,9 @@
+## FG-05 accepted Python + manual edits (v0.10.136)
+
+Merge manually confirmed numeric assignments on top of already accepted PianoMotion notes for the same source in MIDI→MusicXML exports. Preserve the remaining applied Python assignments, allow hand-only changes without blanking numbers, and gate export on original MIDI source bytes, validated source note identity and quantized MusicXML parity. Keep undo/redo of the two layers intact, never incorporate pending candidates. Multi-instrument manual edits outside the selected piano score fail closed.
+
+**Added backlog request — «Встроенные MIDI»:** additional owner-provided MIDI sources are to be shown in the built-in MIDI section, not mixed with MAESTRO or third-party online catalog views. Await exact file set/URL and rights verification; do not publish an unverified or empty catalog.
+
 ## FG-05 source-verified manual MIDI export — v0.10.135
 
 Implemented in-place MusicXML download for original-source MIDI with manually entered numeric fingers, using the existing approximate 4/4 MIDI score serializer and source-byte fingerprint. The exporter clones data without mutating raw MIDI or accepted Python results, performs reimport parity checks against finger-free notation, requires identical pitched events, adds explicit unverified-user-provenance metadata and reimports it again. Only stored numbers 1–5 qualify; hand-only changes are not encoded in MusicXML. If a score is too large/complex or identity cannot be verified, export fails closed. The existing Python-applied export retains priority when the original Python Apply is active.
