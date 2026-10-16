@@ -35,11 +35,14 @@ export function fingerOverrideValidate(input,{strict=false}={}){
    if(++total>30000){if(strict)throw Error('Слишком много исправлений аппликатуры');return result}
    if(!notePattern.test(id)||['__proto__','constructor','prototype'].includes(id)||
      !safeRecord(v)||!(v.finger===null||Number.isInteger(v.finger)&&v.finger>=1&&v.finger<=5)||
-     (v.finger===null&&v.hand===null)||
-     !(v.hand===null||v.hand==='RH'||v.hand==='LH')||Object.keys(v).some(k=>!['finger','hand'].includes(k))){
+     (v.finger===null&&v.hand===null&&v.suppressAuthor!==true)||
+     !(v.hand===null||v.hand==='RH'||v.hand==='LH')||
+     (Object.hasOwn(v,'suppressAuthor')&&v.suppressAuthor!==true)||
+     Object.keys(v).some(k=>!['finger','hand','suppressAuthor'].includes(k))){
     if(strict)throw Error('Некорректный номер пальца или рука');continue;
    }
-   output[id]={finger:v.finger,hand:v.hand};
+   output[id]={finger:v.finger,hand:v.hand,
+    ...(v.suppressAuthor===true?{suppressAuthor:true}:{})};
   }
   if(Object.keys(output).length)result[work]=output;
  }
@@ -50,7 +53,10 @@ export function fingerOverrideEffective(note,change){
  if(typeof note.noteId!=='string'||!notePattern.test(note.noteId)||
   !Number.isInteger(note.pitch)||note.pitch<0||note.pitch>127)return null;
  if(!(change.finger===null||Number.isInteger(change.finger)&&change.finger>=1&&change.finger<=5)||
-  (change.finger===null&&change.hand===null)||
-  !(change.hand===null||change.hand==='LH'||change.hand==='RH'))return null;
- return {finger:change.finger,hand:change.hand,source:'user'};
+  (change.finger===null&&change.hand===null&&change.suppressAuthor!==true)||
+  !(change.hand===null||change.hand==='LH'||change.hand==='RH')||
+  (Object.hasOwn(change,'suppressAuthor')&&
+   change.suppressAuthor!==true))return null;
+ return {finger:change.finger,hand:change.hand,source:'user',
+  ...(change.suppressAuthor===true?{suppressAuthor:true}:{})};
 }

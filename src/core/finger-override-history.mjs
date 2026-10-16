@@ -5,10 +5,14 @@ export const FINGER_HISTORY_LIMIT=40;
 export function fingerHistoryEmpty(){return {past:[],future:[]}}
 const safeChoice=c=>c===null||(c&&
  (c.finger===null||Number.isInteger(c.finger)&&c.finger>=1&&c.finger<=5)&&
- ['RH','LH',null].includes(c.hand)&&!(c.finger===null&&c.hand===null)&&
- Object.keys(c).every(k=>['finger','hand'].includes(k)));
+ ['RH','LH',null].includes(c.hand)&&
+ !(c.finger===null&&c.hand===null&&c.suppressAuthor!==true)&&
+ (!Object.hasOwn(c,'suppressAuthor')||
+  c.suppressAuthor===true)&&
+ Object.keys(c).every(k=>['finger','hand','suppressAuthor'].includes(k)));
 export function fingerHistorySame(a,b){
- return a===null&&b===null||!!a&&!!b&&a.finger===b.finger&&a.hand===b.hand;
+ return a===null&&b===null||!!a&&!!b&&a.finger===b.finger&&a.hand===b.hand&&
+  (a.suppressAuthor===true)===(b.suppressAuthor===true);
 }
 function isRecord(record){
  return !!record&&typeof record.id==='string'&&record.id.startsWith('xml:')&&

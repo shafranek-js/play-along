@@ -269,6 +269,8 @@ window.__scoreTest={scoreXMLFromSong,scoreSecondToBeat,scoreBeatToSecond,scoreBa
    parse:source=>new DOMParser().parseFromString(source,'application/xml'),
    serialize:doc=>new XMLSerializer().serializeToString(doc)});
   return {status:x.status,count:x.count,handOnly:x.handOnly,reason:x.reason,
+   suppressed:x.suppressed||0,
+   fingeringTags:x.status==='applied'?(x.xml.match(/<fingering(?:[ >])/g)||[]).length:null,
    colored:x.status==='applied'?x.xml.includes('color="#C77D28"'):false,
    osmdXmlHeader:x.status==='applied'&&/^\s*<\?xml\b/.test(x.xml)};
  },

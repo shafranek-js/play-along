@@ -47,7 +47,8 @@ export function musicXmlCorrectedExport(song,changes,{
  try{
   changed=overlay(song,changes,{parse,serialize,exportMode:true});
   if(changed.status!=='applied')return reject(changed.reason||'Source-note verification failed');
-  if(!changed.count)return reject('Only hand changes present; MusicXML finger numbers would be unchanged');
+  if(!changed.count&&!changed.suppressed)
+   return reject('Only hand changes present; MusicXML finger numbers would be unchanged');
   if(changed.xml.length>15e6)return reject('Export exceeds the safe MusicXML size bound');
   if(compareStructure(song.notationXML,{parse})!==compareStructure(changed.xml,{parse}))
    return reject('Score structure differs outside fingering annotations');
@@ -76,6 +77,7 @@ export function musicXmlCorrectedExport(song,changes,{
   const marker=create('miscellaneous-field');
   marker.setAttribute('name','play-along-user-fingering');
   marker.textContent='User-edited numeric fingering, not original composer notation; corrections: '+changed.count+
+   '; source-author fingering hidden in downloaded copy: '+(changed.suppressed||0)+
    '; hand-only changes not exported: '+changed.handOnly;
   miscellaneous.append(marker);
   const xml=xmlHeader(serialize(doc));
@@ -85,6 +87,7 @@ export function musicXmlCorrectedExport(song,changes,{
      JSON.stringify(eventsSignature(finalSong))!==JSON.stringify(sourceEvents))
    return reject('Export provenance metadata changed source playback');
   return {status:'ready',reason:null,xml,count:changed.count,
+   suppressed:changed.suppressed||0,
    handOnly:changed.handOnly,sourceNotes:sourceNotes.length};
  }catch(error){return reject('Unable to mark user provenance: '+(error?.message||String(error)))}
 }

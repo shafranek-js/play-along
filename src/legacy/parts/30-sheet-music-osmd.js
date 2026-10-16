@@ -109,6 +109,8 @@ async function scoreEnsureRendered(){
      summary.classList.remove('hidden');
      summary.textContent='Авторские пальцы: обычные цифры · Пользовательские: янтарные ноты и цифры ('+
       scoreFingeringOverlayState.count+')'+
+      (scoreFingeringOverlayState.suppressed?' · Авторских номеров скрыто в рабочей копии: '+
+       scoreFingeringOverlayState.suppressed:'')+
       (scoreFingeringOverlayState.handOnly?' · Только рука (без придуманного пальца): '+
        scoreFingeringOverlayState.handOnly:'');
     }else if(scoreFingeringOverlayState.status==='skipped'){

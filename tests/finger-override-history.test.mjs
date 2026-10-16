@@ -61,3 +61,27 @@ test('FG-03C2B1 invalid choices, mutable caller input and authorship safeguards'
  assert.equal(fingerHistorySame(null,null),true);
  assert.equal(fingerHistorySame(null,val(1)),false);
 });
+
+
+test('author suppression and replacement fingers remain distinct and atomic through Undo/Redo',()=>{
+ const old=null,masked={finger:null,hand:null,suppressAuthor:true};
+ const entered=fingerHistoryTransition(fingerHistoryEmpty(),'batch',{
+  entries:[{id:id(1),before:old,after:masked},{id:id(2),before:null,after:{finger:null,hand:'RH'}}]
+ });
+ assert.ok(entered);
+ assert.equal(entered.history.past.length,1);
+ assert.equal(fingerHistorySame(null,masked),false);
+ assert.equal(fingerHistorySame(masked,{finger:null,hand:null,suppressAuthor:true}),true);
+ assert.equal(fingerHistorySame(masked,{finger:2,hand:null,suppressAuthor:true}),false);
+ const undo=fingerHistoryTransition(entered.history,'undo');
+ assert.deepEqual(undo.changes.map(x=>x.value),[null,null]);
+ const redo=fingerHistoryTransition(undo.history,'redo');
+ assert.deepEqual(redo.changes[0].value,masked);
+ const replaced=fingerHistoryTransition(redo.history,'edit',{
+  id:id(1),before:masked,after:{finger:3,hand:'RH',suppressAuthor:true}
+ });
+ assert.ok(replaced);
+ assert.equal(fingerHistoryTransition(replaced.history,'undo').changes[0].value.suppressAuthor,true);
+ assert.equal(fingerHistoryTransition(fingerHistoryEmpty(),'edit',{
+  id:id(1),before:null,after:{finger:null,hand:null}}),null);
+});
