@@ -73,6 +73,35 @@ try{
  assert.match(second.sourceId,/^mid:/);
  assert.notEqual(second.sourceId,first.sourceId);
  assert.equal(requests.filter(x=>x.endsWith('/collection.zlib')).length,1);
+ // Bundled MIDI files are not copied to IndexedDB. Restore by catalog SHA.
+ const lastId=await page.evaluate(()=>window.__prototypeTest.song.id);
+ assert.match(lastId,/^saved-sha256-[a-f0-9]{64}$/);
+ await page.evaluate(()=>window.__prototypeTest.seek(1.5));
+ const beforeReload=await page.evaluate(()=>window.__prototypeTest.pos);
+ assert.ok(beforeReload>1);
+ await page.reload({waitUntil:'domcontentloaded'});
+ await page.waitForFunction(id=>window.__prototypeTest?.song?.id===id,lastId,{timeout:30000});
+ const afterReload=await page.evaluate(()=>({
+  id:window.__prototypeTest.song.id,selected:window.__prototypeTest.state.selected,
+  title:window.__prototypeTest.song.title,type:window.__prototypeTest.song.type,
+  position:window.__prototypeTest.pos
+ }));
+ assert.equal(afterReload.id,lastId);
+ assert.equal(afterReload.selected,lastId);
+ assert.equal(afterReload.title,second.title);
+ assert.equal(afterReload.type,'builtin');
+ assert.ok(Math.abs(afterReload.position-beforeReload)<.05,
+  'Restore the selected work AND its playhead position');
+ assert.equal(await page.evaluate(()=>window.__libraryV08.collection.length),0);
+ // A non-default demo must remain selected too.
+ await page.locator('#librarySourceSelect').selectOption('demo');
+ await page.locator('#librarySearch').fill('');
+ await page.locator('#songList .libv8-main').nth(1).click();
+ const demoId=await page.evaluate(()=>window.__prototypeTest.song.id);
+ assert.notEqual(demoId,'demo-scale');
+ await page.reload({waitUntil:'domcontentloaded'});
+ await page.waitForFunction(id=>window.__prototypeTest?.song?.id===id,demoId,{timeout:20000});
+ assert.equal(await page.evaluate(()=>window.__prototypeTest.state.selected),demoId);
  assert.deepEqual(errors,[]);
  console.log('FG-05 built-in MIDI: 162 catalogued; lazy 1x pack fetch; two original MIDI parsed and verified PASS');
 }finally{
