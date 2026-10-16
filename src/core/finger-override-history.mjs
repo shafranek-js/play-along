@@ -8,7 +8,7 @@ const safeChoice=c=>c===null||(c&&
  ['RH','LH',null].includes(c.hand)&&
  !(c.finger===null&&c.hand===null&&c.suppressAuthor!==true)&&
  (!Object.hasOwn(c,'suppressAuthor')||
-  c.suppressAuthor===true&&c.finger===null)&&
+  c.suppressAuthor===true)&&
  Object.keys(c).every(k=>['finger','hand','suppressAuthor'].includes(k)));
 export function fingerHistorySame(a,b){
  return a===null&&b===null||!!a&&!!b&&a.finger===b.finger&&a.hand===b.hand&&
