@@ -6,7 +6,7 @@ async function songFromBuffer(name,arrayBuffer){const ext=libraryExt(name);if(ex
   value:key,enumerable:false,writable:false,configurable:false});
 }return song;}if(['xml','musicxml','mxl'].includes(ext)){const xml=ext==='mxl'?await zipUnpackMXL(arrayBuffer):new TextDecoder().decode(arrayBuffer);return readMusicXML(xml,name)}if(ext==='mscx'||ext==='mscz'){const xml=ext==='mscz'?await zipUnpackMuseScore(arrayBuffer):new TextDecoder().decode(arrayBuffer);return museRead(xml,name)}throw Error('Неизвестный формат: '+ext)}
 function libraryNotifyWarnings(song){if(song.warnings?.length)setLibraryStatus(song.warnings.join(' '));else setLibraryStatus('Готово: '+song.title+' · '+allNotes(song).length+' нот')}
-async function libraryLoadFile(name,buffer,identity,details={}){const song=await songFromBuffer(name,buffer);if(identity)song.id=identity;if(details.title)song.title=details.title;if(details.author)song.author=details.author;if(details.type)song.type=details.type;loadSong(song);state.page='practice';applyPage();libraryNotifyWarnings(song);
+async function libraryLoadFile(name,buffer,identity,details={}){const song=await songFromBuffer(name,buffer);if(identity)song.id=identity;if(details.title)song.title=details.title;if(details.author)song.author=details.author;if(details.type)song.type=details.type;if(details.startupRestore&&startupSongRestoreUserChosen)return null;loadSong(song,{startupRestore:details.startupRestore===true});state.page='practice';applyPage();libraryNotifyWarnings(song);
  // Existing saved works gain exact-source coverage as soon as they are opened.
  if(identity)void libraryCoverageStore(song,identity).catch(e=>console.warn('Coverage index update failed',e));
  return song}
