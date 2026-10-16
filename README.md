@@ -1,4 +1,12 @@
-# Play Along — Piano Practice App (v0.10.132)
+# Play Along — Piano Practice App (v0.10.133)
+
+## FG-05 — one-screen MusicXML export after fingering Apply (v0.10.133)
+
+**User-first workflow:** the same 88-key Piano Roll now offers **«↓ MusicXML»** alongside Manual, PianoMotion, Beam Search, Review, Apply, Undo/Redo and confirmed fingering reset. Users are never required to enter the full technical editor in order to download applied fingering. The button enables only when the opened source has actual applicable saved user edits (original MusicXML, no transformed score) or source-matched already-applied PianoMotion fingers. It does NOT export pending unconfirmed candidate digits or manufacture MIDI source author annotations.
+
+**Existing export paths, no shadow engine:** for manual / accepted Beam, the original `musicXmlCorrectedExport` structural reimport, source identity guard, atomic override layer and explicit user-fingering marker remain authoritative; for applied Python the original `pianoMotionDownloadMusicXML` validates current song and exact/aligned source note identities, retains original source MIDI, serializes a marked download, and never reclassifies generated digits as composer-authored. The common-stage button only selects the correct original export function. Marking now distinguishes MIDI-derived approximate notation from preserved MusicXML notation. The existing developer view still exposes both advanced export controls.
+
+**Acceptance tests:** Chromium manual MusicXML edits → export → inspect provenance and changed digits, assert still on Piano Roll and original XML untouched. Genuine WebWorker Pyodide → verify & Apply on Piano Roll → export from the same stage, verify provenance and re-import roundtrip. No feature regression for author-protected fingers, source-safe Undo or 88-key geometry.
 
 ## FG-05 — keep automatic fingering review on the shared stage (v0.10.132)
 
