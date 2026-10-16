@@ -42,6 +42,75 @@ let fingerSelectedIds=new Set(),fingerSelectionAnchor=null,fingerSelectionPointe
 // P0 shared-scene Fingering: reuse the exact performance notes, keyboard,
 // hand sprites, source note IDs, selection and user override Undo/Redo.
 let sceneFingerActive=false,sceneFingerAutoAdvance=false;
+let sceneFingerMethod='manual',sceneFingerAutoStarted=null;
+function sceneFingerMethodAvailable(method){
+ if(method==='manual'||method==='beam')return fingerSelectionAvailable();
+ return method==='pianomotion'&&!!current;
+}
+function sceneFingerAutoSync(){
+ if(!sceneFingerActive||sceneFingerMethod==='manual')return;
+ const method=sceneFingerMethod;
+ const source=$(
+  method==='pianomotion'?'pianoMotionStatus':'fingerBrowserStatus');
+ const live=sceneFingerAutoStarted?.song===current&&
+  sceneFingerAutoStarted.method===method;
+ const message=live?source.textContent.trim():
+  'Нажми «Рассчитать». Предложения не применяются автоматически.';
+ $('sceneFingerAutoStatus').textContent=message;
+ $('sceneFingerAutoStatus').title=message;
+ $('sceneFingerCalculate').disabled=!sceneFingerMethodAvailable(method)||
+  (method==='pianomotion'?!!pianoMotionRun:!!fingerBrowserWorker);
+}
+function sceneFingerSelectMethod(method){
+ if(!['manual','pianomotion','beam'].includes(method)||
+  !sceneFingerMethodAvailable(method))return false;
+ sceneFingerMethod=method;
+ $('sceneFingerMethod').value=method;
+ sceneFingerControlsSync();
+ return true;
+}
+function sceneFingerCalculateSelected(){
+ if(!sceneFingerActive||sceneFingerMethod==='manual')return;
+ const method=sceneFingerMethod;
+ if(!sceneFingerMethodAvailable(method)){
+  notify(method==='beam'?
+   'Beam Search доступен только для исходного MusicXML.':
+   'Открой поддерживаемое произведение.');return;
+ }
+ if(method==='pianomotion'&&pianoMotionRun||
+  method==='beam'&&fingerBrowserWorker)return;
+ // Original calculate buttons live in the advanced workspace and may
+ // have been disabled before the current song loaded. Refresh the single
+ // source-of-truth capability state before delegating the action.
+ if(method==='pianomotion'){
+  fingeringWorkspaceSync();
+  if($('pianoMotionCalculate').disabled){
+   const plan=pianoMotionSourcePlan(current,Number(state.track)||0);
+   $('sceneFingerAutoStatus').textContent='Недоступно: '+(plan?.reason||'нет подходящих нот');
+   return;
+  }
+ }
+ sceneFingerAutoStarted={song:current,method};
+ // Call the original, audited production handlers. NEVER mirror or bypass
+ // their Worker validation, stale-input guards, review or confirmation.
+ if(method==='pianomotion')$('pianoMotionCalculate').click();
+ else $('fingerCurrentCalculate').click();
+ sceneFingerAutoSync();
+}
+function sceneFingerOpenReview(){
+ if(!sceneFingerActive)return;
+ const method=sceneFingerMethod;
+ scoreSetView('editor'); // closes overlay but retains source and candidates
+ if(method==='beam'){
+  $('fingerResearchPanel').open=true;
+  $('fingerBrowserContents').hidden=false;
+  $('fingerBrowserToggle').setAttribute('aria-expanded','true');
+  $('fingerResearchPanel').scrollIntoView({block:'start'});
+ }else if(method==='pianomotion'){
+  $('pianoMotionPanel').scrollIntoView({block:'start'});
+ }
+}
+
 let sceneFingerFollow=true,sceneFingerViewTime=0;
 let sceneFingerWindowSeconds=EDITOR_WINDOW_DEFAULT,sceneFingerViewportSong=null;
 function sceneFingerTime(){
@@ -65,7 +134,7 @@ function sceneFingerReveal(target){
 }
 function sceneFingerOnWheel(e){
  if(!sceneFingerActive||state.scoreView!=='roll'||state.page!=='practice'||
-  !fingerSelectionAvailable())return;
+  !current)return;
  const bounds=roll.getBoundingClientRect(),atY=e.clientY-bounds.top;
  if(atY<0||atY>=keyboardTop)return; // keep playing keyboard independent
  const delta=normalizedWheelPixels(e.deltaY,e.deltaMode,bounds.height);
@@ -94,31 +163,45 @@ function sceneFingerControlsSync(){
  if(sceneFingerViewportSong!==current){
   sceneFingerViewportSong=current;sceneFingerFollow=true;
   sceneFingerViewTime=pos;sceneFingerWindowSeconds=EDITOR_WINDOW_DEFAULT;
+  sceneFingerMethod=fingerSelectionAvailable()?'manual':'pianomotion';
+  sceneFingerAutoStarted=null;
  }
- const available=fingerSelectionAvailable();
- if(sceneFingerActive&&!available)sceneFingerActive=false;
+ const manualAvailable=fingerSelectionAvailable();
+ if(sceneFingerMethod==='manual'&&!manualAvailable||
+    sceneFingerMethod==='beam'&&!manualAvailable)
+  sceneFingerMethod='pianomotion';
+ if(sceneFingerActive&&!current)sceneFingerActive=false;
  const on=sceneFingerActive&&state.scoreView==='roll'&&state.page==='practice';
+ const isManual=sceneFingerMethod==='manual';
+ $('sceneFingerMethod').value=sceneFingerMethod;
+ for(const option of $('sceneFingerMethod').options)
+  option.disabled=!sceneFingerMethodAvailable(option.value);
+ $('sceneFingerManual').hidden=!on||!isManual;
+ $('sceneFingerAutomatic').hidden=!on||isManual;
  const count=fingerSelectedIds.size,history=fingerOverrideHistoryCurrent();
  $('sceneFingerTools').hidden=!on;
- $('sceneFingerMode').disabled=!available;
+ $('sceneFingerMode').disabled=!current;
  $('sceneFingerMode').setAttribute('aria-pressed',String(on));
  document.body.classList.toggle('sceneFingerActive',on);
- $('sceneFingerSelection').textContent=count?count+' нот выбрано':'Выбери ноту на дорожке';
+ $('sceneFingerSelection').textContent=isManual?
+  (count?count+' нот выбрано':'Выбери ноту на дорожке'):
+  (sceneFingerMethod==='pianomotion'?'Python · проверка обязательна':
+   'Beam · проверка обязательна');
  for(const b of $('sceneFingerTools').querySelectorAll('[data-scene-finger],[data-scene-hand]'))
-  b.disabled=!count;
- $('sceneFingerClear').disabled=!count;
+  b.disabled=!on||!isManual||!count;
+ $('sceneFingerClear').disabled=!on||!isManual||!count;
  $('sceneFingerUndo').disabled=!history.past.length;
  $('sceneFingerRedo').disabled=!history.future.length;
  $('sceneFingerAutoAdvance').checked=sceneFingerAutoAdvance;
  $('sceneFingerFollow').disabled=!on||sceneFingerFollow;
+ if(on&&!isManual)sceneFingerAutoSync();
  $('sceneFingerViewport').textContent='Вид: '+
   (sceneFingerFollow?'за игрой':fmt(clampEditorTime(sceneFingerViewTime,duration())))+
   ' · '+sceneFingerWindowSeconds.toFixed(1)+' с';
 }
 function sceneFingerSetActive(active){
- if(active&&!fingerSelectionAvailable()){
-  notify('Редактирование на сцене доступно для исходного MusicXML. Для MIDI используй PianoMotion в «Аппликатуре».');
-  return;
+ if(active&&!current){
+  notify('Сначала открой произведение в библиотеке.');return;
  }
  sceneFingerActive=!!active;
  if(sceneFingerActive&&state.scoreView!=='roll')scoreSetView('roll');
@@ -126,6 +209,7 @@ function sceneFingerSetActive(active){
  renderCanvas();
 }
 function sceneFingerAdvance(direction){
+ if(sceneFingerMethod!=='manual'||!fingerSelectionAvailable())return false;
  const order=fingerSelectionOrdered();
  if(!order.length)return false;
  const ids=order.map(x=>x.id);
@@ -148,7 +232,8 @@ function sceneFingerAdvance(direction){
  return true;
 }
 function sceneFingerAssign(kind,value){
- if(!sceneFingerActive||!fingerSelectionAvailable()||!fingerSelectedIds.size)return false;
+ if(!sceneFingerActive||sceneFingerMethod!=='manual'||
+    !fingerSelectionAvailable()||!fingerSelectedIds.size)return false;
  const ids=[...fingerSelectedIds],user=state.fingerOverrides?.[fingerGuideWorkKey()]||{};
  // Confirming an existing assignment advances without manufacturing Undo.
  let same=false;
@@ -167,7 +252,7 @@ function sceneFingerAssign(kind,value){
  return changed||same;
 }
 function sceneFingerKeyDown(e){
- if(!sceneFingerActive||!fingerSelectionAvailable()||
+ if(!sceneFingerActive||sceneFingerMethod!=='manual'||!fingerSelectionAvailable()||
     state.scoreView!=='roll'||state.page!=='practice'||e.altKey)return;
  if(e.target?.closest?.('input,textarea,select,[contenteditable="true"],[role="dialog"],dialog')||
     document.querySelector('.overlay.show'))return;
@@ -189,7 +274,21 @@ function sceneFingerKeyDown(e){
  }
 }
 $('sceneFingerMode').onclick=()=>sceneFingerSetActive(!sceneFingerActive);
-$('sceneFingerAdvanced').onclick=()=>{sceneFingerSetActive(false);scoreSetView('editor')};
+$('sceneFingerAdvanced').onclick=()=>sceneFingerOpenReview();
+$('sceneFingerReview').onclick=()=>sceneFingerOpenReview();
+$('sceneFingerMethod').onchange=e=>{
+ if(!sceneFingerSelectMethod(e.target.value)){
+  $('sceneFingerMethod').value=sceneFingerMethod;
+  notify('Этот алгоритм недоступен для текущего формата произведения.');
+ }
+};
+$('sceneFingerCalculate').onclick=()=>sceneFingerCalculateSelected();
+// Observe only the ORIGINAL algorithms' status text. An in-progress Python
+// or Beam job therefore updates the scene without copying the engine logic.
+for(const id of ['pianoMotionStatus','fingerBrowserStatus']){
+ new MutationObserver(()=>sceneFingerAutoSync())
+  .observe($(id),{childList:true,characterData:true,subtree:true});
+}
 $('sceneFingerAutoAdvance').onchange=e=>{sceneFingerAutoAdvance=e.target.checked;sceneFingerControlsSync()};
 $('sceneFingerFollow').onclick=()=>{
  sceneFingerFollow=true;sceneFingerViewTime=pos;
@@ -774,7 +873,7 @@ function renderCanvas(){
  if(!current)return;
  // Song-format changes can happen without an explicit view change.
  if(sceneFingerViewportSong!==current||
-    $('sceneFingerMode').disabled===fingerSelectionAvailable()||
+    $('sceneFingerMode').disabled===!!current||
     (sceneFingerActive&&!fingerSelectionAvailable()))sceneFingerControlsSync();
  const {w,h}=resizeCanvas();lastCanvasSize={w,h};const c=roll.getContext('2d');
  c.clearRect(0,0,w,h);c.fillStyle='#111720';c.fillRect(0,0,w,h);

@@ -1,5 +1,12 @@
 # Play Along — development roadmap: Finger Guidance and musical reliability
 
+## FG-05 shared scene method switch — P0 phase 3 (v0.10.129)
+
+Three explicit modes: **Manual**, **PianoMotion**, **Beam Search**. The two automatic algorithms are launched from the existing shared Piano Roll scene using their original unique Worker handlers; the original review/physical audit/explicit Apply and export stay intact in the advanced Fingering workspace. Manual controls/hotkeys appear only in Manual mode. MusicXML exposes all three methods where supported; source MIDI exposes PianoMotion, not imaginary author fingers or unqualified Beam support. Method changes and calculations do not rewrite or accept fingerings or seek the transport. Regression checks worker wiring, MIDI/score capability, no silent application, intact note/hand identity and unchanged 88-key piano.
+
+Next: review candidate fingerings on the SAME falling-note stage with distinguished preview styling, anchored to verified note IDs, then selectively accept them by delegating to the existing original apply/undo workflow (no second confirmation path); maintain research-only and safety restrictions.
+
+
 ## FG-05 shared Fingering viewport · phase 2 (v0.10.128)
 
 Independent manual editor score time: wheel scrolls source notes; Ctrl/Cmd+wheel zooms with pointer anchoring; return-to-playback switches back to the actual transport; next-note/Auto-advance may detach/reveal offscreen targets. Never seek MIDI/audio, alter the 88-key piano geometry, source note identity or locked hands. Reset the view per imported work. Real Chromium and pure unit tests are release gates.
