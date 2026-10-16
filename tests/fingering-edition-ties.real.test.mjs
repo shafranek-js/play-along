@@ -48,6 +48,7 @@ try{
  assert.equal(from.length,3,'Importer merges both D tie segments to one sustained note');
  assert.equal(from[1].pitch,62);
  assert.equal(from[1].ids.length,2);
+ await page.locator('#developerToolsToggle').evaluate(el=>{if(!el.checked)el.click()});
  await page.locator('#viewFingerEditor').click();
  await page.locator('#fingerEditorAll').click();
  await page.locator('#fingerEditorFinger').selectOption('3');
