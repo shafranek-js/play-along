@@ -1,3 +1,7 @@
+## FG-05 — Beam Search for hand-explicit MIDI · v0.10.138
+
+Delivered the original FG-02I JS Beam solver for canonical MIDI source note IDs from the common stage, with explicit hand labels (source track titled RH/LH, Right Hand, Left Hand) or manually confirmed RH/LH per note as prerequisites. This is **not automatic hand inference**: ambiguous/unlabeled MIDI explains the hand prerequisite and abstains. Source bytes are verified before calculate/Apply; all proposals stay separate until in-place selective confirmation, atomic Undo/Redo and source-guarded approximate MusicXML export. Existing PianoMotion and original MusicXML behavior remain independent. Unit + real Chromium mixed-mode regressions gate publication.
+
 ## FG-06 owner-provided built-in MIDI — v0.10.137
 
 Added a first-class `Встроенные MIDI` library filter backed by 162 original owner-supplied source MIDI files (`midi.zip`, SHA256 `0ba2b0e675c3fa2b4b3b02614114d2443a29cf40040192cdaeb0b830d36512b6`). The owner confirmed public redistribution permission 2026-10-16. Pack is included in the static build, checked by source SHA256 and per-file hashes and loaded lazily; the same MIDI source identity and Piano Roll handling are reused. Existing online MAESTRO/ASAP filters remain unchanged. No public-domain claim or claim that MIDI tracks contain piano fingering.
