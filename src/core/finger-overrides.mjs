@@ -161,8 +161,7 @@ export function fingerAcceptedRestore(song,input){
   const note=byId.get(id);
   if(!note||!v||note.pitch!==v.pitch||note.start!==v.start||
       note.duration!==v.duration||note.finger!=null||
-      note.fingeringSource!=null||
-      note.hand!=null&&note.hand!==v.hand)return 0;
+      note.fingeringSource!=null)return 0;
   patches.push({note,entry:v});
  }
  for(const {note,entry} of patches){
