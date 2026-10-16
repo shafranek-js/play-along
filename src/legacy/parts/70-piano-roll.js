@@ -54,10 +54,14 @@ function sceneFingerAutoSync(){
   method==='pianomotion'?'pianoMotionStatus':'fingerBrowserStatus');
  const live=sceneFingerAutoStarted?.song===current&&
   sceneFingerAutoStarted.method===method;
- const message=live?source.textContent.trim():
+ const preview=sceneFingerCandidatePreviewMap();
+ const message=live?source.textContent.trim():preview.size?
+  'Есть рассчитанные предложения · проверка обязательна.':
   'Нажми «Рассчитать». Предложения не применяются автоматически.';
- $('sceneFingerAutoStatus').textContent=message;
- $('sceneFingerAutoStatus').title=message;
+ const detailed=preview.size?message+' · На дорожке '+preview.size+
+  ' неподтверждённых пальцев (фиолетовый пунктир).':message;
+ $('sceneFingerAutoStatus').textContent=detailed;
+ $('sceneFingerAutoStatus').title=detailed;
  $('sceneFingerCalculate').disabled=!sceneFingerMethodAvailable(method)||
   (method==='pianomotion'?!!pianoMotionRun:!!fingerBrowserWorker);
 }
@@ -67,7 +71,46 @@ function sceneFingerSelectMethod(method){
  sceneFingerMethod=method;
  $('sceneFingerMethod').value=method;
  sceneFingerControlsSync();
+ renderCanvas();
  return true;
+}
+// Only the original workers may propose fingers. This projection is strictly
+// read-only: candidate note identity must still match the current source and
+// the original confirmation/apply controls remain authoritative.
+function sceneFingerCandidatePreviewMap(){
+ const preview=new Map();
+ if(!sceneFingerActive||state.scoreView!=='roll'||state.page!=='practice'||!current)return preview;
+ if(sceneFingerMethod==='beam'){
+  if(!fingerSelectionAvailable()||!fingerBrowserPreview||
+     fingerBrowserSong!==current||$('fingerBrowserCompareSaved').checked||
+     fingerBrowserSnapshotKey!==JSON.stringify(fingerBrowserInput()))return preview;
+  const sources=new Map(fingerSelectionOrdered().map(entry=>[entry.id,entry.note]));
+  const saved=state.fingerOverrides?.[fingerGuideWorkKey()]||{};
+  for(const [id,proposal] of fingerBrowserPreview){
+   const note=sources.get(id);
+   if(!note||note.pitch!==proposal.pitch||note.start!==proposal.start||
+      !['RH','LH'].includes(proposal.hand)||!Number.isInteger(proposal.finger)||
+      proposal.finger<1||proposal.finger>5)continue;
+   const effective=fingerOverrideEffective(note,saved[id]);
+   if(Number.isInteger(effective?.finger)||
+      note.fingeringSource==='musicxml'&&Number.isInteger(note.finger)&&
+      !effective?.suppressAuthor)continue;
+   preview.set(note,{finger:proposal.finger,hand:proposal.hand});
+  }
+ }else if(sceneFingerMethod==='pianomotion'&&pianoMotionLastSong===current&&
+          pianoMotionLastAlignment?.ok){
+  const summary=pianoMotionReviewAvailable();
+  for(const index of summary?.eligibleIndices||[]){
+   const match=pianoMotionLastAlignment.matches[index];
+   const note=match?.note,suggestion=match?.suggestion;
+   if(!note||!suggestion||note.pitch!==suggestion.pitch||
+      !['RH','LH'].includes(suggestion.hand)||
+      !Number.isInteger(suggestion.finger)||
+      suggestion.finger<1||suggestion.finger>5)continue;
+   preview.set(note,{finger:suggestion.finger,hand:suggestion.hand});
+  }
+ }
+ return preview;
 }
 function sceneFingerCalculateSelected(){
  if(!sceneFingerActive||sceneFingerMethod==='manual')return;
@@ -286,7 +329,7 @@ $('sceneFingerCalculate').onclick=()=>sceneFingerCalculateSelected();
 // Observe only the ORIGINAL algorithms' status text. An in-progress Python
 // or Beam job therefore updates the scene without copying the engine logic.
 for(const id of ['pianoMotionStatus','fingerBrowserStatus']){
- new MutationObserver(()=>sceneFingerAutoSync())
+ new MutationObserver(()=>{sceneFingerAutoSync();if(sceneFingerActive)renderCanvas()})
   .observe($(id),{childList:true,characterData:true,subtree:true});
 }
 $('sceneFingerAutoAdvance').onchange=e=>{sceneFingerAutoAdvance=e.target.checked;sceneFingerControlsSync()};
@@ -929,6 +972,7 @@ function renderCanvas(){
  // approximation; an unrelated repeat of the same key stays unlit.
  const audibleNotes=state.highlight?soundingScoreNotes():new Set();
  const playedNotes=state.highlight?performedScoreNotes():new Set();
+ const fingerCandidates=sceneFingerCandidatePreviewMap();
  hitboxes=[];
  for(const blackLayer of [false,true])for(const n of notes){
   if(isBlackPitch(n.pitch)!==blackLayer)continue;
@@ -972,6 +1016,22 @@ function renderCanvas(){
    manual?.suppressAuthor?null:n.finger;
   if(state.labels&&nw>=24&&nh>18){c.fillStyle=audible?'#062439':'#171d25';c.font='bold 10px system-ui';c.textAlign='center';c.fillText(nameOf(n.pitch)+(Number.isInteger(shownFinger)?' · '+shownFinger:''),k.center,y+13);c.textAlign='left';}
   else if(Number.isInteger(shownFinger)&&nw>=14&&nh>14){c.fillStyle=audible?'#062439':'#171d25';c.font='bold 10px system-ui';c.textAlign='center';c.fillText(String(shownFinger),k.center,y+11);c.textAlign='left';}
+  // Suggested fingers are NOT accepted digits: purple dashed outline and a
+  // separate small badge never replace a confirmed author/user label.
+  const proposal=fingerCandidates.get(n);
+  if(proposal){
+   c.save();c.strokeStyle='#d5a4ff';c.lineWidth=Math.min(2,Math.max(1.3,nw*.12));
+   c.setLineDash([Math.max(2,Math.min(5,nw/3)),2]);
+   c.strokeRect(x+.6,y+.6,Math.max(0,nw-1.2),Math.max(0,nh-1.2));
+   c.setLineDash([]);
+   if(nw>=13&&nh>=24){
+    const by=Math.min(y+nh-5,y+25);
+    c.fillStyle='#251935';c.fillRect(k.center-6,by-10,12,13);
+    c.fillStyle='#edddff';c.font='bold 11px system-ui';c.textAlign='center';
+    c.fillText(String(proposal.finger),k.center,by);c.textAlign='left';
+   }
+   c.restore();
+  }
   hitboxes.push({x,y,w:nw,h:nh,n});
  }
  if(loop.start!=null&&loop.end!=null){

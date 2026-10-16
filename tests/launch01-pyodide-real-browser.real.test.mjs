@@ -121,6 +121,19 @@ try{
  assert.equal(review.reviewVisible,true);
  assert.ok(review.selected>0);
  assert.equal(review.cancelHidden,true);
+ // Real original Python proposals must project onto the persistent 88-key
+ // performance stage, not only the separate 24-note review canvas.
+ await page.locator('#sceneFingerMode').click();
+ const liveStage=await page.evaluate(()=>window.__fingerGuideTest.sceneCandidates);
+ assert.equal(liveStage.active,true);
+ assert.equal(liveStage.method,'pianomotion');
+ assert.ok(liveStage.count>0,'real Pyodide candidates must be visible on the shared stage');
+ assert.ok(liveStage.notes.every(n=>Number.isInteger(n.finger)&&n.finger>=1&&n.finger<=5));
+ assert.match(await page.locator('#sceneFingerAutoStatus').innerText(),/фиолетовый пунктир/);
+ assert.equal(await page.evaluate(()=>window.__launch01TestOriginalSong.tracks
+  .flatMap(t=>t.notes).some(n=>Number.isInteger(n.finger))),false,
+ 'stage preview must not silently apply generated fingers');
+ await page.locator('#sceneFingerReview').click();
  await page.locator('#pianoMotionSelectAll').click();
  await page.locator('#pianoMotionApply').click();
  const after=await page.evaluate(()=>{
@@ -139,6 +152,10 @@ try{
  assert.equal(after.sourceTiming,initial.sourceTiming,
   'genuine Python Apply must change only fingers, never source pitch/onset/release');
  assert.ok(after.generatedFingers>0,'real Python generated finger values must be applied');
+ await page.locator('#sceneFingerMode').click();
+ assert.equal((await page.evaluate(()=>window.__fingerGuideTest.sceneCandidates)).count,0,
+  'once every eligible finger was accepted, no pending proposal remains');
+ await page.locator('#sceneFingerReview').click();
  const downloadPromise=page.waitForEvent('download',{timeout:20000});
  await page.locator('#pianoMotionExportXML').click();
  const download=await downloadPromise;

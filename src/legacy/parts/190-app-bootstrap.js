@@ -284,6 +284,14 @@ window.__prototypeTest={get pianoGeometry(){return pianoGeom},get soundingKeys()
 
 // FG-00 non-mutating observability for regression tests. Fingering is demo-only.
 window.__fingerGuideTest={
+ // Read-only Chromium evidence, not a second Apply path or mutable engine state.
+ get sceneCandidates(){
+  const proposals=sceneFingerCandidatePreviewMap();
+  return {active:sceneFingerActive,method:sceneFingerMethod,count:proposals.size,
+   notes:[...proposals].map(([note,proposal])=>({
+    id:note.noteId??null,pitch:note.pitch,start:note.start,
+    finger:proposal.finger,hand:proposal.hand}))};
+ },
  get sceneViewport(){return {active:sceneFingerActive,follow:sceneFingerFollow,
   viewTime:sceneFingerTime(),windowSeconds:sceneFingerWindowSeconds,
   transport:pos,scoreId:current?.id??null}},
