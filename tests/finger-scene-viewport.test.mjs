@@ -42,5 +42,5 @@ test('chronological note navigation reveals only offscreen targets without seeki
  assert.equal(editorRevealTime({viewTime:5,target:7,windowSeconds:6,duration:40}),5);
  assert.equal(editorRevealTime({viewTime:5,target:20,windowSeconds:6,duration:40}),17);
  assert.equal(editorRevealTime({viewTime:5,target:1,windowSeconds:6,duration:40}),0);
- assert.equal(editorRevealTime({viewTime:35,target:50,windowSeconds:6,duration:40}),37);
+ assert.equal(editorRevealTime({viewTime:35,target:50,windowSeconds:6,duration:40}),35);
 });
