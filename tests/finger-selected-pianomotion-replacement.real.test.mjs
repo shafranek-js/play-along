@@ -51,10 +51,19 @@ try{
   return {original:Array.from(window.__prototypeTest.originalMidiBytes),
    events:JSON.stringify(song.audioEvents),
    source:JSON.stringify(song.tracks.flatMap(t=>t.notes).map(n=>[
-    n.noteId,n.pitch,n.start,n.duration,n.finger??null
+    n.noteId,n.pitch,n.start,n.duration
    ]))};
  },[...midi]);
+ // First accept the authentic source-aligned Python batch. Recalculation
+ // must preserve these already-applied digits on the two untouched notes.
+ await page.evaluate(()=>document.getElementById('pianoMotionCalculate').click());
+ await page.waitForFunction(()=>!document.getElementById('pianoMotionApply').disabled,
+  null,{timeout:15000});
+ await page.evaluate(()=>document.getElementById('pianoMotionApply').click());
+ assert.deepEqual(await page.evaluate(()=>window.__prototypeTest.song.tracks.flatMap(
+  t=>t.notes).map(n=>n.finger)),[1,2,3]);
  await page.locator('#sceneFingerMode').click();
+ await page.locator('#sceneFingerManualButton').click();
  const [id]=await page.evaluate(()=>window.__fingerGuideTest.sourceOrder);
  const rectangles=await page.evaluate(()=>window.__fingerGuideTest.noteRects);
  const target=rectangles.find(x=>x.id===id);assert.ok(target);
@@ -81,6 +90,11 @@ try{
  const replacement=await page.evaluate(()=>window.__fingerGuideTest.userCorrections);
  assert.equal(replacement[id].finger,1);
  assert.equal(Object.keys(replacement).length,1);
+ assert.deepEqual(await page.evaluate(()=>window.__prototypeTest.song.tracks.flatMap(
+  t=>t.notes).map(n=>n.finger)),[1,2,3],
+  'accepted Python fingers, including other notes, remain intact');
+ assert.equal(await page.locator('#sceneFingerExport').isEnabled(),true,
+  'revalidated Python export remains available after selected replacement');
  await page.locator('#sceneFingerUndo').click();
  assert.equal((await page.evaluate(()=>window.__fingerGuideTest.userCorrections))[id].finger,5);
  await page.locator('#sceneFingerRedo').click();
@@ -91,7 +105,7 @@ try{
  assert.deepEqual(await page.evaluate(()=>Array.from(window.__prototypeTest.originalMidiBytes)),baseline.original);
  assert.equal(await page.evaluate(()=>JSON.stringify(window.__prototypeTest.song.audioEvents)),baseline.events);
  assert.equal(await page.evaluate(()=>JSON.stringify(window.__prototypeTest.song.tracks.flatMap(
-  t=>t.notes).map(n=>[n.noteId,n.pitch,n.start,n.duration,n.finger??null]))),baseline.source);
+  t=>t.notes).map(n=>[n.noteId,n.pitch,n.start,n.duration]))),baseline.source);
  assert.deepEqual(errors,[]);
  console.log('FG05_PIANOMOTION_REPLACE_PASS: source-aligned audited proposal, selected saved replacement, required consent, Undo/Redo, toolbar+MIDI invariant');
 }finally{
