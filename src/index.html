@@ -16,7 +16,8 @@
   <button type="button" id="layoutMenuButton" class="topMenuTrigger" aria-haspopup="true" aria-expanded="false" aria-controls="layoutMenuItems">Компоновка: Игра ▾</button>
   <div class="topMenuPanel layoutMenuItems hidden" id="layoutMenuItems" role="group" aria-label="Рабочие компоновки"><button data-layout="learn" class="active" title="Панели обучения">Изучение</button><button data-layout="play" title="Максимум места для музыки">Игра</button><button data-layout="analyze" title="Расширенные показатели">Анализ</button></div>
  </div>
- <div class="scoreViewSwitcher" role="group" aria-label="Представление музыки"><button id="viewRoll" class="active" aria-pressed="true" title="Падающие ноты и виртуальная клавиатура">▥ Piano Roll</button><button id="viewSheet" aria-pressed="false" title="Нотная партитура с синхронным курсором">♬ Sheet Music</button><button id="viewFingerEditor" aria-pressed="false" title="Отдельный редактор рук и пальцев для всего произведения">✍ Аппликатура</button></div>
+ <div class="scoreViewSwitcher" role="group" aria-label="Представление музыки"><button id="viewRoll" class="active" aria-pressed="true" title="Падающие ноты и виртуальная клавиатура">▥ Piano Roll</button><button id="viewSheet" aria-pressed="false" title="Нотная партитура с синхронным курсором">♬ Sheet Music</button><button id="viewFingerEditor" aria-pressed="false" title="Расчёт, анализ и расширенный редактор для всего произведения">⚙ Аппликатура</button></div>
+ <button type="button" id="sceneFingerMode" class="sceneFingerMode" aria-pressed="false" aria-controls="sceneFingerTools" title="Переключить редактирование аппликатуры прямо на существующих нотах Piano Roll">✍ Редактировать</button>
  <select id="compactViewSelect" class="compactViewSelect" aria-label="Представление музыки"><option value="roll">▥ Piano Roll</option><option value="sheet">♬ Ноты</option><option value="editor">✍ Аппликатура</option></select>
  <div class="topMenu handsMenu" id="handsMenu">
   <button type="button" id="handsMenuButton" class="topMenuTrigger handsMenuTrigger" aria-haspopup="true" aria-expanded="false" aria-controls="handsMenuPanel" title="Показать настройки рук и аппликатуры">✋ <span>Руки</span> ▾</button>
@@ -94,7 +95,27 @@
  </aside>
  <div class="splitter" id="leftSplit" data-side="left" aria-hidden="true"></div>
  <section class="center">
-  <div class="rollWrap" id="rollWrap"><canvas id="roll" tabindex="0" aria-label="Piano Roll: выбор нот мышью, Ctrl+A все, Shift диапазон, Ctrl произвольный выбор"></canvas><div class="rollHint">Клик — нота · Ctrl+клик — набор · Shift+клик — диапазон · рамка мышью · Ctrl+A — все · Space — Play/Pause</div></div>
+  <div class="rollWrap" id="rollWrap"><canvas id="roll" tabindex="0" aria-label="Piano Roll: выбор нот мышью, Ctrl+A все, Shift диапазон, Ctrl произвольный выбор"></canvas>
+   <div class="sceneFingerTools" id="sceneFingerTools" role="toolbar" aria-label="Назначения аппликатуры на общей сцене" hidden>
+    <div class="sceneFingerGroup" role="group" aria-label="Рука">
+     <button type="button" data-scene-hand="LH" title="Левая рука · L">LH <kbd>L</kbd></button>
+     <button type="button" data-scene-hand="RH" title="Правая рука · R">RH <kbd>R</kbd></button>
+    </div>
+    <div class="sceneFingerGroup" role="group" aria-label="Палец">
+     <button type="button" data-scene-finger="1" title="Большой · 1">1</button>
+     <button type="button" data-scene-finger="2" title="Указательный · 2">2</button>
+     <button type="button" data-scene-finger="3" title="Средний · 3">3</button>
+     <button type="button" data-scene-finger="4" title="Безымянный · 4">4</button>
+     <button type="button" data-scene-finger="5" title="Мизинец · 5">5</button>
+     <button type="button" id="sceneFingerClear" title="Вернуть авторские пальцы для выделенных нот · 0">Снять · 0</button>
+    </div>
+    <label class="sceneFingerStep"><input type="checkbox" id="sceneFingerAutoAdvance"> Автопереход</label>
+    <button type="button" id="sceneFingerUndo" title="Отменить · Ctrl+Z">↶</button>
+    <button type="button" id="sceneFingerRedo" title="Повторить · Ctrl+Y">↷</button>
+    <button type="button" id="sceneFingerAdvanced" title="Полный расчёт, сравнение моделей, экспорт">Расчёт…</button>
+    <span id="sceneFingerSelection" role="status" aria-live="polite">Выбери ноту</span>
+   </div>
+   <div class="rollHint">Клик — нота · Ctrl+клик — набор · Shift+клик — диапазон · рамка мышью · Ctrl+A — все · Space — Play/Pause</div></div>
   <div class="sheetWrap hidden" id="sheetWrap" role="region" aria-label="Интерактивная партитура OpenSheetMusicDisplay" tabindex="0"><div class="sheetContent" id="sheetContent"><div class="sheetInfo"><div><strong>♬ Нотная партитура</strong> · <span id="sheetStatus" aria-live="polite">Ожидание произведения</span></div><div class="sheetScrollControls"><label title="Автоматически прокручивать партитуру за курсором"><input type="checkbox" id="sheetFollow" checked> Следовать</label><button id="sheetBarBack" title="Предыдущий такт">⇤ Такт</button><button id="sheetBarNext" title="Следующий такт">Такт ⇥</button><button id="sheetZoomOut" title="Уменьшить ноты" aria-label="Уменьшить">−</button><span id="sheetZoomLabel">100%</span><button id="sheetZoomIn" title="Увеличить ноты" aria-label="Увеличить">＋</button></div></div><div id="sheetWaitStatus" class="sheetNotice hidden" aria-live="polite"></div><div id="sheetNotice" class="sheetNotice hidden"></div><div id="sheetFingerStatus" class="sheetFingerStatus hidden" aria-live="polite"></div><div class="sheetCanvas" id="sheetCanvas" aria-label="Нотная запись произведения"></div></div></div>
   <div class="fingerEditorWrap hidden" id="fingerEditorWrap" role="region" aria-label="Редактор аппликатуры всего произведения">
    <div class="fingeringWorkspaceIntro" id="fingeringWorkspaceIntro">
