@@ -1,6 +1,6 @@
 # Play Along — Piano Practice App (v0.10.130)
 
-## FG-05 — protected automatic fingering candidate preview on shared stage (v0.10.130, PR #132)
+## FG-05 — protected automatic fingering candidate preview on shared stage (v0.10.130)
 
 Following the three methods introduced in v0.10.129, their **eligible, unconfirmed** finger suggestions can now be displayed on the same full-width 88-key Piano Roll. A **purple dashed border** around the corresponding source note and a separate lower finger-number badge (where large enough to read) distinguish a generated proposal from an already accepted or MusicXML-authored number. Original confirmed digits retain their appearance and priority. A count and legend are shown in the method toolbar.
 
