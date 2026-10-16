@@ -113,8 +113,10 @@ try{
  assert.deepEqual(imported,{format:'MIDI',count:2});
  await page.locator('#sceneFingerMode').click();
  assert.equal(await page.locator('#sceneFingerMethod').inputValue(),'pianomotion');
- assert.equal(await page.locator('#sceneFingerMethod option[value="manual"]').isDisabled(),true);
- assert.equal(await page.locator('#sceneFingerMethod option[value="beam"]').isDisabled(),true);
+ assert.equal(await page.locator('#sceneFingerMethod option[value="manual"]').evaluate(el=>el.disabled),true,
+  'Manual cannot be chosen for MIDI');
+ assert.equal(await page.locator('#sceneFingerMethod option[value="beam"]').evaluate(el=>el.disabled),true,
+  'Beam cannot be chosen for MIDI');
  assert.equal(await page.locator('#sceneFingerCalculate').isEnabled(),true);
  assert.equal(await page.locator('#rollWrap').isVisible(),true);
  await page.locator('#sceneFingerReview').click();
