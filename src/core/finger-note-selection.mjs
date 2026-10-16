@@ -15,6 +15,14 @@ export function fingerSelectableNotes(song){
  entries.sort((a,b)=>a.start-b.start||a.track-b.track||a.index-b.index);
  return entries;
 }
+/** Only EXPLICIT MIDI track titles identify a hand; pitch, channel, staff and
+ * register are never evidence of the player's actual right/left hand. */
+export function fingerMidiExplicitTrackHand(track){
+ const label=String(track?.name??'').trim();
+ if(/^(?:rh|right[ _-]*hand|right[ _-]*piano|piano[ _-]*rh)$/i.test(label))return 'RH';
+ if(/^(?:lh|left[ _-]*hand|left[ _-]*piano|piano[ _-]*lh)$/i.test(label))return 'LH';
+ return null;
+}
 export function fingerSelectUpdate(order,selected,id,anchor,{shift=false,toggle=false}={}){
  const ids=order.map(n=>typeof n==='string'?n:n.id);
  if(!ids.includes(id))return {selected:[...selected],anchor};

@@ -91,7 +91,8 @@ try{
  assert.equal(await page.locator('#sceneFingerBeamButton').getAttribute('aria-pressed'),'true');
  await page.waitForFunction(()=>/Вычислено локально|Отказ|Ошибка|Рука/.test(
   document.getElementById('fingerBrowserStatus').textContent),null,{timeout:20000});
- assert.equal(await page.locator('#fingerResearchPanel').evaluate(el=>el.open),true);
+ assert.equal(await page.locator('#fingerResearchPanel').evaluate(el=>el.open),false,
+  'shared learner stage never expands developer research panels');
  assert.equal(await page.locator('#fingerBrowserConfirm').isChecked(),false);
  assert.deepEqual(await saved(),old,'Beam preview cannot silently apply fingers');
  const stageBeam=await page.evaluate(()=>window.__fingerGuideTest.sceneCandidates);
@@ -130,7 +131,8 @@ try{
   await page.locator('#sceneFingerUndo').click();
   assert.deepEqual(await saved(),old,'stage Undo restores exact prior corrections');
  }
- assert.equal(await page.locator('#fingerResearchPanel').evaluate(el=>el.open),true);
+ assert.equal(await page.locator('#fingerResearchPanel').evaluate(el=>el.open),false,
+  'shared learner stage never expands developer research panels');
  assert.equal(await page.locator('#pianoMotionCalculate').count(),1);
  assert.equal(await page.locator('#fingerBrowserCalculate').count(),1);
  await page.locator('#sceneFingerReviewClose').click();
@@ -172,11 +174,11 @@ try{
   'new MIDI source must not inherit previous MusicXML proposal IDs');
  assert.equal(await page.locator('#sceneFingerMethod option[value="manual"]').evaluate(el=>el.disabled),false,
   'Manual supports a source-addressable MIDI');
- assert.equal(await page.locator('#sceneFingerMethod option[value="beam"]').evaluate(el=>el.disabled),true,
-  'Beam cannot be chosen for MIDI');
+ assert.equal(await page.locator('#sceneFingerMethod option[value="beam"]').evaluate(el=>el.disabled),false,
+  'Beam is selectable on original MIDI, but unknown hand assignments must be refused');
  assert.equal(await page.locator('#sceneFingerPianoMotionButton').isEnabled(),true);
  assert.equal(await page.locator('#sceneFingerManualButton').isEnabled(),true);
- assert.equal(await page.locator('#sceneFingerBeamButton').isDisabled(),true);
+ assert.equal(await page.locator('#sceneFingerBeamButton').isEnabled(),true);
  assert.equal(await page.locator('#rollWrap').isVisible(),true);
  const midiIds=await page.evaluate(()=>window.__fingerGuideTest.sourceOrder);
  assert.equal(midiIds.length,2,'MIDI must expose both stable source note IDs');

@@ -630,13 +630,28 @@ function fingerBrowserUpdateActions(){
  $('fingerBrowserReject').disabled=!fingerBrowserPreview;
 }
 
+function fingerBrowserAvailable(){
+ return fingerSelectionAvailable()&&(current.format==='MusicXML'||current.format==='MIDI');
+}
+function fingerBrowserMidiSourceVerified(){
+ if(current?.format!=='MIDI')return true;
+ const original=originalMidiForSong(current),key=fingerGuideWorkKey();
+ return !!original&&!!key&&current.midiFingerWorkKey===key&&
+  fingerMidiWorkKey(current,original)===key;
+}
+function fingerBrowserNotes(){
+ return fingerBrowserAvailable()?fingerSelectionOrdered().map(x=>x.note):[];
+}
 function fingerBrowserInput(){
- if(!fingerEditorAvailable())return null;
+ if(!fingerBrowserAvailable())return null;
  const key=fingerGuideWorkKey(),edits=key?state.fingerOverrides?.[key]||{}:{};
- const notes=fingerEditorNotes().map(n=>{
+ const isMidi=current.format==='MIDI';
+ const explicitTrackHands=new Map(isMidi?current.tracks.flatMap(track=>
+  (track.notes||[]).map(n=>[n,fingerMidiExplicitTrackHand(track)])):[]);
+ const notes=fingerBrowserNotes().map(n=>{
   const change=fingerOverrideEffective(n,edits[n.noteId]);
   const userDeclaredStaff=$('fingerBrowserAssumeStaves').checked;
-  const writtenHand=change?.hand??n.hand;
+  const writtenHand=change?.hand??n.hand??(isMidi?explicitTrackHands.get(n):null);
   const h=(writtenHand==='RH'||writtenHand==='LH')?writtenHand:
    (userDeclaredStaff&&String(n.staff)==='1'?'RH':
     userDeclaredStaff&&String(n.staff)==='2'?'LH':null);
@@ -662,10 +677,10 @@ function fingerBrowserAbort(message){
  if(message)$('fingerBrowserStatus').textContent=message;
 }
 function fingerBrowserSync(){
- const allowed=fingerEditorAvailable();
+ const allowed=fingerBrowserAvailable();
  $('fingerBrowserCalculate').disabled=!allowed||!!fingerBrowserWorker;
  if(!allowed){
-  if(fingerBrowserSong)fingerBrowserAbort('Доступно только для исходного MusicXML.');
+  if(fingerBrowserSong)fingerBrowserAbort('Недоступен исходный MIDI или MusicXML.');
   return;
  }
  if(fingerBrowserSong&&fingerBrowserSnapshotKey!==JSON.stringify(fingerBrowserInput())){
@@ -739,7 +754,7 @@ function fingerBrowserShow(report){
  }
  if(!diagnostic&&chosen&&Array.isArray(chosen.candidates)&&chosen.candidates.length&&
     fingerBrowserSong===current&&fingerBrowserSnapshotKey===JSON.stringify(fingerBrowserInput())){
-  const target=new Map(fingerEditorNotes().map(n=>[n.noteId,n]));
+  const target=new Map(fingerBrowserNotes().map(n=>[n.noteId,n]));
   const allowed=chosen.candidates.every(n=>Number.isInteger(n.finger)&&n.finger>=1&&n.finger<=5&&
    (n.hand==='RH'||n.hand==='LH')&&target.get(n.noteId)?.pitch===n.pitch&&
    target.get(n.noteId)?.start===n.start);
@@ -847,18 +862,18 @@ function fingerBrowserShow(report){
  }
 }
 $('fingerCurrentCalculate').onclick=()=>{
- if(!fingerEditorAvailable()){
-  $('fingerBrowserStatus').textContent=current?.format==='MusicXML'?
-   'Верни оригинальный режим (без адаптации), затем повтори расчёт.':
-   'Выбери произведение MusicXML из библиотеки. Для обычного MIDI пока нужен отдельный алгоритм определения рук.';
+ const stage=sceneFingerActive&&state.scoreView==='roll';
+ if(!fingerBrowserAvailable()){
+  $('fingerBrowserStatus').textContent='Открой исходный MIDI или MusicXML в режиме «Оригинал».';
+  return;
+ }
+ // On the shared learner stage, never reveal developer research panels.
+ if(!stage){
   $('fingerResearchPanel').open=true;
   $('fingerBrowserContents').hidden=false;
   $('fingerBrowserToggle').setAttribute('aria-expanded','true');
-  return;
  }
- $('fingerResearchPanel').open=true;
- $('fingerBrowserContents').hidden=false;
- $('fingerBrowserToggle').setAttribute('aria-expanded','true');
+ fingerBrowserSync();
  $('fingerBrowserCalculate').click();
 };
 $('fingerBrowserConfirm').onchange=fingerBrowserUpdateActions;
@@ -876,11 +891,12 @@ $('fingerBrowserAcceptSelected').onclick=()=>{
   $('fingerBrowserStatus').textContent='В режиме диагностики предложения не применяются. Отключи режим и пересчитай.';
   return;
  }
- if(!fingerBrowserPreview||!$('fingerBrowserConfirm').checked||!fingerEditorAvailable()||
+ if(!fingerBrowserPreview||!$('fingerBrowserConfirm').checked||!fingerBrowserAvailable()||
+   !fingerBrowserMidiSourceVerified()||
    fingerBrowserSong!==current||fingerBrowserSnapshotKey!==JSON.stringify(fingerBrowserInput())){
   fingerBrowserAbort('Предложения устарели. Рассчитай аппликатуру заново.');return;
  }
- const sources=new Map(fingerEditorNotes().map(n=>[n.noteId,n]));
+ const sources=new Map(fingerBrowserNotes().map(n=>[n.noteId,n]));
  const key=fingerGuideWorkKey(),saved=state.fingerOverrides?.[key]||{},entries=[];
  for(const id of fingerSelectedIds){
   const p=fingerBrowserPreview.get(id),source=sources.get(id);
@@ -988,17 +1004,23 @@ $('fingerBrowserHandSize').onchange=()=>{
 $('fingerBrowserAssumeStaves').onchange=()=>fingerBrowserAbort('Предположение о руках изменено. Повторите расчёт.');
 $('fingerBrowserCalculate').onclick=()=>{
  fingerBrowserAbort();
- if(!fingerEditorAvailable()){
-  $('fingerBrowserStatus').textContent='Откройте исходный MusicXML в режиме «Оригинал».';
+ if(!fingerBrowserAvailable()){
+  $('fingerBrowserStatus').textContent='Откройте MIDI или MusicXML в режиме «Оригинал».';
+  return;
+ }
+ if(!fingerBrowserMidiSourceVerified()){
+  $('fingerBrowserStatus').textContent='Не удалось подтвердить оригинальный MIDI. Расчёт отменён.';
   return;
  }
  const input=fingerBrowserInput();
- if(!input||!input.notes.length){
+ if(!input||!input.notes.length||input.notes.length>2500){
   $('fingerBrowserStatus').textContent='Нет нот исходной партитуры.';
   return;
  }
  if(!input.notes.every(n=>n.hand==='RH'||n.hand==='LH')){
-  $('fingerBrowserStatus').textContent='Рука некоторых нот не определена. Укажите руки вручную или явно подтвердите условное разделение по станам для эксперимента.';
+  $('fingerBrowserStatus').textContent=current?.format==='MIDI'?
+   'MIDI не определяет левую и правую руку. Выдели ноты на этой дорожке в режиме «Вручную» и назначь RH/LH (или открой MIDI с дорожками «Right Hand» / «Left Hand»), затем снова нажми Beam Search.':
+   'Рука некоторых нот не определена. Укажите руки вручную или явно подтвердите условное разделение по станам для эксперимента.';
   return;
  }
  if(!window.Worker){
@@ -1025,7 +1047,8 @@ $('fingerBrowserCalculate').onclick=()=>{
   clearTimeout(timeout);
   if(id!==fingerBrowserSeq)return;
   worker.terminate();fingerBrowserWorker=null;
-  if(current!==source||JSON.stringify(fingerBrowserInput())!==snapshot){
+  if(current!==source||!fingerBrowserMidiSourceVerified()||
+     JSON.stringify(fingerBrowserInput())!==snapshot){
    fingerBrowserAbort('Партитура или правки изменились. Запустите расчёт заново.');
    fingerBrowserSync();return;
   }

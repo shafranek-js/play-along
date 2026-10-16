@@ -89,7 +89,7 @@ export function compareBrowserFingeringResearch({notes,handSize='M',compareWitho
  const ids=new Set(),original=[];
  let savedFingerCount=0,authorFingerCount=0;
  for(const n of notes){
-  if(!n||typeof n.noteId!=='string'||!n.noteId.startsWith('xml:')||
+  if(!n||typeof n.noteId!=='string'||!(n.noteId.startsWith('xml:')||/^midi:[0-9]{1,5}:[0-9]{1,8}$/.test(n.noteId))||
     ids.has(n.noteId))return fail('SOURCE_ID_REQUIRED_OR_DUPLICATE');
   ids.add(n.noteId);
   if(!Number.isInteger(n.pitch)||n.pitch<0||n.pitch>127||
