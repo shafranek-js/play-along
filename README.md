@@ -1,4 +1,12 @@
-# Play Along — Piano Practice App (v0.10.148)
+# Play Along — Piano Practice App (v0.10.149)
+
+## Export accepted fingering after reload (v0.10.149)
+
+Previously, after reloading the page, original-Python PianoMotion proposals were gone even though accepted fingers had been restored from v0.10.148's persistent source-bound annotations; exporting MusicXML still depended on an in-memory Python review. The regular **↓ MusicXML** button on the SAME Piano Roll fingering workspace now recognizes accepted, previously saved digits after F5 without asking the user to recalculate. The export checks the same original work fingerprint and each accepted note's ID, pitch, onset, duration, hand and finger before proceeding. For MIDI it re-verifies original bytes and exports only melodic tracks containing accepted notes; percussion-channel fingering is refused. For MusicXML it applies the verified digits to a copy of the author's notation. Original source bytes, author fingerings and unsaved solver previews are never mutated or promoted.
+
+A mandatory Chromium QA gate exercises full browser reload followed by real MusicXML download for both a bundled MIDI and imported MusicXML, checks the generated XML contains the approved finger and user-provenance marker, and retains independent assertions on saved view and song settings.
+
+
 
 ## Persist accepted fingering after F5 (v0.10.148)
 
