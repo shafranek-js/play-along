@@ -862,18 +862,18 @@ function fingerBrowserShow(report){
  }
 }
 $('fingerCurrentCalculate').onclick=()=>{
+ const stage=sceneFingerActive&&state.scoreView==='roll';
  if(!fingerBrowserAvailable()){
-  $('fingerBrowserStatus').textContent=current?.format==='MusicXML'?
-   'Верни оригинальный режим (без адаптации), затем повтори расчёт.':
-   'Открой MIDI или MusicXML. Для MIDI с неизвестными руками сначала назначь RH/LH на дорожке.';
+  $('fingerBrowserStatus').textContent='Открой исходный MIDI или MusicXML в режиме «Оригинал».';
+  return;
+ }
+ // On the shared learner stage, never reveal developer research panels.
+ if(!stage){
   $('fingerResearchPanel').open=true;
   $('fingerBrowserContents').hidden=false;
   $('fingerBrowserToggle').setAttribute('aria-expanded','true');
-  return;
  }
- $('fingerResearchPanel').open=true;
- $('fingerBrowserContents').hidden=false;
- $('fingerBrowserToggle').setAttribute('aria-expanded','true');
+ fingerBrowserSync();
  $('fingerBrowserCalculate').click();
 };
 $('fingerBrowserConfirm').onchange=fingerBrowserUpdateActions;
