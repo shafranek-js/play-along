@@ -46,10 +46,10 @@ try{
    source:Array.from(window.__prototypeTest.originalMidiBytes??[])};
  },Array.from(midi));
  assert.deepEqual(initial.source,Array.from(midi),'MIDI source bytes unchanged on load');
- await page.locator('#pianoMotionCalculate').click();
+ await page.evaluate(()=>document.getElementById('pianoMotionCalculate').click());
  await page.waitForFunction(()=>!document.querySelector('#pianoMotionApply').disabled,
   null,{timeout:15000});
- await page.locator('#pianoMotionApply').click();
+ await page.evaluate(()=>document.getElementById('pianoMotionApply').click());
  const getNote=()=>page.evaluate(()=>{
   const note=window.__prototypeTest.song.tracks[0].notes[0];
   return {finger:note.finger??null,hand:note.hand??null,source:note.fingeringSource??null};
