@@ -86,6 +86,28 @@ try{
  assert.equal(afterSwitch.mode,'wait');
  assert.equal(afterSwitch.track,1);
  assert.equal(afterSwitch.speed,65);
+ // Both direct source changes and quick catalog buttons must be saved.
+ await page.locator('#filterRepertoire').evaluate(el=>el.click());
+ assert.equal(await page.evaluate(()=>window.__prototypeTest.state.libraryFilters.source),'repertoire');
+ await page.evaluate(()=>{
+  const change=(id,value,checked=false)=>{
+   const el=document.getElementById(id);
+   if(checked)el.checked=value;else el.value=value;
+   el.dispatchEvent(new Event('change',{bubbles:true}));
+  };
+  change('librarySourceSelect','saved');
+  change('librarySort','author');
+  change('libraryFingeringSelect','none');
+  change('libraryFavoritesOnly',true,true);
+  const search=document.getElementById('librarySearch');
+  search.value='Persistent';search.dispatchEvent(new Event('input',{bubbles:true}));
+  change('mutopiaInstrument','piano');
+  const composer=document.getElementById('mutopiaComposer');
+  composer.add(new Option('Bach','bach'));change('mutopiaComposer','bach');
+  change('fingerEditorZoom','120');
+  change('fingerBrowserAssumeStaves',true,true);
+  change('sceneFingerAutoAdvance',true,true);
+ });
  await page.reload({waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>window.__prototypeTest?.song?.title==='Persistent Piano Piece',null,{timeout:25000});
  const restored=await page.evaluate(()=>({
@@ -104,6 +126,18 @@ try{
    page:window.__prototypeTest.state.page,
    trackSelect:document.querySelector('#trackSelect').value,
    speedControl:document.querySelector('#speed').value,
+   libraryFilters:window.__prototypeTest.state.libraryFilters,
+   libraryControls:{
+    source:document.querySelector('#librarySourceSelect').value,
+    sort:document.querySelector('#librarySort').value,
+    fingering:document.querySelector('#libraryFingeringSelect').value,
+    favoritesOnly:document.querySelector('#libraryFavoritesOnly').checked,
+    query:document.querySelector('#librarySearch').value,
+    instrument:document.querySelector('#mutopiaInstrument').value
+   },
+   editorZoom:document.querySelector('#fingerEditorZoom').value,
+   assumeStaves:document.querySelector('#fingerBrowserAssumeStaves').checked,
+   autoAdvance:document.querySelector('#sceneFingerAutoAdvance').checked
  }));
  console.log('RESTORED AFTER RELOAD',restored);
  assert.equal(restored.id,initial.id);
@@ -120,6 +154,32 @@ try{
  assert.equal(restored.volume,27);
  assert.equal(restored.trackSelect,'1');
  assert.equal(restored.speedControl,'65');
+ assert.deepEqual(restored.libraryFilters,{
+  source:'saved',sort:'author',fingering:'none',favoritesOnly:true,
+  query:'Persistent',mutopiaComposer:'bach',mutopiaInstrument:'piano'
+ });
+ assert.deepEqual(restored.libraryControls,{
+  source:'saved',sort:'author',fingering:'none',favoritesOnly:true,
+  query:'Persistent',instrument:'piano'
+ });
+ assert.equal(restored.editorZoom,'120');
+ assert.equal(restored.assumeStaves,true);
+ assert.equal(restored.autoAdvance,true);
+ // Changing another filter before Mutopia's async catalog arrives must not
+ // erase the stored composer code.
+ await page.locator('#librarySort').selectOption('title');
+ assert.equal(await page.evaluate(()=>window.__prototypeTest.state.libraryFilters.mutopiaComposer),'bach');
+ // Restore broad filters so the following library/backup regressions are independent.
+ await page.evaluate(()=>{
+  for(const [id,value] of [['librarySourceSelect','all'],['librarySort','source'],
+   ['libraryFingeringSelect','all'],['mutopiaInstrument','']]){
+   const el=document.getElementById(id);el.value=value;el.dispatchEvent(new Event('change',{bubbles:true}));
+  }
+  const favorites=document.getElementById('libraryFavoritesOnly');
+  favorites.checked=false;favorites.dispatchEvent(new Event('change',{bubbles:true}));
+  const search=document.getElementById('librarySearch');
+  search.value='';search.dispatchEvent(new Event('input',{bubbles:true}));
+ });
  await page.waitForFunction(()=>window.__scoreTest.scoreLoaded,null,{timeout:25000});
  assert.ok(await page.locator('#sheetCanvas svg path').count()>4);
  // Another upload must not overwrite the first song or its independent settings.
