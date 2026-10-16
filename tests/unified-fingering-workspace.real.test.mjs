@@ -46,6 +46,7 @@ try{
  },[...midi]);
  assert.equal(read.format,'MIDI');
  assert.equal(read.notes,2);
+ await page.locator('#developerToolsToggle').evaluate(el=>{if(!el.checked)el.click()});
  await page.locator('#viewFingerEditor').click();
  await page.waitForFunction(()=>!document.getElementById('fingerEditorWrap').classList.contains('hidden'));
  assert.equal(await page.locator('#pianoMotionCalculate').isVisible(),true,'MIDI primary calculation must be user-clickable');
