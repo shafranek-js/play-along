@@ -1,4 +1,14 @@
-# Play Along — Piano Practice App (v0.10.143)
+# Play Along — Piano Practice App (v0.10.144)
+
+## P0 — one Fingering learner workflow and single-note click audition (v0.10.144)
+
+**Learner-facing UI:** Piano Roll and Sheet Music are the only primary score views. The former separate Fingering tab is redundant for the learner: Manual, original browser Python PianoMotion, Beam Search, candidate review/Apply, reset, source-safe Undo/Redo and MusicXML export all operate on the original Piano Roll with a single Fingering toggle. The old technical editor remains in the DOM and is reachable **only after enabling the Developer Tools preference**: it still hosts original engine/review handlers, detailed diagnostics, advanced hand-span controls and external research comparisons. Old saved learner sessions pointing at the technical editor are migrated to Piano Roll when opened. No source or engine code has been removed.
+
+**Click a falling note to hear it:** a short pitch-specific audition uses the same audio backend (real SoundFont synth on live channel 1, simple WebAudio fallback) with a note-off scheduled automatically. Clicking a block still selects it and highlights its finger; Ctrl/Shift selection remains supported. Rectangle drag does not audition; clicking the actual 88-key keyboard is unchanged. The audition is not a MIDI controller NoteOn, does not enter Wait/scoring, cannot start/pause/seek the transport, and does not alter original MIDI/MusicXML or applied fingering. Demo notes without source IDs remain auditionable.
+
+Browser regression checks actual sound-engine voices, MIDI bytes, click vs drag/transport/scoring invariants, learner-only navigation and developer-only legacy access. All standard CI suites remain release gates.
+
+
 
 ## Note colors follow the visible hand (v0.10.143)
 
