@@ -478,6 +478,12 @@ function sceneFingerExportKind(){
  if(pianoMotionLastSong===current&&pianoMotionLastApplied&&
     pianoMotionReviewCountApplied()>0&&!$('pianoMotionExportXML').disabled)
   return 'pianomotion';
+ // A partial MIDI manual-only export would silently omit still-applied
+ // Python digits after recalculation/error. Fail closed until a fresh
+ // source-aligned PianoMotion result can merge BOTH accepted layers.
+ if(current.format==='MIDI'&&current.tracks.some(t=>(t.notes||[]).some(n=>
+    n.fingeringSource==='pianomotion'&&Number.isInteger(n.finger)&&
+    n.finger>=1&&n.finger<=5)))return null;
  if(fingerSelectionAvailable()&&current.format==='MusicXML'&&
     !current.originalNotationXML&&
     Object.keys(state.fingerOverrides?.[fingerGuideWorkKey()]||{}).length)
