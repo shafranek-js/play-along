@@ -191,7 +191,7 @@ if(!Object.keys(state.songSettings).length && typeof stored.selected==='string' 
  if(Object.keys(legacy).length)state.songSettings[stored.selected]=legacy;
 }
 
-let startupSongRestorePending=false;
+let startupSongRestorePending=false,startupSongRestoreUserChosen=false;
 function captureSongSettings(song=current){
  if(!song?.id)return;
  const prefs=Object.fromEntries(SONG_PREF_FIELDS.map(k=>[k,state[k]]));
@@ -246,7 +246,7 @@ const fmt=s=>{s=Math.max(0,s);return Math.floor(s/60)+':'+String(Math.floor(s%60
 const allNotes=s=>s?.tracks.flatMap(t=>t.notes)||[];
 const duration=()=>Math.max(1,...allNotes(current).map(n=>n.start+n.duration))+.5;
 const persist=()=>{
- if(window.__playAlongRestoringBackup||startupSongRestorePending)return;
+ if(window.__playAlongRestoringBackup||(startupSongRestorePending&&!startupSongRestoreUserChosen))return;
  try{captureSongSettings();localStorage.setItem(STORE,JSON.stringify(state))}
  catch(e){console.warn('Cannot save Play Along settings',e);try{setLibraryStatus('Не удалось сохранить настройки браузера: '+e.message)}catch{}}
 };
