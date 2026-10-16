@@ -1,5 +1,9 @@
 # Play Along — Piano Practice App (v0.10.140)
 
+## FG-05 — full fingering reset for Python and manual (v0.10.140)
+
+Fixed a mismatched reset path: accepted PianoMotion digits live on source-scoped session note objects while manual edits and author suppression live in a separate persistent overlay. The reset dialog now counts applied PianoMotion notes, removes their accepted digits and provenance without losing assigned hands, and clears *both* pending solver previews. The user-only scope clears manual+applied Python while retaining author notation; the all scope also masks author digits in the working overlay. Both paths are reversible together with one Undo/Redo action while the source song and its note identities are unchanged. Raw MIDI bytes, MusicXML and playback events stay intact. One new real-browser regression covers PianoMotion apply → reset → undo → redo. Nothing is reset without explicit confirmation.
+
 ## FG-05 — cross-staff voice safety gate (v0.10.140)
 
 On an identified two-staff **piano MusicXML** part, the same 88-key stage detects a notated voice moving between staff 1 and staff 2 **within the same measure**. For those source-identified notes, staff alone no longer supplies a provisional RH/LH: Beam Search asks for a manual hand assignment instead of manufacturing contradictory hand guidance. Original author annotations and user-confirmed RH/LH continue to take priority. Straightforward two-staff piano music still supports one-click Beam calculation, review and explicit Apply; no new user-facing switch. Ambiguity is confined to canonical piano note IDs and a single voice/measure, not to unrelated orchestral parts or later measures. The source score, MIDI events, accepted fingers and Undo/Redo remain immutable until explicit confirmation.
