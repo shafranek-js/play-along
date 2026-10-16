@@ -1,4 +1,14 @@
-# Play Along — Piano Practice App (v0.10.138)
+# Play Along — Piano Practice App (v0.10.139)
+
+## FG-05 — automatic provisional RH/LH from piano grand-staff MusicXML (v0.10.139)
+
+For an imported **two-staff piano MusicXML part**, Beam Search can now provisionally associate staff 1 with RH and staff 2 with LH without requiring the user to enable developer-only “Assume Staves.” The source must identify the instrument as piano (part/instrument name, or explicit MIDI piano program), declare exactly two staves, and contain playable notes on both staves. Other instruments in an ensemble MusicXML are excluded from this particular piano calculation. Grand-staff organ or arbitrary instrument, one-staff scores and unlabeled MIDI are **not** silently treated as piano.
+
+**This is a hand hypothesis, not authored hand evidence**: hand crossing and left-hand melodies can override the convention. User-confirmed RH/LH overrides and original authored finger numbers retain priority; Beam calculates only temporary candidates, announces the provisional mapping on the SAME 88-key stage, and requires explicit Apply. Undo/Redo and the original MusicXML/audio events remain unchanged. The previous opt-in generic staff mapping remains accessible for non-piano experimental scores.
+
+Unit and real-Chromium tests cover a piano-plus-violin mixed score, non-piano organ grand staff abstention, no source annotation mutations and zero extra UI steps.
+
+
 
 ## FG-05 — Beam Search for MIDI with explicitly known hands (v0.10.138)
 
