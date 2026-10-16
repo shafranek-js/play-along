@@ -382,7 +382,11 @@ function sceneFingerControlsSync(){
  if(sceneFingerViewportSong!==current){
   sceneFingerViewportSong=current;sceneFingerFollow=true;
   sceneFingerViewTime=pos;sceneFingerWindowSeconds=EDITOR_WINDOW_DEFAULT;
-  sceneFingerMethod=fingerSelectionAvailable()?'manual':'pianomotion';
+  // A finished original Python calculation takes priority when the user
+  // returns to the shared scene to review it; otherwise original MIDI
+  // opens in the same Manual mode as MusicXML.
+  sceneFingerMethod=pianoMotionLastSong===current&&pianoMotionLastAlignment?.ok?
+   'pianomotion':fingerSelectionAvailable()?'manual':'pianomotion';
   sceneFingerAutoStarted=null;
   sceneFingerReviewReset();
  }
