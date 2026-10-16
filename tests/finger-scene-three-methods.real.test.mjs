@@ -153,7 +153,7 @@ try{
  assert.deepEqual(await saved(),old);
  assert.equal(await page.evaluate(()=>window.__prototypeTest.song.notationXML),original);
 
- // Real MIDI import: only the PianoMotion method should be enabled on stage.
+ // Real MIDI import: Manual and PianoMotion enabled on the same 88-key stage.
  const imported=await page.evaluate(async bytes=>{
   const song=await window.__libraryV08.songFromBuffer(
    'stage-methods.mid',Uint8Array.from(bytes).buffer);
@@ -167,17 +167,75 @@ try{
  if(await page.locator('#sceneFingerMode').getAttribute('aria-pressed')==='false')
   await page.locator('#sceneFingerMode').click();
  assert.equal(await page.locator('#sceneFingerMode').getAttribute('aria-pressed'),'true');
- assert.equal(await page.locator('#sceneFingerMethod').inputValue(),'pianomotion');
+ assert.equal(await page.locator('#sceneFingerMethod').inputValue(),'manual');
  assert.equal((await page.evaluate(()=>window.__fingerGuideTest.sceneCandidates)).count,0,
   'new MIDI source must not inherit previous MusicXML proposal IDs');
- assert.equal(await page.locator('#sceneFingerMethod option[value="manual"]').evaluate(el=>el.disabled),true,
-  'Manual cannot be chosen for MIDI');
+ assert.equal(await page.locator('#sceneFingerMethod option[value="manual"]').evaluate(el=>el.disabled),false,
+  'Manual supports a source-addressable MIDI');
  assert.equal(await page.locator('#sceneFingerMethod option[value="beam"]').evaluate(el=>el.disabled),true,
   'Beam cannot be chosen for MIDI');
  assert.equal(await page.locator('#sceneFingerPianoMotionButton').isEnabled(),true);
- assert.equal(await page.locator('#sceneFingerManualButton').isDisabled(),true);
+ assert.equal(await page.locator('#sceneFingerManualButton').isEnabled(),true);
  assert.equal(await page.locator('#sceneFingerBeamButton').isDisabled(),true);
  assert.equal(await page.locator('#rollWrap').isVisible(),true);
+ const midiIds=await page.evaluate(()=>window.__fingerGuideTest.sourceOrder);
+ assert.equal(midiIds.length,2,'MIDI must expose both stable source note IDs');
+ assert.ok(midiIds.every(id=>/^midi:[0-9]+:[0-9]+$/.test(id)));
+ assert.equal(await page.locator('#sceneFingerExport').isDisabled(),true,
+  'unexported manual MIDI work must not masquerade as ready MusicXML');
+ const midiSource=await page.evaluate(()=>JSON.stringify(window.__prototypeTest.song.tracks.map(t=>t.notes.map(n=>[
+  n.noteId,n.pitch,n.start,n.duration,n.finger??null]))));
+ const midiRects=await page.evaluate(()=>window.__fingerGuideTest.noteRects);
+ const pick=midiRects.find(n=>n.id===midiIds[0]);
+ assert.ok(pick);
+ const rollBox=await page.locator('#roll').boundingBox();
+ await page.mouse.click(rollBox.x+pick.x+pick.w/2,rollBox.y+pick.y+pick.h/2);
+ await page.locator('[data-scene-hand="RH"]').click();
+ await page.locator('[data-scene-finger="3"]').click();
+ assert.equal((await page.evaluate(()=>window.__fingerGuideTest.userCorrections))[midiIds[0]].finger,3);
+ assert.equal(await page.locator('#sceneFingerUndo').isEnabled(),true);
+ await page.locator('#sceneFingerUndo').click();
+ assert.equal((await page.evaluate(()=>window.__fingerGuideTest.userCorrections))[midiIds[0]]?.finger??null,null);
+ await page.locator('#sceneFingerRedo').click();
+ assert.equal((await page.evaluate(()=>window.__fingerGuideTest.userCorrections))[midiIds[0]].finger,3);
+ // Re-import exact bytes (possibly with a different title) -> restored user finger.
+ // Different source bytes -> cannot inherit the same stored finger.
+ const sameMIDI=await page.evaluate(async bytes=>{
+  const song=await window.__libraryV08.songFromBuffer('renamed.mid',Uint8Array.from(bytes).buffer);
+  window.__prototypeTest.loadSong(song);
+  return window.__fingerGuideTest.userCorrections;
+ },[...midi]);
+ assert.equal(sameMIDI[midiIds[0]].finger,3);
+ assert.equal(await page.evaluate(()=>JSON.stringify(window.__prototypeTest.song.tracks.map(t=>t.notes.map(n=>[
+  n.noteId,n.pitch,n.start,n.duration,n.finger??null])))),midiSource,
+  'fingering overrides never change source MIDI note content');
+ const changedBytes=Uint8Array.from(midi);
+ changedBytes[changedBytes.indexOf(0x90)+1]=61;
+ const changedEdits=await page.evaluate(async bytes=>{
+  const song=await window.__libraryV08.songFromBuffer('different.mid',Uint8Array.from(bytes).buffer);
+  window.__prototypeTest.loadSong(song);
+  return window.__fingerGuideTest.userCorrections;
+ },[...changedBytes]);
+ assert.deepEqual(changedEdits,{},'different MIDI bytes cannot adopt other score corrections');
+ // Return to the original, demonstrate same-scene confirmed MIDI reset.
+ await page.evaluate(async bytes=>{
+  const song=await window.__libraryV08.songFromBuffer('again.mid',Uint8Array.from(bytes).buffer);
+  window.__prototypeTest.loadSong(song);
+ },[...midi]);
+ if(await page.locator('#sceneFingerMode').getAttribute('aria-pressed')==='false')
+  await page.locator('#sceneFingerMode').click();
+ await page.locator('#sceneFingerReset').click();
+ assert.equal(await page.locator('#fingerResetDialog').evaluate(el=>el.open),true);
+ await page.locator('#fingerResetConfirm').click();
+ assert.equal((await page.evaluate(()=>window.__fingerGuideTest.userCorrections))[midiIds[0]]?.finger??null,null);
+ await page.locator('#sceneFingerUndo').click();
+ assert.equal((await page.evaluate(()=>window.__fingerGuideTest.userCorrections))[midiIds[0]].finger,3,
+  'confirmed MIDI reset must be one Undo operation');
+ // No Python worker is invoked only to inspect the same stage review UI.
+ await page.evaluate(()=>{
+  const el=document.getElementById('sceneFingerMethod');
+  el.value='pianomotion';el.dispatchEvent(new Event('change',{bubbles:true}));
+ });
  await page.locator('#sceneFingerReview').click();
  assert.equal(await page.locator('#sceneFingerReviewPanel').isVisible(),true);
  assert.equal(await page.locator('#fingerEditorWrap').isVisible(),false);
