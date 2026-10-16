@@ -203,6 +203,44 @@ try{
   stage:document.getElementById('sceneFingerSelection').textContent
  }));
  assert.equal(midiDebug.edits[midiIds[0]]?.finger,3,JSON.stringify(midiDebug));
+ // FG-05: a confirmed MANUAL finger on imported original MIDI now
+ // enables direct on-stage MusicXML download (previously blocked).
+ assert.equal(await page.locator('#sceneFingerExport').isEnabled(),true);
+ const midiManualExport=await page.evaluate(async()=>{
+  const oldCreate=URL.createObjectURL,oldClick=HTMLAnchorElement.prototype.click;
+  let exported=null,downloadName=null;
+  try{
+   URL.createObjectURL=blob=>{exported=blob;return 'blob:manual-midi-fingering-qa'};
+   HTMLAnchorElement.prototype.click=function(){downloadName=this.download};
+   document.getElementById('sceneFingerExport').click();
+   const xml=exported?await exported.text():null;
+   const doc=xml?new DOMParser().parseFromString(xml,'application/xml'):null;
+   const reloaded=xml?window.__libraryV08.readMusicXML(xml,'manual-midi.musicxml'):null;
+   const notes=reloaded?.tracks.flatMap(t=>t.notes)||[];
+   return {
+    downloaded:!!xml,downloadName,
+    marker:doc?.querySelector('miscellaneous-field[name="play-along-user-fingering"]')?.textContent||'',
+    digits:[...(doc?.getElementsByTagName('fingering')||[])].map(n=>n.textContent),
+    imported:notes.map(n=>[n.pitch,n.finger??null,n.fingeringSource??null]),
+    warning:reloaded?.warnings.some(w=>w.includes('пользовательских правках')),
+    format:window.__prototypeTest.song.format,
+    sameStage:document.getElementById('rollWrap').offsetParent!==null
+   };
+  }finally{
+   URL.createObjectURL=oldCreate;
+   HTMLAnchorElement.prototype.click=oldClick;
+  }
+ });
+ assert.equal(midiManualExport.downloaded,true,JSON.stringify(midiManualExport));
+ assert.match(midiManualExport.downloadName,/-manual-fingering\.musicxml$/);
+ assert.match(midiManualExport.marker,/quantized\/approximate/);
+ assert.deepEqual(midiManualExport.digits,['3']);
+ assert.deepEqual(midiManualExport.imported,[
+  [60,3,'musicxml-user-export-unverified'],[64,null,null]
+ ]);
+ assert.equal(midiManualExport.warning,true);
+ assert.equal(midiManualExport.format,'MIDI','original source is still MIDI');
+ assert.equal(midiManualExport.sameStage,true);
  assert.equal(await page.locator('#sceneFingerUndo').isEnabled(),true);
  await page.locator('#sceneFingerUndo').click();
  assert.equal((await page.evaluate(()=>window.__fingerGuideTest.userCorrections))[midiIds[0]]?.finger??null,null);
