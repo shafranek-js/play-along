@@ -82,7 +82,7 @@ try{
   window.__fingerGuideTest.userCorrections));
  assert.equal(preview.status,'applied');
  assert.equal(preview.suppressed,2);
- assert.equal(preview.xml.split('<fingering>').length-1,0,
+ assert.equal(preview.fingeringTags,0,
   'detached score overlay must hide original author fingering too');
  const downloadPending=page.waitForEvent('download');
  await page.locator('#fingerEditorDownloadXML').click();
