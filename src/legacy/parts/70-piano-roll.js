@@ -148,13 +148,15 @@ function fingerSelectionSet(ids,anchor=null){
   ordered.find(e=>fingerSelectedIds.has(e.id))?.note||null;
  selectNote(primary,{keepGroup:true});
  renderCanvas();if(state.scoreView==='editor')fingerEditorRender();
+ if(sceneFingerActive)sceneFingerControlsSync();
 }
 function fingerSelectionShortcut(e){
  if(!(e.ctrlKey||e.metaKey)||e.altKey||e.shiftKey||e.key.toLowerCase()!=='a'||
   !fingerSelectionAvailable()||state.page!=='practice'||!['roll','editor'].includes(state.scoreView))return false;
  const focused=document.activeElement;
  if(focused?.closest('input,textarea,select,[contenteditable="true"]'))return false;
- if(focused!==roll&&focused!==fingerEditorCanvas&&!fingerEditorScroller.contains(focused)&&!$('selection').contains(focused)&&
+ if(focused!==roll&&focused!==fingerEditorCanvas&&!fingerEditorScroller.contains(focused)&&
+  !(sceneFingerActive&&$('sceneFingerTools').contains(focused))&&!$('selection').contains(focused)&&
   !(focused===document.body&&fingerSelectedIds.size))return false;
  e.preventDefault();
  const ordered=fingerSelectionOrdered();
@@ -216,6 +218,7 @@ function fingerOverrideCommit(note,choice,{action='edit',batch=null}={}){
  if(state.scoreView==='editor')fingerEditorRender();
  if(current?.id)void libraryCoverageStore(current,current.id)
   .catch(e=>console.warn('Coverage after correction failed',e));
+ if(sceneFingerActive)sceneFingerControlsSync();
  return true;
 }
 function fingerOverrideCommitGroup(ids,{finger,hand,reset=false}={}){
@@ -789,8 +792,12 @@ function renderCanvas(){
   if(fingerSelectedIds.has(n.noteId)){c.strokeStyle='#f8e183';c.lineWidth=2.8;c.stroke();}
    else if(selectedNote===n){c.strokeStyle='#fff';c.lineWidth=1.5;c.setLineDash([3,3]);c.stroke();c.setLineDash([]);}
   c.restore();
-  if(state.labels&&nw>=24&&nh>18){c.fillStyle=audible?'#062439':'#171d25';c.font='bold 10px system-ui';c.textAlign='center';c.fillText(nameOf(n.pitch)+(n.finger?' · '+n.finger:''),k.center,y+13);c.textAlign='left';}
-  else if(n.finger&&nw>=14&&nh>14){c.fillStyle=audible?'#062439':'#171d25';c.font='bold 10px system-ui';c.textAlign='center';c.fillText(String(n.finger),k.center,y+11);c.textAlign='left';}
+  // Show the effective saved/user finger without mutating source XML notes.
+  const manual=n.noteId?fingerOverrideForNote(n):null;
+  const shownFinger=Number.isInteger(manual?.finger)?manual.finger:
+   manual?.suppressAuthor?null:n.finger;
+  if(state.labels&&nw>=24&&nh>18){c.fillStyle=audible?'#062439':'#171d25';c.font='bold 10px system-ui';c.textAlign='center';c.fillText(nameOf(n.pitch)+(Number.isInteger(shownFinger)?' · '+shownFinger:''),k.center,y+13);c.textAlign='left';}
+  else if(Number.isInteger(shownFinger)&&nw>=14&&nh>14){c.fillStyle=audible?'#062439':'#171d25';c.font='bold 10px system-ui';c.textAlign='center';c.fillText(String(shownFinger),k.center,y+11);c.textAlign='left';}
   hitboxes.push({x,y,w:nw,h:nh,n});
  }
  if(loop.start!=null&&loop.end!=null){
