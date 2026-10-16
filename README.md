@@ -1,4 +1,13 @@
-# Play Along — Piano Practice App (v0.10.144)
+# Play Along — Piano Practice App (v0.10.145)
+
+## UX — persistent user preferences after reload (v0.10.145)
+
+The library **source selection** now survives F5, navigation and a fresh browser launch. Its source, sort order, fingering filter, favorites-only filter, search string, Mutopia composer and instrument are stored in the same validated browser settings as the global layout and per-song practice state. Choosing a catalog through the quick source buttons or browsing a connected folder updates these preferences too. Returning to a previously selected remote catalog loads its index on startup; the default **All sources** selection still performs no unsolicited catalog fetch. The Mutopia composer filter is restored after the asynchronously populated composer options exist.
+
+The manual fingering **auto-advance** toggle, fingering timeline zoom and opt-in generic MusicXML staff-to-hand assumption now also survive reloads. Existing persisted work, author/user fingering, per-song transport/mode/speed, panel layout, grid visibility, MIDI device and SoundFont configuration remain in their established storage. Portable JSON settings backups use the same strict validation; older backups without these new fields restore with safe defaults. Transient confirmations, calculation previews, current pointer selections, calibration wizard answers and file pickers intentionally do **not** replay after refresh.
+
+The Chromium persistence regression now checks direct/quick source selection, library controls, the asynchronous Mutopia composer case and the three fingering preferences after a real page reload. Browser storage must remain enabled; clearing site data or changing browser/profile is outside local persistence.
+
 
 ## P0 — one Fingering learner workflow and single-note click audition (v0.10.144)
 
