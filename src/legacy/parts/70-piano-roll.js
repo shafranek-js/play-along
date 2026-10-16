@@ -122,7 +122,9 @@ function sceneFingerAutoSync(){
   'Есть рассчитанные предложения · проверка обязательна.':
   'Нажми «Рассчитать». Предложения не применяются автоматически.';
  const detailed=preview.size?message+' · На дорожке '+preview.size+
-  ' неподтверждённых пальцев (фиолетовый пунктир).':message;
+  (sceneFingerReplacementValid()?
+   ' вариантов замены уже назначенных пальцев (остальные защищены).':
+   ' неподтверждённых пальцев (фиолетовый пунктир).'):message;
  $('sceneFingerAutoStatus').textContent=detailed;
  $('sceneFingerAutoStatus').title=detailed;
  sceneFingerReviewSync(preview);
@@ -216,7 +218,10 @@ function sceneFingerReviewSync(candidates=null){
   if(!preview.has(note))sceneFingerReviewSelected.delete(note);
  const total=preview.size,selected=sceneFingerReviewSelected.size;
  $('sceneFingerReviewCounts').textContent=total?
-  'Предложено '+total+' · выбрано '+selected+' · сохранено только после подтверждения':
+  (sceneFingerReplacementValid()?
+   'Замена назначенных пальцев · предложено '+total+' · выбрано '+selected+
+   ' · остальные ноты защищены':
+   'Предложено '+total+' · выбрано '+selected+' · сохранено только после подтверждения'):
   'Применимых предложений пока нет. Рассчитай аппликатуру или сохрани существующую.';
  $('sceneFingerReviewAll').disabled=!total;
  $('sceneFingerReviewNone').disabled=!selected;
@@ -240,7 +245,40 @@ function sceneFingerReviewApply(){
   sceneFingerReviewSync(map);notify('Предложения изменились. Проверь выделение ещё раз.');return;
  }
  let applied=false;
- if(sceneFingerMethod==='beam'){
+ if(sceneFingerReplacementValid()){
+  // User explicitly requested alternatives to protected digits; validate
+  // Worker provenance, source note identities and snapshot AGAIN at Apply.
+  // Commit as one atomic user override, preserving source author/solver notes.
+  const r=sceneFingerReplaceRequest;
+  if(!fingerBrowserMidiSourceVerified()||
+     (sceneFingerMethod==='beam'&&
+      (fingerBrowserSong!==current||!fingerBrowserPreview||
+       fingerBrowserSnapshotKey!==JSON.stringify(fingerBrowserInput())||
+       $('fingerBrowserCompareSaved').checked))||
+     (sceneFingerMethod==='pianomotion'&&
+      (!pianoMotionLastAlignment?.ok||pianoMotionLastSong!==current||
+       !pianoMotionReviewValidate()))){
+   notify('Предложения устарели. Рассчитай аппликатуру снова.');return;
+  }
+  const byId=new Map(fingerSelectionOrdered().map(e=>[e.id,e.note]));
+  const before=state.fingerOverrides?.[r.key]||{},entries=[];
+  for(const note of notes){
+   if(byId.get(note.noteId)!==note||!r.ids.has(note.noteId))return;
+   const candidate=map.get(note);
+   if(!candidate||!sceneFingerReplacementCandidate(note,candidate))return;
+   const old=before[note.noteId]??null;
+   const next={finger:candidate.finger,hand:candidate.hand,
+    ...(old?.suppressAuthor===true?{suppressAuthor:true}:{})};
+   if(!fingerHistorySame(old,next))entries.push({id:note.noteId,before:old,after:next});
+  }
+  if(!entries.length){notify('Выбранные пальцы уже совпадают.');return}
+  applied=fingerOverrideCommit(null,null,{action:'batch',batch:entries});
+  if(applied){
+   fingerBrowserAbort('Выборочная замена подтверждена · '+entries.length+' нот.');
+   sceneFingerReplaceRequest=null;
+   notify('Заменено пальцев: '+entries.length+' · одно Undo');
+  }
+ }else if(sceneFingerMethod==='beam'){
   if(!fingerSelectionAvailable())return;
   const savedSelection=fingerSelectedIds,oldHistory=fingerOverrideHistoryCurrent().past.length;
   try{
@@ -323,6 +361,7 @@ function sceneFingerCalculateSelected(){
  if(!sceneFingerActive||sceneFingerMethod==='manual')return;
  const method=sceneFingerMethod;
  sceneFingerReviewReset({close:false});
+ sceneFingerReplacementPrepare(method);
  if(!sceneFingerMethodAvailable(method)){
   notify('Открой MIDI или MusicXML в режиме «Оригинал».');return;
  }
@@ -476,6 +515,7 @@ function sceneFingerControlsSync(){
   sceneFingerMethod=pianoMotionLastSong===current&&pianoMotionLastAlignment?.ok?
    'pianomotion':fingerSelectionAvailable()?'manual':'pianomotion';
   sceneFingerAutoStarted=null;
+  sceneFingerReplaceRequest=null;
   sceneFingerReviewReset();
  }
  const manualAvailable=fingerSelectionAvailable();
