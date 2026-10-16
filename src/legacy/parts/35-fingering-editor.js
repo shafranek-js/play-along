@@ -1431,8 +1431,10 @@ function pianoMotionDownloadMusicXML(){
   for(const t of (song.tracks||[])){
    for(const n of (t.notes||[])){
     const user=n.noteId?fingerOverrideEffective(n,userEdits[n.noteId]):null;
-    const finger=user?user.finger:n.finger;
-    const hand=user?user.hand:n.hand;
+    // A hand-only correction must not erase a confirmed Python digit.
+    const finger=Number.isInteger(user?.finger)?user.finger:
+     user?.suppressAuthor?null:n.finger;
+    const hand=user?.hand??n.hand;
     if(n.noteId&&Number.isInteger(finger)&&finger>=1&&finger<=5){
      changes[n.noteId]={finger,hand:hand||null};
     }
@@ -1448,6 +1450,7 @@ function pianoMotionDownloadMusicXML(){
  if(!xml&&song.format==='MusicXML'&&song.notationXML){
   notify('Экспорт остановлен: не удалось безопасно наложить аппликатуру на оригинальный MusicXML.');return;
  }
+ let midiExportVerification=null;
  if(!xml){
   try{
    const tracks=pianoMotionLastPlan?.mode==='derived'
@@ -1456,7 +1459,50 @@ function pianoMotionDownloadMusicXML(){
        !n.isDrum&&n.channel!==9&&
        (pianoMotionLastPlan.channel==null||n.channel===pianoMotionLastPlan.channel))
      })):song.tracks;
-   xml=scoreXMLFromSong({...song,tracks});
+   if(song.format==='MIDI'){
+    const key=fingerOverrideWorkKey(song),manual=key?state.fingerOverrides?.[key]||{}:{};
+    // Explicit manual edits may only come from the exact original MIDI
+    // bytes, not an assumed pitch/time or a filename match.
+    if(Object.keys(manual).length){
+     const bytes=originalMidiForSong(song);
+     if(!bytes||!key||fingerMidiWorkKey(song,bytes)!==key){
+      notify('Экспорт остановлен: исходные байты MIDI не подтверждены.');return;
+     }
+    }
+    const result=pianoMotionComposeExport(song,tracks,manual,{
+     effective:fingerOverrideEffective
+    });
+    if(!result.ok){
+     notify('MusicXML не экспортирован: '+result.reason);return;
+    }
+    const emptyTracks=result.tracks.map(t=>({...t,notes:t.notes.map(n=>({
+     ...n,finger:null,hand:null,fingeringSource:null
+    }))}));
+    const baseline=scoreXMLFromSong({...song,tracks:emptyTracks});
+    xml=scoreXMLFromSong({...song,tracks:result.tracks});
+    const normalized=score=>JSON.stringify({
+     notes:score.tracks.map(t=>t.notes.map(n=>[
+      n.pitch,n.start,n.duration,n.velocity,n.channel,n.partId,
+      n.staff,n.voice,n.sourceTrack
+     ])),
+     events:score.audioEvents.map(e=>[
+      e.type,e.time,e.track,e.sourceTrack,e.noteId,e.pitch,
+      e.velocity,e.channel,e.controller,e.value,e.program
+     ])
+    });
+    const baselineSignature=normalized(readMusicXML(baseline,'python-midi-baseline.musicxml'));
+    if(baselineSignature!==normalized(readMusicXML(xml,'python-midi-combined.musicxml'))){
+     notify('Экспорт отклонён: объединение изменило ноты или длительности.');return;
+    }
+    const checkDoc=new DOMParser().parseFromString(xml,'application/xml');
+    if(checkDoc.querySelector('parsererror')||
+       checkDoc.getElementsByTagName('fingering').length!==result.totalNumbers){
+     notify('Экспорт отклонён: часть подтверждённых пальцев потеряна.');return;
+    }
+    midiExportVerification={key,song,rawKey:originalMidiForSong(song),
+     overrides:JSON.stringify(manual),baselineSignature,numbers:result.totalNumbers,
+     manualCount:result.manualCount,solverCount:result.solverCount};
+   }else xml=scoreXMLFromSong({...song,tracks});
   }catch(e){
    notify('Не удалось создать MusicXML: '+(e?.message||e));
    return;
@@ -1487,12 +1533,38 @@ function pianoMotionDownloadMusicXML(){
       n.getAttribute('name')==='play-along-user-fingering')){
    const marker=make('miscellaneous-field');
    marker.setAttribute('name','play-along-user-fingering');
-   marker.textContent='PianoMotion-generated fingers applied by user in Play Along; not composer-authored; '+
+   marker.textContent=(midiExportVerification?
+     'Accepted PianoMotion fingers and verified manual corrections in Play Along; '+
+      'manual: '+midiExportVerification.manualCount+
+      '; retained Python: '+midiExportVerification.solverCount+'. ':
+     'PianoMotion-generated fingers applied by user in Play Along; not composer-authored; ')+
     (song.format==='MIDI'?'original MIDI-derived notation is approximate.':
      'original MusicXML score preserved.');
    miscellaneous.append(marker);
   }
   xml=new XMLSerializer().serializeToString(doc);
+  if(midiExportVerification){
+   const v=midiExportVerification;
+   const final=readMusicXML(xml,'pianomotion-manual-merged.musicxml');
+   const normalized=score=>JSON.stringify({
+    notes:score.tracks.map(t=>t.notes.map(n=>[
+     n.pitch,n.start,n.duration,n.velocity,n.channel,n.partId,
+     n.staff,n.voice,n.sourceTrack
+    ])),
+    events:score.audioEvents.map(e=>[
+     e.type,e.time,e.track,e.sourceTrack,e.noteId,e.pitch,
+     e.velocity,e.channel,e.controller,e.value,e.program
+    ])
+   });
+   const actual=final.tracks.flatMap(t=>t.notes).filter(n=>
+    n.fingeringSource==='musicxml-user-export-unverified').length;
+   if(normalized(final)!==v.baselineSignature||actual!==v.numbers)
+    throw Error('Повторный импорт потерял ноты или подтверждённые пальцы');
+   if(v.song!==current||fingerOverrideWorkKey(current)!==v.key||
+      fingerMidiWorkKey(v.song,originalMidiForSong(v.song))!==v.key||
+      JSON.stringify(state.fingerOverrides?.[v.key]||{})!==v.overrides)
+    throw Error('Исходный MIDI или ручные исправления изменились');
+  }
  }catch(error){
   notify('Не удалось безопасно пометить происхождение аппликатуры: '+(error?.message||error));
   return;
