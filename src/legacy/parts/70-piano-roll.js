@@ -42,6 +42,52 @@ let fingerSelectedIds=new Set(),fingerSelectionAnchor=null,fingerSelectionPointe
 // P0 shared-scene Fingering: reuse the exact performance notes, keyboard,
 // hand sprites, source note IDs, selection and user override Undo/Redo.
 let sceneFingerActive=false,sceneFingerAutoAdvance=false;
+let sceneFingerFollow=true,sceneFingerViewTime=0;
+let sceneFingerWindowSeconds=EDITOR_WINDOW_DEFAULT;
+function sceneFingerTime(){
+ return sceneFingerActive&&!sceneFingerFollow?
+  clampEditorTime(sceneFingerViewTime,duration()):pos;
+}
+function sceneFingerMetrics(){
+ // RenderCanvas owns the actual geometry, not the viewport. We reuse its
+ // strike line and viewport height to prevent drift at all screen sizes.
+ const strikeY=keyboardTop-10;
+ return {strikeY,pixelsPerSecond:Math.max(8,(strikeY-14)/
+  (sceneFingerActive?sceneFingerWindowSeconds:EDITOR_WINDOW_DEFAULT))};
+}
+function sceneFingerReveal(target){
+ if(!sceneFingerActive||sceneFingerFollow||!Number.isFinite(target))return;
+ const previous=sceneFingerViewTime;
+ sceneFingerViewTime=editorRevealTime({
+  viewTime:sceneFingerViewTime,target,windowSeconds:sceneFingerWindowSeconds,
+  duration:duration()});
+ if(Math.abs(previous-sceneFingerViewTime)>.00001)renderCanvas();
+}
+function sceneFingerOnWheel(e){
+ if(!sceneFingerActive||state.scoreView!=='roll'||state.page!=='practice'||
+  !fingerSelectionAvailable())return;
+ const bounds=roll.getBoundingClientRect(),atY=e.clientY-bounds.top;
+ if(atY<0||atY>=keyboardTop)return; // keep playing keyboard independent
+ const delta=normalizedWheelPixels(e.deltaY,e.deltaMode,bounds.height);
+ if(!Number.isFinite(delta)||delta===0)return;
+ e.preventDefault(); // prevent browser zoom and the main-page scroll
+ const {strikeY,pixelsPerSecond}=sceneFingerMetrics();
+ const previous=sceneFingerTime();
+ if(e.ctrlKey||e.metaKey){
+  const zoom=editorZoom({time:previous,windowSeconds:sceneFingerWindowSeconds,
+   deltaPixels:delta,anchorY:atY,strikeY,duration:duration()});
+  sceneFingerWindowSeconds=zoom.windowSeconds;
+  sceneFingerViewTime=zoom.time;
+ }else{
+  sceneFingerViewTime=editorPan({time:previous,deltaPixels:delta,
+   pixelsPerSecond,duration:duration()});
+ }
+ sceneFingerFollow=false;
+ sceneFingerControlsSync();
+ renderCanvas();
+}
+roll.addEventListener('wheel',sceneFingerOnWheel,{passive:false});
+
 function sceneFingerControlsSync(){
  const available=fingerSelectionAvailable();
  if(sceneFingerActive&&!available)sceneFingerActive=false;
@@ -58,6 +104,10 @@ function sceneFingerControlsSync(){
  $('sceneFingerUndo').disabled=!history.past.length;
  $('sceneFingerRedo').disabled=!history.future.length;
  $('sceneFingerAutoAdvance').checked=sceneFingerAutoAdvance;
+ $('sceneFingerFollow').disabled=!on||sceneFingerFollow;
+ $('sceneFingerViewport').textContent='Вид: '+
+  (sceneFingerFollow?'за игрой':fmt(clampEditorTime(sceneFingerViewTime,duration())))+
+  ' · '+sceneFingerWindowSeconds.toFixed(1)+' с';
 }
 function sceneFingerSetActive(active){
  if(active&&!fingerSelectionAvailable()){
@@ -79,7 +129,16 @@ function sceneFingerAdvance(direction){
   anchor+direction;
  if(next<0&&anchor<0&&direction>0)next=0;
  if(next<0||next>=order.length)return false;
+ if(sceneFingerFollow){
+  // Navigation away from the playback cursor is a VIEW operation, never
+  // an audio seek. Keep the note within the visible editor region.
+  sceneFingerViewTime=pos;sceneFingerFollow=false;
+ }
+ sceneFingerViewTime=editorRevealTime({
+  viewTime:sceneFingerViewTime,target:order[next].start,
+  windowSeconds:sceneFingerWindowSeconds,duration:duration()});
  fingerSelectionSet([ids[next]],ids[next]);
+ sceneFingerControlsSync();
  return true;
 }
 function sceneFingerAssign(kind,value){
@@ -126,6 +185,10 @@ function sceneFingerKeyDown(e){
 $('sceneFingerMode').onclick=()=>sceneFingerSetActive(!sceneFingerActive);
 $('sceneFingerAdvanced').onclick=()=>{sceneFingerSetActive(false);scoreSetView('editor')};
 $('sceneFingerAutoAdvance').onchange=e=>{sceneFingerAutoAdvance=e.target.checked;sceneFingerControlsSync()};
+$('sceneFingerFollow').onclick=()=>{
+ sceneFingerFollow=true;sceneFingerViewTime=pos;
+ sceneFingerControlsSync();renderCanvas();roll.focus({preventScroll:true});
+};
 for(const b of $('sceneFingerTools').querySelectorAll('[data-scene-finger]'))
  b.onclick=()=>sceneFingerAssign('finger',Number(b.dataset.sceneFinger));
 for(const b of $('sceneFingerTools').querySelectorAll('[data-scene-hand]'))
@@ -717,7 +780,9 @@ function renderCanvas(){
  const keyboardH=geom.whites[0].w*5.5;
  const handTail=handsAllowed?Math.min(82,keyboardH*.42):0;
  const keyY=h-keyboardH-handTail,strikeY=keyY-10;
- const pxPerSec=Math.max(8,(strikeY-14)/6);
+ const pxPerSec=Math.max(8,(strikeY-14)/
+  (sceneFingerActive?sceneFingerWindowSeconds:EDITOR_WINDOW_DEFAULT));
+ const viewTime=sceneFingerTime();
  keyboardTop=keyY;keyboardBottom=keyY+keyboardH;keyboardBlackH=keyboardH*.61;
  // Lanes, borders and time grid form ONE background layer. Opacity only
  // affects this layer; notes, piano keys and finger sprites remain unchanged.
@@ -762,8 +827,8 @@ function renderCanvas(){
  for(const blackLayer of [false,true])for(const n of notes){
   if(isBlackPitch(n.pitch)!==blackLayer)continue;
   const k=geom.byPitch.get(n.pitch);if(!k)continue;
-  const top=strikeY-(n.start+n.duration-pos)*pxPerSec;
-  const bottom=strikeY-(n.start-pos)*pxPerSec;
+  const top=strikeY-(n.start+n.duration-viewTime)*pxPerSec;
+  const bottom=strikeY-(n.start-viewTime)*pxPerSec;
   if(bottom<0||top>keyY)continue;
   const inset=Math.min(2,Math.max(.55,k.w*.075)),x=k.x+inset,y=Math.max(0,top),nw=Math.max(1,k.w-2*inset),nh=Math.min(keyY,bottom)-y;
   if(nh<1)continue;
@@ -804,7 +869,7 @@ function renderCanvas(){
   hitboxes.push({x,y,w:nw,h:nh,n});
  }
  if(loop.start!=null&&loop.end!=null){
-  const a=strikeY-(loop.start-pos)*pxPerSec,b=strikeY-(loop.end-pos)*pxPerSec;
+  const a=strikeY-(loop.start-viewTime)*pxPerSec,b=strikeY-(loop.end-viewTime)*pxPerSec;
   c.fillStyle='#f1a07b18';c.fillRect(0,Math.max(0,b),w,Math.max(0,Math.min(keyY,a)-Math.max(0,b)));
   c.fillStyle='#f0b39b';c.font='10px system-ui';c.fillText('LOOP',8,17);
  }
