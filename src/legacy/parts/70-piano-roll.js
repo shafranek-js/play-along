@@ -147,6 +147,12 @@ function sceneFingerReviewSync(candidates=null){
  const panel=$('sceneFingerReviewPanel');
  panel.hidden=!open;
  if(!open)return;
+ // Anchor below the ACTUAL wrapped toolbar height at this viewport.
+ // Hard-coded top offsets can cover Undo/Redo or other accessible actions.
+ const tools=$('sceneFingerTools');
+ const top=Math.ceil(tools.offsetTop+tools.offsetHeight+8);
+ panel.style.top=top+'px';
+ panel.style.maxHeight='min(55vh, calc(100% - '+(top+8)+'px))';
  const preview=candidates||sceneFingerCandidatePreviewMap();
  for(const note of sceneFingerReviewSelected)
   if(!preview.has(note))sceneFingerReviewSelected.delete(note);
