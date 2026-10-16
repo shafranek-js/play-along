@@ -630,13 +630,28 @@ function fingerBrowserUpdateActions(){
  $('fingerBrowserReject').disabled=!fingerBrowserPreview;
 }
 
+function fingerBrowserAvailable(){
+ return fingerSelectionAvailable()&&(current.format==='MusicXML'||current.format==='MIDI');
+}
+function fingerBrowserMidiSourceVerified(){
+ if(current?.format!=='MIDI')return true;
+ const original=originalMidiForSong(current),key=fingerGuideWorkKey();
+ return !!original&&!!key&&current.midiFingerWorkKey===key&&
+  fingerMidiWorkKey(current,original)===key;
+}
+function fingerBrowserNotes(){
+ return fingerBrowserAvailable()?fingerSelectionOrdered().map(x=>x.note):[];
+}
 function fingerBrowserInput(){
- if(!fingerEditorAvailable())return null;
+ if(!fingerBrowserAvailable())return null;
  const key=fingerGuideWorkKey(),edits=key?state.fingerOverrides?.[key]||{}:{};
- const notes=fingerEditorNotes().map(n=>{
+ const isMidi=current.format==='MIDI';
+ const explicitTrackHands=new Map(isMidi?current.tracks.flatMap(track=>
+  (track.notes||[]).map(n=>[n,fingerMidiExplicitTrackHand(track)])):[]);
+ const notes=fingerBrowserNotes().map(n=>{
   const change=fingerOverrideEffective(n,edits[n.noteId]);
   const userDeclaredStaff=$('fingerBrowserAssumeStaves').checked;
-  const writtenHand=change?.hand??n.hand;
+  const writtenHand=change?.hand??n.hand??(isMidi?explicitTrackHands.get(n):null);
   const h=(writtenHand==='RH'||writtenHand==='LH')?writtenHand:
    (userDeclaredStaff&&String(n.staff)==='1'?'RH':
     userDeclaredStaff&&String(n.staff)==='2'?'LH':null);
@@ -662,10 +677,10 @@ function fingerBrowserAbort(message){
  if(message)$('fingerBrowserStatus').textContent=message;
 }
 function fingerBrowserSync(){
- const allowed=fingerEditorAvailable();
+ const allowed=fingerBrowserAvailable();
  $('fingerBrowserCalculate').disabled=!allowed||!!fingerBrowserWorker;
  if(!allowed){
-  if(fingerBrowserSong)fingerBrowserAbort('Доступно только для исходного MusicXML.');
+  if(fingerBrowserSong)fingerBrowserAbort('Недоступен исходный MIDI или MusicXML.');
   return;
  }
  if(fingerBrowserSong&&fingerBrowserSnapshotKey!==JSON.stringify(fingerBrowserInput())){
@@ -739,7 +754,7 @@ function fingerBrowserShow(report){
  }
  if(!diagnostic&&chosen&&Array.isArray(chosen.candidates)&&chosen.candidates.length&&
     fingerBrowserSong===current&&fingerBrowserSnapshotKey===JSON.stringify(fingerBrowserInput())){
-  const target=new Map(fingerEditorNotes().map(n=>[n.noteId,n]));
+  const target=new Map(fingerBrowserNotes().map(n=>[n.noteId,n]));
   const allowed=chosen.candidates.every(n=>Number.isInteger(n.finger)&&n.finger>=1&&n.finger<=5&&
    (n.hand==='RH'||n.hand==='LH')&&target.get(n.noteId)?.pitch===n.pitch&&
    target.get(n.noteId)?.start===n.start);
@@ -880,7 +895,7 @@ $('fingerBrowserAcceptSelected').onclick=()=>{
    fingerBrowserSong!==current||fingerBrowserSnapshotKey!==JSON.stringify(fingerBrowserInput())){
   fingerBrowserAbort('Предложения устарели. Рассчитай аппликатуру заново.');return;
  }
- const sources=new Map(fingerEditorNotes().map(n=>[n.noteId,n]));
+ const sources=new Map(fingerBrowserNotes().map(n=>[n.noteId,n]));
  const key=fingerGuideWorkKey(),saved=state.fingerOverrides?.[key]||{},entries=[];
  for(const id of fingerSelectedIds){
   const p=fingerBrowserPreview.get(id),source=sources.get(id);
