@@ -242,39 +242,81 @@ $('fingerEditorApply').onclick=()=>{
 $('fingerEditorReset').onclick=()=>{
  fingerOverrideCommitGroup([...fingerSelectedIds],{reset:true});fingerEditorRender();
 };
-// An explicit whole-score reset strips ONLY user finger numbers. Retain any
-// user-set hand ownership so the next Beam run need not silently infer hands.
-// This is one atomic, undoable user edit; original MusicXML and author fingers
-// are never changed. No action on unrelated works.
-$('fingerEditorResetFingering').onclick=()=>{
- if(!fingerEditorAvailable()||!current)return;
- const key=fingerGuideWorkKey(),song=current,edits=state.fingerOverrides?.[key]||{};
- const sources=new Map(fingerEditorNotes().map(n=>[n.noteId,n]));
- const entries=[];
- for(const [id,before]of Object.entries(edits)){
-  if(!Number.isInteger(before?.finger)||before.finger<1||before.finger>5)continue;
-  if(!sources.has(id)){
-   notify('Сброс отклонён: сохранённая нота больше не принадлежит текущему произведению.');
-   return;
+// Two user-confirmed scopes share ONE atomic Undo/Redo history. The 'all'
+// scope masks authored XML fingering only in the persistent user overlay;
+// the source XML is immutable. Existing user hand ownership is preserved.
+let fingerResetPending=null;
+function fingerResetEntries(scope,notes,edits){
+ const originals=new Map(notes.map(n=>[n.noteId,n]));
+ const entries=[],userIds=new Set(),authorIds=new Set();
+ for(const [id,previous]of Object.entries(edits)){
+  if(Number.isInteger(previous?.finger)&&!originals.has(id))
+   return {ok:false,reason:'SCORE_NOTE_IDENTITY_CHANGED'};
+ }
+ for(const note of notes){
+  const id=note.noteId,before=edits[id]??null;
+  const user=Number.isInteger(before?.finger)&&before.finger>=1&&before.finger<=5;
+  const author=note.fingeringSource==='musicxml'&&Number.isInteger(note.finger)&&
+   note.finger>=1&&note.finger<=5;
+  if(!user&&!(scope==='all'&&author))continue;
+  const hand=before?.hand==='RH'||before?.hand==='LH'?before.hand:null;
+  const hideAuthor=scope==='all'&&author||before?.suppressAuthor===true;
+  const after=hideAuthor?{finger:null,hand,suppressAuthor:true}:
+   hand?{finger:null,hand}:null;
+  if(!fingerHistorySame(before,after)){
+   entries.push({id,before,after});
+   if(user)userIds.add(id);
+   if(scope==='all'&&author&&!before?.suppressAuthor)authorIds.add(id);
   }
-  const hand=before.hand==='RH'||before.hand==='LH'?before.hand:null;
-  entries.push({id,before:{finger:before.finger,hand:before.hand},
-   after:hand?{finger:null,hand}:null});
  }
- if(!entries.length){notify('Нет пользовательских номеров пальцев для сброса.');return;}
- if(!window.confirm('Сбросить '+entries.length+
-  ' пользовательских номеров пальцев текущего произведения?\n'+
-  'Авторская аппликатура и назначения рук сохранятся.\n'+
-  'Действие можно отменить одной кнопкой «Отменить».'))return;
- if(current!==song||fingerGuideWorkKey()!==key){
-  notify('Произведение изменилось. Сброс отменён.');return;
+ return {ok:true,entries,userCount:userIds.size,authorCount:authorIds.size};
+}
+const fingerResetDialog=$('fingerResetDialog');
+function fingerResetPreview(){
+ if(!fingerResetPending)return;
+ const mode=fingerResetDialog.querySelector('input[name="fingerResetScope"]:checked')?.value;
+ const plan=fingerResetEntries(mode,fingerEditorNotes(),state.fingerOverrides?.[fingerResetPending.key]||{});
+ $('fingerResetConfirm').disabled=!plan.ok||!plan.entries.length;
+ $('fingerResetCount').textContent=plan.ok?
+  'Будет сброшено пользовательских номеров: '+plan.userCount+
+  (mode==='all'?' · Скрыто авторских номеров: '+plan.authorCount:'')+
+  ' · Итого изменено нот: '+plan.entries.length+
+  ' · Сброс можно отменить одним Undo.':
+  'Не удалось сопоставить сохранённые правки с нотами. Сброс недоступен.';
+}
+$('fingerEditorResetFingering').onclick=()=>{
+ if(!fingerEditorAvailable()||!current||fingerResetDialog.open)return;
+ fingerResetPending={song:current,key:fingerGuideWorkKey(),
+  snapshot:JSON.stringify(state.fingerOverrides?.[fingerGuideWorkKey()]||{})};
+ fingerResetDialog.querySelector('input[value="user"][name="fingerResetScope"]').checked=true;
+ fingerResetPreview();
+ fingerResetDialog.showModal();
+};
+for(const control of fingerResetDialog.querySelectorAll('input[name="fingerResetScope"]'))
+ control.onchange=fingerResetPreview;
+$('fingerResetCancel').onclick=()=>fingerResetDialog.close();
+fingerResetDialog.onclose=()=>{fingerResetPending=null};
+$('fingerResetConfirm').onclick=()=>{
+ if(!fingerResetPending||!fingerEditorAvailable())return;
+ const {song,key,snapshot}=fingerResetPending;
+ if(current!==song||fingerGuideWorkKey()!==key||
+    JSON.stringify(state.fingerOverrides?.[key]||{})!==snapshot){
+  fingerResetDialog.close();
+  notify('Партитура или сохранённые правки изменились — сброс отменён.');
+  return;
  }
- const ok=fingerOverrideCommit(null,null,{action:'batch',batch:entries});
- if(!ok){notify('Сброс аппликатуры не выполнен.');return;}
- fingerBrowserAbort('Сброшено '+entries.length+
-  ' пользовательских номеров пальцев. Можно рассчитать новую аппликатуру или отменить сброс через Undo.');
+ const scope=fingerResetDialog.querySelector('input[name="fingerResetScope"]:checked')?.value;
+ if(!['user','all'].includes(scope))return;
+ const plan=fingerResetEntries(scope,fingerEditorNotes(),state.fingerOverrides?.[key]||{});
+ if(!plan.ok||!plan.entries.length){fingerResetPreview();return}
+ const ok=fingerOverrideCommit(null,null,{action:'batch',batch:plan.entries});
+ fingerResetDialog.close();
+ if(!ok){notify('Сброс аппликатуры не выполнен.');return}
+ fingerBrowserAbort('Сброшено пользовательских номеров: '+plan.userCount+
+  (scope==='all'?' · Авторских скрыто: '+plan.authorCount:'')+
+  '. Исходный MusicXML не изменён. Можно рассчитать аппликатуру заново или отменить сброс через Undo.');
  fingerEditorRender();
- notify('Сброшено '+entries.length+' номеров пальцев · одно действие Undo');
+ notify('Сброс аппликатуры: '+plan.entries.length+' нот · одно действие Undo');
 };
 $('fingerEditorUndo').onclick=()=>{fingerOverrideCommit(null,null,{action:'undo'});fingerEditorRender()};
 $('fingerEditorRedo').onclick=()=>{fingerOverrideCommit(null,null,{action:'redo'});fingerEditorRender()};
