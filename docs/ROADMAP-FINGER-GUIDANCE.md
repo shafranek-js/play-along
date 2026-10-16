@@ -1,5 +1,10 @@
 # Play Along — development roadmap: Finger Guidance and musical reliability
 
+## FG-03C2 — reversible full author + user reset (v0.10.126)
+
+Add one "Сброс аппликатуры" selector to the existing Fingering editor. Scope A resets only persisted user numbers. Scope B suppresses the MusicXML author notation **in the working layer only** in addition to resetting user numbers, without changing source XML, voices, temporal events, hand attribution, or any unrelated score. Suppression is persisted per source-note ID using strict validation and one atomic Undo/Redo step, included in backups, respected by Beam input, editor, learner hints and detached printed-score display. Reapplied, explicitly confirmed numbers must not accidentally reactivate hidden author fingers. Real Chromium QA covers author-only score, cancel, full reset, reload, fresh calculation, accept, Undo/Redo, user-only reset after full, and source immutability.
+
+
 ## FG-03C2: score-level fingering reset and reapply (v0.10.125)
 
 After applying 430 Anatomical fingers to the Bach MXL, the user needs an explicit one-click "Сброс аппликатуры" rather than manually selecting all notes. Reset only saved user finger numbers in the active score; preserve independently assigned hands and original author fingers, confirm and make a single Undo step. The existing selected-note "Вернуть автора" remains a separate operation. Real Chromium regression verifies confirmation, atomic update, no source edits and fresh post-reset Beam suggestions.
