@@ -103,8 +103,7 @@ function sceneFingerCandidatePreviewMap(){
  const preview=new Map();
  if(!sceneFingerActive||state.scoreView!=='roll'||state.page!=='practice'||!current)return preview;
  if(sceneFingerMethod==='beam'){
-  if(!fingerSelectionAvailable()||!fingerBrowserMidiSourceVerified()||
-     !fingerBrowserPreview||
+  if(!fingerSelectionAvailable()||!fingerBrowserPreview||
      fingerBrowserSong!==current||$('fingerBrowserCompareSaved').checked||
      fingerBrowserSnapshotKey!==JSON.stringify(fingerBrowserInput()))return preview;
   const sources=new Map(fingerSelectionOrdered().map(entry=>[entry.id,entry.note]));
