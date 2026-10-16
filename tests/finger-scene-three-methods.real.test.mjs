@@ -111,7 +111,12 @@ try{
   return {format:song.format,count:song.tracks.flatMap(t=>t.notes).length};
  },[...midi]);
  assert.deepEqual(imported,{format:'MIDI',count:2});
- await page.locator('#sceneFingerMode').click();
+ // Loading a new source while actively editing retains the shared scene
+ // (and selects its eligible automatic method). Do not accidentally turn
+ // off that already-active scene by clicking the toggle again.
+ if(await page.locator('#sceneFingerMode').getAttribute('aria-pressed')==='false')
+  await page.locator('#sceneFingerMode').click();
+ assert.equal(await page.locator('#sceneFingerMode').getAttribute('aria-pressed'),'true');
  assert.equal(await page.locator('#sceneFingerMethod').inputValue(),'pianomotion');
  assert.equal(await page.locator('#sceneFingerMethod option[value="manual"]').evaluate(el=>el.disabled),true,
   'Manual cannot be chosen for MIDI');
