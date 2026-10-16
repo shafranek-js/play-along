@@ -176,7 +176,7 @@ try{
   'Beam is selectable on original MIDI, but unknown hand assignments must be refused');
  assert.equal(await page.locator('#sceneFingerPianoMotionButton').isEnabled(),true);
  assert.equal(await page.locator('#sceneFingerManualButton').isEnabled(),true);
- assert.equal(await page.locator('#sceneFingerBeamButton').isDisabled(),true);
+ assert.equal(await page.locator('#sceneFingerBeamButton').isEnabled(),true);
  assert.equal(await page.locator('#rollWrap').isVisible(),true);
  const midiIds=await page.evaluate(()=>window.__fingerGuideTest.sourceOrder);
  assert.equal(midiIds.length,2,'MIDI must expose both stable source note IDs');
