@@ -172,7 +172,9 @@ function libraryRememberFilters(){
   fingering:$('libraryFingeringSelect').value,
   favoritesOnly:$('libraryFavoritesOnly').checked,
   query:$('librarySearch').value,
-  mutopiaComposer:$('mutopiaComposer').value,
+  // The async catalog may not have recreated its options yet.
+  mutopiaComposer:$('mutopiaComposer').options.length===1&&state.libraryFilters.mutopiaComposer
+   ?state.libraryFilters.mutopiaComposer:$('mutopiaComposer').value,
   mutopiaInstrument:$('mutopiaInstrument').value
  },false);
  persist();
