@@ -190,9 +190,19 @@ try{
  assert.ok(pick);
  const rollBox=await page.locator('#roll').boundingBox();
  await page.mouse.click(rollBox.x+pick.x+pick.w/2,rollBox.y+pick.y+pick.h/2);
+ const pointerSelected=await page.evaluate(()=>window.__fingerGuideTest.selectedNoteIds);
+ assert.deepEqual(pointerSelected,[midiIds[0]],
+  'MIDI note click must select intended imported source note');
  await page.locator('[data-scene-hand="RH"]').click();
  await page.locator('[data-scene-finger="3"]').click();
- assert.equal((await page.evaluate(()=>window.__fingerGuideTest.userCorrections))[midiIds[0]].finger,3);
+ const midiDebug=await page.evaluate(()=>({
+  selected:window.__fingerGuideTest.selectedNoteIds,
+  key:window.__prototypeTest.song.midiFingerWorkKey,
+  edits:window.__fingerGuideTest.userCorrections,
+  history:window.__fingerGuideTest.history,
+  stage:document.getElementById('sceneFingerSelection').textContent
+ }));
+ assert.equal(midiDebug.edits[midiIds[0]]?.finger,3,JSON.stringify(midiDebug));
  assert.equal(await page.locator('#sceneFingerUndo').isEnabled(),true);
  await page.locator('#sceneFingerUndo').click();
  assert.equal((await page.evaluate(()=>window.__fingerGuideTest.userCorrections))[midiIds[0]]?.finger??null,null);
