@@ -105,9 +105,13 @@ try{sceneFingerDeveloper=localStorage.getItem(SCENE_DEVELOPER_PREF)==='true'}
 catch{}
 document.body.classList.toggle('developerMode',sceneFingerDeveloper);
 $('developerToolsToggle').checked=sceneFingerDeveloper;
+$('compactLegacyFingerOption').hidden=!sceneFingerDeveloper;
+if(!sceneFingerDeveloper&&state.scoreView==='editor')state.scoreView='roll';
 $('developerToolsToggle').onchange=e=>{
  sceneFingerDeveloper=e.target.checked;
  document.body.classList.toggle('developerMode',sceneFingerDeveloper);
+ $('compactLegacyFingerOption').hidden=!sceneFingerDeveloper;
+ if(!sceneFingerDeveloper&&state.scoreView==='editor')scoreSetView('roll');
  try{localStorage.setItem(SCENE_DEVELOPER_PREF,String(sceneFingerDeveloper))}
  catch{notify('Не удалось сохранить настройку интерфейса.')}
  sceneFingerControlsSync();
