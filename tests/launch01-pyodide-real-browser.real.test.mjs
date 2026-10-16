@@ -134,8 +134,14 @@ try{
   .flatMap(t=>t.notes).some(n=>Number.isInteger(n.finger))),false,
  'stage preview must not silently apply generated fingers');
  await page.locator('#sceneFingerReview').click();
- await page.locator('#pianoMotionSelectAll').click();
- await page.locator('#pianoMotionApply').click();
+ assert.equal(await page.locator('#sceneFingerReviewPanel').isVisible(),true);
+ assert.equal(await page.locator('#fingerEditorWrap').isVisible(),false,
+  'actual Pyodide review must remain on the same 88-key Piano Roll');
+ await page.locator('#sceneFingerReviewAll').click();
+ assert.equal(await page.locator('#sceneFingerReviewApply').isDisabled(),true,
+  'selecting suggestions is not authorisation to overwrite fingers');
+ await page.locator('#sceneFingerReviewConfirm').check();
+ await page.locator('#sceneFingerReviewApply').click();
  const after=await page.evaluate(()=>{
   const song=window.__prototypeTest?.currentSong?.()||null;
   const status=document.getElementById('pianoMotionStatus').textContent;
@@ -152,10 +158,16 @@ try{
  assert.equal(after.sourceTiming,initial.sourceTiming,
   'genuine Python Apply must change only fingers, never source pitch/onset/release');
  assert.ok(after.generatedFingers>0,'real Python generated finger values must be applied');
- await page.locator('#sceneFingerMode').click();
  assert.equal((await page.evaluate(()=>window.__fingerGuideTest.sceneCandidates)).count,0,
   'once every eligible finger was accepted, no pending proposal remains');
- await page.locator('#sceneFingerReview').click();
+ assert.equal(await page.locator('#rollWrap').isVisible(),true,
+  'PianoMotion Apply must not leave the shared roll');
+ assert.equal(await page.locator('#sceneFingerUndo').isEnabled(),true,
+  'stage Undo must use genuine PianoMotion history');
+ // Export remains in the full editing toolkit until its separate user-facing
+ // export action is integrated into the common stage.
+ if(await desktopTab.isVisible())await desktopTab.click();
+ else await compactSelect.selectOption('editor');
  const downloadPromise=page.waitForEvent('download',{timeout:20000});
  await page.locator('#pianoMotionExportXML').click();
  const download=await downloadPromise;
