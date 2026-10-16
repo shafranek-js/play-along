@@ -514,7 +514,9 @@ function sceneFingerSelectionHighlights(on,isManual){
  const ids=[...fingerSelectedIds],selection=on&&isManual&&ids.length===1?
   fingerSelectionOrdered().find(e=>e.id===ids[0])?.note:null;
  const override=selection?fingerOverrideForNote(selection):null;
- const hand=override?.hand??selection?.hand??null;
+ // Highlight the same verified/provisional hand whose color is rendered
+ // on the selected falling note; no second, conflicting hand heuristic.
+ const hand=selection?fingerRollNoteHand(selection):null;
  const finger=Number.isInteger(override?.finger)?override.finger:
   override?.suppressAuthor?null:selection?.finger??null;
  for(const b of $('sceneFingerManual').querySelectorAll('[data-scene-hand],[data-scene-finger]')){
