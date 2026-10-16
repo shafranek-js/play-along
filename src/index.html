@@ -126,7 +126,7 @@
     </div>
     <div id="sceneFingerAutomatic" class="sceneFingerAutomatic" hidden>
      <button type="button" id="sceneFingerCalculate" class="sceneFingerDeveloperOnly" title="Повторить расчёт выбранным движком">Пересчитать</button>
-     <button type="button" id="sceneFingerReview" title="Проверить предлагаемые пальцы и выбрать, какие сохранить. Существующие назначения не перезаписываются автоматически.">Проверить и применить…</button>
+     <button type="button" id="sceneFingerReview" title="Выбрать, проверить и принять предложенные пальцы непосредственно на Piano Roll, без перехода к другому виду">Проверить и применить</button>
      <span id="sceneFingerAutoStatus" class="sceneFingerAutoStatus" role="status" aria-live="polite">Предложения пока не рассчитаны</span>
     </div>
     <span class="sceneFingerViewport" id="sceneFingerViewport" role="status" aria-live="off" title="Колесо мыши — обзор времени; Ctrl+колесо — временной масштаб. Транспорт воспроизведения не перемещается.">Вид: за игрой · 6.0 с</span>
@@ -137,6 +137,23 @@
     <button type="button" id="sceneFingerAdvanced" class="sceneFingerDeveloperOnly" title="Открыть диагностические инструменты выбранного алгоритма">Для разработчика…</button>
     <span id="sceneFingerSelection" role="status" aria-live="polite">Выбери ноту</span>
    </div>
+   <section class="sceneFingerReviewPanel" id="sceneFingerReviewPanel" aria-label="Проверка рассчитанной аппликатуры на Piano Roll" hidden>
+    <div class="sceneFingerReviewHeading">
+     <strong>Проверка аппликатуры</strong>
+     <button type="button" id="sceneFingerReviewClose" aria-label="Закрыть проверку">×</button>
+    </div>
+    <p class="sceneFingerReviewHelp">Фиолетовый пунктир — предложение, жёлтая рамка — выбрано. Нажимай на нотные блоки или выделяй их рамкой. Авторская и твоя сохранённая аппликатура не заменяются автоматически.</p>
+    <p class="sceneFingerReviewCounts" id="sceneFingerReviewCounts" role="status" aria-live="polite">Предложений пока нет.</p>
+    <div class="sceneFingerReviewActions">
+     <button type="button" id="sceneFingerReviewAll">Выбрать все применимые</button>
+     <button type="button" id="sceneFingerReviewNone">Снять выделение</button>
+    </div>
+    <label class="sceneFingerReviewConsent"><input type="checkbox" id="sceneFingerReviewConfirm"> Я проверил(а) выбранные пальцы и хочу их применить</label>
+    <div class="sceneFingerReviewActions">
+     <button type="button" id="sceneFingerReviewApply" class="sceneFingerReviewApply" disabled>Применить выбранные</button>
+     <button type="button" id="sceneFingerReviewCancel">Оставить без изменений</button>
+    </div>
+   </section>
    <div class="rollHint">Клик — нота · Ctrl+клик — набор · Shift+клик — диапазон · рамка мышью · Ctrl+A — все · Space — Play/Pause</div></div>
   <div class="sheetWrap hidden" id="sheetWrap" role="region" aria-label="Интерактивная партитура OpenSheetMusicDisplay" tabindex="0"><div class="sheetContent" id="sheetContent"><div class="sheetInfo"><div><strong>♬ Нотная партитура</strong> · <span id="sheetStatus" aria-live="polite">Ожидание произведения</span></div><div class="sheetScrollControls"><label title="Автоматически прокручивать партитуру за курсором"><input type="checkbox" id="sheetFollow" checked> Следовать</label><button id="sheetBarBack" title="Предыдущий такт">⇤ Такт</button><button id="sheetBarNext" title="Следующий такт">Такт ⇥</button><button id="sheetZoomOut" title="Уменьшить ноты" aria-label="Уменьшить">−</button><span id="sheetZoomLabel">100%</span><button id="sheetZoomIn" title="Увеличить ноты" aria-label="Увеличить">＋</button></div></div><div id="sheetWaitStatus" class="sheetNotice hidden" aria-live="polite"></div><div id="sheetNotice" class="sheetNotice hidden"></div><div id="sheetFingerStatus" class="sheetFingerStatus hidden" aria-live="polite"></div><div class="sheetCanvas" id="sheetCanvas" aria-label="Нотная запись произведения"></div></div></div>
   <div class="fingerEditorWrap hidden" id="fingerEditorWrap" role="region" aria-label="Редактор аппликатуры всего произведения">
