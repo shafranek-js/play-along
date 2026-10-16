@@ -201,6 +201,67 @@ try{
  assert.equal(result.scoreAuthoredCount,0);
  assert.equal(result.selectedOnly,true,'foreign flute excluded from piano score');
  assert.equal(result.hasProvenanceWarning,true);
+ // FG-05: on the SAME current 547-note source, correct ONE accepted Python
+ // finger manually, export combined digits, Undo manual, export again.
+ await page.locator('#viewRoll').click();
+ await page.locator('#sceneFingerMode').click();
+ await page.locator('#sceneFingerManualButton').click();
+ await page.evaluate(()=>window.__prototypeTest.seek(0));
+ const toEdit=await page.evaluate(()=>{
+  const first=window.__prototypeTest.song.tracks[0].notes[0];
+  const hit=window.__fingerGuideTest.noteRects.find(x=>x.id===first.noteId);
+  return {hit,id:first.noteId,pitch:first.pitch,pythonFinger:first.finger};
+ });
+ assert.ok(toEdit.hit,JSON.stringify(toEdit));
+ assert.ok(toEdit.pythonFinger>=1&&toEdit.pythonFinger<=5);
+ const replacement=toEdit.pythonFinger===5?4:5;
+ const bounds=await page.locator('#roll').boundingBox();
+ await page.mouse.click(bounds.x+toEdit.hit.x+toEdit.hit.w/2,
+  bounds.y+toEdit.hit.y+toEdit.hit.h/2);
+ assert.deepEqual(await page.evaluate(()=>window.__fingerGuideTest.selectedNoteIds),
+  [toEdit.id]);
+ await page.locator('[data-scene-hand="LH"]').click();
+ await page.locator('[data-scene-finger="'+replacement+'"]').click();
+ assert.equal((await page.evaluate(()=>window.__fingerGuideTest.userCorrections))[toEdit.id].finger,
+  replacement);
+ assert.equal(await page.locator('#sceneFingerExport').isEnabled(),true);
+ const capture=()=>page.evaluate(async()=>{
+  const old=URL.createObjectURL,click=HTMLAnchorElement.prototype.click;
+  let result=null;
+  try{
+   URL.createObjectURL=blob=>{result=blob;return 'blob:merged-fingering-test'};
+   HTMLAnchorElement.prototype.click=function(){};
+   document.getElementById('sceneFingerExport').click();
+   const xml=result?await result.text():null;
+   const out=xml?window.__libraryV08.readMusicXML(xml,'merged.musicxml'):null;
+   const notes=out?.tracks.flatMap(t=>t.notes)||[];
+   return {
+    xml:!!xml,notes:notes.map(n=>[n.pitch,n.finger??null,n.fingeringSource]),
+    marker:xml?.includes('manual: 1; retained Python: 546'),
+    scoreFormat:window.__prototypeTest.song.format,
+    originalFinger:window.__prototypeTest.song.tracks[0].notes[0].finger,
+    onRoll:!document.getElementById('rollWrap').classList.contains('hidden'),
+    manual:window.__fingerGuideTest.userCorrections
+   };
+  }finally{URL.createObjectURL=old;HTMLAnchorElement.prototype.click=click}
+ });
+ const merged=await capture();
+ assert.equal(merged.xml,true,JSON.stringify(merged).slice(0,1200));
+ assert.equal(merged.marker,true);
+ assert.equal(merged.notes.length,547);
+ assert.deepEqual(merged.notes[0],[toEdit.pitch,replacement,'musicxml-user-export-unverified']);
+ assert.equal(merged.originalFinger,toEdit.pythonFinger,'manual change does not mutate accepted Python note');
+ assert.equal(merged.onRoll,true);
+ assert.equal(merged.scoreFormat,'MIDI');
+ await page.locator('#sceneFingerUndo').click();
+ assert.equal((await page.evaluate(()=>window.__fingerGuideTest.userCorrections))[toEdit.id]?.finger??null,null);
+ const afterUndo=await capture();
+ assert.equal(afterUndo.xml,true);
+ assert.equal(afterUndo.notes[0][1],toEdit.pythonFinger,'manual Undo preserves accepted Python number');
+ await page.locator('#sceneFingerRedo').click();
+ const afterRedo=await capture();
+ assert.equal(afterRedo.notes[0][1],replacement,'manual Redo is present in combined export');
+
  console.log('FG-04D2 real Chromium: 547-note guitar + flute MIDI -> calculate mock -> apply -> XML -> reimport unverified; source timing preserved PASS',result);
 }finally{
  if(browser)await browser.close();
