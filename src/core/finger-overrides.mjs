@@ -88,3 +88,86 @@ export function fingerOverrideEffective(note,change){
  return {finger:change.finger,hand:change.hand,source:'user',
   ...(change.suppressAuthor===true?{suppressAuthor:true}:{})};
 }
+
+/**
+ * Accepted PianoMotion digits are durable user decisions, not raw solver
+ * proposals or authored notation. Store only exact source-note identities.
+ * Original MIDI bytes / MusicXML provide the independent work fingerprint.
+ */
+export function fingerAcceptedValidate(input,{strict=false}={}){
+ const result=Object.create(null);
+ if(input==null)return result;
+ if(!safeRecord(input)||Object.keys(input).length>100){
+  if(strict)throw Error('Некорректная сохранённая аппликатура');
+  return result;
+ }
+ let total=0;
+ for(const [work,entries] of Object.entries(input)){
+  if(!workPattern.test(work)||!safeRecord(entries)||Object.keys(entries).length>30000){
+   if(strict)throw Error('Некорректная сохранённая партитура');
+   continue;
+  }
+  const kept=Object.create(null);
+  for(const [id,entry] of Object.entries(entries)){
+   if(++total>30000){
+    if(strict)throw Error('Слишком много сохранённых пальцев');
+    return result;
+   }
+   if(!notePattern.test(id)||!id.startsWith(work.startsWith('mid:')?'midi:':'xml:')||
+      !safeRecord(entry)||Object.keys(entry).some(k=>!['pitch','start','duration','finger','hand'].includes(k))||
+      !Number.isInteger(entry.pitch)||entry.pitch<0||entry.pitch>127||
+      typeof entry.start!=='number'||!Number.isFinite(entry.start)||entry.start<0||entry.start>864000||
+      typeof entry.duration!=='number'||!Number.isFinite(entry.duration)||entry.duration<0||entry.duration>864000||
+      !Number.isInteger(entry.finger)||entry.finger<1||entry.finger>5||
+      !['LH','RH'].includes(entry.hand)){
+    if(strict)throw Error('Некорректная принятая аппликатура');
+    continue;
+   }
+   kept[id]={pitch:entry.pitch,start:entry.start,duration:entry.duration,
+    finger:entry.finger,hand:entry.hand};
+  }
+  if(Object.keys(kept).length)result[work]=kept;
+ }
+ return result;
+}
+export function fingerAcceptedSnapshot(song){
+ const key=fingerOverrideWorkKey(song);
+ if(!key)return null;
+ const entries=Object.create(null);
+ for(const note of song.tracks.flatMap(t=>t.notes||[])){
+  if(note.fingeringSource!=='pianomotion'||!notePattern.test(note.noteId||'')||
+     !Number.isInteger(note.pitch)||note.pitch<0||note.pitch>127||
+     !Number.isFinite(note.start)||note.start<0||
+     !Number.isFinite(note.duration)||note.duration<0||
+     !Number.isInteger(note.finger)||note.finger<1||note.finger>5||
+     !['LH','RH'].includes(note.hand))continue;
+  entries[note.noteId]={pitch:note.pitch,start:note.start,duration:note.duration,
+   finger:note.finger,hand:note.hand};
+ }
+ return {key,entries};
+}
+export function fingerAcceptedRestore(song,input){
+ const key=fingerOverrideWorkKey(song),entries=key&&input?.[key];
+ if(!key||!entries)return 0;
+ const byId=new Map();
+ for(const n of song.tracks.flatMap(t=>t.notes||[])){
+  if(typeof n.noteId!=='string'||byId.has(n.noteId))return 0;
+  byId.set(n.noteId,n);
+ }
+ // Fail closed on any stale note identity or altered musical content. Applied
+ // annotations may never change the original notes or author-supplied digits.
+ const patches=[];
+ for(const [id,v] of Object.entries(entries)){
+  const note=byId.get(id);
+  if(!note||!v||note.pitch!==v.pitch||note.start!==v.start||
+      note.duration!==v.duration||note.finger!=null||
+      note.fingeringSource!=null||
+      note.hand!=null&&note.hand!==v.hand)return 0;
+  patches.push({note,entry:v});
+ }
+ for(const {note,entry} of patches){
+  note.finger=entry.finger;note.hand=entry.hand;
+  note.fingeringSource='pianomotion';
+ }
+ return patches.length;
+}
