@@ -189,6 +189,10 @@ if(['mutopia','musetrainer','asap','maestro'].includes(state.libraryFilters.sour
  queueMicrotask(libraryEnsureSelectedCatalog);
 const startupSelectedSongId=state.selected;
 startupSongRestorePending=true;
+function finishStartupSongLoading(){
+ $('startupSongLoading')?.remove();
+ $('playBtn').disabled=false;
+}
 const startupLibraryPromise=loadLibraryIndex();
 const startupPerformancePromise=loadPerformanceHistory().catch(e=>console.warn('Performance history restore failed',e));
 window.__playAlongVersion='0.9.1';
@@ -250,7 +254,14 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(compactCloseMenu
   if(!cancel.defaultPrevented)el.classList.remove('show');
  });if(document.body.classList.contains('focus'))toggleFocus();return}if(fingerSelectionShortcut(e))return;if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();showCommands();return}if(e.target.closest('input,select,textarea')||document.querySelector('.overlay.show'))return;if(e.shiftKey&&e.key.toLowerCase()==='l'){e.preventDefault();toggleSide('left');return}if(e.shiftKey&&e.key.toLowerCase()==='r'){e.preventDefault();toggleSide('right');return}if(e.key===' '){e.preventDefault();togglePlay();return}if(e.key.toLowerCase()==='f'){e.preventDefault();toggleFocus();return}if(e.key==='ArrowLeft'){seek(pos-5);return}if(e.key==='ArrowRight'){seek(pos+5);return}});
 window.addEventListener('resize',applyPanels);window.addEventListener('resize',resizeCanvas);let ro=new ResizeObserver(resizeCanvas);ro.observe($('rollWrap'));
-if(!['listen','wait','tempo'].includes(state.mode))state.mode='listen';if(!['original','transpose','adaptive'].includes(state.adaptMode))state.adaptMode='original';if(!['device',...Object.keys(PREVIEW_RANGES)].includes(state.targetRange))state.targetRange='device';if(!['center','low','high'].includes(state.adaptProfile))state.adaptProfile='center';document.querySelectorAll('[data-mode]').forEach(b=>b.classList.toggle('active',b.dataset.mode===state.mode));$('bottomMode').value=state.mode;loadSong(demoSongs.find(s=>s.id===startupSelectedSongId)||demoSongs[0],{startupRestore:true});restoreFolder();applyPage();applyLayout(state.layout,false);switchRightTab(state.rightTab,false);updateDevice();updateUI();scoreSetView(state.scoreView);audioSettingsUISetup();requestAnimationFrame(frame);queueMicrotask(autoConnectMidi);
+if(!['listen','wait','tempo'].includes(state.mode))state.mode='listen';if(!['original','transpose','adaptive'].includes(state.adaptMode))state.adaptMode='original';if(!['device',...Object.keys(PREVIEW_RANGES)].includes(state.targetRange))state.targetRange='device';if(!['center','low','high'].includes(state.adaptProfile))state.adaptProfile='center';document.querySelectorAll('[data-mode]').forEach(b=>b.classList.toggle('active',b.dataset.mode===state.mode));$('bottomMode').value=state.mode;loadSong(demoSongs.find(s=>s.id===startupSelectedSongId)||demoSongs[0],{startupRestore:true});
+ if(startupSelectedSongId&&!demoSongs.some(song=>song.id===startupSelectedSongId)){
+  const loading=document.createElement('div');loading.id='startupSongLoading';
+  loading.setAttribute('role','status');loading.textContent='Восстанавливаю выбранную мелодию…';
+  document.querySelector('.center')?.append(loading);
+  $('playBtn').disabled=true;
+ }
+ restoreFolder();applyPage();applyLayout(state.layout,false);switchRightTab(state.rightTab,false);updateDevice();updateUI();scoreSetView(state.scoreView);audioSettingsUISetup();requestAnimationFrame(frame);queueMicrotask(autoConnectMidi);
 // Restore the exact last selected work. Saved and imported works live in IndexedDB;
 // bundled MIDI works do NOT, so they are recovered through their catalog SHA-256.
 // A user choosing another score while a restore is in flight always takes priority.
@@ -292,11 +303,13 @@ startupLibraryPromise.then(async()=>{
   }
  }finally{
   startupSongRestorePending=false;
+  finishStartupSongLoading();
   persist();
   renderLibrary();
  }
 }).catch(err=>{
  startupSongRestorePending=false;
+ finishStartupSongLoading();
  console.warn('Song restore failed',err);
  persist();
 });
