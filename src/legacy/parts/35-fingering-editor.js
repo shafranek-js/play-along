@@ -1511,8 +1511,14 @@ $('pianoMotionCalculate').onclick=()=>{
    pianoMotionLastPlan=alignment.ok&&audit?.ok?{
     ...plan,sourceNotes:exact?null:derived.sourceNotes,omittedCount,exactOriginalMidi:exact
    }:null;
+   // Recalculation must not orphan already accepted PianoMotion digits that
+   // remain on unchanged note objects. Only exact source-aligned, audited
+   // results may re-enable export; never treat pending proposals as applied.
+   pianoMotionLastApplied=!!pianoMotionLastAlignment&&
+    pianoMotionReviewCountApplied()>0;
    if($('pianoMotionApply'))$('pianoMotionApply').disabled=!alignment.ok||!audit?.ok;
-   if($('pianoMotionExportXML'))$('pianoMotionExportXML').disabled=true; // Export only after Apply.
+   if($('pianoMotionExportXML'))$('pianoMotionExportXML').disabled=
+    !pianoMotionLastApplied;
    $('pianoMotionClear').disabled=false;
    $('pianoMotionReview').hidden=!alignment.ok||!audit?.ok;
    if(alignment.ok&&audit?.ok){pianoMotionReviewSelected.clear();pianoMotionReviewRender();}
