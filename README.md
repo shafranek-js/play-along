@@ -1,4 +1,14 @@
-# Play Along — Piano Practice App (v0.10.135)
+# Play Along — Piano Practice App (v0.10.136)
+
+## FG-05 — one combined PianoMotion + manual MIDI export (v0.10.136)
+
+On the same 88-key Piano Roll, users may apply PianoMotion and **then manually replace individual fingers**, without losing already accepted algorithm assignments. The existing ↓ MusicXML exports one separate approximate score, with user digits taking priority on the exact source note, and unchanged accepted Python digits retained everywhere else. Hand-only corrections do not erase a Python number, and no pending unaccepted candidates are exported. Python and manual history remain separate and reversible.
+
+The merged export verifies original MIDI byte identity for manual entries, source-note object identity and selection scope, full score event parity before/after adding fingering, and source-untrusted user-fingering attribution on reimport. If manually edited notes are outside the piano portion selected for PianoMotion, it refuses export rather than silently dropping them. Source MIDI bytes and active song are not modified. The result is quantized MIDI-derived notation, not expressive-timing-accurate MusicXML. Real Chromium and pure-source regressions cover combined digits and protection.
+
+**Future library intake:** a user-designated additional MIDI collection belongs under **«Встроенные MIDI»**, not MAESTRO/ASAP research or the external online catalog. Its specific files or source URL and reuse rights have not yet been supplied; no phantom catalog entries are shipped.
+
+
 
 ## FG-05 — source-verified manual MIDI → MusicXML (v0.10.135)
 
