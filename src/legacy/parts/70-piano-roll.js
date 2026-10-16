@@ -1584,7 +1584,13 @@ function finishFingerSelection(e){
  fingerSelectionPointer=null;
  if(e.type!=='pointerup'){renderCanvas();return}
  if(sceneFingerActive&&sceneFingerReviewOpen&&sceneFingerMethod!=='manual'){
-  sceneFingerReviewGesture(d);return;
+  sceneFingerReviewGesture(d);
+  if(!d.dragging){
+   const hit=hitboxes.slice().reverse().find(b=>d.endX>=b.x&&d.endX<=b.x+b.w&&
+    d.endY>=b.y&&d.endY<=b.y+b.h)?.n;
+   if(hit)void audioAuditionNote(hit);
+  }
+  return;
  }
  const order=fingerSelectionOrdered(),validIds=new Set(order.map(n=>n.id));
  if(d.dragging){
@@ -1598,12 +1604,43 @@ function finishFingerSelection(e){
    const next=fingerSelectUpdate(order,fingerSelectedIds,hit.noteId,fingerSelectionAnchor,
     {shift:d.shift,toggle:d.toggle});
    fingerSelectionSet(next.selected,next.anchor);
+   // A click auditions the exact selected note, without transmitting a
+   // synthetic MIDI key, seeking or starting the full score.
+   void audioAuditionNote(hit);
   }else if(!d.toggle&&!d.shift)fingerSelectionSet([]);
  }
 }
 roll.addEventListener('pointerup',finishFingerSelection);
 roll.addEventListener('pointercancel',finishFingerSelection);
 roll.addEventListener('lostpointercapture',finishFingerSelection);
+// Unannotated demo/adapted notes have no canonical source IDs and therefore
+// cannot enter the editor selection path, but still deserve audible clicks.
+let rollAuditionPointer=null;
+roll.addEventListener('pointerdown',e=>{
+ if(e.button!==0||state.scoreView!=='roll'||fingerSelectionPointer||
+    rollAuditionPointer)return;
+ const p=rollSelectPoint(e);if(p.y>=keyboardTop)return;
+ const hit=hitboxes.slice().reverse().find(b=>p.x>=b.x&&p.x<=b.x+b.w&&
+  p.y>=b.y&&p.y<=b.y+b.h)?.n;
+ if(hit)rollAuditionPointer={id:e.pointerId,note:hit,x:p.x,y:p.y,dragged:false};
+});
+roll.addEventListener('pointermove',e=>{
+ if(!rollAuditionPointer||rollAuditionPointer.id!==e.pointerId)return;
+ const p=rollSelectPoint(e);
+ if(Math.hypot(p.x-rollAuditionPointer.x,p.y-rollAuditionPointer.y)>=5)
+  rollAuditionPointer.dragged=true;
+});
+function rollAuditionFinish(e){
+ const d=rollAuditionPointer;
+ if(!d||d.id!==e.pointerId)return;
+ rollAuditionPointer=null;
+ if(e.type!=='pointerup'||d.dragged)return;
+ const hit=noteHit(e);
+ if(hit!==d.note)return;
+ selectNote(hit);void audioAuditionNote(hit);
+}
+roll.addEventListener('pointerup',rollAuditionFinish);
+roll.addEventListener('pointercancel',rollAuditionFinish);
 let virtualPointer=null;
 roll.addEventListener('pointerdown',e=>{
  if(e.button!==0||virtualPointer!==null)return;
