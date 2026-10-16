@@ -1,4 +1,14 @@
-# Play Along — Piano Practice App (v0.10.141)
+# Play Along — Piano Practice App (v0.10.142)
+
+## FG-05 — selected fingering feedback + explicit replacement (v0.10.142)
+
+On the SAME 88-key Piano Roll, selecting one note now highlights its **effective RH/LH button and finger 1–5** in the toolbar. Source authored digits, accepted PianoMotion digits and user corrections are resolved in that order of precedence, with user overrides taking priority. Empty or multiple selection highlights no arbitrary single finger; the piano and transport do not move.
+
+To change an already assigned finger, select its source note(s) in Manual and click Beam Search or PianoMotion. Only the selected, already numbered source notes are unlocked for this calculation; all other saved/author fingers remain protected. Beam's original worker receives released finger anchors for precisely the selected source IDs, without mutating saved corrections or source XML. PianoMotion uses the original Python worker and independent physical audit, and projects only physically accepted alternative suggestions. Results appear on the same stage and **cannot replace any digit before explicit selection and review consent**. Accepted alternatives are user-saved corrections with one atomic Undo/Redo action, preserving original MusicXML/MIDI note identity, timing, playing hands elsewhere and existing other fingerings. The normal no-selection calculation remains unchanged. MIDI Beam still abstains if source/user hand assignment is unknown.
+
+A real Chromium test covers source-authored numbered notes, live single-note hand/finger highlights, mixed selection abstention, a fresh actual Beam calculation, explicit author-finger replacement, one Undo/Redo, and immutable score/audio/88-key geometry.
+
+
 
 ## FG-05 — selected-note reset on the shared piano roll (v0.10.141)
 

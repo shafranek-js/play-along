@@ -808,9 +808,16 @@ function fingerBrowserInput(){
     userDeclaredStaff&&String(n.staff)==='2'?'LH':null);
   const candidate={noteId:n.noteId,pitch:n.pitch,start:n.start,
    duration:n.duration,hand:h,staff:String(n.staff??''),voice:String(n.voice??'')};
-  if(Number.isInteger(change?.finger))candidate.userFinger=change.finger;
-  else if(!change?.suppressAuthor&&n.fingeringSource==='musicxml'&&
-   Number.isInteger(n.finger))candidate.authorFinger=n.finger;
+  // Only user-selected replacement targets are released as finger ANCHORS
+  // for a fresh Beam calculation. All other author/user constraints remain.
+  // Source notes and saved corrections themselves are never modified.
+  const replace=sceneFingerReplacementValid('beam')&&
+   sceneFingerReplaceRequest.ids.has(n.noteId);
+  if(!replace){
+   if(Number.isInteger(change?.finger))candidate.userFinger=change.finger;
+   else if(!change?.suppressAuthor&&n.fingeringSource==='musicxml'&&
+    Number.isInteger(n.finger))candidate.authorFinger=n.finger;
+  }
   return candidate;
  });
  return {notes,handSize:state.fingerBrowserHandSize,pianoStaffHints,pianoExcluded,
@@ -1504,8 +1511,14 @@ $('pianoMotionCalculate').onclick=()=>{
    pianoMotionLastPlan=alignment.ok&&audit?.ok?{
     ...plan,sourceNotes:exact?null:derived.sourceNotes,omittedCount,exactOriginalMidi:exact
    }:null;
+   // Recalculation must not orphan already accepted PianoMotion digits that
+   // remain on unchanged note objects. Only exact source-aligned, audited
+   // results may re-enable export; never treat pending proposals as applied.
+   pianoMotionLastApplied=!!pianoMotionLastAlignment&&
+    pianoMotionReviewCountApplied()>0;
    if($('pianoMotionApply'))$('pianoMotionApply').disabled=!alignment.ok||!audit?.ok;
-   if($('pianoMotionExportXML'))$('pianoMotionExportXML').disabled=true; // Export only after Apply.
+   if($('pianoMotionExportXML'))$('pianoMotionExportXML').disabled=
+    !pianoMotionLastApplied;
    $('pianoMotionClear').disabled=false;
    $('pianoMotionReview').hidden=!alignment.ok||!audit?.ok;
    if(alignment.ok&&audit?.ok){pianoMotionReviewSelected.clear();pianoMotionReviewRender();}
@@ -1564,6 +1577,9 @@ function pianoMotionReviewApply(indices){
   return;
  }
  pianoMotionReviewHistory=result.history;
+ // A newer direct Python Apply supersedes a previous manual replacement
+ // when deciding which action the automatic scene's Undo should reverse.
+ sceneFingerReplaceHistoryStep=null;
  pianoMotionLastApplied=true;
  pianoMotionReviewSelected.clear();
  if(state.fingerGuidanceMode==='off'){

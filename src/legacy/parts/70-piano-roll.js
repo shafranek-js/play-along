@@ -46,6 +46,57 @@ let sceneFingerMethod='manual',sceneFingerAutoStarted=null;
 // Stage review is only presentation/selection state; neither solver nor
 // fingering history is copied. Identity is the real current note object.
 let sceneFingerReviewOpen=false,sceneFingerReviewSelected=new Set();
+// Explicit per-note alternative calculation, scoped to the unchanged source.
+// Standard Beam/PianoMotion runs protect author/user fingers as before.
+let sceneFingerReplaceRequest=null;
+// Explicit source-bound last manual replacement step: the automatic stage
+// must undo this user-confirmed action before older Python history.
+let sceneFingerReplaceHistoryStep=null;
+function sceneFingerReplaceCanTravel(direction){
+ const h=fingerOverrideHistoryCurrent(),record=sceneFingerReplaceHistoryStep;
+ return !!record&&record.song===current&&
+  (direction==='undo'?h.past.at(-1):h.future.at(-1))===record.step;
+}
+function sceneFingerReplacementSnapshot(){
+ if(!current||!fingerSelectionAvailable())return null;
+ return JSON.stringify(fingerSelectionOrdered().map(e=>{
+  const n=e.note;return [e.id,n.pitch,n.start,n.duration,
+   n.finger??null,n.hand??null,n.fingeringSource??null];
+ }));
+}
+function sceneFingerReplacementValid(method=sceneFingerMethod){
+ const r=sceneFingerReplaceRequest;
+ if(!r||r.method!==method||r.song!==current||!fingerSelectionAvailable()||
+    r.key!==fingerGuideWorkKey()||
+    JSON.stringify(state.fingerOverrides?.[r.key]||{})!==r.saved||
+    sceneFingerReplacementSnapshot()!==r.source)return false;
+ const ids=new Set(fingerSelectionOrdered().map(e=>e.id));
+ return [...r.ids].every(id=>ids.has(id));
+}
+function sceneFingerReplacementPrepare(method){
+ sceneFingerReplaceRequest=null;
+ if(!fingerSelectionAvailable()||!fingerBrowserMidiSourceVerified())return;
+ const key=fingerGuideWorkKey(),saved=state.fingerOverrides?.[key]||{};
+ const chosen=fingerSelectionOrdered().filter(e=>fingerSelectedIds.has(e.id)&&
+  (Number.isInteger(saved[e.id]?.finger)||
+   !saved[e.id]?.suppressAuthor&&Number.isInteger(e.note.finger)&&
+   e.note.finger>=1&&e.note.finger<=5));
+ if(!chosen.length)return;
+ sceneFingerReplaceRequest={method,song:current,key,
+  ids:new Set(chosen.map(e=>e.id)),
+  saved:JSON.stringify(saved),source:sceneFingerReplacementSnapshot()};
+}
+function sceneFingerReplacementCandidate(note,proposal){
+ const r=sceneFingerReplaceRequest;
+ if(!sceneFingerReplacementValid()||!r.ids.has(note.noteId)||
+    !['RH','LH'].includes(proposal?.hand)||
+    !Number.isInteger(proposal?.finger)||proposal.finger<1||proposal.finger>5)return false;
+ const change=fingerOverrideForNote(note);
+ const finger=Number.isInteger(change?.finger)?change.finger:
+  change?.suppressAuthor?null:note.finger;
+ const hand=change?.hand??note.hand;
+ return finger!==proposal.finger||hand!==proposal.hand;
+}
 // UI presentation preference, not an authorization role or an engine setting.
 // All changes to source notes remain governed by the same source-safe guards.
 const SCENE_DEVELOPER_PREF='playalong-developer-ui';
@@ -79,7 +130,9 @@ function sceneFingerAutoSync(){
   'Есть рассчитанные предложения · проверка обязательна.':
   'Нажми «Рассчитать». Предложения не применяются автоматически.';
  const detailed=preview.size?message+' · На дорожке '+preview.size+
-  ' неподтверждённых пальцев (фиолетовый пунктир).':message;
+  (sceneFingerReplacementValid()?
+   ' вариантов замены уже назначенных пальцев (остальные защищены).':
+   ' неподтверждённых пальцев (фиолетовый пунктир).'):message;
  $('sceneFingerAutoStatus').textContent=detailed;
  $('sceneFingerAutoStatus').title=detailed;
  sceneFingerReviewSync(preview);
@@ -89,7 +142,7 @@ function sceneFingerAutoSync(){
 function sceneFingerSelectMethod(method){
  if(!['manual','pianomotion','beam'].includes(method)||
   !sceneFingerMethodAvailable(method))return false;
- if(sceneFingerMethod!==method)sceneFingerReviewReset();
+ if(sceneFingerMethod!==method){sceneFingerReviewReset();sceneFingerReplaceRequest=null;}
  sceneFingerMethod=method;
  $('sceneFingerMethod').value=method;
  sceneFingerControlsSync();
@@ -108,12 +161,18 @@ function sceneFingerCandidatePreviewMap(){
      fingerBrowserSnapshotKey!==JSON.stringify(fingerBrowserInput()))return preview;
   const sources=new Map(fingerSelectionOrdered().map(entry=>[entry.id,entry.note]));
   const saved=state.fingerOverrides?.[fingerGuideWorkKey()]||{};
+  const replacement=sceneFingerReplacementValid('beam');
   for(const [id,proposal] of fingerBrowserPreview){
    const note=sources.get(id);
    if(!note||note.pitch!==proposal.pitch||note.start!==proposal.start||
       !['RH','LH'].includes(proposal.hand)||!Number.isInteger(proposal.finger)||
       proposal.finger<1||proposal.finger>5)continue;
    const effective=fingerOverrideEffective(note,saved[id]);
+   if(replacement){
+    if(sceneFingerReplacementCandidate(note,proposal))
+     preview.set(note,{finger:proposal.finger,hand:proposal.hand});
+    continue;
+   }
    if(Number.isInteger(effective?.finger)||
       note.fingeringSource==='musicxml'&&Number.isInteger(note.finger)&&
       !effective?.suppressAuthor)continue;
@@ -122,14 +181,22 @@ function sceneFingerCandidatePreviewMap(){
  }else if(sceneFingerMethod==='pianomotion'&&pianoMotionLastSong===current&&
           pianoMotionLastAlignment?.ok){
   const summary=pianoMotionReviewAvailable();
-  for(const index of summary?.eligibleIndices||[]){
+  const replacement=sceneFingerReplacementValid('pianomotion');
+  const indices=replacement?pianoMotionLastAlignment.matches.map((_,i)=>i):
+   summary?.eligibleIndices||[];
+  for(const index of indices){
+   if(replacement&&(pianoMotionReviewAudit?.blocked?.includes(index)||
+     !pianoMotionReviewAudit?.ok))continue;
    const match=pianoMotionLastAlignment.matches[index];
    const note=match?.note,suggestion=match?.suggestion;
    if(!note||!suggestion||note.pitch!==suggestion.pitch||
       !['RH','LH'].includes(suggestion.hand)||
       !Number.isInteger(suggestion.finger)||
       suggestion.finger<1||suggestion.finger>5)continue;
-   preview.set(note,{finger:suggestion.finger,hand:suggestion.hand});
+   if(replacement){
+    if(sceneFingerReplacementCandidate(note,suggestion))
+     preview.set(note,{finger:suggestion.finger,hand:suggestion.hand});
+   }else preview.set(note,{finger:suggestion.finger,hand:suggestion.hand});
   }
  }
  return preview;
@@ -158,8 +225,18 @@ function sceneFingerReviewSync(candidates=null){
  for(const note of sceneFingerReviewSelected)
   if(!preview.has(note))sceneFingerReviewSelected.delete(note);
  const total=preview.size,selected=sceneFingerReviewSelected.size;
+ const replacing=sceneFingerReplacementValid();
+ $('sceneFingerReviewConfirm').parentElement.lastChild.textContent=replacing?
+  ' Я проверил(а) предложения и разрешаю заменить пальцы только выбранных нот':
+  ' Я проверил(а) выбранные пальцы и хочу их применить';
+ $('sceneFingerReviewHelp').textContent=replacing?
+  'Это альтернативные пальцы для ранее назначенных нот. Проверь каждую замену: исходные номера и остальные ноты сохраняются до явного подтверждения.':
+  'Фиолетовый пунктир — предложение, жёлтая рамка — выбрано. Нажимай на нотные блоки или выделяй их рамкой. Авторская и сохранённая аппликатура не заменяются автоматически.';
  $('sceneFingerReviewCounts').textContent=total?
-  'Предложено '+total+' · выбрано '+selected+' · сохранено только после подтверждения':
+  (sceneFingerReplacementValid()?
+   'Замена назначенных пальцев · предложено '+total+' · выбрано '+selected+
+   ' · остальные ноты защищены':
+   'Предложено '+total+' · выбрано '+selected+' · сохранено только после подтверждения'):
   'Применимых предложений пока нет. Рассчитай аппликатуру или сохрани существующую.';
  $('sceneFingerReviewAll').disabled=!total;
  $('sceneFingerReviewNone').disabled=!selected;
@@ -183,7 +260,41 @@ function sceneFingerReviewApply(){
   sceneFingerReviewSync(map);notify('Предложения изменились. Проверь выделение ещё раз.');return;
  }
  let applied=false;
- if(sceneFingerMethod==='beam'){
+ if(sceneFingerReplacementValid()){
+  // User explicitly requested alternatives to protected digits; validate
+  // Worker provenance, source note identities and snapshot AGAIN at Apply.
+  // Commit as one atomic user override, preserving source author/solver notes.
+  const r=sceneFingerReplaceRequest;
+  if(!fingerBrowserMidiSourceVerified()||
+     (sceneFingerMethod==='beam'&&
+      (fingerBrowserSong!==current||!fingerBrowserPreview||
+       fingerBrowserSnapshotKey!==JSON.stringify(fingerBrowserInput())||
+       $('fingerBrowserCompareSaved').checked))||
+     (sceneFingerMethod==='pianomotion'&&
+      (!pianoMotionLastAlignment?.ok||pianoMotionLastSong!==current||
+       !pianoMotionReviewValidate()))){
+   notify('Предложения устарели. Рассчитай аппликатуру снова.');return;
+  }
+  const byId=new Map(fingerSelectionOrdered().map(e=>[e.id,e.note]));
+  const before=state.fingerOverrides?.[r.key]||{},entries=[];
+  for(const note of notes){
+   if(byId.get(note.noteId)!==note||!r.ids.has(note.noteId))return;
+   const candidate=map.get(note);
+   if(!candidate||!sceneFingerReplacementCandidate(note,candidate))return;
+   const old=before[note.noteId]??null;
+   const next={finger:candidate.finger,hand:candidate.hand,
+    ...(old?.suppressAuthor===true?{suppressAuthor:true}:{})};
+   if(!fingerHistorySame(old,next))entries.push({id:note.noteId,before:old,after:next});
+  }
+  if(!entries.length){notify('Выбранные пальцы уже совпадают.');return}
+  applied=fingerOverrideCommit(null,null,{action:'batch',batch:entries});
+  if(applied){
+   sceneFingerReplaceHistoryStep={song:current,step:fingerOverrideHistoryCurrent().past.at(-1)};
+   fingerBrowserAbort('Выборочная замена подтверждена · '+entries.length+' нот.');
+   sceneFingerReplaceRequest=null;
+   notify('Заменено пальцев: '+entries.length+' · одно Undo');
+  }
+ }else if(sceneFingerMethod==='beam'){
   if(!fingerSelectionAvailable())return;
   const savedSelection=fingerSelectedIds,oldHistory=fingerOverrideHistoryCurrent().past.length;
   try{
@@ -266,6 +377,7 @@ function sceneFingerCalculateSelected(){
  if(!sceneFingerActive||sceneFingerMethod==='manual')return;
  const method=sceneFingerMethod;
  sceneFingerReviewReset({close:false});
+ sceneFingerReplacementPrepare(method);
  if(!sceneFingerMethodAvailable(method)){
   notify('Открой MIDI или MusicXML в режиме «Оригинал».');return;
  }
@@ -366,6 +478,12 @@ function sceneFingerExportKind(){
  if(pianoMotionLastSong===current&&pianoMotionLastApplied&&
     pianoMotionReviewCountApplied()>0&&!$('pianoMotionExportXML').disabled)
   return 'pianomotion';
+ // A partial MIDI manual-only export would silently omit still-applied
+ // Python digits after recalculation/error. Fail closed until a fresh
+ // source-aligned PianoMotion result can merge BOTH accepted layers.
+ if(current.format==='MIDI'&&current.tracks.some(t=>(t.notes||[]).some(n=>
+    n.fingeringSource==='pianomotion'&&Number.isInteger(n.finger)&&
+    n.finger>=1&&n.finger<=5)))return null;
  if(fingerSelectionAvailable()&&current.format==='MusicXML'&&
     !current.originalNotationXML&&
     Object.keys(state.fingerOverrides?.[fingerGuideWorkKey()]||{}).length)
@@ -387,6 +505,26 @@ function sceneFingerDownloadMusicXML(){
  else notify('Сначала примени аппликатуру или сохрани ручные исправления.');
 }
 
+/** Presentation only: reflect the effective finger/hand of exactly one
+ * selected, source-verified note. Mixed selection intentionally lights none.
+ * Reads current user override first, including source-author suppression;
+ * never treats finger number as hand proof.
+ */
+function sceneFingerSelectionHighlights(on,isManual){
+ const ids=[...fingerSelectedIds],selection=on&&isManual&&ids.length===1?
+  fingerSelectionOrdered().find(e=>e.id===ids[0])?.note:null;
+ const override=selection?fingerOverrideForNote(selection):null;
+ const hand=override?.hand??selection?.hand??null;
+ const finger=Number.isInteger(override?.finger)?override.finger:
+  override?.suppressAuthor?null:selection?.finger??null;
+ for(const b of $('sceneFingerManual').querySelectorAll('[data-scene-hand],[data-scene-finger]')){
+  const selected=!!selection&&(b.dataset.sceneHand?
+   b.dataset.sceneHand===hand:
+   Number.isInteger(finger)&&Number(b.dataset.sceneFinger)===finger);
+  b.setAttribute('aria-pressed',String(selected));
+  b.classList.toggle('sceneFingerAssigned',selected);
+ }
+}
 function sceneFingerControlsSync(){
  // A newly imported score must never inherit the detached viewport position
  // or zoom level of a previous song, even if both are MusicXML documents.
@@ -399,6 +537,8 @@ function sceneFingerControlsSync(){
   sceneFingerMethod=pianoMotionLastSong===current&&pianoMotionLastAlignment?.ok?
    'pianomotion':fingerSelectionAvailable()?'manual':'pianomotion';
   sceneFingerAutoStarted=null;
+  sceneFingerReplaceRequest=null;
+  sceneFingerReplaceHistoryStep=null;
   sceneFingerReviewReset();
  }
  const manualAvailable=fingerSelectionAvailable();
@@ -443,11 +583,14 @@ function sceneFingerControlsSync(){
  for(const b of $('sceneFingerTools').querySelectorAll('[data-scene-finger],[data-scene-hand]'))
   b.disabled=!on||!isManual||!count;
  $('sceneFingerClear').disabled=!on||!isManual||!count;
+ sceneFingerSelectionHighlights(on,isManual);
  const pythonHistory=sceneFingerMethod==='pianomotion'&&pianoMotionLastSong===current?
   pianoMotionReviewHistory:null;
  $('sceneFingerUndo').disabled=!fingerResetCanTravel('undo')&&
+  !sceneFingerReplaceCanTravel('undo')&&
   !(pythonHistory?pythonHistory.past.length:history.past.length);
  $('sceneFingerRedo').disabled=!fingerResetCanTravel('redo')&&
+  !sceneFingerReplaceCanTravel('redo')&&
   !(pythonHistory?pythonHistory.future.length:history.future.length);
  $('sceneFingerAutoAdvance').checked=sceneFingerAutoAdvance;
  $('sceneFingerFollow').disabled=!on||sceneFingerFollow;
@@ -590,6 +733,8 @@ $('sceneFingerClear').onclick=()=>sceneFingerAssign('reset');
 for(const [button,direction] of [['sceneFingerUndo','undo'],['sceneFingerRedo','redo']]){
  $(button).onclick=()=>{
   if(fingerResetCanTravel(direction))fingerResetTravel(direction);
+  else if(sceneFingerReplaceCanTravel(direction))
+   fingerOverrideCommit(null,null,{action:direction});
   else if(sceneFingerActive&&sceneFingerMethod==='pianomotion')
    $('pianoMotion'+(direction==='undo'?'Undo':'Redo')).click();
   else fingerOverrideCommit(null,null,{action:direction});

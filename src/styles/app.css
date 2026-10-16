@@ -485,6 +485,22 @@ header .sceneFingerMode[aria-pressed="true"]{border-color:#e0b17a;background:#4e
 .sceneFingerTools button:disabled{opacity:.35}
 .sceneFingerTools button[data-scene-hand="LH"]{border-color:#4e81cb}
 .sceneFingerTools button[data-scene-hand="RH"]{border-color:#4eac7d}
+/* FG-05: selected source note's effective hand/finger; not an action state.
+   Selection styling does not change the 88-key scene or calculated fingers. */
+.sceneFingerTools #sceneFingerManual button.sceneFingerAssigned{
+ background:#866135;color:#fff9e8;border:2px solid #ffe2a1;
+ box-shadow:0 0 0 2px #ffe2a142,0 0 12px #f7c57870;
+ padding:4px 8px;
+}
+.sceneFingerTools #sceneFingerManual button[data-scene-hand="LH"].sceneFingerAssigned{
+ background:#244b89;border-color:#92c2ff;box-shadow:0 0 0 2px #8ebfff55,0 0 12px #6aaaff70;
+}
+.sceneFingerTools #sceneFingerManual button[data-scene-hand="RH"].sceneFingerAssigned{
+ background:#246449;border-color:#9af0c2;box-shadow:0 0 0 2px #9af0c255,0 0 12px #76d8a370;
+}
+.sceneFingerTools #sceneFingerManual button.sceneFingerAssigned:focus-visible{
+ outline:2px solid white;outline-offset:2px;
+}
 .sceneFingerTools kbd{font-family:inherit;font-size:10px;color:#b2c5db}
 .sceneFingerGroup{display:flex;align-items:center;gap:3px;padding-right:6px;border-right:1px solid #3e5066}
 .sceneFingerStep{display:flex;align-items:center;gap:5px;white-space:nowrap;font-size:11px;color:#ced9e8}
