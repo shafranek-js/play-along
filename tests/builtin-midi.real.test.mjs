@@ -40,6 +40,7 @@ try{
  await page.waitForFunction(()=>document.querySelectorAll('#songList .libv8-row').length===1);
  assert.match(await page.locator('#libraryCount').textContent(),/1 \/ \d+/);
  await page.locator('#songList .libv8-main').click();
+ await page.waitForFunction(()=>window.__prototypeTest?.song?.title==='Amazing Grace');
  const first=await page.evaluate(()=>({
   title:window.__prototypeTest.song.title,
   format:window.__prototypeTest.song.format,
@@ -59,6 +60,7 @@ try{
  await page.locator('#librarySearch').fill('Megalovania');
  await page.waitForFunction(()=>document.querySelectorAll('#songList .libv8-row').length===1);
  await page.locator('#songList .libv8-main').click();
+ await page.waitForFunction(()=>window.__prototypeTest?.song?.title==='Megalovania');
  const second=await page.evaluate(()=>({
   title:window.__prototypeTest.song.title,
   format:window.__prototypeTest.song.format,
