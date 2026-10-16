@@ -97,7 +97,12 @@
  <section class="center">
   <div class="rollWrap" id="rollWrap"><canvas id="roll" tabindex="0" aria-label="Piano Roll: выбор нот мышью, Ctrl+A все, Shift диапазон, Ctrl произвольный выбор"></canvas>
    <div class="sceneFingerTools" id="sceneFingerTools" role="toolbar" aria-label="Три метода работы с аппликатурой на общей сцене" hidden>
-    <label class="sceneFingerMethodLabel" for="sceneFingerMethod">Метод
+    <div class="sceneFingerQuickActions" role="group" aria-label="Как расставить пальцы">
+     <button type="button" id="sceneFingerManualButton" aria-pressed="true" title="Расставлять и исправлять пальцы вручную">✍ Вручную</button>
+     <button type="button" id="sceneFingerPianoMotionButton" title="Рассчитать аппликатуру с PianoMotion и посмотреть результат до применения">⚡ PianoMotion</button>
+     <button type="button" id="sceneFingerBeamButton" title="Рассчитать аппликатуру через Beam Search; доступно для исходного MusicXML с определёнными руками">⚡ Beam Search</button>
+    </div>
+    <label class="sceneFingerMethodLabel sceneFingerDeveloperOnly" for="sceneFingerMethod">Метод
      <select id="sceneFingerMethod" aria-label="Метод аппликатуры">
       <option value="manual">Ручной</option>
       <option value="pianomotion">PianoMotion</option>
@@ -120,15 +125,16 @@
     <label class="sceneFingerStep"><input type="checkbox" id="sceneFingerAutoAdvance"> Автопереход</label>
     </div>
     <div id="sceneFingerAutomatic" class="sceneFingerAutomatic" hidden>
-     <button type="button" id="sceneFingerCalculate" title="Запустить выбранный существующий алгоритм без применения его предложений">Рассчитать</button>
-     <button type="button" id="sceneFingerReview" title="Просмотреть и выборочно подтвердить результаты в расширенном редакторе">Проверить / применить…</button>
+     <button type="button" id="sceneFingerCalculate" class="sceneFingerDeveloperOnly" title="Повторить расчёт выбранным движком">Пересчитать</button>
+     <button type="button" id="sceneFingerReview" title="Проверить предлагаемые пальцы и выбрать, какие сохранить. Существующие назначения не перезаписываются автоматически.">Проверить и применить…</button>
      <span id="sceneFingerAutoStatus" class="sceneFingerAutoStatus" role="status" aria-live="polite">Предложения пока не рассчитаны</span>
     </div>
     <span class="sceneFingerViewport" id="sceneFingerViewport" role="status" aria-live="off" title="Колесо мыши — обзор времени; Ctrl+колесо — временной масштаб. Транспорт воспроизведения не перемещается.">Вид: за игрой · 6.0 с</span>
     <button type="button" id="sceneFingerFollow" title="Вернуть нотную дорожку к позиции воспроизведения и следовать за ней" disabled>К воспроизведению</button>
     <button type="button" id="sceneFingerUndo" title="Отменить · Ctrl+Z">↶</button>
     <button type="button" id="sceneFingerRedo" title="Повторить · Ctrl+Y">↷</button>
-    <button type="button" id="sceneFingerAdvanced" title="Открыть все инструменты выбранного метода: редактор, диагностику, подтверждение и экспорт">Все инструменты…</button>
+    <button type="button" id="sceneFingerReset" title="Выбрать сброс сохранённой или всей аппликатуры MusicXML. Исходный файл не изменяется.">Сброс аппликатуры…</button>
+    <button type="button" id="sceneFingerAdvanced" class="sceneFingerDeveloperOnly" title="Открыть диагностические инструменты выбранного алгоритма">Для разработчика…</button>
     <span id="sceneFingerSelection" role="status" aria-live="polite">Выбери ноту</span>
    </div>
    <div class="rollHint">Клик — нота · Ctrl+клик — набор · Shift+клик — диапазон · рамка мышью · Ctrl+A — все · Space — Play/Pause</div></div>
@@ -426,7 +432,11 @@
  <div class="panelSection"><div class="sectionLabel">Приоритетные фрагменты</div><div class="reviewSections" id="smartSections"></div></div>
  <div class="panelSection"><div class="sectionLabel">Как устроено обучение</div><p class="small">Старт с 60% скорости; после двух успешных проходов подряд — увеличение на 10%. Два успешных прохода при 100% дают статус «освоено». Переход к следующей фразе можно выполнить MIDI-клавишей после завершения текущего прохода. Обычные режимы не зависят от тренера.</p></div>
  </div>
- <div id="tabAnalysis" class="hidden"><div class="panelSection"><div class="sectionLabel">Текущая сессия</div><div class="twocol"><div class="stat"><strong id="statNotes">0</strong><span>MIDI-нажатий</span></div><div class="stat"><strong id="statRange">—</strong><span>Диапазон устройства</span></div><div class="stat"><strong id="statTrack">0</strong><span>Нот в выбранной партии</span></div><div class="stat"><strong id="statPosition">0:00</strong><span>Текущая позиция</span></div></div><p class="small">Оценки правильных, ошибочных и пропущенных нот выводятся в панели «Практика». Для Tempo дополнительно учитывается время нажатия и удержания.</p></div><div class="panelSection"><div class="sectionLabel">Компоновка</div><div id="layoutState" class="metabox"></div><button id="resetUI2" class="btn ghost" style="width:100%;margin-top:10px">Сбросить компоновку</button></div></div>
+ <div id="tabAnalysis" class="hidden"><div class="panelSection">
+     <div class="sectionLabel">Интерфейс приложения</div>
+     <label class="switch"><span>Показывать инструменты разработчика</span><input id="developerToolsToggle" type="checkbox"></label>
+     <p class="small">В обычном интерфейсе доступны ручная правка, PianoMotion и Beam Search. Эта настройка показывает дополнительные технические элементы; она не предоставляет административных прав.</p>
+    </div><div class="panelSection"><div class="sectionLabel">Текущая сессия</div><div class="twocol"><div class="stat"><strong id="statNotes">0</strong><span>MIDI-нажатий</span></div><div class="stat"><strong id="statRange">—</strong><span>Диапазон устройства</span></div><div class="stat"><strong id="statTrack">0</strong><span>Нот в выбранной партии</span></div><div class="stat"><strong id="statPosition">0:00</strong><span>Текущая позиция</span></div></div><p class="small">Оценки правильных, ошибочных и пропущенных нот выводятся в панели «Практика». Для Tempo дополнительно учитывается время нажатия и удержания.</p></div><div class="panelSection"><div class="sectionLabel">Компоновка</div><div id="layoutState" class="metabox"></div><button id="resetUI2" class="btn ghost" style="width:100%;margin-top:10px">Сбросить компоновку</button></div></div>
  </div></aside>
 </div>
 <footer class="bottom" id="bottomBar"><div class="bottomMode"><span class="textmuted" style="font-size:10px">РЕЖИМ</span><select id="bottomMode" aria-label="Режим тренировки"><option value="listen">Слушать</option><option value="wait">Wait</option><option value="tempo">Tempo</option></select></div><div class="transport"><button class="iconbtn" id="rewindBtn" title="Назад 5 секунд">⏮</button><button class="iconbtn play" id="playBtn" title="Play/Pause · Пробел">▶</button><button class="iconbtn" id="forwardBtn" title="Вперёд 5 секунд">⏭</button><button class="iconbtn" id="loopBtn" title="Повтор фрагмента">⟲</button></div><div class="seekbar"><span id="timeNow">0:00</span><input type="range" id="seek" min="0" max="1000" value="0" aria-label="Перемотка"><span id="timeTotal">0:00</span></div><div class="volume"><span>♬</span><input type="range" id="volume" min="0" max="100" value="40" aria-label="Громкость"></div><button class="btn tiny ghost" id="rightQuick">Настройки</button><button class="btn tiny ghost" id="adaptQuick" title="Открыть адаптацию диапазона">Диапазон</button></footer>
