@@ -115,9 +115,15 @@ try{
  // A non-default demo must remain selected too.
  await page.locator('#librarySourceSelect').selectOption('demo');
  await page.locator('#librarySearch').fill('');
- await page.locator('#songList .libv8-main').nth(1).click();
- const demoId=await page.evaluate(()=>window.__prototypeTest.song.id);
- assert.notEqual(demoId,'demo-scale');
+ // The source sort may place demo-scale at any index. Choose an actual
+ // non-default demo deterministically, without relying on list order.
+ const demoCount=await page.locator('#songList .libv8-main').count();
+ let demoId='demo-scale';
+ for(let index=0;index<demoCount&&demoId==='demo-scale';index++){
+  await page.locator('#songList .libv8-main').nth(index).click();
+  demoId=await page.evaluate(()=>window.__prototypeTest.song.id);
+ }
+ assert.notEqual(demoId,'demo-scale','The catalog must provide another selectable demo');
  await page.reload({waitUntil:'domcontentloaded'});
  await page.waitForFunction(id=>window.__prototypeTest?.song?.id===id,demoId,{timeout:20000});
  assert.equal(await page.evaluate(()=>window.__prototypeTest.state.selected),demoId);
