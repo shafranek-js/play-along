@@ -6,7 +6,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
-import {inflateSync} from 'node:zlib';
+import {brotliDecompressSync,deflateSync} from 'node:zlib';
 
 const digest=bytes=>createHash('sha256').update(bytes).digest('hex');
 export function inspectBuiltinMidiPack(raw){
@@ -49,12 +49,12 @@ export function writeBuiltinMidiPack(root,dist){
   throw Error('Invalid base64 source MIDI pack');
  const compressed=Buffer.from(encoded,'base64');
  if(compressed.length>300_000)throw Error('Built-in MIDI payload too large');
- const unpacked=inflateSync(compressed,{maxOutputLength:1024*1024});
+ const unpacked=brotliDecompressSync(compressed,{maxOutputLength:1024*1024});
  const catalog=inspectBuiltinMidiPack(unpacked);
  if(catalog.count!==162)throw Error('User MIDI collection changed: expected 162 original files');
  const dst=path.join(dist,'assets/builtin-midi');
  fs.mkdirSync(dst,{recursive:true});
- fs.writeFileSync(path.join(dst,'collection.zlib'),compressed);
+ fs.writeFileSync(path.join(dst,'collection.zlib'),deflateSync(unpacked,{level:9}));
  fs.writeFileSync(path.join(dst,'catalog.json'),JSON.stringify(catalog));
  return catalog;
 }
