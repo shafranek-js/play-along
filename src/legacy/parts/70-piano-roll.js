@@ -39,6 +39,101 @@ function fingerOverrideForNote(note){
 }
 // The selection is transient and scoped to an original source work.
 let fingerSelectedIds=new Set(),fingerSelectionAnchor=null,fingerSelectionPointer=null;
+// P0 shared-scene Fingering: reuse the exact performance notes, keyboard,
+// hand sprites, source note IDs, selection and user override Undo/Redo.
+let sceneFingerActive=false,sceneFingerAutoAdvance=false;
+function sceneFingerControlsSync(){
+ const available=fingerSelectionAvailable();
+ if(sceneFingerActive&&!available)sceneFingerActive=false;
+ const on=sceneFingerActive&&state.scoreView==='roll'&&state.page==='practice';
+ const count=fingerSelectedIds.size,history=fingerOverrideHistoryCurrent();
+ $('sceneFingerTools').hidden=!on;
+ $('sceneFingerMode').disabled=!available;
+ $('sceneFingerMode').setAttribute('aria-pressed',String(on));
+ document.body.classList.toggle('sceneFingerActive',on);
+ $('sceneFingerSelection').textContent=count?count+' нот выбрано':'Выбери ноту на дорожке';
+ for(const b of $('sceneFingerTools').querySelectorAll('[data-scene-finger],[data-scene-hand]'))
+  b.disabled=!count;
+ $('sceneFingerClear').disabled=!count;
+ $('sceneFingerUndo').disabled=!history.past.length;
+ $('sceneFingerRedo').disabled=!history.future.length;
+ $('sceneFingerAutoAdvance').checked=sceneFingerAutoAdvance;
+}
+function sceneFingerSetActive(active){
+ if(active&&!fingerSelectionAvailable()){
+  notify('Редактирование на сцене доступно для исходного MusicXML. Для MIDI используй PianoMotion в «Аппликатуре».');
+  return;
+ }
+ sceneFingerActive=!!active;
+ if(sceneFingerActive&&state.scoreView!=='roll')scoreSetView('roll');
+ sceneFingerControlsSync();
+ renderCanvas();
+}
+function sceneFingerAdvance(direction){
+ const order=fingerSelectionOrdered();
+ if(!order.length)return false;
+ const ids=order.map(x=>x.id);
+ const anchor=ids.indexOf(fingerSelectionAnchor);
+ let next=anchor<0?
+  (direction>0?order.findIndex(x=>x.start>=pos-.001):order.length-1):
+  anchor+direction;
+ if(next<0&&anchor<0&&direction>0)next=0;
+ if(next<0||next>=order.length)return false;
+ fingerSelectionSet([ids[next]],ids[next]);
+ return true;
+}
+function sceneFingerAssign(kind,value){
+ if(!sceneFingerActive||!fingerSelectionAvailable()||!fingerSelectedIds.size)return false;
+ const ids=[...fingerSelectedIds],user=state.fingerOverrides?.[fingerGuideWorkKey()]||{};
+ // Confirming an existing assignment advances without manufacturing Undo.
+ let same=false;
+ if(kind==='finger'&&ids.length===1){
+  const note=fingerSelectionOrdered().find(x=>x.id===ids[0])?.note;
+  const saved=user[ids[0]];
+  const before=Number.isInteger(saved?.finger)?saved.finger:
+   !saved?.suppressAuthor&&note?.fingeringSource==='musicxml'?note.finger:null;
+  same=before===value;
+ }
+ const changed=same?false:fingerOverrideCommitGroup(ids,
+  kind==='finger'?{finger:value}:kind==='hand'?{hand:value}:{reset:true});
+ if(kind==='finger'&&(same||changed)&&sceneFingerAutoAdvance&&ids.length===1)
+  sceneFingerAdvance(1);
+ sceneFingerControlsSync();
+ return changed||same;
+}
+function sceneFingerKeyDown(e){
+ if(!sceneFingerActive||!fingerSelectionAvailable()||
+    state.scoreView!=='roll'||state.page!=='practice'||e.altKey)return;
+ if(e.target?.closest?.('input,textarea,select,[contenteditable="true"],[role="dialog"],dialog')||
+    document.querySelector('.overlay.show'))return;
+ const ctrl=e.ctrlKey||e.metaKey,k=e.key.toLowerCase();
+ let handled=true;
+ if(ctrl&&k==='z')fingerOverrideCommit(null,null,{action:e.shiftKey?'redo':'undo'});
+ else if(ctrl&&k==='y'&&!e.shiftKey)fingerOverrideCommit(null,null,{action:'redo'});
+ else if(!ctrl&&!e.shiftKey&&e.key==='ArrowRight')sceneFingerAdvance(1);
+ else if(!ctrl&&!e.shiftKey&&e.key==='ArrowLeft')sceneFingerAdvance(-1);
+ else if(!ctrl&&!e.shiftKey&&/^[1-5]$/.test(e.key))
+  sceneFingerAssign('finger',Number(e.key));
+ else if(!ctrl&&!e.shiftKey&&(k==='l'||k==='r'))
+  sceneFingerAssign('hand',k==='l'?'LH':'RH');
+ else if(!ctrl&&!e.shiftKey&&e.key==='0')sceneFingerAssign('reset');
+ else if(!ctrl&&e.key==='Escape')fingerSelectionSet([]);
+ else handled=false;
+ if(handled){
+  e.preventDefault();e.stopImmediatePropagation();sceneFingerControlsSync();
+ }
+}
+$('sceneFingerMode').onclick=()=>sceneFingerSetActive(!sceneFingerActive);
+$('sceneFingerAdvanced').onclick=()=>{sceneFingerSetActive(false);scoreSetView('editor')};
+$('sceneFingerAutoAdvance').onchange=e=>{sceneFingerAutoAdvance=e.target.checked;sceneFingerControlsSync()};
+for(const b of $('sceneFingerTools').querySelectorAll('[data-scene-finger]'))
+ b.onclick=()=>sceneFingerAssign('finger',Number(b.dataset.sceneFinger));
+for(const b of $('sceneFingerTools').querySelectorAll('[data-scene-hand]'))
+ b.onclick=()=>sceneFingerAssign('hand',b.dataset.sceneHand);
+$('sceneFingerClear').onclick=()=>sceneFingerAssign('reset');
+$('sceneFingerUndo').onclick=()=>{fingerOverrideCommit(null,null,{action:'undo'});sceneFingerControlsSync()};
+$('sceneFingerRedo').onclick=()=>{fingerOverrideCommit(null,null,{action:'redo'});sceneFingerControlsSync()};
+document.addEventListener('keydown',sceneFingerKeyDown);
 function fingerSelectionAvailable(){
  return !!current&&current.format==='MusicXML'&&state.adaptMode==='original'&&!!fingerGuideWorkKey();
 }
