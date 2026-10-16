@@ -648,10 +648,16 @@ function fingerBrowserInput(){
  const isMidi=current.format==='MIDI';
  const explicitTrackHands=new Map(isMidi?current.tracks.flatMap(track=>
   (track.notes||[]).map(n=>[n,fingerMidiExplicitTrackHand(track)])):[]);
+ let pianoStaffHints=0;
  const notes=fingerBrowserNotes().map(n=>{
   const change=fingerOverrideEffective(n,edits[n.noteId]);
   const userDeclaredStaff=$('fingerBrowserAssumeStaves').checked;
-  const writtenHand=change?.hand??n.hand??(isMidi?explicitTrackHands.get(n):null);
+  // A real piano grand staff is a provisional hand clue, not an original
+  // hand or an authored fingering. Explicit user/source hands win.
+  const pianoStaffHint=isMidi?null:fingerMusicXmlPianoStaffHand(current,n);
+  const writtenHand=change?.hand??n.hand??
+   (isMidi?explicitTrackHands.get(n):pianoStaffHint);
+  if(!change?.hand&&!n.hand&&pianoStaffHint)pianoStaffHints++;
   const h=(writtenHand==='RH'||writtenHand==='LH')?writtenHand:
    (userDeclaredStaff&&String(n.staff)==='1'?'RH':
     userDeclaredStaff&&String(n.staff)==='2'?'LH':null);
@@ -662,7 +668,7 @@ function fingerBrowserInput(){
    Number.isInteger(n.finger))candidate.authorFinger=n.finger;
   return candidate;
  });
- return {notes,handSize:state.fingerBrowserHandSize,
+ return {notes,handSize:state.fingerBrowserHandSize,pianoStaffHints,
   compareWithoutSaved:$('fingerBrowserCompareSaved').checked};
 }
 function fingerBrowserAbort(message){
@@ -764,6 +770,9 @@ function fingerBrowserShow(report){
    fingerEditorPaintSoon();
    status.textContent='Вычислено локально · Предложения для '+fingerBrowserPreview.size+
     ' нот показаны фиолетовым в редакторе. Выдели подходящие ноты и проверь номера до подтверждения.'+
+    (fingerBrowserInput()?.pianoStaffHints?
+     ' · RH/LH предварительно по нотным станам фортепиано ('+
+     fingerBrowserInput().pianoStaffHints+' нот). Проверь переходы рук и перекрещивания.':'')+
     skipNotice;
   }
  }
