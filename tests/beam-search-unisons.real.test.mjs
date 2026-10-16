@@ -50,6 +50,7 @@ try{
   }));
  },xml);
  assert.equal(source.length,4);
+ await page.locator('#developerToolsToggle').evaluate(el=>{if(!el.checked)el.click()});
  await page.locator('#viewFingerEditor').click();
  if(!await page.locator('#fingerResearchPanel').evaluate(e=>e.open))
   await page.locator('#fingerResearchPanel > summary').click();
