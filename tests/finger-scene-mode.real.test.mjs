@@ -98,6 +98,42 @@ try{
  assert.equal(await page.evaluate(()=>window.__prototypeTest.song.notationXML),source);
  assert.equal(await page.evaluate(()=>window.__prototypeTest.pos),startingPos,
   'Fingering steps and mode switch cannot seek the transport');
+
+ // Independent viewport pans only the NOTE region. 88 physical keys and
+ // the real playback cursor remain unchanged during all editor interactions.
+ const sceneRead=()=>page.evaluate(()=>window.__fingerGuideTest.sceneViewport);
+ const keysBefore=await page.evaluate(()=>
+  window.__prototypeTest.pianoGeometry.whites.map(k=>[k.x,k.w]));
+ assert.equal((await sceneRead()).follow,false,
+  'chronological note navigation detaches the score view without a transport seek');
+ await page.locator('#sceneFingerFollow').click();
+ assert.equal((await sceneRead()).follow,true);
+ assert.equal((await sceneRead()).viewTime,startingPos);
+ const keyboardTop=await page.evaluate(()=>window.__prototypeTest.keyboardTop);
+ const b=await page.locator('#roll').boundingBox();
+ await page.mouse.move(b.x+b.width*.48,b.y+Math.max(55,keyboardTop*.52));
+ await page.mouse.wheel(0,400);
+ await page.waitForFunction(()=>!window.__fingerGuideTest.sceneViewport.follow);
+ const panned=await sceneRead();
+ assert.ok(panned.viewTime>startingPos,'wheel changes the note display window');
+ assert.equal(panned.transport,startingPos,'wheel must never seek');
+ assert.equal(panned.windowSeconds,6);
+ await page.keyboard.down('Control');
+ await page.mouse.wheel(0,-240);
+ await page.keyboard.up('Control');
+ await page.waitForFunction(()=>window.__fingerGuideTest.sceneViewport.windowSeconds<6);
+ const zoomed=await sceneRead();
+ assert.ok(zoomed.windowSeconds>=2&&zoomed.windowSeconds<6);
+ assert.equal(zoomed.transport,startingPos,'zoom must never seek');
+ assert.deepEqual(await page.evaluate(()=>
+  window.__prototypeTest.pianoGeometry.whites.map(k=>[k.x,k.w])),
+  keysBefore,'time zoom may not distort the 88-key piano');
+ assert.equal(await page.evaluate(()=>window.__prototypeTest.song.notationXML),source);
+ await page.locator('#sceneFingerFollow').click();
+ assert.equal((await sceneRead()).viewTime,startingPos);
+ assert.equal((await sceneRead()).follow,true);
+ assert.equal(await page.locator('#sceneFingerFollow').isDisabled(),true);
+
  await page.locator('#sceneFingerMode').click();
  assert.equal(await page.locator('#sceneFingerMode').getAttribute('aria-pressed'),'false');
  assert.equal(await page.locator('#sceneFingerTools').isVisible(),false);

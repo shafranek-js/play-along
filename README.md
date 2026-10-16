@@ -1,4 +1,13 @@
-# Play Along — Piano Practice App (v0.10.127)
+# Play Along — Piano Practice App (v0.10.128)
+
+## FG-05 P0 — independent Fingering viewport and time zoom (v0.10.128)
+
+The already-shared 88-key Performance/Fingering Piano Roll now has an **independent time viewport** while the **«✍ Редактировать»** manual editing mode is active. Scroll over the falling-note region to pan the visible music time, with strictly bounded source duration; **Ctrl/Cmd+wheel** zooms its time axis between **2 and 24 seconds** and keeps the score time under the pointer fixed (except at finite score limits). The actual playback transport position, audio/MIDI/Wait synchronization, hand animation and fixed 88-key geometry do not move with this browsing gesture. Wheel on the physical-keyboard region remains outside the viewport handler.
+
+The read-only timestamp **«Вид: …»** shows either following the playing cursor or a detached time position; **«К воспроизведению»** resumes follow without seeking the source. Left/right chronological source-note navigation and Auto-advance reveal offscreen selected notes in a detached view and never seek. Imported new songs reset stale detached view/zoom; these view properties are ephemeral UI state, not exported to MusicXML, and do not modify note IDs, durations, selected hands/fingers or Undo. Performance view always uses the real transport timeline.
+
+There remain **three fingering methods**: (1) manual editing on the common scene, (2) Python PianoMotion automated inference and (3) browser FG-02I Beam Search automated inference. The latter two remain independent analysis/research engines in the existing full **«Аппликатура»** panel, opened from the common toolbar via **«PianoMotion / Beam»**; generated fingers are previews until explicitly approved. They are not silently applied and no algorithmic or source rewrite occurs in this UI release. Subsequent phases can make the automatic calculations' review tools share this same viewport. Read-only independent timeline tests plus real Chromium assert wheel pan, anchored zoom, preserved playback and piano key geometry; all existing CI gates remain required.
+
 
 ## FG-05 P0 — on-scene Fingering editing (v0.10.127)
 
