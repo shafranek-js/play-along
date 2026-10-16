@@ -47,6 +47,13 @@ try{
  },xml);
  assert.deepEqual(loaded,{format:'MusicXML',notes:4});
  await page.locator('#sceneFingerMode').click();
+ assert.equal(await page.locator('#sceneFingerMethod').isVisible(),false,
+  'ordinary users should not see a technical method dropdown');
+ assert.equal(await page.locator('#sceneFingerAdvanced').isVisible(),false);
+ assert.equal(await page.locator('#sceneFingerManualButton').isVisible(),true);
+ assert.equal(await page.locator('#sceneFingerPianoMotionButton').isVisible(),true);
+ assert.equal(await page.locator('#sceneFingerBeamButton').isVisible(),true);
+ assert.equal(await page.locator('#sceneFingerManualButton').getAttribute('aria-pressed'),'true');
  assert.equal(await page.locator('#sceneFingerMethod').inputValue(),'manual');
  assert.equal(await page.locator('#sceneFingerManual').isVisible(),true);
  assert.equal(await page.locator('#sceneFingerAutomatic').isVisible(),false);
@@ -55,15 +62,14 @@ try{
  const original=await page.evaluate(()=>window.__prototypeTest.song.notationXML);
  const originalTransport=await page.evaluate(()=>window.__prototypeTest.pos);
  const originalKeys=await page.evaluate(()=>window.__prototypeTest.pianoGeometry.whites.map(k=>k.w));
- await page.locator('#sceneFingerMethod').selectOption('pianomotion');
+ const old=await saved();
+ // No real Python runtime required to check that the SINGLE existing
+ // handler is used by clicking a direct user-facing algorithm button.
+ await page.evaluate(()=>{window.__testOriginalWorker=window.Worker;window.Worker=undefined});
+ await page.locator('#sceneFingerPianoMotionButton').click();
  assert.equal(await page.locator('#sceneFingerManual').isVisible(),false);
  assert.equal(await page.locator('#sceneFingerAutomatic').isVisible(),true);
- assert.equal(await page.locator('#sceneFingerCalculate').isEnabled(),true);
- const old=await saved();
- // No real Python runtime required to check that the existing SINGLE
- // handler is used. Force its well-known no-Worker early-exit path.
- await page.evaluate(()=>{window.__testOriginalWorker=window.Worker;window.Worker=undefined});
- await page.locator('#sceneFingerCalculate').click();
+ assert.equal(await page.locator('#sceneFingerPianoMotionButton').getAttribute('aria-pressed'),'true');
  assert.match(await page.locator('#pianoMotionStatus').innerText(),/не поддерживает Web Worker/);
  assert.match(await page.locator('#sceneFingerAutoStatus').innerText(),/не поддерживает Web Worker/);
  assert.deepEqual(await saved(),old,'algorithm launch cannot automatically apply fingers');
@@ -76,13 +82,13 @@ try{
 
  // Beam Search must use its existing classic Web Worker, no duplicate
  // algorithm, and make no source/override changes until explicit acceptance.
- await page.locator('#sceneFingerMethod').selectOption('beam');
- assert.equal(await page.locator('#sceneFingerManual').isVisible(),false);
  await page.evaluate(()=>{
   const el=document.getElementById('fingerBrowserAssumeStaves');
   el.checked=true;el.dispatchEvent(new Event('change',{bubbles:true}));
  });
- await page.locator('#sceneFingerCalculate').click();
+ await page.locator('#sceneFingerBeamButton').click();
+ assert.equal(await page.locator('#sceneFingerManual').isVisible(),false);
+ assert.equal(await page.locator('#sceneFingerBeamButton').getAttribute('aria-pressed'),'true');
  await page.waitForFunction(()=>/Вычислено локально|Отказ|Ошибка|Рука/.test(
   document.getElementById('fingerBrowserStatus').textContent),null,{timeout:20000});
  assert.equal(await page.locator('#fingerResearchPanel').evaluate(el=>el.open),true);
@@ -111,10 +117,17 @@ try{
  await page.locator('#sceneFingerMode').click();
  assert.equal(await page.locator('#sceneFingerMethod').inputValue(),'beam',
   'returning to same source keeps the selected fingering method');
- await page.locator('#sceneFingerMethod').selectOption('manual');
+ await page.locator('#sceneFingerManualButton').click();
  assert.equal((await page.evaluate(()=>window.__fingerGuideTest.sceneCandidates)).count,0,
   'switching to Manual hides all automatic proposals without deleting them');
  assert.equal(await page.locator('#sceneFingerManual').isVisible(),true);
+ // The ordinary one-click reset opens the same two-scope confirmed workflow.
+ assert.equal(await page.locator('#sceneFingerReset').isEnabled(),true);
+ await page.locator('#sceneFingerReset').click();
+ assert.equal(await page.locator('#fingerResetDialog').evaluate(el=>el.open),true);
+ await page.locator('#fingerResetCancel').click();
+ assert.equal(await page.locator('#fingerResetDialog').evaluate(el=>el.open),false);
+ await page.locator('#sceneFingerMode').click();
  assert.deepEqual(await saved(),old);
  assert.equal(await page.evaluate(()=>window.__prototypeTest.song.notationXML),original);
 
@@ -139,12 +152,27 @@ try{
   'Manual cannot be chosen for MIDI');
  assert.equal(await page.locator('#sceneFingerMethod option[value="beam"]').evaluate(el=>el.disabled),true,
   'Beam cannot be chosen for MIDI');
- assert.equal(await page.locator('#sceneFingerCalculate').isEnabled(),true);
+ assert.equal(await page.locator('#sceneFingerPianoMotionButton').isEnabled(),true);
+ assert.equal(await page.locator('#sceneFingerManualButton').isDisabled(),true);
+ assert.equal(await page.locator('#sceneFingerBeamButton').isDisabled(),true);
  assert.equal(await page.locator('#rollWrap').isVisible(),true);
  await page.locator('#sceneFingerReview').click();
  assert.equal(await page.locator('#fingerEditorWrap').isVisible(),true);
  assert.equal(await page.locator('#pianoMotionPanel').isVisible(),true);
  assert.equal(await page.evaluate(()=>window.__prototypeTest.song.format),'MIDI');
+ // Developer controls are a local presentation preference, not permissions.
+ await page.evaluate(()=>{
+  const toggle=document.getElementById('developerToolsToggle');
+  toggle.checked=true;toggle.dispatchEvent(new Event('change',{bubbles:true}));
+ });
+ await page.locator('#sceneFingerMode').click();
+ assert.equal(await page.locator('#sceneFingerMethod').isVisible(),true);
+ assert.equal(await page.locator('#sceneFingerAdvanced').isVisible(),true);
+ await page.evaluate(()=>{
+  const toggle=document.getElementById('developerToolsToggle');
+  toggle.checked=false;toggle.dispatchEvent(new Event('change',{bubbles:true}));
+ });
+ assert.equal(await page.locator('#sceneFingerMethod').isVisible(),false);
  assert.deepEqual(errors,[]);
  console.log('THREE_FINGERING_METHODS_REAL_PASS: stage method switching, original Python and Beam handlers, MIDI support, no silent apply, source safe');
 }finally{

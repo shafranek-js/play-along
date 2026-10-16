@@ -1,4 +1,14 @@
-# Play Along — Piano Practice App (v0.10.130)
+# Play Along — Piano Practice App (v0.10.131)
+
+## FG-05 — one-click fingering workflows and developer presentation (v0.10.131)
+
+**Ordinary workflow:** open a work, select **«✍ Аппликатура»**, then use one of three DIRECT actions: **«Вручную»**, **«PianoMotion»**, **«Beam Search»**. There is no preliminary algorithm dropdown. Either automatic button selects its original engine and immediately starts its existing calculation handler; the candidate overlay remains read-only until separately reviewed and explicitly accepted. The common stage also has **«Проверить и применить…»**, Undo/Redo and **«Сброс аппликатуры…»**, which delegates to the original two-scope confirmation dialog. Previously authored MusicXML fingers and saved user edits are NOT overwritten by calculating. Undo, original source identity, solver physical audit and source-data immutability are preserved.
+
+**Developer presentation (local UI preference, not authentication):** in **Система → Интерфейс приложения**, enable **«Показывать инструменты разработчика»** to reveal the legacy engine selection, extra stage diagnostics and raw Beam research comparison/coverage metrics. The default learner presentation hides these controls; the regular Beam candidate review remains accessible, including its existing confirmation. The preference is stored separately in localStorage and does not grant write privileges. Returning to regular Beam calculations exits research-only independent-comparison mode.
+
+**Documented limitations / next P0:** currently genuine Python PianoMotion supports eligible MIDI and MusicXML; manual note editing and Beam still require ORIGINAL MusicXML, with known/confirmed hand allocation for Beam. These methods are disabled for MIDI rather than fabricating author finger IDs, hand ownership or phantom Beam results. Add identity-safe manual MIDI editing and a properly validated MIDI→Beam input/hand model in dedicated future work; implement on-scene candidate selection/acceptance via existing safety gates without creating a second Apply path. No claims of professional pianist validation or licensed upstream distribution are made.
+
+The practical browser regression exercises direct launches (including a disabled Worker), unmodified author fingers, direct safe reset, MIDI format eligibility, developer UI opt-in, single engine handlers and unchanged transport/keyboard geometry.
 
 ## FG-05 — protected automatic fingering candidate preview on shared stage (v0.10.130)
 

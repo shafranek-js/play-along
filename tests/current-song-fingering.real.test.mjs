@@ -29,6 +29,14 @@ try{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('http://127.0.0.1:'+server.address().port);
  await page.waitForFunction(()=>window.__libraryV08&&window.__prototypeTest&&window.__fingerGuideTest);
+ // This is explicitly a technical baseline-comparison test, so enable the
+ // developer presentation instead of exposing research controls to learners.
+ await page.evaluate(()=>{
+  const control=document.getElementById('developerToolsToggle');
+  control.checked=true;
+  control.dispatchEvent(new Event('change',{bubbles:true}));
+ });
+ assert.equal(await page.locator('#developerToolsToggle').isChecked(),true);
  const src=await page.evaluate(xml=>{
   const song=window.__libraryV08.readMusicXML(xml,'current-fingering.musicxml');
   window.__prototypeTest.loadSong(song);
