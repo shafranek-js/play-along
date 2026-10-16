@@ -118,7 +118,21 @@ try{
  await page.waitForFunction(()=>!document.querySelector('#sceneFingerExport').disabled);
  const downloadReady=page.waitForEvent('download',{timeout:20000});
  await page.locator('#sceneFingerExport').click();
- const exported=await downloadReady;
+ let exported;
+ try{exported=await downloadReady}
+ catch(error){
+  const detail=await page.evaluate(()=>{
+   const ids=['pianoMotionStatus','fingerBrowserStatus','rollStatus','sceneFingerAutoStatus'];
+   return {
+    statuses:Object.fromEntries(ids.map(id=>[id,document.getElementById(id)?.textContent])),
+    toasts:[...document.querySelectorAll('[role="alert"],.toast,.notice')].map(n=>n.textContent),
+    notes:window.__prototypeTest.song?.tracks?.map(t=>({
+     name:t.name,notes:t.notes?.length,accepted:t.notes?.filter(n=>n.fingeringSource==='pianomotion').length
+    }))
+   };
+  });
+  throw Error('Restored MIDI export produced no download: '+JSON.stringify(detail)+'; '+error.message);
+ }
  const exportedXml=fs.readFileSync(await exported.path(),'utf8');
  assert.match(exportedXml,/<fingering>4<\/fingering>/);
  assert.match(exportedXml,/play-along-user-fingering/);
