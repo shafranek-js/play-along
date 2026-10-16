@@ -1,5 +1,12 @@
 # Play Along — development roadmap: Finger Guidance and musical reliability
 
+## FG-05 shared Fingering viewport · phase 2 (v0.10.128)
+
+Independent manual editor score time: wheel scrolls source notes; Ctrl/Cmd+wheel zooms with pointer anchoring; return-to-playback switches back to the actual transport; next-note/Auto-advance may detach/reveal offscreen targets. Never seek MIDI/audio, alter the 88-key piano geometry, source note identity or locked hands. Reset the view per imported work. Real Chromium and pure unit tests are release gates.
+
+Mode taxonomy: (1) Manual on-stage, (2) PianoMotion automatic algorithm, (3) Beam Search automatic algorithm. Preserve the two independent candidate pipelines and their explicit confirm/apply/audit UI in the advanced Fingering workspace while shared-scene navigation is developed. Next phase: unify the three method toolbars on the same visual scene, while retaining their respective model and export controls; validate no automatic acceptance of computed fingers.
+
+
 ## FG-05 shared Performance/Fingering scene · phase 1 (v0.10.127)
 
 In response to the code review of `shafranek-js/pianomotion-studio`, start with one persistent 88-key scene instead of replacing the existing MusicXML analysis/workflow. Add opt-in **on-scene Fingering** controls to the current Piano Roll: source-note selection, LH/RH and fingers 1–5, keyboard actions, navigation, Auto-advance, atomic Undo and handoff to the existing advanced editor. Keep all existing research/PianoMotion features, original score identity and transport unchanged. Scope manual scene edits to original MusicXML in this phase, never pretend MIDI contains author digits.
