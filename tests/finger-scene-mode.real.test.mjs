@@ -27,7 +27,7 @@ await new Promise(ok=>server.listen(0,'127.0.0.1',ok));
 let browser;
 try{
  browser=await chromium.launch({headless:true,args:['--no-sandbox']});
- const page=await browser.newPage({viewport:{width:1440,height:900}});
+ const page=await browser.newPage({viewport:{width:1440,height:900},acceptDownloads:true});
  const errors=[];page.on('pageerror',err=>errors.push(err.message));
  await page.goto('http://127.0.0.1:'+server.address().port);
  await page.waitForFunction(()=>window.__libraryV08?.readMusicXML&&window.__prototypeTest&&window.__fingerGuideTest);
@@ -98,6 +98,22 @@ try{
  assert.equal(await page.evaluate(()=>window.__prototypeTest.song.notationXML),source);
  assert.equal(await page.evaluate(()=>window.__prototypeTest.pos),startingPos,
   'Fingering steps and mode switch cannot seek the transport');
+
+ // End-to-end MusicXML download must also stay on the shared roll, without
+ // touching the original source or navigating into developer-only editor.
+ assert.equal(await page.locator('#sceneFingerExport').isEnabled(),true);
+ const [stageDownload]=await Promise.all([
+  page.waitForEvent('download',{timeout:12000}),
+  page.locator('#sceneFingerExport').click()
+ ]);
+ assert.match(stageDownload.suggestedFilename(),/-user-fingering\\.musicxml$/);
+ const stageXml=fs.readFileSync(await stageDownload.path(),'utf8');
+ assert.match(stageXml,/play-along-user-fingering/);
+ assert.match(stageXml,/<fingering>2<\\/fingering>/);
+ assert.match(stageXml,/<fingering>4<\\/fingering>/);
+ assert.equal(await page.locator('#rollWrap').isVisible(),true);
+ assert.equal(await page.locator('#fingerEditorWrap').isVisible(),false);
+ assert.equal(await page.evaluate(()=>window.__prototypeTest.song.notationXML),source);
 
  // Independent viewport pans only the NOTE region. 88 physical keys and
  // the real playback cursor remain unchanged during all editor interactions.
