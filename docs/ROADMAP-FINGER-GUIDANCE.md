@@ -1,5 +1,12 @@
 # Play Along — development roadmap: Finger Guidance and musical reliability
 
+## FG-05 shared Performance/Fingering scene · phase 1 (v0.10.127)
+
+In response to the code review of `shafranek-js/pianomotion-studio`, start with one persistent 88-key scene instead of replacing the existing MusicXML analysis/workflow. Add opt-in **on-scene Fingering** controls to the current Piano Roll: source-note selection, LH/RH and fingers 1–5, keyboard actions, navigation, Auto-advance, atomic Undo and handoff to the existing advanced editor. Keep all existing research/PianoMotion features, original score identity and transport unchanged. Scope manual scene edits to original MusicXML in this phase, never pretend MIDI contains author digits.
+
+Next P0: independent editor view time/wheel pan+zoom with no transport seek; integrate shared-scene diagnostics. P1: identity-safe manual MIDI editing, worker generation/version gating, and direct problem-note jump. Do not replace existing renderers until the shared-scene tests pass on imported multi-staff Bach and actual user hardware.
+
+
 ## FG-03C2 — reversible full author + user reset (v0.10.126)
 
 Add one "Сброс аппликатуры" selector to the existing Fingering editor. Scope A resets only persisted user numbers. Scope B suppresses the MusicXML author notation **in the working layer only** in addition to resetting user numbers, without changing source XML, voices, temporal events, hand attribution, or any unrelated score. Suppression is persisted per source-note ID using strict validation and one atomic Undo/Redo step, included in backups, respected by Beam input, editor, learner hints and detached printed-score display. Reapplied, explicitly confirmed numbers must not accidentally reactivate hidden author fingers. Real Chromium QA covers author-only score, cancel, full reset, reload, fresh calculation, accept, Undo/Redo, user-only reset after full, and source immutability.
