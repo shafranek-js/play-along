@@ -482,6 +482,7 @@ function sceneFingerExportKind(){
  if(pianoMotionLastSong===current&&pianoMotionLastApplied&&
     pianoMotionReviewCountApplied()>0&&!$('pianoMotionExportXML').disabled)
   return 'pianomotion';
+ if(pianoMotionSavedAcceptanceValid(current))return 'pianomotion-restored';
  // A partial MIDI manual-only export would silently omit still-applied
  // Python digits after recalculation/error. Fail closed until a fresh
  // source-aligned PianoMotion result can merge BOTH accepted layers.
@@ -503,7 +504,7 @@ function sceneFingerExportKind(){
 }
 function sceneFingerDownloadMusicXML(){
  const kind=sceneFingerExportKind();
- if(kind==='pianomotion')pianoMotionDownloadMusicXML();
+ if(kind==='pianomotion'||kind==='pianomotion-restored')pianoMotionDownloadMusicXML();
  else if(kind==='manual')fingerEditorDownloadMusicXML();
  else if(kind==='midi-manual')fingerManualMidiDownloadMusicXML();
  else notify('Сначала примени аппликатуру или сохрани ручные исправления.');
@@ -568,7 +569,7 @@ function sceneFingerControlsSync(){
  $('sceneFingerReset').disabled=!on||!manualAvailable;
  const exportKind=on?sceneFingerExportKind():null;
  $('sceneFingerExport').disabled=!exportKind;
- $('sceneFingerExport').title=exportKind==='pianomotion'?
+ $('sceneFingerExport').title=['pianomotion','pianomotion-restored'].includes(exportKind)?
   'Скачать MusicXML с применёнными пальцами PianoMotion и сохранёнными правками':
   exportKind==='manual'?
   'Скачать оригинальный MusicXML с пользовательскими правками в отдельной копии':
