@@ -23,6 +23,20 @@ export function fingerMidiExplicitTrackHand(track){
  if(/^(?:lh|left[ _-]*hand|left[ _-]*piano|piano[ _-]*lh)$/i.test(label))return 'LH';
  return null;
 }
+/** Only for an already-parsed original MusicXML work: advisory hand based on
+ * a confirmed TWO-staff PIANO part, never an authored hand annotation.
+ * This hint is used only as temporary input to Beam Search and is never
+ * persisted or written to the original score on its own.
+ */
+export function fingerMusicXmlPianoStaffHand(song,note){
+ if(song?.format!=='MusicXML'||!Array.isArray(song.pianoGrandStaffParts)||
+    !note||typeof note.noteId!=='string'||!note.noteId.startsWith('xml:')||
+    typeof note.partId!=='string'||!song.pianoGrandStaffParts.includes(note.partId))
+  return null;
+ if(note.staff==='1')return 'RH';
+ if(note.staff==='2')return 'LH';
+ return null;
+}
 export function fingerSelectUpdate(order,selected,id,anchor,{shift=false,toggle=false}={}){
  const ids=order.map(n=>typeof n==='string'?n:n.id);
  if(!ids.includes(id))return {selected:[...selected],anchor};
