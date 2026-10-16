@@ -8,6 +8,76 @@
  await onlineOpen(e);
 }
 const onlineLookup=new Map(REMOTE_INDEX.map(e=>[e.id,e]));
+// Owner-provided, locally bundled original SMFs. The searchable catalogue
+// loads without inflating all MIDI notes. The compressed pack is fetched only
+// when a user actually opens one score.
+const builtinMidiIndex=[];
+let builtinMidiPackPromise=null;
+const BUILTIN_MIDI_SOURCE='Встроенные MIDI';
+async function builtinMidiDigest(bytes){
+ if(!crypto?.subtle)throw Error('Для проверки MIDI необходим HTTPS или localhost');
+ const hash=await crypto.subtle.digest('SHA-256',bytes);
+ return [...new Uint8Array(hash)].map(x=>x.toString(16).padStart(2,'0')).join('');
+}
+async function builtinMidiLoadCatalog(){
+ const response=await fetch('./assets/builtin-midi/catalog.json');
+ if(!response.ok)throw Error('Каталог встроенных MIDI недоступен: HTTP '+response.status);
+ const data=await response.json();
+ if(data?.schemaVersion!==1||data.count!==162||!Array.isArray(data.files)||
+    data.files.length!==data.count||!/^[a-f0-9]{64}$/.test(data.rawSha256)||
+    data.uncompressedBytes>1024*1024)
+  throw Error('Повреждён индекс встроенных MIDI');
+ const names=new Set();
+ for(const [i,f] of data.files.entries()){
+  if(f.id!=='builtin-midi:'+i||typeof f.filename!=='string'||
+    !/^[^\/\\\x00-\x1f]+\.mid$/i.test(f.filename)||
+    typeof f.title!=='string'||f.title!==f.filename.slice(0,-4)||
+    names.has(f.filename.toLocaleLowerCase())||
+    !Number.isSafeInteger(f.offset)||f.offset<6||
+    !Number.isSafeInteger(f.length)||f.length<22||
+    f.offset+f.length>data.uncompressedBytes||
+    !/^[a-f0-9]{64}$/.test(f.sha256))
+   throw Error('Некорректный MIDI-файл в каталоге');
+  names.add(f.filename.toLocaleLowerCase());
+ }
+ builtinMidiIndex.splice(0,builtinMidiIndex.length,...data.files.map(f=>({
+  ...f,author:'Коллекция пользователя',source:BUILTIN_MIDI_SOURCE,
+  format:'MIDI',genre:'Учебные и музыкальные MIDI'
+ })));
+ builtinMidiIndex.rawSha256=data.rawSha256;
+ builtinMidiIndex.rawLength=data.uncompressedBytes;
+ renderLibrary();
+}
+async function builtinMidiRawPack(){
+ if(!builtinMidiPackPromise)builtinMidiPackPromise=(async()=>{
+  const response=await fetch('./assets/builtin-midi/collection.zlib');
+  if(!response.ok)throw Error('Нет пакета встроенных MIDI: HTTP '+response.status);
+  if(!window.DecompressionStream)throw Error('Для встроенных MIDI необходим современный браузер');
+  const packed=await response.arrayBuffer();
+  if(packed.byteLength>300000)throw Error('Пакет MIDI превышает лимит');
+  const raw=new Uint8Array(await new Response(new Blob([packed]).stream()
+    .pipeThrough(new DecompressionStream('deflate'))).arrayBuffer());
+  if(raw.length!==builtinMidiIndex.rawLength||
+    String.fromCharCode(...raw.slice(0,4))!=='PAM1'||
+    (raw[4]|raw[5]<<8)!==162||
+    await builtinMidiDigest(raw)!==builtinMidiIndex.rawSha256)
+   throw Error('Встроенные MIDI не прошли проверку целостности');
+  return raw;
+ })().catch(error=>{builtinMidiPackPromise=null;throw error});
+ return builtinMidiPackPromise;
+}
+async function builtinMidiOpen(e){
+ const original=await builtinMidiRawPack();
+ const midi=original.slice(e.offset,e.offset+e.length);
+ if(midi.length!==e.length||String.fromCharCode(...midi.slice(0,4))!=='MThd'||
+    await builtinMidiDigest(midi)!==e.sha256)
+  throw Error('Исходный MIDI не прошёл проверку контрольной суммы: '+e.title);
+ const data=midi.buffer;
+ await libraryLoadFile(e.filename,data,await libraryContentId(data),{
+  title:e.title,author:BUILTIN_MIDI_SOURCE,type:'builtin'
+ });
+}
+
 // A remote catalog entry or unread local score has UNKNOWN coverage. Never
 // claim "no fingering" merely because catalog metadata omits its annotations.
 function libraryCoverageFor(e,category){
@@ -20,7 +90,7 @@ function libraryCoverageFor(e,category){
  return null;
 }
 function libraryCoverageStatusFor(e,category){
- if(category==='saved'&&['mid','midi'].includes(String(e.format||'').toLowerCase()))return 'none';
+ if(category==='builtin'||category==='saved'&&['mid','midi'].includes(String(e.format||'').toLowerCase()))return 'none';
  return fingeringCoverageStatus(libraryCoverageFor(e,category));
 }
 function libRow(e,category){
@@ -33,7 +103,7 @@ function libRow(e,category){
  else if(coverageState==='unknown')finger.title='Файл ещё не проверен на наличие номеров пальцев; онлайн-каталоги не скачиваются автоматически';
  else finger.title='Покрытие номерами пальцев 1–5; наличие правой/левой руки учитывается отдельно';
  main.append(finger);if(e.sourcePath){const d=document.createElement('small');d.className='mutopiaDetail';d.textContent=e.verifiedSource?'Mutopia FTP · опубликованный MIDI/ZIP найден':'GitHub Mutopia · опубликованный MIDI ещё не найден · '+e.sourcePath;main.append(d)}
- main.onclick=async()=>{try{if(category==='demo')return loadSong(e),state.page='practice',applyPage();if(category==='folder')return await loadFolderSong(e.folderPath);if(category==='saved'){const found=collectionIndex.find(x=>x.id===e.id);const binary=await libraryReadBinary(found.id);return await libraryLoadFile(binary.name,binary.data,binary.id,{title:binary.title,author:binary.author,type:'saved'})}if(category==='online')return await (e.source===MAESTRO_SOURCE?maestroOpen(e):e.sourcePath?mutopiaOpen(e):onlineOpen(e))}catch(err){libraryError(err)}};
+ main.onclick=async()=>{try{if(category==='demo')return loadSong(e),state.page='practice',applyPage();if(category==='builtin')return await builtinMidiOpen(e);if(category==='folder')return await loadFolderSong(e.folderPath);if(category==='saved'){const found=collectionIndex.find(x=>x.id===e.id);const binary=await libraryReadBinary(found.id);return await libraryLoadFile(binary.name,binary.data,binary.id,{title:binary.title,author:binary.author,type:'saved'})}if(category==='online')return await (e.source===MAESTRO_SOURCE?maestroOpen(e):e.sourcePath?mutopiaOpen(e):onlineOpen(e))}catch(err){libraryError(err)}};
  const controls=document.createElement('div');controls.className='libv8-controls';
  const star=document.createElement('button');star.title='Добавить/удалить из избранного';star.textContent=favoritesV08.has(e.id)?'★':'☆';star.setAttribute('aria-label','Избранное');star.onclick=()=>libraryFavorite(e.id);controls.append(star);
  if(category==='online'){
@@ -54,11 +124,11 @@ function renderLibraryV08(){
  const query=$('librarySearch').value.toLocaleLowerCase().trim(),sel=$('librarySourceSelect').value,onlyFavorites=$('libraryFavoritesOnly').checked,
   fingerFilter=$('libraryFingeringSelect').value;
  const demo=demoSongs.map(s=>({...s,source:'Демо'})),folder=folderIndex.map(x=>x.song).filter(Boolean).map(e=>({...e,source:'Папка'})),saved=collectionIndex.map(e=>({...e,source:'Моя коллекция'}));
- const combos=[...demo.map(e=>({e,category:'demo'})),...folder.map(e=>({e,category:'folder'})),...saved.map(e=>({e,category:'saved'})),...REMOTE_INDEX.map(e=>({e,category:'online'})),...mutopiaLive.map(e=>({e,category:'online'})),...museTrainerLive.map(e=>({e,category:'online'})),...asapLive.map(e=>({e,category:'online'})),...maestroLive.map(e=>({e,category:'online'}))];
+ const combos=[...builtinMidiIndex.map(e=>({e,category:'builtin'})),...demo.map(e=>({e,category:'demo'})),...folder.map(e=>({e,category:'folder'})),...saved.map(e=>({e,category:'saved'})),...REMOTE_INDEX.map(e=>({e,category:'online'})),...mutopiaLive.map(e=>({e,category:'online'})),...museTrainerLive.map(e=>({e,category:'online'})),...asapLive.map(e=>({e,category:'online'})),...maestroLive.map(e=>({e,category:'online'}))];
  const mutopiaComposer=$('mutopiaComposer').value,mutopiaInstrument=$('mutopiaInstrument').value;
  const matches=combos.filter(({e,category})=>(sel==='all'||sel===category||(sel==='mutopia'&&e.source==='Mutopia')||(sel==='musetrainer'&&e.source==='MuseTrainer')||(sel==='asap'&&e.source==='ASAP Dataset')||(sel==='maestro'&&e.source===MAESTRO_SOURCE)||(sel==='openscore'&&e.source==='OpenScore GitHub')||(sel==='repertoire'&&e.source==='Public Domain MIDI'))&&(!(sel==='mutopia'&&mutopiaComposer)||e.composerCode===mutopiaComposer||!e.sourcePath)&&(!(sel==='mutopia'&&mutopiaInstrument)||String(e.instrument||'').toLowerCase().includes(mutopiaInstrument))&&(!onlyFavorites||favoritesV08.has(e.id))&&(fingerFilter==='all'||libraryCoverageStatusFor(e,category)===fingerFilter)&&(!query||[e.title,e.author,e.source,e.genre,e.license,e.instrument,e.composerCode,e.sourcePath].filter(Boolean).join(' ').toLocaleLowerCase().includes(query)));
  matches.sort((a,b)=>{const mode=$('librarySort').value;return mode==='title'?a.e.title.localeCompare(b.e.title):mode==='author'?a.e.author.localeCompare(b.e.author): mode==='difficulty'?(a.e.level||9)-(b.e.level||9): (a.category==='saved'?-2:a.category==='folder'?-1:a.category==='demo'?0:1)-(b.category==='saved'?-2:b.category==='folder'?-1:b.category==='demo'?0:1)||a.e.title.localeCompare(b.e.title)});
- $('libraryCount').textContent=matches.length+' / '+combos.length;$('libV8Counts').textContent=collectionIndex.length+' сохранено · '+folderIndex.length+' в папке · '+(REMOTE_INDEX.length+mutopiaLive.length+museTrainerLive.length+asapLive.length+maestroLive.length)+' онлайн · '+favoritesV08.size+' избранных';
+ $('libraryCount').textContent=matches.length+' / '+combos.length;$('libV8Counts').textContent=collectionIndex.length+' сохранено · '+folderIndex.length+' в папке · '+builtinMidiIndex.length+' встроенных MIDI · '+(REMOTE_INDEX.length+mutopiaLive.length+museTrainerLive.length+asapLive.length+maestroLive.length)+' онлайн · '+favoritesV08.size+' избранных';
  const progress=$('libraryFingeringProgress');
  if(progress)progress.textContent=libraryCoveragePending&&libraryCoverageChecked<libraryCoveragePending
   ?'Проверяю сохранённые партитуры: '+libraryCoverageChecked+' / '+libraryCoveragePending
@@ -82,6 +152,10 @@ function browseConnectedFolder(){
 }
 function libraryFolderFiltersChanged(){libraryPageLimit=60;renderLibrary()}
 renderLibrary=renderLibraryV08;
+void builtinMidiLoadCatalog().catch(error=>{
+ console.error('Built-in MIDI catalog:',error);
+ setLibraryStatus('Не удалось открыть встроенные MIDI: '+error.message);
+});
 renderFolderListing=function(){
  const count=folderIndex.filter(e=>e.type==='score').length;
  $('folderListing').textContent=folderIndex.length+' файлов для поиска · MusicXML/MXL/MuseScore: '+count+' — доступны для открытия и тренировки.';
