@@ -43,6 +43,22 @@ let fingerSelectedIds=new Set(),fingerSelectionAnchor=null,fingerSelectionPointe
 // hand sprites, source note IDs, selection and user override Undo/Redo.
 let sceneFingerActive=false,sceneFingerAutoAdvance=false;
 let sceneFingerMethod='manual',sceneFingerAutoStarted=null;
+// UI presentation preference, not an authorization role or an engine setting.
+// All changes to source notes remain governed by the same source-safe guards.
+const SCENE_DEVELOPER_PREF='playalong-developer-ui';
+let sceneFingerDeveloper=false;
+try{sceneFingerDeveloper=localStorage.getItem(SCENE_DEVELOPER_PREF)==='true'}
+catch{}
+document.body.classList.toggle('developerMode',sceneFingerDeveloper);
+$('developerToolsToggle').checked=sceneFingerDeveloper;
+$('developerToolsToggle').onchange=e=>{
+ sceneFingerDeveloper=e.target.checked;
+ document.body.classList.toggle('developerMode',sceneFingerDeveloper);
+ try{localStorage.setItem(SCENE_DEVELOPER_PREF,String(sceneFingerDeveloper))}
+ catch{notify('Не удалось сохранить настройку интерфейса.')}
+ sceneFingerControlsSync();
+};
+
 function sceneFingerMethodAvailable(method){
  if(method==='manual'||method==='beam')return fingerSelectionAvailable();
  return method==='pianomotion'&&!!current;
@@ -111,6 +127,21 @@ function sceneFingerCandidatePreviewMap(){
   }
  }
  return preview;
+}
+function sceneFingerStart(method){
+ if(!current){notify('Сначала открой произведение.');return false}
+ if(!sceneFingerMethodAvailable(method)){
+  notify(method==='beam'?
+   'Beam Search пока поддерживает исходный MusicXML с заданными руками. Для MIDI можно использовать PianoMotion.':
+   'Ручная правка пока доступна для исходного MusicXML. Для MIDI можно рассчитать PianoMotion.');
+  return false;
+ }
+ // Mode is internal implementation state, not another choice the learner
+ // has to make before pressing the desired calculation button.
+ if(!sceneFingerActive)sceneFingerSetActive(true);
+ if(!sceneFingerSelectMethod(method))return false;
+ if(method!=='manual')sceneFingerCalculateSelected();
+ return true;
 }
 function sceneFingerCalculateSelected(){
  if(!sceneFingerActive||sceneFingerMethod==='manual')return;
@@ -219,6 +250,15 @@ function sceneFingerControlsSync(){
  $('sceneFingerMethod').value=sceneFingerMethod;
  for(const option of $('sceneFingerMethod').options)
   option.disabled=!sceneFingerMethodAvailable(option.value);
+ for(const [method,id] of [
+  ['manual','sceneFingerManualButton'],
+  ['pianomotion','sceneFingerPianoMotionButton'],
+  ['beam','sceneFingerBeamButton']]){
+  const button=$(id);
+  button.disabled=!on||!sceneFingerMethodAvailable(method);
+  button.setAttribute('aria-pressed',String(on&&sceneFingerMethod===method));
+ }
+ $('sceneFingerReset').disabled=!on||!manualAvailable;
  $('sceneFingerManual').hidden=!on||!isManual;
  $('sceneFingerAutomatic').hidden=!on||isManual;
  const count=fingerSelectedIds.size,history=fingerOverrideHistoryCurrent();
@@ -317,6 +357,17 @@ function sceneFingerKeyDown(e){
  }
 }
 $('sceneFingerMode').onclick=()=>sceneFingerSetActive(!sceneFingerActive);
+$('sceneFingerManualButton').onclick=()=>sceneFingerStart('manual');
+$('sceneFingerPianoMotionButton').onclick=()=>sceneFingerStart('pianomotion');
+$('sceneFingerBeamButton').onclick=()=>sceneFingerStart('beam');
+$('sceneFingerReset').onclick=()=>{
+ if(!sceneFingerActive||!fingerSelectionAvailable())return;
+ // Reuse the existing two-scope confirmation dialog and single-step Undo.
+ // Never synthesize a second reset handler or edit original MusicXML.
+ scoreSetView('editor');
+ if(!$('fingerEditorResetFingering').disabled)$('fingerEditorResetFingering').click();
+ else notify('В этом произведении нет аппликатуры для сброса.');
+};
 $('sceneFingerAdvanced').onclick=()=>sceneFingerOpenReview();
 $('sceneFingerReview').onclick=()=>sceneFingerOpenReview();
 $('sceneFingerMethod').onchange=e=>{
