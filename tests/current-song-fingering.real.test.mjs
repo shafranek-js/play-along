@@ -45,8 +45,11 @@ try{
  assert.equal(src.length,4);
  await page.locator('#viewFingerEditor').click();
  await page.locator('#fingerCurrentCalculate').click();
- assert.match(await page.locator('#fingerBrowserStatus').innerText(),/Рука некоторых нот/);
+ await page.waitForFunction(()=>document.querySelector('#fingerBrowserStatus')?.textContent?.includes('Вычислено локально'),null,{timeout:20000});
+ assert.match(await page.locator('#fingerBrowserStatus').innerText(),/предварительно по нотным станам фортепиано/,
+  'two-staff piano MusicXML no longer requires manually enabling the staff hypothesis');
  assert.equal(await page.locator('#fingerBrowserContents').isVisible(),true,'one click reveals status');
+ assert.equal(await page.locator('#fingerBrowserAssumeStaves').isChecked(),false);
  await page.locator('#fingerBrowserAssumeStaves').check();
  await page.locator('#fingerCurrentCalculate').click();
  await page.waitForFunction(()=>document.querySelector('#fingerBrowserStatus').textContent.includes('Вычислено локально'),null,{timeout:20000});
