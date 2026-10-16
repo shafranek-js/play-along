@@ -91,7 +91,8 @@ try{
  assert.equal(await page.locator('#sceneFingerBeamButton').getAttribute('aria-pressed'),'true');
  await page.waitForFunction(()=>/Вычислено локально|Отказ|Ошибка|Рука/.test(
   document.getElementById('fingerBrowserStatus').textContent),null,{timeout:20000});
- assert.equal(await page.locator('#fingerResearchPanel').evaluate(el=>el.open),true);
+ assert.equal(await page.locator('#fingerResearchPanel').evaluate(el=>el.open),false,
+  'shared learner stage never expands developer research panels');
  assert.equal(await page.locator('#fingerBrowserConfirm').isChecked(),false);
  assert.deepEqual(await saved(),old,'Beam preview cannot silently apply fingers');
  const stageBeam=await page.evaluate(()=>window.__fingerGuideTest.sceneCandidates);
@@ -130,7 +131,8 @@ try{
   await page.locator('#sceneFingerUndo').click();
   assert.deepEqual(await saved(),old,'stage Undo restores exact prior corrections');
  }
- assert.equal(await page.locator('#fingerResearchPanel').evaluate(el=>el.open),true);
+ assert.equal(await page.locator('#fingerResearchPanel').evaluate(el=>el.open),false,
+  'shared learner stage never expands developer research panels');
  assert.equal(await page.locator('#pianoMotionCalculate').count(),1);
  assert.equal(await page.locator('#fingerBrowserCalculate').count(),1);
  await page.locator('#sceneFingerReviewClose').click();
