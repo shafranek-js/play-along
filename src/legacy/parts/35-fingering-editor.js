@@ -147,9 +147,10 @@ function fingerEditorRender(){
   const selected=fingerSelectedIds.has(n.noteId);
   c.fillStyle=hand==='RH'?'#3f6c92':hand==='LH'?'#527a63':'#525e74';
   c.fillRect(b.x,b.y,b.w,b.h);
-  c.lineWidth=selected?2.5:manual?1.8:1;
-  c.strokeStyle=selected?'#ffe48c':manual?'#e6ac5d':suggested?'#d6a5ff':'#8796ab';
-  if(suggested&&!selected&&!manual)c.setLineDash([3,2]);
+  c.lineWidth=selected?2.5:Number.isInteger(manual?.finger)?1.8:1;
+  c.strokeStyle=selected?'#ffe48c':Number.isInteger(manual?.finger)?'#e6ac5d':
+   suggested?'#d6a5ff':'#8796ab';
+  if(suggested&&!selected&&!Number.isInteger(manual?.finger))c.setLineDash([3,2]);
   c.strokeRect(b.x,b.y,b.w,b.h);
   c.setLineDash([]);
   c.fillStyle=selected?'#fff5cc':suggested?'#e8c7ff':'#fff';c.font='bold 11px system-ui';
@@ -777,7 +778,12 @@ $('fingerBrowserAcceptSelected').onclick=()=>{
   const p=fingerBrowserPreview.get(id),source=sources.get(id);
   if(!p||!source)continue;
   const effective=fingerOverrideEffective(source,saved[id]);
-  if(effective||source.fingeringSource==='musicxml'&&Number.isInteger(source.finger))continue;
+  // Masked author annotations are eligible for a NEW explicitly confirmed
+  // user proposal. Unmasked author numbers and existing user numbers remain
+  // protected from accidental replacement.
+  if(Number.isInteger(effective?.finger)||
+     source.fingeringSource==='musicxml'&&Number.isInteger(source.finger)&&
+     !effective?.suppressAuthor)continue;
   if(source.pitch!==p.pitch||source.start!==p.start||p.hand!=='LH'&&p.hand!=='RH'||
      !Number.isInteger(p.finger)||p.finger<1||p.finger>5){
    fingerBrowserAbort('Ноты изменились. Рассчитай заново.');return;
