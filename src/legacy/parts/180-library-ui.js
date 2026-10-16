@@ -73,7 +73,7 @@ async function builtinMidiOpen(e,{startupRestore=false}={}){
     await builtinMidiDigest(midi)!==e.sha256)
   throw Error('Исходный MIDI не прошёл проверку контрольной суммы: '+e.title);
  const data=midi.buffer;
- await libraryLoadFile(e.filename,data,await libraryContentId(data),{
+ return await libraryLoadFile(e.filename,data,await libraryContentId(data),{
   title:e.title,author:BUILTIN_MIDI_SOURCE,type:'builtin',startupRestore
  });
 }
