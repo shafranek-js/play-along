@@ -102,7 +102,10 @@ try{
  await page.locator('#fingerSpanEditorOpen').click();
  assert.equal(await page.locator('#fingerSpanContents').isVisible(),true,'Editor shortcut opens global Practice calibration');
  await page.locator('#fingerBrowserCalculate').click();
- await page.waitForFunction(()=>document.querySelector('#fingerBrowserStatus').textContent.includes('Рука некоторых нот'),null,{timeout:8000});
+ await page.waitForFunction(()=>document.querySelector('#fingerBrowserStatus').textContent.includes('Вычислено локально'),null,{timeout:15000});
+ assert.match(await page.locator('#fingerBrowserStatus').innerText(),/предварительно по нотным станам фортепиано/,
+  'two-staff piano notation should not require the old developer-only staff checkbox');
+ assert.equal(await page.locator('#fingerBrowserAssumeStaves').isChecked(),false);
  await page.locator('#fingerBrowserAssumeStaves').check();
  await page.locator('#fingerBrowserCalculate').click();
  await page.waitForFunction(()=>document.querySelector('#fingerBrowserStatus').textContent.includes('Вычислено локально'),null,{timeout:15000});
