@@ -1,4 +1,13 @@
-# Play Along — Piano Practice App (v0.10.126)
+# Play Along — Piano Practice App (v0.10.127)
+
+## FG-05 P0 — on-scene Fingering editing (v0.10.127)
+
+The **new opt-in «✍ Редактировать»** button enables manual MusicXML fingering editing on the existing **Performance Piano Roll, fixed 88-key keyboard, hands and transport**, without replacing or remounting that canvas. The contextual toolbar appears over the scene with **LH / RH**, finger **1–5**, **0 restore author for selected notes**, Auto-advance (off by default), Undo/Redo, current selection and a link to the existing advanced **«⚙ Аппликатура»** workspace. The detailed scrollable full-score editor, the genuine Python PianoMotion, FG-02I Beam Search, physical audits, score export and confirmation workflows are **unchanged** and remain available.
+
+The new mode reuses stable source noteIds, click/ctrl/shift/marquee selection, multi-note batched changes, content-fingerprinted persistent user overrides, one-step Undo, and the actual source note durations; the original score and source pitches never mutate. Shortcuts are active **only** during this Fingering mode: **1–5** finger, **L/R** hand, **0** clear selected user corrections, **←/→** chronological note navigation, **Ctrl/Cmd+Z / Ctrl/Cmd+Y** Undo/Redo; input fields, dialogs and competing shortcuts are protected. Auto-advance acts after finger assignment for one selected note, and re-confirming an identical finger navigates without adding a history entry. Labels on the shared falling notes now reflect accepted/saved user fingers and hidden source-author finger masks rather than stale source note data. Switching modes leaves playhead position, Canvas geometry, note IDs and Undo state intact. Fingering mode currently targets **original MusicXML**; MIDI and other formats still use PianoMotion in the advanced workspace until the subsequent source-identity phase.
+
+This is **phase one** of the shared-workspace plan. Independent editing-view time, wheel-based navigation/zoom and full MIDI manual editing are future phases, not asserted as implemented. Real Chromium tests verify single shared DOM Canvas, source-safe keyboard/toolbar assignments, Auto-advance, group history, unchanged transport, preserved advanced research and mode handoff.
+
 
 ## Full fingering reset without changing original MusicXML (v0.10.126)
 

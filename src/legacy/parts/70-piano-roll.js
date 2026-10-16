@@ -39,6 +39,101 @@ function fingerOverrideForNote(note){
 }
 // The selection is transient and scoped to an original source work.
 let fingerSelectedIds=new Set(),fingerSelectionAnchor=null,fingerSelectionPointer=null;
+// P0 shared-scene Fingering: reuse the exact performance notes, keyboard,
+// hand sprites, source note IDs, selection and user override Undo/Redo.
+let sceneFingerActive=false,sceneFingerAutoAdvance=false;
+function sceneFingerControlsSync(){
+ const available=fingerSelectionAvailable();
+ if(sceneFingerActive&&!available)sceneFingerActive=false;
+ const on=sceneFingerActive&&state.scoreView==='roll'&&state.page==='practice';
+ const count=fingerSelectedIds.size,history=fingerOverrideHistoryCurrent();
+ $('sceneFingerTools').hidden=!on;
+ $('sceneFingerMode').disabled=!available;
+ $('sceneFingerMode').setAttribute('aria-pressed',String(on));
+ document.body.classList.toggle('sceneFingerActive',on);
+ $('sceneFingerSelection').textContent=count?count+' нот выбрано':'Выбери ноту на дорожке';
+ for(const b of $('sceneFingerTools').querySelectorAll('[data-scene-finger],[data-scene-hand]'))
+  b.disabled=!count;
+ $('sceneFingerClear').disabled=!count;
+ $('sceneFingerUndo').disabled=!history.past.length;
+ $('sceneFingerRedo').disabled=!history.future.length;
+ $('sceneFingerAutoAdvance').checked=sceneFingerAutoAdvance;
+}
+function sceneFingerSetActive(active){
+ if(active&&!fingerSelectionAvailable()){
+  notify('Редактирование на сцене доступно для исходного MusicXML. Для MIDI используй PianoMotion в «Аппликатуре».');
+  return;
+ }
+ sceneFingerActive=!!active;
+ if(sceneFingerActive&&state.scoreView!=='roll')scoreSetView('roll');
+ sceneFingerControlsSync();
+ renderCanvas();
+}
+function sceneFingerAdvance(direction){
+ const order=fingerSelectionOrdered();
+ if(!order.length)return false;
+ const ids=order.map(x=>x.id);
+ const anchor=ids.indexOf(fingerSelectionAnchor);
+ let next=anchor<0?
+  (direction>0?order.findIndex(x=>x.start>=pos-.001):order.length-1):
+  anchor+direction;
+ if(next<0&&anchor<0&&direction>0)next=0;
+ if(next<0||next>=order.length)return false;
+ fingerSelectionSet([ids[next]],ids[next]);
+ return true;
+}
+function sceneFingerAssign(kind,value){
+ if(!sceneFingerActive||!fingerSelectionAvailable()||!fingerSelectedIds.size)return false;
+ const ids=[...fingerSelectedIds],user=state.fingerOverrides?.[fingerGuideWorkKey()]||{};
+ // Confirming an existing assignment advances without manufacturing Undo.
+ let same=false;
+ if(kind==='finger'&&ids.length===1){
+  const note=fingerSelectionOrdered().find(x=>x.id===ids[0])?.note;
+  const saved=user[ids[0]];
+  const before=Number.isInteger(saved?.finger)?saved.finger:
+   !saved?.suppressAuthor&&note?.fingeringSource==='musicxml'?note.finger:null;
+  same=before===value;
+ }
+ const changed=same?false:fingerOverrideCommitGroup(ids,
+  kind==='finger'?{finger:value}:kind==='hand'?{hand:value}:{reset:true});
+ if(kind==='finger'&&(same||changed)&&sceneFingerAutoAdvance&&ids.length===1)
+  sceneFingerAdvance(1);
+ sceneFingerControlsSync();
+ return changed||same;
+}
+function sceneFingerKeyDown(e){
+ if(!sceneFingerActive||!fingerSelectionAvailable()||
+    state.scoreView!=='roll'||state.page!=='practice'||e.altKey)return;
+ if(e.target?.closest?.('input,textarea,select,[contenteditable="true"],[role="dialog"],dialog')||
+    document.querySelector('.overlay.show'))return;
+ const ctrl=e.ctrlKey||e.metaKey,k=e.key.toLowerCase();
+ let handled=true;
+ if(ctrl&&k==='z')fingerOverrideCommit(null,null,{action:e.shiftKey?'redo':'undo'});
+ else if(ctrl&&k==='y'&&!e.shiftKey)fingerOverrideCommit(null,null,{action:'redo'});
+ else if(!ctrl&&!e.shiftKey&&e.key==='ArrowRight')sceneFingerAdvance(1);
+ else if(!ctrl&&!e.shiftKey&&e.key==='ArrowLeft')sceneFingerAdvance(-1);
+ else if(!ctrl&&!e.shiftKey&&/^[1-5]$/.test(e.key))
+  sceneFingerAssign('finger',Number(e.key));
+ else if(!ctrl&&!e.shiftKey&&(k==='l'||k==='r'))
+  sceneFingerAssign('hand',k==='l'?'LH':'RH');
+ else if(!ctrl&&!e.shiftKey&&e.key==='0')sceneFingerAssign('reset');
+ else if(!ctrl&&e.key==='Escape')fingerSelectionSet([]);
+ else handled=false;
+ if(handled){
+  e.preventDefault();e.stopImmediatePropagation();sceneFingerControlsSync();
+ }
+}
+$('sceneFingerMode').onclick=()=>sceneFingerSetActive(!sceneFingerActive);
+$('sceneFingerAdvanced').onclick=()=>{sceneFingerSetActive(false);scoreSetView('editor')};
+$('sceneFingerAutoAdvance').onchange=e=>{sceneFingerAutoAdvance=e.target.checked;sceneFingerControlsSync()};
+for(const b of $('sceneFingerTools').querySelectorAll('[data-scene-finger]'))
+ b.onclick=()=>sceneFingerAssign('finger',Number(b.dataset.sceneFinger));
+for(const b of $('sceneFingerTools').querySelectorAll('[data-scene-hand]'))
+ b.onclick=()=>sceneFingerAssign('hand',b.dataset.sceneHand);
+$('sceneFingerClear').onclick=()=>sceneFingerAssign('reset');
+$('sceneFingerUndo').onclick=()=>{fingerOverrideCommit(null,null,{action:'undo'});sceneFingerControlsSync()};
+$('sceneFingerRedo').onclick=()=>{fingerOverrideCommit(null,null,{action:'redo'});sceneFingerControlsSync()};
+document.addEventListener('keydown',sceneFingerKeyDown);
 function fingerSelectionAvailable(){
  return !!current&&current.format==='MusicXML'&&state.adaptMode==='original'&&!!fingerGuideWorkKey();
 }
@@ -53,13 +148,15 @@ function fingerSelectionSet(ids,anchor=null){
   ordered.find(e=>fingerSelectedIds.has(e.id))?.note||null;
  selectNote(primary,{keepGroup:true});
  renderCanvas();if(state.scoreView==='editor')fingerEditorRender();
+ if(sceneFingerActive)sceneFingerControlsSync();
 }
 function fingerSelectionShortcut(e){
  if(!(e.ctrlKey||e.metaKey)||e.altKey||e.shiftKey||e.key.toLowerCase()!=='a'||
   !fingerSelectionAvailable()||state.page!=='practice'||!['roll','editor'].includes(state.scoreView))return false;
  const focused=document.activeElement;
  if(focused?.closest('input,textarea,select,[contenteditable="true"]'))return false;
- if(focused!==roll&&focused!==fingerEditorCanvas&&!fingerEditorScroller.contains(focused)&&!$('selection').contains(focused)&&
+ if(focused!==roll&&focused!==fingerEditorCanvas&&!fingerEditorScroller.contains(focused)&&
+  !(sceneFingerActive&&$('sceneFingerTools').contains(focused))&&!$('selection').contains(focused)&&
   !(focused===document.body&&fingerSelectedIds.size))return false;
  e.preventDefault();
  const ordered=fingerSelectionOrdered();
@@ -121,6 +218,7 @@ function fingerOverrideCommit(note,choice,{action='edit',batch=null}={}){
  if(state.scoreView==='editor')fingerEditorRender();
  if(current?.id)void libraryCoverageStore(current,current.id)
   .catch(e=>console.warn('Coverage after correction failed',e));
+ if(sceneFingerActive)sceneFingerControlsSync();
  return true;
 }
 function fingerOverrideCommitGroup(ids,{finger,hand,reset=false}={}){
@@ -605,6 +703,9 @@ function resizeCanvas(){
 }
 function renderCanvas(){
  if(!current)return;
+ // Song-format changes can happen without an explicit view change.
+ if($('sceneFingerMode').disabled===fingerSelectionAvailable()||
+    (sceneFingerActive&&!fingerSelectionAvailable()))sceneFingerControlsSync();
  const {w,h}=resizeCanvas();lastCanvasSize={w,h};const c=roll.getContext('2d');
  c.clearRect(0,0,w,h);c.fillStyle='#111720';c.fillRect(0,0,w,h);
  const r=noteRange(),notes=notesToShow(),
@@ -694,8 +795,12 @@ function renderCanvas(){
   if(fingerSelectedIds.has(n.noteId)){c.strokeStyle='#f8e183';c.lineWidth=2.8;c.stroke();}
    else if(selectedNote===n){c.strokeStyle='#fff';c.lineWidth=1.5;c.setLineDash([3,3]);c.stroke();c.setLineDash([]);}
   c.restore();
-  if(state.labels&&nw>=24&&nh>18){c.fillStyle=audible?'#062439':'#171d25';c.font='bold 10px system-ui';c.textAlign='center';c.fillText(nameOf(n.pitch)+(n.finger?' · '+n.finger:''),k.center,y+13);c.textAlign='left';}
-  else if(n.finger&&nw>=14&&nh>14){c.fillStyle=audible?'#062439':'#171d25';c.font='bold 10px system-ui';c.textAlign='center';c.fillText(String(n.finger),k.center,y+11);c.textAlign='left';}
+  // Show the effective saved/user finger without mutating source XML notes.
+  const manual=n.noteId?fingerOverrideForNote(n):null;
+  const shownFinger=Number.isInteger(manual?.finger)?manual.finger:
+   manual?.suppressAuthor?null:n.finger;
+  if(state.labels&&nw>=24&&nh>18){c.fillStyle=audible?'#062439':'#171d25';c.font='bold 10px system-ui';c.textAlign='center';c.fillText(nameOf(n.pitch)+(Number.isInteger(shownFinger)?' · '+shownFinger:''),k.center,y+13);c.textAlign='left';}
+  else if(Number.isInteger(shownFinger)&&nw>=14&&nh>14){c.fillStyle=audible?'#062439':'#171d25';c.font='bold 10px system-ui';c.textAlign='center';c.fillText(String(shownFinger),k.center,y+11);c.textAlign='left';}
   hitboxes.push({x,y,w:nw,h:nh,n});
  }
  if(loop.start!=null&&loop.end!=null){
@@ -837,7 +942,9 @@ function selectNote(n,{keepGroup=false}={}){
   fingerSelectedIds=new Set(fingerSelectionAvailable()&&n?.noteId?[n.noteId]:[]);
   fingerSelectionAnchor=n?.noteId||null;
  }
- selectedNote=n;if(!n){$('selection').innerHTML='<strong>Ничего не выбрано</strong><p>Щёлкни цветную ноту на Piano Roll.</p>';return}$('selection').replaceChildren();const head=document.createElement('strong'),desc=document.createElement('p');head.textContent=nameOf(n.pitch)+' · MIDI '+n.pitch+(Number.isInteger(n.sourcePitch)&&n.sourcePitch!==n.pitch?' · из '+nameOf(n.sourcePitch):'');desc.textContent='Дорожка: '+(current.tracks[n.track]?.name||n.track)+' | Позиция: '+n.start.toFixed(2)+' с | Длительность: '+n.duration.toFixed(2)+' с | Velocity: '+n.velocity;$('selection').append(head,desc);const review=reviewForNote(n);if(review){const p=document.createElement('p');p.className='small';p.textContent=review.miss?'Разбор: пропущена':review.hit?'Разбор: сыграна'+(review.timingMs!=null?' · отклонение '+Math.round(review.timingMs)+' мс':'')+(review.holdRatio!=null?' · удержание '+Math.round(review.holdRatio*100)+'%':'')+(review.chordSpreadMs!=null?' · разброс аккорда '+Math.round(review.chordSpreadMs)+' мс':''):'Разбор: нет данных о нажатии';$('selection').append(p)}if(!state.right){state.right=true;applyPanels()}switchRightTab('practice');fingerOverrideRenderEditor(n);renderCanvas();}
+ selectedNote=n;if(!n){$('selection').innerHTML='<strong>Ничего не выбрано</strong><p>Щёлкни цветную ноту на Piano Roll.</p>';return}$('selection').replaceChildren();const head=document.createElement('strong'),desc=document.createElement('p');head.textContent=nameOf(n.pitch)+' · MIDI '+n.pitch+(Number.isInteger(n.sourcePitch)&&n.sourcePitch!==n.pitch?' · из '+nameOf(n.sourcePitch):'');desc.textContent='Дорожка: '+(current.tracks[n.track]?.name||n.track)+' | Позиция: '+n.start.toFixed(2)+' с | Длительность: '+n.duration.toFixed(2)+' с | Velocity: '+n.velocity;$('selection').append(head,desc);const review=reviewForNote(n);if(review){const p=document.createElement('p');p.className='small';p.textContent=review.miss?'Разбор: пропущена':review.hit?'Разбор: сыграна'+(review.timingMs!=null?' · отклонение '+Math.round(review.timingMs)+' мс':'')+(review.holdRatio!=null?' · удержание '+Math.round(review.holdRatio*100)+'%':'')+(review.chordSpreadMs!=null?' · разброс аккорда '+Math.round(review.chordSpreadMs)+' мс':''):'Разбор: нет данных о нажатии';$('selection').append(p)}if(!state.right&&!sceneFingerActive){state.right=true;applyPanels()}
+ if(state.right)switchRightTab('practice');
+ fingerOverrideRenderEditor(n);renderCanvas();}
 function fingerOverrideRenderEditor(n){
  if(!n||!current||current.format!=='MusicXML'||state.adaptMode!=='original'||!n.noteId||
   !fingerGuideWorkKey())return;
