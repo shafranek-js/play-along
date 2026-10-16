@@ -1,4 +1,13 @@
-# Play Along — Piano Practice App (v0.10.146)
+# Play Along — Piano Practice App (v0.10.147)
+
+## Persistent last-selected melody (v0.10.147)
+
+After F5 or a new browser session, Play Along restores the **exact last selected work**, not the default demo. Saved/imported MIDI, MusicXML and online files already cached in **My Collection** are restored from IndexedDB. The built-in MIDI pack is intentionally not duplicated into IndexedDB; its songs are now restored from the shipped catalog by matching the selected content SHA-256, then reusing the same verified original bytes. Another chosen demo is also retained. Original per-song practice mode, speed, seek position, loop, and other song preferences are applied on load as before.
+
+Restoration is asynchronous and does not start playback automatically. The initially shown demo is temporary while loading; an explicit new song selection during that time takes precedence and is never overwritten by a late restore. If a formerly loaded local/online file was never saved or is no longer accessible, Play Along reports the problem and retains its ID for a later retry, rather than silently choosing an unrelated saved song. Imported files must be available in browser storage for restoration. Built-in MIDI selection is now highlighted correctly in library rows.
+
+The existing real-browser built-in MIDI regression now covers selecting Megalovania, F5, exact song ID, source type and saved playhead position, as well as a non-default demo selection. The existing persistent-collection Chromium suite continues to cover imported MusicXML across reloads.
+
 
 ## Transport — configurable lead-in and rewind (v0.10.146)
 
