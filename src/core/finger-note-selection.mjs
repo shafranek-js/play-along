@@ -58,7 +58,9 @@ export function fingerBulkChoice(source,previous,{finger,hand}){
  const nextHand=hand===undefined?prevHand:hand;
  if(!(nextFinger===null||(Number.isInteger(nextFinger)&&nextFinger>=1&&nextFinger<=5))||
   ![null,'RH','LH'].includes(nextHand))return undefined;
- if(nextFinger===sourceFinger&&nextHand===originalHand)return null;
- if(nextFinger===null&&nextHand===null)return null;
- return {finger:nextFinger,hand:nextHand};
+ const suppressed=previous?.suppressAuthor===true;
+ if(!suppressed&&nextFinger===sourceFinger&&nextHand===originalHand)return null;
+ if(!suppressed&&nextFinger===null&&nextHand===null)return null;
+ return {finger:nextFinger,hand:nextHand,
+  ...(suppressed?{suppressAuthor:true}:{})};
 }
