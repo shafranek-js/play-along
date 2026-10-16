@@ -298,7 +298,12 @@ function fingerResetTravel(direction){
   pianoMotionLastApplied=p.applied;pianoMotionReviewHistory=p.history;
   pianoMotionReviewAudit=p.audit;
   if(p.alignment?.ok){$('pianoMotionReview').hidden=false;pianoMotionReviewRender();}
- }else if(direction==='redo')pianoMotionStop('Сброс аппликатуры повторён.');
+ }else if(direction==='redo'&&!t.preservePianoSession)
+  pianoMotionStop('Сброс аппликатуры повторён.');
+ if(t.preservePianoSession&&pianoMotionLastSong===current){
+  pianoMotionLastApplied=pianoMotionReviewCountApplied()>0;
+  if(pianoMotionLastAlignment?.ok)pianoMotionReviewRender();
+ }
  t.phase=direction==='undo'?'before':'after';
  renderCanvas();if(state.scoreView==='editor')fingerEditorRender();
  sceneFingerControlsSync();
@@ -336,6 +341,74 @@ function fingerResetEntries(scope,notes,edits){
  }
  return {ok:true,entries,piano,userCount:userIds.size,authorCount:authorIds.size,
   pianoCount:piano.length};
+}
+/** Remove only selected note overrides plus any accepted PianoMotion digits.
+ * All note IDs must belong to the current immutable source. Do not change
+ * other notes, author notation, original MIDI or transport position.
+ */
+function fingerResetSelected(ids){
+ if(!fingerSelectionAvailable()||!fingerBrowserMidiSourceVerified()||
+    !Array.isArray(ids)||!ids.length||ids.length>30000||
+    new Set(ids).size!==ids.length)return false;
+ const source=fingerSelectionOrdered();
+ const byId=new Map(source.map(e=>[e.id,e.note]));
+ if(byId.size!==source.length||ids.some(id=>!byId.has(id)))return false;
+ const song=current,key=fingerGuideWorkKey(),edits=state.fingerOverrides?.[key]||{};
+ if(Object.keys(edits).some(id=>!byId.has(id)))return false;
+ const notes=ids.map(id=>byId.get(id)),entries=[];
+ for(const note of notes){
+  const id=note.noteId,before=edits[id]??null;
+  // "Снять" on the manual scene restores source hand and authored digit.
+  // A Play Along-exported MusicXML digit is user-origin, however: mask it.
+  const exported=note.fingeringSource==='musicxml-user-export-unverified'&&
+   Number.isInteger(note.finger)&&note.finger>=1&&note.finger<=5;
+  const after=exported?{finger:null,hand:null,suppressAuthor:true}:null;
+  if(!fingerHistorySame(before,after))entries.push({id,before,after});
+ }
+ const piano=fingerResetPianoPatches(notes);
+ if(!entries.length&&!piano.length){
+  notify('Для выбранных нот нечего снимать. Авторские номера защищены.');
+  return false;
+ }
+ return fingerResetApplyPlan({ok:true,entries,piano,userCount:entries.length,
+  authorCount:0,pianoCount:piano.length},{song,key,scope:'selected',
+  preservePianoSession:true});
+}
+function fingerResetApplyPlan(plan,{song,key,scope,preservePianoSession=false}={}){
+ if(!plan?.ok||!(plan.entries.length||plan.piano.length)||
+    song!==current||key!==fingerGuideWorkKey())return false;
+ const pianoSession=!preservePianoSession&&plan.piano.length?{
+  song:pianoMotionLastSong,result:pianoMotionLastResult,
+  alignment:pianoMotionLastAlignment,plan:pianoMotionLastPlan,
+  applied:pianoMotionLastApplied,history:pianoMotionReviewHistory,
+  audit:pianoMotionReviewAudit
+ }:null;
+ const ok=!plan.entries.length||
+  fingerOverrideCommit(null,null,{action:'batch',batch:plan.entries});
+ if(!ok)return false;
+ const manualStep=plan.entries.length?fingerOverrideHistoryCurrent().past.at(-1):null;
+ fingerResetRestorePiano(plan.piano,'after');
+ if(!preservePianoSession)pianoMotionStop('Применённые номера PianoMotion сброшены.');
+ else if(pianoMotionLastSong===song){
+  pianoMotionLastApplied=pianoMotionReviewCountApplied()>0;
+  pianoMotionReviewSelected.clear();
+  if(pianoMotionLastAlignment?.ok)pianoMotionReviewRender();
+ }
+ fingerBrowserAbort(scope==='selected'?
+  'Снято на выбранных нотах: '+(plan.entries.length+plan.pianoCount)+
+  '. Остальная аппликатура сохранена. Одно Undo восстанавливает изменения.':
+  'Сброшено пользовательских номеров: '+plan.userCount+
+  ' · PianoMotion: '+plan.pianoCount+
+  (scope==='all'?' · Авторских скрыто: '+plan.authorCount:'')+
+  '. Исходный файл не изменён. Можно рассчитать заново или отменить сброс одним Undo.');
+ fingerResetComposite={song,key,manualStep,piano:plan.piano,pianoSession,
+  phase:'after',preservePianoSession};
+ sceneFingerReviewReset();
+ renderCanvas();if(state.scoreView==='editor')fingerEditorRender();
+ sceneFingerControlsSync();
+ notify((scope==='selected'?'Снято для выбранных нот: ':'Сброс аппликатуры: ')+
+  (plan.entries.length+plan.pianoCount)+' изменений · одно действие Undo');
+ return true;
 }
 const fingerResetDialog=$('fingerResetDialog');
 // Shared confirmation dialog belongs to the document root so it stays
@@ -380,28 +453,9 @@ $('fingerResetConfirm').onclick=()=>{
  if(!['user','all'].includes(scope))return;
  const plan=fingerResetEntries(scope,fingerSelectionOrdered().map(x=>x.note),state.fingerOverrides?.[key]||{});
  if(!plan.ok||!(plan.entries.length||plan.piano.length)){fingerResetPreview();return}
- const pianoSession=plan.piano.length?{
-  song:pianoMotionLastSong,result:pianoMotionLastResult,
-  alignment:pianoMotionLastAlignment,plan:pianoMotionLastPlan,
-  applied:pianoMotionLastApplied,history:pianoMotionReviewHistory,
-  audit:pianoMotionReviewAudit
- }:null;
- const ok=!plan.entries.length||
-  fingerOverrideCommit(null,null,{action:'batch',batch:plan.entries});
+ const ok=fingerResetApplyPlan(plan,{song,key,scope});
  fingerResetDialog.close();
- if(!ok){notify('Сброс аппликатуры не выполнен.');return}
- const manualStep=plan.entries.length?fingerOverrideHistoryCurrent().past.at(-1):null;
- fingerResetRestorePiano(plan.piano,'after');
- // Clear both algorithms' pending previews; old results are not accepted.
- pianoMotionStop('Применённые номера PianoMotion сброшены.');
- fingerBrowserAbort('Сброшено ручных номеров: '+plan.userCount+
-  ' · PianoMotion: '+plan.pianoCount+
-  (scope==='all'?' · Авторских скрыто: '+plan.authorCount:'')+
-  '. Исходный файл не изменён. Можно рассчитать заново или отменить сброс одним Undo.');
- fingerResetComposite={song,key,manualStep,piano:plan.piano,pianoSession,phase:'after'};
- renderCanvas();fingerEditorRender();sceneFingerControlsSync();
- notify('Сброс аппликатуры: '+(plan.entries.length+plan.pianoCount)+
-  ' изменений · одно действие Undo');
+ if(!ok)notify('Сброс аппликатуры не выполнен.');
 };
 $('fingerEditorUndo').onclick=()=>{fingerOverrideCommit(null,null,{action:'undo'});fingerEditorRender()};
 $('fingerEditorRedo').onclick=()=>{fingerOverrideCommit(null,null,{action:'redo'});fingerEditorRender()};
