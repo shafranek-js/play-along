@@ -656,16 +656,19 @@ function fingerBrowserInput(){
   fingerSelectionOrdered().length-fingerBrowserNotes().length:0;
  const explicitTrackHands=new Map(isMidi?current.tracks.flatMap(track=>
   (track.notes||[]).map(n=>[n,fingerMidiExplicitTrackHand(track)])):[]);
- let pianoStaffHints=0;
+ const crossStaffNotes=isMidi?new Set():fingerMusicXmlCrossStaffVoiceNotes(current);
+ let pianoStaffHints=0,crossStaffNeedsHand=0;
  const notes=fingerBrowserNotes().map(n=>{
   const change=fingerOverrideEffective(n,edits[n.noteId]);
   const userDeclaredStaff=$('fingerBrowserAssumeStaves').checked;
   // A real piano grand staff is a provisional hand clue, not an original
   // hand or an authored fingering. Explicit user/source hands win.
-  const pianoStaffHint=isMidi?null:fingerMusicXmlPianoStaffHand(current,n);
+  const pianoStaffHint=isMidi||crossStaffNotes.has(n.noteId)?null:
+   fingerMusicXmlPianoStaffHand(current,n);
   const writtenHand=change?.hand??n.hand??
    (isMidi?explicitTrackHands.get(n):pianoStaffHint);
   if(!change?.hand&&!n.hand&&pianoStaffHint)pianoStaffHints++;
+  if(!change?.hand&&!n.hand&&crossStaffNotes.has(n.noteId))crossStaffNeedsHand++;
   const h=(writtenHand==='RH'||writtenHand==='LH')?writtenHand:
    (userDeclaredStaff&&String(n.staff)==='1'?'RH':
     userDeclaredStaff&&String(n.staff)==='2'?'LH':null);
@@ -677,7 +680,7 @@ function fingerBrowserInput(){
   return candidate;
  });
  return {notes,handSize:state.fingerBrowserHandSize,pianoStaffHints,pianoExcluded,
-  compareWithoutSaved:$('fingerBrowserCompareSaved').checked};
+  crossStaffNeedsHand,compareWithoutSaved:$('fingerBrowserCompareSaved').checked};
 }
 function fingerBrowserAbort(message){
  fingerBrowserSeq++;
@@ -784,6 +787,9 @@ function fingerBrowserShow(report){
     (fingerBrowserInput()?.pianoExcluded?
      ' · Другие инструменты исключены из расчёта (нот: '+
      fingerBrowserInput().pianoExcluded+').':'')+
+    (fingerBrowserInput()?.crossStaffNeedsHand?
+     ' · Перенос голосов между станами: '+fingerBrowserInput().crossStaffNeedsHand+
+     ' нот требуют проверки назначенной руки.':'')+
     skipNotice;
   }
  }
@@ -1040,7 +1046,10 @@ $('fingerBrowserCalculate').onclick=()=>{
  if(!input.notes.every(n=>n.hand==='RH'||n.hand==='LH')){
   $('fingerBrowserStatus').textContent=current?.format==='MIDI'?
    'MIDI не определяет левую и правую руку. Выдели ноты на этой дорожке в режиме «Вручную» и назначь RH/LH (или открой MIDI с дорожками «Right Hand» / «Left Hand»), затем снова нажми Beam Search.':
-   'Рука некоторых нот не определена. Укажите руки вручную или явно подтвердите условное разделение по станам для эксперимента.';
+   input.crossStaffNeedsHand?
+    'Перенос голоса между станами в одном такте: '+input.crossStaffNeedsHand+
+    ' нот без подтверждённой руки. Укажи RH/LH для этих нот в режиме «Вручную», затем нажми Beam Search снова. Остальные ноты и сохранённая аппликатура не изменены.':
+    'Рука некоторых нот не определена. Укажите руки вручную или явно подтвердите условное разделение по станам для эксперимента.';
   return;
  }
  if(!window.Worker){
