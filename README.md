@@ -1,4 +1,12 @@
-# Play Along — Piano Practice App (v0.10.131)
+# Play Along — Piano Practice App (v0.10.132)
+
+## FG-05 — keep automatic fingering review on the shared stage (v0.10.132)
+
+**Owner rule:** an ordinary user must never navigate to the old fingering/editor view just to review and accept calculated fingers. On the full 88-key Piano Roll, **«Проверить и применить»** opens a compact in-place review panel (the score view, transport and keyboard remain unchanged). Available suggestions use a purple dashed outline; selections receive a gold frame. Click notes, Ctrl+click or drag-select proposed note blocks, or press **«Выбрать все применимые»**; mark an explicit **«Я проверил(а)…»** checkbox before **«Применить выбранные»** becomes enabled. **«Оставить без изменений»** discards only the current on-stage selection and leaves the author's and user's fingering untouched. Switching source/method drops stale selection and consent.
+
+**One source of truth:** Beam still commits using the original `fingerBrowserAcceptSelected` handler, strict source snapshot and atomic user-override Undo/Redo; PianoMotion still commits using the original `pianoMotionReviewApply(indices)`, re-alignment, physical audit and independent MIDI/score history. Only eligible, current-song, source-matched proposals are selectable. The shared-stage Undo/Redo buttons use the correct engine history. Reset uses the pre-existing two-scope confirmation workflow as a modal **over the stage**, without switching view. The original separate advanced editor remains available solely through the developer tools, for extended operations and export.
+
+**Verified behavior:** browser regression covers protected author notes, selection/explicit consent, Beam apply+Undo without leaving the score, zero-eligible MIDI handling, reset on the same stage and absence of silent source modification. Real Pyodide browser test accepts original PianoMotion Python candidates on the same roll before exporting through the existing full workspace. MIDI manual and Beam support are separate, still-open capabilities; this change makes no unsupported engine promises.
 
 ## FG-05 — one-click fingering workflows and developer presentation (v0.10.131)
 
