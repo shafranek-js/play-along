@@ -311,7 +311,7 @@ function fingerResetTravel(direction){
   if(pianoMotionLastAlignment?.ok)pianoMotionReviewRender();
  }
  t.phase=direction==='undo'?'before':'after';
- renderCanvas();if(state.scoreView==='editor')fingerEditorRender();
+ persist();renderCanvas();if(state.scoreView==='editor')fingerEditorRender();
  sceneFingerControlsSync();
  notify(direction==='undo'?'Сброс аппликатуры отменён':'Сброс аппликатуры повторён');
  return true;
@@ -410,7 +410,7 @@ function fingerResetApplyPlan(plan,{song,key,scope,preservePianoSession=false}={
  fingerResetComposite={song,key,manualStep,piano:plan.piano,pianoSession,
   phase:'after',preservePianoSession};
  sceneFingerReviewReset();
- renderCanvas();if(state.scoreView==='editor')fingerEditorRender();
+ persist();renderCanvas();if(state.scoreView==='editor')fingerEditorRender();
  sceneFingerControlsSync();
  notify((scope==='selected'?'Снято для выбранных нот: ':'Сброс аппликатуры: ')+
   (plan.entries.length+plan.pianoCount)+' изменений · одно действие Undo');
