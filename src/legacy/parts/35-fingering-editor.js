@@ -1623,19 +1623,36 @@ for(const [button,direction]of [['pianoMotionUndo','undo'],['pianoMotionRedo','r
    ' пальцев. Источник MIDI и авторские данные не изменены.';
  };
 }
+// Restored accepted fingering has no Python worker/review object after F5.
+// The exact score fingerprint and each note's accepted pitch/time/hand/finger
+// must still match the validated persisted layer before allowing export.
+function pianoMotionSavedAcceptanceValid(song=current){
+ const snapshot=fingerAcceptedSnapshot(song);
+ const persisted=snapshot&&state.acceptedFingering?.[snapshot.key];
+ if(!snapshot||!persisted||!Object.keys(snapshot.entries).length||
+    Object.keys(persisted).length!==Object.keys(snapshot.entries).length)return false;
+ return Object.entries(snapshot.entries).every(([id,v])=>
+  Object.hasOwn(persisted,id)&&
+  ['pitch','start','duration','finger','hand'].every(k=>v[k]===persisted[id][k]));
+}
 function pianoMotionDownloadMusicXML(){
  const song=current;
- if(!song||pianoMotionLastSong!==song||!pianoMotionLastAlignment?.ok||!pianoMotionLastApplied){
+ const hasLiveReview=!!song&&pianoMotionLastSong===song&&
+  !!pianoMotionLastAlignment?.ok&&!!pianoMotionLastApplied;
+ const hasSavedReview=!hasLiveReview&&pianoMotionSavedAcceptanceValid(song);
+ if(!song||!hasLiveReview&&!hasSavedReview){
   notify('Сначала рассчитайте и примените аппликатуру');return;
  }
- const refreshed=pianoMotionAlignSuggestions(song,pianoMotionLastResult.suggestions,{
-  trackIndices:pianoMotionLastPlan.trackIndices,channel:pianoMotionLastPlan.channel??null,
-  tolerance:pianoMotionLastPlan.exactOriginalMidi?.025:.005,
-  sourceNotes:pianoMotionLastPlan.sourceNotes??null
- });
- if(!refreshed.ok||refreshed.matches.some((entry,i)=>
-     entry.note!==pianoMotionLastAlignment.matches[i]?.note)){
-  notify('Партия изменилась. Повторите расчёт перед экспортом.');return;
+ if(hasLiveReview){
+  const refreshed=pianoMotionAlignSuggestions(song,pianoMotionLastResult.suggestions,{
+   trackIndices:pianoMotionLastPlan.trackIndices,channel:pianoMotionLastPlan.channel??null,
+   tolerance:pianoMotionLastPlan.exactOriginalMidi?.025:.005,
+   sourceNotes:pianoMotionLastPlan.sourceNotes??null
+  });
+  if(!refreshed.ok||refreshed.matches.some((entry,i)=>
+      entry.note!==pianoMotionLastAlignment.matches[i]?.note)){
+   notify('Партия изменилась. Повторите расчёт перед экспортом.');return;
+  }
  }
  let xml=null;
  if(song.format==='MusicXML'&&song.notationXML&&typeof sheetFingeringOverlay==='function'){
@@ -1667,7 +1684,10 @@ function pianoMotionDownloadMusicXML(){
  let midiExportVerification=null;
  if(!xml){
   try{
-   const tracks=pianoMotionLastPlan?.mode==='derived'
+   const tracks=hasSavedReview&&song.format==='MIDI'
+    ?song.tracks.filter(t=>t.notes?.some(n=>n.fingeringSource==='pianomotion'))
+      .map(t=>({...t,notes:t.notes.filter(n=>!n.isDrum&&n.channel!==9)}))
+    :pianoMotionLastPlan?.mode==='derived'
     ?pianoMotionLastPlan.trackIndices.map(i=>({
       ...song.tracks[i],notes:song.tracks[i].notes.filter(n=>
        !n.isDrum&&n.channel!==9&&
@@ -1677,7 +1697,7 @@ function pianoMotionDownloadMusicXML(){
     const key=fingerOverrideWorkKey(song),manual=key?state.fingerOverrides?.[key]||{}:{};
     // Explicit manual edits may only come from the exact original MIDI
     // bytes, not an assumed pitch/time or a filename match.
-    if(Object.keys(manual).length){
+    if(Object.keys(manual).length||hasSavedReview){
      const bytes=originalMidiForSong(song);
      if(!bytes||!key||fingerMidiWorkKey(song,bytes)!==key){
       notify('Экспорт остановлен: исходные байты MIDI не подтверждены.');return;
