@@ -118,6 +118,8 @@ try{
  await page.waitForFunction(()=>!document.querySelector('#sceneFingerExport').disabled);
  const downloadReady=page.waitForEvent('download',{timeout:20000});
  await page.locator('#sceneFingerExport').click();
+ const exportNotice=await page.locator('#rollStatus').textContent();
+ console.log('FG-MIDI-EXPORT-STATUS',exportNotice);
  let exported;
  try{exported=await downloadReady}
  catch(error){
