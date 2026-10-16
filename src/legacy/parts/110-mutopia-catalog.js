@@ -58,7 +58,7 @@ function mutopiaCatalogItems(tree){
  });
 }
 function mutopiaRenderStatus(message){const e=document.getElementById('mutopiaProgress');if(e)e.textContent=message}
-function mutopiaUpdateComposerSelect(){const el=document.getElementById('mutopiaComposer');if(!el)return;const selected=el.value;const codes=[...new Set(mutopiaLive.map(e=>e.composerCode))].sort((a,b)=>a.localeCompare(b));el.replaceChildren(new Option('Все композиторы',''));for(const code of codes)el.add(new Option(MUTOPIA_COMPOSERS[code]||mutopiaSlug(code),code));el.value=selected;}
+function mutopiaUpdateComposerSelect(){const el=document.getElementById('mutopiaComposer');if(!el)return;const selected=state.libraryFilters?.mutopiaComposer||el.value;const codes=[...new Set(mutopiaLive.map(e=>e.composerCode))].sort((a,b)=>a.localeCompare(b));el.replaceChildren(new Option('Все композиторы',''));for(const code of codes)el.add(new Option(MUTOPIA_COMPOSERS[code]||mutopiaSlug(code),code));el.value=selected;}
 async function mutopiaCacheRead(key){try{return await libraryTransaction('prefs','readonly',st=>st.get(key))}catch{return null}}
 async function mutopiaCacheWrite(key,value){try{await libraryTransaction('prefs','readwrite',st=>st.put(value,key))}catch(e){mutopiaRenderStatus('Каталог загружен, но не сохранён: '+e.message)}}
 async function mutopiaLoadIndex(force=false){

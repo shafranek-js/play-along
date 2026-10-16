@@ -226,7 +226,13 @@ fingerEditorCanvas.addEventListener('pointerup',fingerEditorEndPointer);
 fingerEditorCanvas.addEventListener('pointercancel',fingerEditorEndPointer);
 fingerEditorCanvas.addEventListener('lostpointercapture',fingerEditorEndPointer);
 fingerEditorScroller.addEventListener('scroll',fingerEditorPaintSoon,{passive:true});
-$('fingerEditorZoom').addEventListener('change',()=>{fingerEditorRender()});
+$('fingerEditorZoom').value=String(state.fingerEditorZoom);
+$('fingerEditorZoom').addEventListener('change',()=>{
+ const zoom=settingValidated('fingerEditorZoom',Number($('fingerEditorZoom').value));
+ if(zoom===undefined){$('fingerEditorZoom').value=String(state.fingerEditorZoom);return}
+ state.fingerEditorZoom=zoom;
+ persist();fingerEditorRender();
+});
 $('fingerEditorAll').onclick=()=>{
  if(!fingerEditorAvailable())return;
  const order=fingerSelectionOrdered();
@@ -1168,7 +1174,12 @@ $('fingerBrowserHandSize').onchange=()=>{
  fingerBrowserAbort('Размер кисти изменён. Повторите расчёт.');
 };
 
-$('fingerBrowserAssumeStaves').onchange=()=>fingerBrowserAbort('Предположение о руках изменено. Повторите расчёт.');
+$('fingerBrowserAssumeStaves').checked=state.fingerBrowserAssumeStaves;
+$('fingerBrowserAssumeStaves').onchange=e=>{
+ state.fingerBrowserAssumeStaves=e.target.checked;
+ persist();
+ fingerBrowserAbort('Предположение о руках изменено. Повторите расчёт.');
+};
 $('fingerBrowserCalculate').onclick=()=>{
  fingerBrowserAbort();
  if(!fingerBrowserAvailable()){

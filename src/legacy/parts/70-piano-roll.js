@@ -41,7 +41,7 @@ function fingerOverrideForNote(note){
 let fingerSelectedIds=new Set(),fingerSelectionAnchor=null,fingerSelectionPointer=null;
 // P0 shared-scene Fingering: reuse the exact performance notes, keyboard,
 // hand sprites, source note IDs, selection and user override Undo/Redo.
-let sceneFingerActive=false,sceneFingerAutoAdvance=false;
+let sceneFingerActive=false,sceneFingerAutoAdvance=state.sceneFingerAutoAdvance;
 let sceneFingerMethod='manual',sceneFingerAutoStarted=null;
 // Stage review is only presentation/selection state; neither solver nor
 // fingering history is copied. Identity is the real current note object.
@@ -726,7 +726,7 @@ for(const id of ['pianoMotionStatus','fingerBrowserStatus']){
  new MutationObserver(()=>{sceneFingerAutoSync();if(sceneFingerActive)renderCanvas()})
   .observe($(id),{childList:true,characterData:true,subtree:true});
 }
-$('sceneFingerAutoAdvance').onchange=e=>{sceneFingerAutoAdvance=e.target.checked;sceneFingerControlsSync()};
+$('sceneFingerAutoAdvance').onchange=e=>{sceneFingerAutoAdvance=e.target.checked;state.sceneFingerAutoAdvance=sceneFingerAutoAdvance;persist();sceneFingerControlsSync()};
 $('sceneFingerFollow').onclick=()=>{
  sceneFingerFollow=true;sceneFingerViewTime=pos;
  sceneFingerControlsSync();renderCanvas();roll.focus({preventScroll:true});

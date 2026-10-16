@@ -152,20 +152,20 @@ $('librarySourceSelect').onchange=libraryFolderFiltersChanged;$('libraryFingerin
 $('importMusicInput').onchange=async e=>{await importMusicFiles(e.target.files);e.target.value=''};
 backupSetup();
 $('openMutopia').onclick=()=>window.open('https://www.mutopiaproject.org/advsearch.html','_blank','noopener,noreferrer');
-$('filterOpenScore').onclick=()=>{$('librarySourceSelect').value='openscore';state.page='library';applyPage();$('leftPanel').scrollTop=0;renderLibrary()};
-$('filterMutopia').onclick=()=>{$('librarySourceSelect').value='mutopia';state.page='library';applyPage();$('leftPanel').scrollTop=0;renderLibrary()};
-$('filterMuseTrainer').onclick=()=>{$('librarySourceSelect').value='musetrainer';state.page='library';applyPage();$('leftPanel').scrollTop=0;renderLibrary();if(!museTrainerLoaded)museTrainerLoadIndex().catch(()=>{})};
-$('filterAsap').onclick=()=>{$('librarySourceSelect').value='asap';state.page='library';applyPage();$('leftPanel').scrollTop=0;renderLibrary();if(!asapLoaded)asapLoadIndex().catch(()=>{})};
+$('filterOpenScore').onclick=()=>{$('librarySourceSelect').value='openscore';state.page='library';applyPage();$('leftPanel').scrollTop=0;libraryFolderFiltersChanged()};
+$('filterMutopia').onclick=()=>{$('librarySourceSelect').value='mutopia';state.page='library';applyPage();$('leftPanel').scrollTop=0;libraryFolderFiltersChanged()};
+$('filterMuseTrainer').onclick=()=>{$('librarySourceSelect').value='musetrainer';state.page='library';applyPage();$('leftPanel').scrollTop=0;libraryFolderFiltersChanged();if(!museTrainerLoaded)museTrainerLoadIndex().catch(()=>{})};
+$('filterAsap').onclick=()=>{$('librarySourceSelect').value='asap';state.page='library';applyPage();$('leftPanel').scrollTop=0;libraryFolderFiltersChanged();if(!asapLoaded)asapLoadIndex().catch(()=>{})};
 $('asapSync').onclick=()=>asapLoadIndex().catch(()=>{});
 $('asapRefresh').onclick=()=>asapLoadIndex(true).catch(()=>{});
-$('filterMaestro').onclick=()=>{$('librarySourceSelect').value='maestro';state.page='library';applyPage();$('leftPanel').scrollTop=0;renderLibrary();if(!maestroLoaded)maestroLoadIndex().catch(()=>{})};
+$('filterMaestro').onclick=()=>{$('librarySourceSelect').value='maestro';state.page='library';applyPage();$('leftPanel').scrollTop=0;libraryFolderFiltersChanged();if(!maestroLoaded)maestroLoadIndex().catch(()=>{})};
 $('maestroSync').onclick=()=>maestroLoadIndex().catch(()=>{});
 $('maestroRefresh').onclick=()=>maestroLoadIndex(true).catch(()=>{});
 $('maestroPickZip').onclick=()=>$('maestroZipFile').click();
 $('maestroZipFile').onchange=e=>maestroImportZipFile(e.target.files?.[0]);
 $('museTrainerSync').onclick=()=>museTrainerLoadIndex().catch(()=>{});
 $('museTrainerRefresh').onclick=()=>museTrainerLoadIndex(true).catch(()=>{});
-$('filterRepertoire').onclick=()=>{$('librarySourceSelect').value='repertoire';state.page='library';applyPage();$('leftPanel').scrollTop=0;renderLibrary()};
+$('filterRepertoire').onclick=()=>{$('librarySourceSelect').value='repertoire';state.page='library';applyPage();$('leftPanel').scrollTop=0;libraryFolderFiltersChanged()};
 $('mutopiaSync').onclick=()=>{state.page='library';applyPage();$('leftPanel').scrollTop=0;mutopiaLoadIndex().catch(()=>{})};
 $('mutopiaUpdate').onclick=()=>mutopiaLoadIndex(true).catch(()=>{});
 $('mutopiaEnrich').onclick=()=>mutopiaEnrichBatch(20).catch(err=>mutopiaRenderStatus('Ошибка уточнения: '+err.message));
@@ -175,7 +175,18 @@ $('mutopiaInstrument').onchange=libraryFolderFiltersChanged;
 // Search is user-initiated: no GitHub request on application startup.
 const mutopiaOldFilter=$('filterMutopia').onclick;
 $('filterMutopia').onclick=()=>{mutopiaOldFilter();if(!mutopiaCatalogLoaded)mutopiaLoadIndex().catch(()=>{});};
-$('librarySourceSelect').addEventListener('change',()=>{if($('librarySourceSelect').value==='mutopia'&&!mutopiaCatalogLoaded)mutopiaLoadIndex().catch(()=>{});if($('librarySourceSelect').value==='musetrainer'&&!museTrainerLoaded)museTrainerLoadIndex().catch(()=>{});if($('librarySourceSelect').value==='asap'&&!asapLoaded)asapLoadIndex().catch(()=>{});if($('librarySourceSelect').value==='maestro'&&!maestroLoaded)maestroLoadIndex().catch(()=>{});});
+function libraryEnsureSelectedCatalog(){
+ const source=$('librarySourceSelect').value;
+ if(source==='mutopia'&&!mutopiaCatalogLoaded)mutopiaLoadIndex().catch(()=>{});
+ if(source==='musetrainer'&&!museTrainerLoaded)museTrainerLoadIndex().catch(()=>{});
+ if(source==='asap'&&!asapLoaded)asapLoadIndex().catch(()=>{});
+ if(source==='maestro'&&!maestroLoaded)maestroLoadIndex().catch(()=>{});
+}
+$('librarySourceSelect').addEventListener('change',libraryEnsureSelectedCatalog);
+// Restoring a previously chosen remote source must restore its actual rows,
+// not merely the dropdown label. Default "all" never starts a remote fetch.
+if(['mutopia','musetrainer','asap','maestro'].includes(state.libraryFilters.source))
+ queueMicrotask(libraryEnsureSelectedCatalog);
 const startupSelectedSongId=state.selected;
 startupSongRestorePending=true;
 const startupLibraryPromise=loadLibraryIndex();
