@@ -130,6 +130,8 @@ try{
   [2,'RH','pianomotion'],'Approved MusicXML fingering survives F5');
  assert.ok(Object.values(restoredXml.accepted||{}).some(work=>
   Object.values(work).some(note=>note.finger===2&&note.hand==='RH')));
+ assert.equal(await page.evaluate(()=>window.__prototypeTest.state.scoreView),'sheet',
+  'Per-song sheet view restored before opening fingering export');
  await page.locator('#viewRoll').click();
  await page.locator('#sceneFingerMode').click();
  await page.waitForFunction(()=>!document.querySelector('#sceneFingerExport').disabled);
@@ -139,6 +141,7 @@ try{
  const savedXml=fs.readFileSync(await xmlDownload.path(),'utf8');
  assert.match(savedXml,/<fingering>2<\/fingering>/);
  assert.match(savedXml,/play-along-user-fingering/);
+ await page.locator('#viewSheet').click(); // Keep the existing per-song settings regression intact.
  const restored=await page.evaluate(()=>({
    id:window.__prototypeTest.song.id,
    selected:window.__prototypeTest.state.selected,
