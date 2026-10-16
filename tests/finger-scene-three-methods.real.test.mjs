@@ -50,6 +50,7 @@ try{
  assert.equal(await page.locator('#sceneFingerMethod').inputValue(),'manual');
  assert.equal(await page.locator('#sceneFingerManual').isVisible(),true);
  assert.equal(await page.locator('#sceneFingerAutomatic').isVisible(),false);
+ assert.equal((await page.evaluate(()=>window.__fingerGuideTest.sceneCandidates)).count,0);
  const saved=()=>page.evaluate(()=>window.__fingerGuideTest.userCorrections);
  const original=await page.evaluate(()=>window.__prototypeTest.song.notationXML);
  const originalTransport=await page.evaluate(()=>window.__prototypeTest.pos);
@@ -66,6 +67,8 @@ try{
  assert.match(await page.locator('#pianoMotionStatus').innerText(),/не поддерживает Web Worker/);
  assert.match(await page.locator('#sceneFingerAutoStatus').innerText(),/не поддерживает Web Worker/);
  assert.deepEqual(await saved(),old,'algorithm launch cannot automatically apply fingers');
+ assert.equal((await page.evaluate(()=>window.__fingerGuideTest.sceneCandidates)).count,0,
+  'an unavailable Python Worker must not manufacture finger proposals');
  await page.locator('#roll').focus();
  await page.keyboard.press('5');
  assert.deepEqual(await saved(),old,'manual step-entry must be disabled in automatic mode');
@@ -85,6 +88,16 @@ try{
  assert.equal(await page.locator('#fingerResearchPanel').evaluate(el=>el.open),true);
  assert.equal(await page.locator('#fingerBrowserConfirm').isChecked(),false);
  assert.deepEqual(await saved(),old,'Beam preview cannot silently apply fingers');
+ const stageBeam=await page.evaluate(()=>window.__fingerGuideTest.sceneCandidates);
+ assert.equal(stageBeam.method,'beam');
+ if(/Вычислено локально/.test(await page.locator('#fingerBrowserStatus').innerText())){
+  assert.ok(stageBeam.count>0,'Beam candidates should appear on the common stage');
+  assert.ok(stageBeam.notes.every(n=>n.finger>=1&&n.finger<=5&&
+   ['LH','RH'].includes(n.hand)));
+  assert.ok(!stageBeam.notes.some(n=>n.pitch===60&&n.start===0),
+   'source-authored C4 must never be painted as an unconfirmed proposal');
+  assert.match(await page.locator('#sceneFingerAutoStatus').innerText(),/фиолетовый пунктир/);
+ }else assert.equal(stageBeam.count,0,'refused calculation has no stage candidates');
  assert.equal(await page.locator('#rollWrap').isVisible(),true,
   'workers run without replacing shared performance canvas');
  assert.equal(await page.evaluate(()=>window.__prototypeTest.pos),originalTransport);
@@ -99,6 +112,8 @@ try{
  assert.equal(await page.locator('#sceneFingerMethod').inputValue(),'beam',
   'returning to same source keeps the selected fingering method');
  await page.locator('#sceneFingerMethod').selectOption('manual');
+ assert.equal((await page.evaluate(()=>window.__fingerGuideTest.sceneCandidates)).count,0,
+  'switching to Manual hides all automatic proposals without deleting them');
  assert.equal(await page.locator('#sceneFingerManual').isVisible(),true);
  assert.deepEqual(await saved(),old);
  assert.equal(await page.evaluate(()=>window.__prototypeTest.song.notationXML),original);
@@ -118,6 +133,8 @@ try{
   await page.locator('#sceneFingerMode').click();
  assert.equal(await page.locator('#sceneFingerMode').getAttribute('aria-pressed'),'true');
  assert.equal(await page.locator('#sceneFingerMethod').inputValue(),'pianomotion');
+ assert.equal((await page.evaluate(()=>window.__fingerGuideTest.sceneCandidates)).count,0,
+  'new MIDI source must not inherit previous MusicXML proposal IDs');
  assert.equal(await page.locator('#sceneFingerMethod option[value="manual"]').evaluate(el=>el.disabled),true,
   'Manual cannot be chosen for MIDI');
  assert.equal(await page.locator('#sceneFingerMethod option[value="beam"]').evaluate(el=>el.disabled),true,
