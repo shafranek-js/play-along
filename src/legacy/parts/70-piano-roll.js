@@ -43,6 +43,9 @@ let fingerSelectedIds=new Set(),fingerSelectionAnchor=null,fingerSelectionPointe
 // hand sprites, source note IDs, selection and user override Undo/Redo.
 let sceneFingerActive=false,sceneFingerAutoAdvance=false;
 let sceneFingerMethod='manual',sceneFingerAutoStarted=null;
+// Stage review is only presentation/selection state; neither solver nor
+// fingering history is copied. Identity is the real current note object.
+let sceneFingerReviewOpen=false,sceneFingerReviewSelected=new Set();
 // UI presentation preference, not an authorization role or an engine setting.
 // All changes to source notes remain governed by the same source-safe guards.
 const SCENE_DEVELOPER_PREF='playalong-developer-ui';
@@ -78,12 +81,14 @@ function sceneFingerAutoSync(){
   ' неподтверждённых пальцев (фиолетовый пунктир).':message;
  $('sceneFingerAutoStatus').textContent=detailed;
  $('sceneFingerAutoStatus').title=detailed;
+ sceneFingerReviewSync(preview);
  $('sceneFingerCalculate').disabled=!sceneFingerMethodAvailable(method)||
   (method==='pianomotion'?!!pianoMotionRun:!!fingerBrowserWorker);
 }
 function sceneFingerSelectMethod(method){
  if(!['manual','pianomotion','beam'].includes(method)||
   !sceneFingerMethodAvailable(method))return false;
+ if(sceneFingerMethod!==method)sceneFingerReviewReset();
  sceneFingerMethod=method;
  $('sceneFingerMethod').value=method;
  sceneFingerControlsSync();
@@ -128,6 +133,115 @@ function sceneFingerCandidatePreviewMap(){
  }
  return preview;
 }
+// The shared stage is authoritative for selection; the exact existing
+// Beam confirmation handler and PianoMotion audited Apply are authoritative
+// for saving. A selected note must still be eligible when Apply is clicked.
+function sceneFingerReviewReset({close=true}={}){
+ sceneFingerReviewSelected.clear();
+ $('sceneFingerReviewConfirm').checked=false;
+ if(close)sceneFingerReviewOpen=false;
+}
+function sceneFingerReviewSync(candidates=null){
+ const open=sceneFingerReviewOpen&&sceneFingerActive&&
+  sceneFingerMethod!=='manual'&&state.scoreView==='roll'&&state.page==='practice';
+ const panel=$('sceneFingerReviewPanel');
+ panel.hidden=!open;
+ if(!open)return;
+ // Anchor below the ACTUAL wrapped toolbar height at this viewport.
+ // Hard-coded top offsets can cover Undo/Redo or other accessible actions.
+ const tools=$('sceneFingerTools');
+ const top=Math.ceil(tools.offsetTop+tools.offsetHeight+8);
+ panel.style.top=top+'px';
+ panel.style.maxHeight='min(55vh, calc(100% - '+(top+8)+'px))';
+ const preview=candidates||sceneFingerCandidatePreviewMap();
+ for(const note of sceneFingerReviewSelected)
+  if(!preview.has(note))sceneFingerReviewSelected.delete(note);
+ const total=preview.size,selected=sceneFingerReviewSelected.size;
+ $('sceneFingerReviewCounts').textContent=total?
+  'Предложено '+total+' · выбрано '+selected+' · сохранено только после подтверждения':
+  'Применимых предложений пока нет. Рассчитай аппликатуру или сохрани существующую.';
+ $('sceneFingerReviewAll').disabled=!total;
+ $('sceneFingerReviewNone').disabled=!selected;
+ $('sceneFingerReviewConfirm').disabled=!selected;
+ if(!selected)$('sceneFingerReviewConfirm').checked=false;
+ $('sceneFingerReviewApply').disabled=!selected||!$('sceneFingerReviewConfirm').checked;
+}
+function sceneFingerReviewToggle(){
+ if(!sceneFingerActive||sceneFingerMethod==='manual')return;
+ sceneFingerReviewOpen=!sceneFingerReviewOpen;
+ if(!sceneFingerReviewOpen)sceneFingerReviewReset();
+ sceneFingerReviewSync();
+ renderCanvas();
+}
+function sceneFingerReviewApply(){
+ if(!sceneFingerReviewOpen||!sceneFingerActive||sceneFingerMethod==='manual'||
+    !$('sceneFingerReviewConfirm').checked)return;
+ const map=sceneFingerCandidatePreviewMap();
+ const notes=[...sceneFingerReviewSelected];
+ if(!notes.length||notes.some(note=>!map.has(note))){
+  sceneFingerReviewSync(map);notify('Предложения изменились. Проверь выделение ещё раз.');return;
+ }
+ let applied=false;
+ if(sceneFingerMethod==='beam'){
+  if(!fingerSelectionAvailable())return;
+  const savedSelection=fingerSelectedIds,oldHistory=fingerOverrideHistoryCurrent().past.length;
+  try{
+   fingerSelectedIds=new Set(notes.map(n=>n.noteId));
+   $('fingerBrowserConfirm').checked=true;
+   fingerBrowserUpdateActions();
+   if(!$('fingerBrowserAcceptSelected').disabled)$('fingerBrowserAcceptSelected').click();
+  }finally{
+   fingerSelectedIds=savedSelection;
+   $('fingerBrowserConfirm').checked=false;
+   fingerBrowserUpdateActions();
+  }
+  applied=fingerOverrideHistoryCurrent().past.length>oldHistory;
+ }else if(sceneFingerMethod==='pianomotion'){
+  const source=pianoMotionLastAlignment?.matches||[];
+  const indexByNote=new Map(source.map((match,index)=>[match.note,index]));
+  const eligible=new Set(pianoMotionReviewAvailable()?.eligibleIndices||[]);
+  const indices=notes.map(note=>indexByNote.get(note));
+  if(indices.some(index=>!Number.isInteger(index)||!eligible.has(index))){
+   sceneFingerReviewSync();notify('Ноты больше не подходят для применения.');return;
+  }
+  const oldHistory=pianoMotionReviewHistory.past.length;
+  pianoMotionReviewApply(indices); // ONE audited original Apply implementation.
+  applied=pianoMotionReviewHistory.past.length>oldHistory;
+ }
+ if(applied)sceneFingerReviewReset({close:false});
+ else notify('Не удалось применить выбранные пальцы — проверь сообщение расчёта.');
+ sceneFingerReviewSync();
+ sceneFingerControlsSync();
+ renderCanvas();
+}
+function sceneFingerReviewGesture(d){
+ const candidates=sceneFingerCandidatePreviewMap(),notes=[...candidates.keys()]
+  .sort((a,b)=>a.start-b.start||a.track-b.track||a.pitch-b.pitch);
+ const selected=sceneFingerReviewSelected;
+ if(d.dragging){
+  const x1=Math.min(d.x,d.endX),x2=Math.max(d.x,d.endX),
+   y1=Math.min(d.y,d.endY),y2=Math.max(d.y,d.endY);
+  const picked=hitboxes.filter(b=>candidates.has(b.n)&&
+   b.x+b.w>=x1&&b.x<=x2&&b.y+b.h>=y1&&b.y<=y2).map(b=>b.n);
+  sceneFingerReviewSelected=d.toggle||d.shift?
+   new Set([...selected,...picked]):new Set(picked);
+ }else{
+  const hit=hitboxes.slice().reverse().find(b=>
+   d.endX>=b.x&&d.endX<=b.x+b.w&&d.endY>=b.y&&d.endY<=b.y+b.h)?.n;
+  if(hit&&candidates.has(hit)){
+   if(d.shift&&selected.size){
+    const last=[...selected].at(-1),from=notes.indexOf(last),to=notes.indexOf(hit);
+    if(from>=0&&to>=0)
+     sceneFingerReviewSelected=new Set([...selected,...notes.slice(Math.min(from,to),Math.max(from,to)+1)]);
+   }else if(d.toggle){
+    if(selected.has(hit))selected.delete(hit);else selected.add(hit);
+   }else sceneFingerReviewSelected=new Set([hit]);
+  }else if(!d.toggle&&!d.shift)sceneFingerReviewSelected.clear();
+ }
+ $('sceneFingerReviewConfirm').checked=false;
+ sceneFingerReviewSync(candidates);
+ renderCanvas();
+}
 function sceneFingerStart(method){
  if(!current){notify('Сначала открой произведение.');return false}
  if(!sceneFingerMethodAvailable(method)){
@@ -152,6 +266,7 @@ function sceneFingerStart(method){
 function sceneFingerCalculateSelected(){
  if(!sceneFingerActive||sceneFingerMethod==='manual')return;
  const method=sceneFingerMethod;
+ sceneFingerReviewReset({close:false});
  if(!sceneFingerMethodAvailable(method)){
   notify(method==='beam'?
    'Beam Search доступен только для исходного MusicXML.':
@@ -245,6 +360,7 @@ function sceneFingerControlsSync(){
   sceneFingerViewTime=pos;sceneFingerWindowSeconds=EDITOR_WINDOW_DEFAULT;
   sceneFingerMethod=fingerSelectionAvailable()?'manual':'pianomotion';
   sceneFingerAutoStarted=null;
+  sceneFingerReviewReset();
  }
  const manualAvailable=fingerSelectionAvailable();
  if(sceneFingerMethod==='manual'&&!manualAvailable||
@@ -274,16 +390,19 @@ function sceneFingerControlsSync(){
  document.body.classList.toggle('sceneFingerActive',on);
  $('sceneFingerSelection').textContent=isManual?
   (count?count+' нот выбрано':'Выбери ноту на дорожке'):
-  (sceneFingerMethod==='pianomotion'?'Python · проверка обязательна':
-   'Beam · проверка обязательна');
+  (sceneFingerMethod==='pianomotion'?'PianoMotion · неподтверждено':
+   'Beam Search · неподтверждено');
  for(const b of $('sceneFingerTools').querySelectorAll('[data-scene-finger],[data-scene-hand]'))
   b.disabled=!on||!isManual||!count;
  $('sceneFingerClear').disabled=!on||!isManual||!count;
- $('sceneFingerUndo').disabled=!history.past.length;
- $('sceneFingerRedo').disabled=!history.future.length;
+ const pythonHistory=sceneFingerMethod==='pianomotion'&&pianoMotionLastSong===current?
+  pianoMotionReviewHistory:null;
+ $('sceneFingerUndo').disabled=!(pythonHistory?pythonHistory.past.length:history.past.length);
+ $('sceneFingerRedo').disabled=!(pythonHistory?pythonHistory.future.length:history.future.length);
  $('sceneFingerAutoAdvance').checked=sceneFingerAutoAdvance;
  $('sceneFingerFollow').disabled=!on||sceneFingerFollow;
  if(on&&!isManual)sceneFingerAutoSync();
+ else $('sceneFingerReviewPanel').hidden=true;
  $('sceneFingerViewport').textContent='Вид: '+
   (sceneFingerFollow?'за игрой':fmt(clampEditorTime(sceneFingerViewTime,duration())))+
   ' · '+sceneFingerWindowSeconds.toFixed(1)+' с';
@@ -293,6 +412,7 @@ function sceneFingerSetActive(active){
   notify('Сначала открой произведение в библиотеке.');return;
  }
  sceneFingerActive=!!active;
+ if(!sceneFingerActive)sceneFingerReviewReset();
  if(sceneFingerActive&&state.scoreView!=='roll')scoreSetView('roll');
  sceneFingerControlsSync();
  renderCanvas();
@@ -368,14 +488,23 @@ $('sceneFingerPianoMotionButton').onclick=()=>sceneFingerStart('pianomotion');
 $('sceneFingerBeamButton').onclick=()=>sceneFingerStart('beam');
 $('sceneFingerReset').onclick=()=>{
  if(!sceneFingerActive||!fingerSelectionAvailable())return;
- // Reuse the existing two-scope confirmation dialog and single-step Undo.
- // Never synthesize a second reset handler or edit original MusicXML.
- scoreSetView('editor');
- if(!$('fingerEditorResetFingering').disabled)$('fingerEditorResetFingering').click();
- else notify('В этом произведении нет аппликатуры для сброса.');
+ // Identical original confirmation dialog; the stage and transport remain.
+ fingerResetOpen();
 };
 $('sceneFingerAdvanced').onclick=()=>sceneFingerOpenReview();
-$('sceneFingerReview').onclick=()=>sceneFingerOpenReview();
+$('sceneFingerReview').onclick=sceneFingerReviewToggle;
+$('sceneFingerReviewClose').onclick=()=>{sceneFingerReviewReset();sceneFingerReviewSync();renderCanvas()};
+$('sceneFingerReviewAll').onclick=()=>{
+ sceneFingerReviewSelected=new Set(sceneFingerCandidatePreviewMap().keys());
+ $('sceneFingerReviewConfirm').checked=false;sceneFingerReviewSync();renderCanvas();
+};
+$('sceneFingerReviewNone').onclick=()=>{
+ sceneFingerReviewSelected.clear();$('sceneFingerReviewConfirm').checked=false;
+ sceneFingerReviewSync();renderCanvas();
+};
+$('sceneFingerReviewConfirm').onchange=()=>sceneFingerReviewSync();
+$('sceneFingerReviewApply').onclick=sceneFingerReviewApply;
+$('sceneFingerReviewCancel').onclick=()=>{sceneFingerReviewReset();sceneFingerReviewSync();renderCanvas()};
 $('sceneFingerMethod').onchange=e=>{
  if(!sceneFingerSelectMethod(e.target.value)){
   $('sceneFingerMethod').value=sceneFingerMethod;
@@ -399,8 +528,14 @@ for(const b of $('sceneFingerTools').querySelectorAll('[data-scene-finger]'))
 for(const b of $('sceneFingerTools').querySelectorAll('[data-scene-hand]'))
  b.onclick=()=>sceneFingerAssign('hand',b.dataset.sceneHand);
 $('sceneFingerClear').onclick=()=>sceneFingerAssign('reset');
-$('sceneFingerUndo').onclick=()=>{fingerOverrideCommit(null,null,{action:'undo'});sceneFingerControlsSync()};
-$('sceneFingerRedo').onclick=()=>{fingerOverrideCommit(null,null,{action:'redo'});sceneFingerControlsSync()};
+for(const [button,direction] of [['sceneFingerUndo','undo'],['sceneFingerRedo','redo']]){
+ $(button).onclick=()=>{
+  if(sceneFingerActive&&sceneFingerMethod==='pianomotion')
+   $('pianoMotion'+(direction==='undo'?'Undo':'Redo')).click();
+  else fingerOverrideCommit(null,null,{action:direction});
+  sceneFingerReviewSync();sceneFingerControlsSync();renderCanvas();
+ };
+}
 document.addEventListener('keydown',sceneFingerKeyDown);
 function fingerSelectionAvailable(){
  return !!current&&current.format==='MusicXML'&&state.adaptMode==='original'&&!!fingerGuideWorkKey();
@@ -1064,7 +1199,12 @@ function renderCanvas(){
    if(nw>=13&&nh>15){c.fillStyle='#ffb18b';c.fillRect(x+2,y+nh-6,Math.max(0,nw-4),3);}
   }
   if(Number.isInteger(n.sourcePitch)&&n.sourcePitch!==n.pitch){c.strokeStyle='#ffffffb8';c.lineWidth=1.1;c.stroke();}
-  if(fingerSelectedIds.has(n.noteId)){c.strokeStyle='#f8e183';c.lineWidth=2.8;c.stroke();}
+  if(sceneFingerReviewOpen&&sceneFingerReviewSelected.has(n)&&fingerCandidates.has(n)){
+   c.strokeStyle='#ffe29c';c.lineWidth=3;c.stroke();
+  }else if(fingerSelectedIds.has(n.noteId)&&
+            (!sceneFingerActive||sceneFingerMethod==='manual')){
+   c.strokeStyle='#f8e183';c.lineWidth=2.8;c.stroke();
+  }
    else if(selectedNote===n){c.strokeStyle='#fff';c.lineWidth=1.5;c.setLineDash([3,3]);c.stroke();c.setLineDash([]);}
   c.restore();
   // Show the effective saved/user finger without mutating source XML notes.
@@ -1173,7 +1313,9 @@ function rollSelectPoint(e){
  return {x:e.clientX-box.left,y:e.clientY-box.top};
 }
 roll.addEventListener('pointerdown',e=>{
- if(e.button!==0||!fingerSelectionAvailable()||state.scoreView!=='roll'||fingerSelectionPointer)return;
+ if(e.button!==0||state.scoreView!=='roll'||fingerSelectionPointer||
+  !(fingerSelectionAvailable()||
+    sceneFingerActive&&sceneFingerReviewOpen&&sceneFingerMethod!=='manual'))return;
  const p=rollSelectPoint(e);if(p.y>=keyboardTop)return;
  e.preventDefault();roll.focus({preventScroll:true});roll.setPointerCapture(e.pointerId);
  fingerSelectionPointer={id:e.pointerId,x:p.x,y:p.y,endX:p.x,endY:p.y,
@@ -1189,6 +1331,9 @@ function finishFingerSelection(e){
  const d=fingerSelectionPointer;if(!d||d.id!==e.pointerId)return;
  fingerSelectionPointer=null;
  if(e.type!=='pointerup'){renderCanvas();return}
+ if(sceneFingerActive&&sceneFingerReviewOpen&&sceneFingerMethod!=='manual'){
+  sceneFingerReviewGesture(d);return;
+ }
  const order=fingerSelectionOrdered(),validIds=new Set(order.map(n=>n.id));
  if(d.dragging){
   const picked=fingerSelectRectangle(hitboxes,{x1:d.x,y1:d.y,x2:d.endX,y2:d.endY},{ids:validIds});

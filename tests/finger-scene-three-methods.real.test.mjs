@@ -110,11 +110,30 @@ try{
  assert.deepEqual(await page.evaluate(()=>
   window.__prototypeTest.pianoGeometry.whites.map(k=>k.w)),originalKeys);
  await page.locator('#sceneFingerReview').click();
- assert.equal(await page.locator('#fingerEditorWrap').isVisible(),true);
+ assert.equal(await page.locator('#rollWrap').isVisible(),true);
+ assert.equal(await page.locator('#fingerEditorWrap').isVisible(),false,
+  'ordinary Verify must never navigate away from the shared stage');
+ assert.equal(await page.locator('#sceneFingerReviewPanel').isVisible(),true);
+ assert.equal(await page.locator('#sceneFingerReviewApply').isDisabled(),true,
+  'calculation alone cannot commit anything');
+ if(stageBeam.count){
+  await page.locator('#sceneFingerReviewAll').click();
+  assert.match(await page.locator('#sceneFingerReviewCounts').innerText(),
+   new RegExp('выбрано '+stageBeam.count));
+  assert.equal(await page.locator('#sceneFingerReviewApply').isDisabled(),true);
+  await page.locator('#sceneFingerReviewConfirm').check();
+  await page.locator('#sceneFingerReviewApply').click();
+  assert.ok(Object.keys(await saved()).length>0,
+   'stage Beam uses original atomic saved user corrections');
+  assert.equal(await page.locator('#rollWrap').isVisible(),true);
+  assert.equal(await page.locator('#sceneFingerUndo').isEnabled(),true);
+  await page.locator('#sceneFingerUndo').click();
+  assert.deepEqual(await saved(),old,'stage Undo restores exact prior corrections');
+ }
  assert.equal(await page.locator('#fingerResearchPanel').evaluate(el=>el.open),true);
  assert.equal(await page.locator('#pianoMotionCalculate').count(),1);
  assert.equal(await page.locator('#fingerBrowserCalculate').count(),1);
- await page.locator('#sceneFingerMode').click();
+ await page.locator('#sceneFingerReviewClose').click();
  assert.equal(await page.locator('#sceneFingerMethod').inputValue(),'beam',
   'returning to same source keeps the selected fingering method');
  await page.locator('#sceneFingerManualButton').click();
@@ -125,6 +144,9 @@ try{
  assert.equal(await page.locator('#sceneFingerReset').isEnabled(),true);
  await page.locator('#sceneFingerReset').click();
  assert.equal(await page.locator('#fingerResetDialog').evaluate(el=>el.open),true);
+ assert.equal(await page.locator('#fingerResetDialog').isVisible(),true,
+  'original reset modal opens directly over the roll');
+ assert.equal(await page.locator('#rollWrap').isVisible(),true);
  await page.locator('#fingerResetCancel').click();
  assert.equal(await page.locator('#fingerResetDialog').evaluate(el=>el.open),false);
  await page.locator('#sceneFingerMode').click();
@@ -157,15 +179,15 @@ try{
  assert.equal(await page.locator('#sceneFingerBeamButton').isDisabled(),true);
  assert.equal(await page.locator('#rollWrap').isVisible(),true);
  await page.locator('#sceneFingerReview').click();
- assert.equal(await page.locator('#fingerEditorWrap').isVisible(),true);
- assert.equal(await page.locator('#pianoMotionPanel').isVisible(),true);
+ assert.equal(await page.locator('#sceneFingerReviewPanel').isVisible(),true);
+ assert.equal(await page.locator('#fingerEditorWrap').isVisible(),false);
+ assert.equal(await page.locator('#sceneFingerReviewApply').isDisabled(),true);
  assert.equal(await page.evaluate(()=>window.__prototypeTest.song.format),'MIDI');
  // Developer controls are a local presentation preference, not permissions.
  await page.evaluate(()=>{
   const toggle=document.getElementById('developerToolsToggle');
   toggle.checked=true;toggle.dispatchEvent(new Event('change',{bubbles:true}));
  });
- await page.locator('#sceneFingerMode').click();
  assert.equal(await page.locator('#sceneFingerMethod').isVisible(),true);
  assert.equal(await page.locator('#sceneFingerAdvanced').isVisible(),true);
  await page.evaluate(()=>{
@@ -174,7 +196,7 @@ try{
  });
  assert.equal(await page.locator('#sceneFingerMethod').isVisible(),false);
  assert.deepEqual(errors,[]);
- console.log('THREE_FINGERING_METHODS_REAL_PASS: stage method switching, original Python and Beam handlers, MIDI support, no silent apply, source safe');
+ console.log('THREE_FINGERING_METHODS_REAL_PASS: same-screen review, Beam selection/apply/Undo, original Python/Beam handlers, MIDI, safe reset, source immutable');
 }finally{
  if(browser)await browser.close();
  await new Promise(resolve=>server.close(resolve));
