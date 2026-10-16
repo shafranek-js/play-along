@@ -45,6 +45,7 @@ try{
  await page.locator('#viewSheet').click();
  await page.waitForFunction(()=>!document.getElementById('sheetWrap').classList.contains('hidden'));
  assert.equal(await page.locator('#rollWrap').isVisible(),false);
+ await page.locator('#developerToolsToggle').evaluate(el=>{if(!el.checked)el.click()});
  await page.locator('#viewFingerEditor').click();
  assert.equal(await page.locator('#fingerEditorWrap').isVisible(),true);
  await page.locator('#viewRoll').click();
