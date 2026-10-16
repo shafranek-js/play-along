@@ -1,6 +1,10 @@
 const originalMidiSession=createOriginalMidiSession();
 function originalMidiForSong(song=current){return originalMidiSession.copy(song)}
-async function songFromBuffer(name,arrayBuffer){const ext=libraryExt(name);if(ext==='mid'||ext==='midi'){const bytes=new Uint8Array(arrayBuffer);const song=parseMidi(bytes,name);originalMidiSession.remember(song,bytes);return song;}if(['xml','musicxml','mxl'].includes(ext)){const xml=ext==='mxl'?await zipUnpackMXL(arrayBuffer):new TextDecoder().decode(arrayBuffer);return readMusicXML(xml,name)}if(ext==='mscx'||ext==='mscz'){const xml=ext==='mscz'?await zipUnpackMuseScore(arrayBuffer):new TextDecoder().decode(arrayBuffer);return museRead(xml,name)}throw Error('Неизвестный формат: '+ext)}
+async function songFromBuffer(name,arrayBuffer){const ext=libraryExt(name);if(ext==='mid'||ext==='midi'){const bytes=new Uint8Array(arrayBuffer);const song=parseMidi(bytes,name);if(originalMidiSession.remember(song,bytes).ok){
+ const key=fingerMidiWorkKey(song,bytes);
+ if(key)Object.defineProperty(song,'midiFingerWorkKey',{
+  value:key,enumerable:false,writable:false,configurable:false});
+}return song;}if(['xml','musicxml','mxl'].includes(ext)){const xml=ext==='mxl'?await zipUnpackMXL(arrayBuffer):new TextDecoder().decode(arrayBuffer);return readMusicXML(xml,name)}if(ext==='mscx'||ext==='mscz'){const xml=ext==='mscz'?await zipUnpackMuseScore(arrayBuffer):new TextDecoder().decode(arrayBuffer);return museRead(xml,name)}throw Error('Неизвестный формат: '+ext)}
 function libraryNotifyWarnings(song){if(song.warnings?.length)setLibraryStatus(song.warnings.join(' '));else setLibraryStatus('Готово: '+song.title+' · '+allNotes(song).length+' нот')}
 async function libraryLoadFile(name,buffer,identity,details={}){const song=await songFromBuffer(name,buffer);if(identity)song.id=identity;if(details.title)song.title=details.title;if(details.author)song.author=details.author;if(details.type)song.type=details.type;loadSong(song);state.page='practice';applyPage();libraryNotifyWarnings(song);
  // Existing saved works gain exact-source coverage as soon as they are opened.
