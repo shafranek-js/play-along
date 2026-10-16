@@ -561,3 +561,7 @@ body.developerMode .fingerBrowserMetrics.sceneFingerDeveloperOnly{display:grid!i
 .sceneFingerReviewConsent input{flex:none;accent-color:#eebc7f;width:16px;height:16px}
 .sceneFingerReviewPanel .sceneFingerReviewApply:not(:disabled){background:#44614a;border-color:#80ba8e}
 @media(max-width:820px){.sceneFingerReviewPanel{top:102px;left:5px;width:min(470px,calc(100% - 10px));max-height:45vh}}
+
+/* FG-05: a normal user downloads the applied fingering from the roll. */
+.sceneFingerTools #sceneFingerExport:not(:disabled){background:#284935;border-color:#68ac81;color:#daf5df}
+.sceneFingerTools #sceneFingerExport:not(:disabled):hover{background:#386247}
