@@ -325,9 +325,11 @@ $('fingerResetConfirm').onclick=()=>{
 };
 $('fingerEditorUndo').onclick=()=>{fingerOverrideCommit(null,null,{action:'undo'});fingerEditorRender()};
 $('fingerEditorRedo').onclick=()=>{fingerOverrideCommit(null,null,{action:'redo'});fingerEditorRender()};
-$('fingerEditorDownloadXML').onclick=()=>{
+function fingerEditorDownloadMusicXML(){
  const status=$('fingerEditorExportStatus');
- if(!fingerEditorAvailable()||!current)return;
+ if(!fingerEditorAvailable()||!current||current.originalNotationXML)return;
+ const saved=state.fingerOverrides?.[fingerGuideWorkKey()]||{};
+ if(!Object.keys(saved).length){notify('Нет сохранённых исправлений для экспорта.');return;}
  const song=current,key=fingerGuideWorkKey(),corrections=key?state.fingerOverrides?.[key]:null;
  const result=musicXmlCorrectedExport(song,corrections,{
   parse:xml=>new DOMParser().parseFromString(xml,'application/xml'),
@@ -348,7 +350,8 @@ $('fingerEditorDownloadXML').onclick=()=>{
  status.textContent='Экспортировано '+result.count+' ручных номеров. Авторских номеров скрыто в копии: '+
   (result.suppressed||0)+'. Только рука: '+result.handOnly+
   ' (без изменения). Оригинал не затронут; файл содержит отметку пользовательских правок.';
-};
+}
+$('fingerEditorDownloadXML').onclick=fingerEditorDownloadMusicXML;
 // FG-03C2B5: user-confirmed transfer across uniquely matched XML measures.
 // The dry-run never applies its own results. All selected changes flow
 // through existing validated atomic batch Undo/Redo persistence.
@@ -1306,7 +1309,7 @@ for(const [button,direction]of [['pianoMotionUndo','undo'],['pianoMotionRedo','r
    ' пальцев. Источник MIDI и авторские данные не изменены.';
  };
 }
-if($('pianoMotionExportXML'))$('pianoMotionExportXML').onclick=()=>{
+function pianoMotionDownloadMusicXML(){
  const song=current;
  if(!song||pianoMotionLastSong!==song||!pianoMotionLastAlignment?.ok||!pianoMotionLastApplied){
   notify('Сначала рассчитайте и примените аппликатуру');return;
@@ -1384,7 +1387,9 @@ if($('pianoMotionExportXML'))$('pianoMotionExportXML').onclick=()=>{
       n.getAttribute('name')==='play-along-user-fingering')){
    const marker=make('miscellaneous-field');
    marker.setAttribute('name','play-along-user-fingering');
-   marker.textContent='PianoMotion-generated fingers applied by user in Play Along; not composer-authored; original MIDI-derived notation is approximate.';
+   marker.textContent='PianoMotion-generated fingers applied by user in Play Along; not composer-authored; '+
+    (song.format==='MIDI'?'original MIDI-derived notation is approximate.':
+     'original MusicXML score preserved.');
    miscellaneous.append(marker);
   }
   xml=new XMLSerializer().serializeToString(doc);
@@ -1399,7 +1404,8 @@ if($('pianoMotionExportXML'))$('pianoMotionExportXML').onclick=()=>{
  document.body.append(a);a.click();a.remove();
  setTimeout(()=>URL.revokeObjectURL(url),1000);
  notify('Файл '+safeName+' скачан');
-};
+}
+if($('pianoMotionExportXML'))$('pianoMotionExportXML').onclick=pianoMotionDownloadMusicXML;
 /** FG-04A: local, read-only comparison against an external generator's XML.
  * Never turn these suggestions into teacher hints or saved user overrides.
  */

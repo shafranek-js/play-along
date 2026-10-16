@@ -352,6 +352,28 @@ function sceneFingerOnWheel(e){
 }
 roll.addEventListener('wheel',sceneFingerOnWheel,{passive:false});
 
+// The download action stays on the SAME performance stage. Reuse the
+// original independently verified export implementations: the MIDI/Python
+// path includes generated fingers and provenance; the score/manual path
+// applies only validated user overrides to a copy of original MusicXML.
+// No source MIDI or composer annotations are ever rewritten.
+function sceneFingerExportKind(){
+ if(!sceneFingerActive||state.scoreView!=='roll'||state.page!=='practice'||!current)return null;
+ if(pianoMotionLastSong===current&&pianoMotionLastApplied&&
+    pianoMotionReviewCountApplied()>0&&!$('pianoMotionExportXML').disabled)
+  return 'pianomotion';
+ if(fingerSelectionAvailable()&&!current.originalNotationXML&&
+    Object.keys(state.fingerOverrides?.[fingerGuideWorkKey()]||{}).length)
+  return 'manual';
+ return null;
+}
+function sceneFingerDownloadMusicXML(){
+ const kind=sceneFingerExportKind();
+ if(kind==='pianomotion')pianoMotionDownloadMusicXML();
+ else if(kind==='manual')fingerEditorDownloadMusicXML();
+ else notify('Сначала примени аппликатуру или сохрани ручные исправления.');
+}
+
 function sceneFingerControlsSync(){
  // A newly imported score must never inherit the detached viewport position
  // or zoom level of a previous song, even if both are MusicXML documents.
@@ -381,6 +403,13 @@ function sceneFingerControlsSync(){
   button.setAttribute('aria-pressed',String(on&&sceneFingerMethod===method));
  }
  $('sceneFingerReset').disabled=!on||!manualAvailable;
+ const exportKind=on?sceneFingerExportKind():null;
+ $('sceneFingerExport').disabled=!exportKind;
+ $('sceneFingerExport').title=exportKind==='pianomotion'?
+  'Скачать MusicXML с применёнными пальцами PianoMotion и сохранёнными правками':
+  exportKind==='manual'?
+  'Скачать оригинальный MusicXML с пользовательскими правками в отдельной копии':
+  'Сначала примени предложенные пальцы либо внеси ручные исправления';
  $('sceneFingerManual').hidden=!on||!isManual;
  $('sceneFingerAutomatic').hidden=!on||isManual;
  const count=fingerSelectedIds.size,history=fingerOverrideHistoryCurrent();
@@ -491,6 +520,7 @@ $('sceneFingerReset').onclick=()=>{
  // Identical original confirmation dialog; the stage and transport remain.
  fingerResetOpen();
 };
+$('sceneFingerExport').onclick=sceneFingerDownloadMusicXML;
 $('sceneFingerAdvanced').onclick=()=>sceneFingerOpenReview();
 $('sceneFingerReview').onclick=sceneFingerReviewToggle;
 $('sceneFingerReviewClose').onclick=()=>{sceneFingerReviewReset();sceneFingerReviewSync();renderCanvas()};

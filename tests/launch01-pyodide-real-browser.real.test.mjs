@@ -164,12 +164,13 @@ try{
   'PianoMotion Apply must not leave the shared roll');
  assert.equal(await page.locator('#sceneFingerUndo').isEnabled(),true,
   'stage Undo must use genuine PianoMotion history');
- // Export remains in the full editing toolkit until its separate user-facing
- // export action is integrated into the common stage.
- if(await desktopTab.isVisible())await desktopTab.click();
- else await compactSelect.selectOption('editor');
+ // The complete real-Python result is exported directly from the stage.
+ // No user navigation back into the full editing toolkit is permitted.
+ assert.equal(await page.locator('#sceneFingerExport').isEnabled(),true);
+ assert.equal(await page.locator('#fingerEditorWrap').isVisible(),false);
  const downloadPromise=page.waitForEvent('download',{timeout:20000});
- await page.locator('#pianoMotionExportXML').click();
+ await page.locator('#sceneFingerExport').click();
+ assert.equal(await page.locator('#rollWrap').isVisible(),true);
  const download=await downloadPromise;
  assert.match(download.suggestedFilename(),/-fingering\.musicxml$/);
  const exported=await readFile(await download.path(),'utf8');
