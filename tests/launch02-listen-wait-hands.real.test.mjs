@@ -26,6 +26,7 @@ try{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('http://127.0.0.1:'+server.address().port);
  await page.waitForFunction(()=>window.__prototypeTest?.loadSong&&window.__fingerGuideTest?.frame,{timeout:15000});
+ await page.locator('#leadInDuration').evaluate(el=>{el.value='0';el.dispatchEvent(new Event('input',{bubbles:true}))});
  await selectCompactFingerMode(page,'hands');
  const original=await page.evaluate(()=>{
   const notes=[
