@@ -73,6 +73,16 @@ try{
  assert.match(second.sourceId,/^mid:/);
  assert.notEqual(second.sourceId,first.sourceId);
  assert.equal(requests.filter(x=>x.endsWith('/collection.zlib')).length,1);
+ // Simulate a confirmed Python Apply; actual calculation is separately tested.
+ const pickedMidi=await page.evaluate(()=>{
+  const app=window.__prototypeTest,n=app.song.tracks.flatMap(t=>t.notes)
+   .find(n=>n.noteId&&n.finger==null);
+  if(!n)throw Error('MIDI fixture has no eligible note');
+  n.finger=4;n.hand='RH';n.fingeringSource='pianomotion';
+  app.seek(1.5);
+  return {id:n.noteId,pitch:n.pitch,start:n.start,duration:n.duration};
+ });
+ assert.ok(pickedMidi.id.startsWith('midi:'));
  // Bundled MIDI files are not copied to IndexedDB. Restore by catalog SHA.
  const lastId=await page.evaluate(()=>window.__prototypeTest.song.id);
  assert.match(lastId,/^saved-sha256-[a-f0-9]{64}$/);
@@ -90,6 +100,15 @@ try{
  assert.equal(afterReload.selected,lastId);
  assert.equal(afterReload.title,second.title);
  assert.equal(afterReload.type,'builtin');
+ const restoredFinger=await page.evaluate(id=>{
+  const app=window.__prototypeTest;
+  const n=app.song.tracks.flatMap(t=>t.notes).find(n=>n.noteId===id);
+  return {finger:n?.finger,hand:n?.hand,source:n?.fingeringSource,
+   saved:Object.keys(app.state.acceptedFingering||{}).length};
+ },pickedMidi.id);
+ assert.deepEqual([restoredFinger.finger,restoredFinger.hand,restoredFinger.source],
+  [4,'RH','pianomotion'],'Accepted PianoMotion digits survive F5 for bundled MIDI');
+ assert.ok(restoredFinger.saved>0);
  assert.ok(Math.abs(afterReload.position-beforeReload)<.05,
   'Restore the selected work AND its playhead position');
  assert.equal(await page.evaluate(()=>window.__libraryV08.collection.length),0);
