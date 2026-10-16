@@ -76,7 +76,9 @@ function fingerEditorRender(){
   !(Object.values(userEdits).some(change=>Number.isInteger(change?.finger))||
    notes.some(n=>n.fingeringSource==='musicxml'&&Number.isInteger(n.finger)&&
     !userEdits[n.noteId]?.suppressAuthor)||
-   notes.some(n=>n.fingeringSource==='pianomotion'&&Number.isInteger(n.finger)));
+   notes.some(n=>['pianomotion','musicxml-user-export-unverified']
+    .includes(n.fingeringSource)&&Number.isInteger(n.finger)&&
+    !userEdits[n.noteId]?.suppressAuthor));
  $('fingerEditorDownloadXML').disabled=!fingerEditorAvailable()||!!current?.originalNotationXML||
   !Object.keys(userEdits).length;
  const doc=notes.length>0;
@@ -316,14 +318,19 @@ function fingerResetEntries(scope,notes,edits){
   const user=Number.isInteger(before?.finger)&&before.finger>=1&&before.finger<=5;
   const author=note.fingeringSource==='musicxml'&&Number.isInteger(note.finger)&&
    note.finger>=1&&note.finger<=5;
-  if(!user&&!(scope==='all'&&author))continue;
+  // Play Along-exported MusicXML has user-origin digits, not author
+  // notation. Clearing the user's layer must hide these too.
+  const importedUser=note.fingeringSource==='musicxml-user-export-unverified'&&
+   Number.isInteger(note.finger)&&note.finger>=1&&note.finger<=5&&
+   !before?.suppressAuthor;
+  if(!user&&!importedUser&&!(scope==='all'&&author))continue;
   const hand=before?.hand==='RH'||before?.hand==='LH'?before.hand:null;
-  const hideAuthor=scope==='all'&&author||before?.suppressAuthor===true;
+  const hideAuthor=scope==='all'&&author||importedUser||before?.suppressAuthor===true;
   const after=hideAuthor?{finger:null,hand,suppressAuthor:true}:
    hand?{finger:null,hand}:null;
   if(!fingerHistorySame(before,after)){
    entries.push({id,before,after});
-   if(user)userIds.add(id);
+   if(user||importedUser)userIds.add(id);
    if(scope==='all'&&author&&!before?.suppressAuthor)authorIds.add(id);
   }
  }
