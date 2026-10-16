@@ -58,7 +58,7 @@ try{
   textContent?.includes('Вычислено локально'),null,{timeout:20000});
  const status=await page.locator('#fingerBrowserStatus').innerText();
  assert.match(status,/предварительно по нотным станам фортепиано \(4 нот\)/);
- assert.match(status,/1 нот других инструментов исключено/);
+ assert.match(status,/Другие инструменты исключены из расчёта \(нот: 1\)/);
  const suggestions=await page.evaluate(()=>window.__fingerGuideTest.sceneCandidates);
  assert.equal(suggestions.count,4,'piano part only; violin should not gain a virtual hand');
  assert.ok(suggestions.notes.every(n=>original.notes.some(a=>a[0]===n.id&&a[1]==='P1')));
