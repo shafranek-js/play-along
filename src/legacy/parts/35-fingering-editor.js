@@ -273,6 +273,9 @@ function fingerResetEntries(scope,notes,edits){
  return {ok:true,entries,userCount:userIds.size,authorCount:authorIds.size};
 }
 const fingerResetDialog=$('fingerResetDialog');
+// Shared confirmation dialog belongs to the document root so it stays
+// visible while either Piano Roll or the legacy editor is active.
+document.body.appendChild(fingerResetDialog);
 function fingerResetPreview(){
  if(!fingerResetPending)return;
  const mode=fingerResetDialog.querySelector('input[name="fingerResetScope"]:checked')?.value;
