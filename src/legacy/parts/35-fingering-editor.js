@@ -68,14 +68,15 @@ function fingerEditorRender(){
  for(const id of actions)$(id).disabled=!fingerEditorAvailable()||
   (id==='fingerEditorAll'?!notes.length:
    id==='fingerEditorClear'?!selectedCount:
-   id==='fingerEditorUndo'?!fingerOverrideHistoryCurrent().past.length:
-   id==='fingerEditorRedo'?!fingerOverrideHistoryCurrent().future.length:
+   id==='fingerEditorUndo'?!fingerOverrideHistoryCurrent().past.length&&!fingerResetCanTravel('undo'):
+   id==='fingerEditorRedo'?!fingerOverrideHistoryCurrent().future.length&&!fingerResetCanTravel('redo'):
    !selectedCount);
  const userWork=fingerGuideWorkKey(),userEdits=userWork?state.fingerOverrides?.[userWork]||{}:{};
  $('fingerEditorResetFingering').disabled=!fingerEditorAvailable()||
   !(Object.values(userEdits).some(change=>Number.isInteger(change?.finger))||
    notes.some(n=>n.fingeringSource==='musicxml'&&Number.isInteger(n.finger)&&
-    !userEdits[n.noteId]?.suppressAuthor));
+    !userEdits[n.noteId]?.suppressAuthor)||
+   notes.some(n=>n.fingeringSource==='pianomotion'&&Number.isInteger(n.finger)));
  $('fingerEditorDownloadXML').disabled=!fingerEditorAvailable()||!!current?.originalNotationXML||
   !Object.keys(userEdits).length;
  const doc=notes.length>0;
@@ -1523,6 +1524,7 @@ $('pianoMotionApply').onclick=()=>pianoMotionReviewApply(
 $('pianoMotionApplySelected').onclick=()=>pianoMotionReviewApply([...pianoMotionReviewSelected]);
 for(const [button,direction]of [['pianoMotionUndo','undo'],['pianoMotionRedo','redo']]){
  $(button).onclick=()=>{
+  if(fingerResetCanTravel(direction)){fingerResetTravel(direction);return}
   if(!pianoMotionReviewValidate())return;
   const result=pianoMotionTravelHistory(pianoMotionReviewHistory,direction);
   if(!result.ok){$('pianoMotionStatus').textContent='История недоступна: '+result.reason;return;}
