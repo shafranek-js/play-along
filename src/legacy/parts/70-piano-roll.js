@@ -510,8 +510,9 @@ function sceneFingerAssign(kind,value){
    !saved?.suppressAuthor&&note?.fingeringSource==='musicxml'?note.finger:null;
   same=before===value;
  }
- const changed=same?false:fingerOverrideCommitGroup(ids,
-  kind==='finger'?{finger:value}:kind==='hand'?{hand:value}:{reset:true});
+ const changed=same?false:kind==='reset'?fingerResetSelected(ids):
+  fingerOverrideCommitGroup(ids,
+   kind==='finger'?{finger:value}:{hand:value});
  if(kind==='finger'&&(same||changed)&&sceneFingerAutoAdvance&&ids.length===1)
   sceneFingerAdvance(1);
  sceneFingerControlsSync();
