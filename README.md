@@ -1,4 +1,12 @@
-# Play Along — Piano Practice App (v0.10.142)
+# Play Along — Piano Practice App (v0.10.143)
+
+## Note colors follow the visible hand (v0.10.143)
+
+Falling Piano Roll notes now use a hand-based palette matched to the existing PNG hands, **LH blue** and **RH skin/peach**. Previously color was chosen by MIDI track position (0 peach, 1 blue), which could invert physical hand guidance. The resolved source or explicitly saved hand takes priority, followed by strict MIDI RH/LH track labels or conservative verified piano grand-staff MusicXML hints (cross-staff ambiguous voice notes remain neutral). Unknown-hand MIDI notes use neutral gray instead of pretending to be RH/LH. Hand changes on the common stage recolor the same note immediately; the selected-hand toolbar uses the same mapping. Audibly sounding notes retain their hand-colored fill with cyan glow/outline, and practice-result feedback uses a distinct edge, not a full fill recolor.
+
+No track remapping, pitch-based guess, manual finger edits, audio or underlying MIDI/MusicXML changes. Real Chromium pixels test both hands across reversed/same MIDI tracks and unknown hands, then source-verified MIDI manual LH→RH→Undo. Full release CI must pass.
+
+
 
 ## FG-05 — selected fingering feedback + explicit replacement (v0.10.142)
 

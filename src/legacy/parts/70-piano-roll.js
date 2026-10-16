@@ -514,7 +514,9 @@ function sceneFingerSelectionHighlights(on,isManual){
  const ids=[...fingerSelectedIds],selection=on&&isManual&&ids.length===1?
   fingerSelectionOrdered().find(e=>e.id===ids[0])?.note:null;
  const override=selection?fingerOverrideForNote(selection):null;
- const hand=override?.hand??selection?.hand??null;
+ // Highlight the same verified/provisional hand whose color is rendered
+ // on the selected falling note; no second, conflicting hand heuristic.
+ const hand=selection?fingerRollNoteHand(selection):null;
  const finger=Number.isInteger(override?.finger)?override.finger:
   override?.suppressAuthor?null:selection?.finger??null;
  for(const b of $('sceneFingerManual').querySelectorAll('[data-scene-hand],[data-scene-finger]')){
@@ -854,9 +856,39 @@ function fingerOverrideCommitGroup(ids,{finger,hand,reset=false}={}){
 // These are hand-entered teaching fixtures. No arbitrary MIDI is fingered here.
 // Finger numbers (1 thumb ... 5 little finger) are not observable through Web MIDI.
 const FINGER_GUIDANCE_PALETTE={
- RH:{ink:'#cd7d4f',fill:'rgba(229,157,112,.29)',light:'rgba(245,195,155,.5)'},
- LH:{ink:'#397be2',fill:'rgba(73,134,234,.29)',light:'rgba(134,180,247,.5)'}
+ RH:{ink:'#cd7d4f',note:'#df947d',fill:'rgba(229,157,112,.29)',light:'rgba(245,195,155,.5)'},
+ LH:{ink:'#397be2',note:'#85b5ee',fill:'rgba(73,134,234,.29)',light:'rgba(134,180,247,.5)'}
 };
+// Piano Roll note colors follow the PHYSICAL hand, never the MIDI track
+// number: LH blue sprite -> blue note, RH skin sprite -> peach note.
+// A hand-less MIDI note is neutral: neither register nor channel proves hand.
+// For verified grand-staff piano MusicXML, staff supplies an advisory color
+// only when no cross-staff voice conflict was detected.
+let fingerRollStaffSong=null,fingerRollCrossStaff=new Set();
+function fingerRollNoteHand(note){
+ const correction=note?.noteId?fingerOverrideForNote(note):null;
+ if(correction)return correction.hand==='LH'||correction.hand==='RH'?
+  correction.hand:null; // Explicitly unknown must NOT fall back to old hand.
+ if(note?.hand==='LH'||note?.hand==='RH')return note.hand;
+ if(!current)return null;
+ if(current.id==='demo-scale'||current.id==='demo-chords')return 'RH';
+ if(current.id==='demo-finger-duet'&&[0,1].includes(note.track))
+  return note.track===0?'RH':'LH';
+ if(current.format==='MIDI')
+  return fingerMidiExplicitTrackHand(current.tracks?.[note.track]);
+ if(current.format==='MusicXML'){
+  if(current!==fingerRollStaffSong){
+   fingerRollStaffSong=current;
+   fingerRollCrossStaff=fingerMusicXmlCrossStaffVoiceNotes(current);
+  }
+  if(fingerRollCrossStaff.has(note.noteId))return null;
+  return fingerMusicXmlPianoStaffHand(current,note);
+ }
+ return null;
+}
+function fingerRollNoteColor(note){
+ return FINGER_GUIDANCE_PALETTE[fingerRollNoteHand(note)]?.note||'#aaa8a4';
+}
 function fingerGuidanceSteps(){
  if(!current||state.adaptMode!=='original')return [];
  const id=current.id,validDemo=new Set(['demo-scale','demo-chords','demo-finger-duet']);
@@ -1383,8 +1415,18 @@ function renderCanvas(){
   if(bottom<0||top>keyY)continue;
   const inset=Math.min(2,Math.max(.55,k.w*.075)),x=k.x+inset,y=Math.max(0,top),nw=Math.max(1,k.w-2*inset),nh=Math.min(keyY,bottom)-y;
   if(nh<1)continue;
-  let color=['#df947d','#85b5ee','#a3c89c','#c7a1ec','#ebc274'][n.track%5];
-  if(state.mode!=='listen'&&n.track===state.track){const hit=reviewForNote(n);if(hit?.miss)color='#e77578';else if(hit?.hit){if(hit.chordSpreadMs>140)color='#ff8a97';else if(hit.holdRatio!=null&&(hit.holdRatio<.7||hit.holdRatio>1.4))color='#dfae5d';else if(hit.timingMs!=null&&Math.abs(hit.timingMs)>110)color='#ae9cf5';else color='#73c6ae';}}
+  // The block itself always retains its hand color, even in Listen/Wait
+  // and after a user changes RH/LH. Practice feedback remains a separate
+  // edge color instead of turning a right-hand block blue or vice versa.
+  const color=fingerRollNoteColor(n);
+  let feedback=null;
+  if(state.mode!=='listen'&&n.track===state.track){
+   const hit=reviewForNote(n);
+   if(hit?.miss)feedback='#e77578';
+   else if(hit?.hit)feedback=hit.chordSpreadMs>140?'#ff8a97':
+    hit.holdRatio!=null&&(hit.holdRatio<.7||hit.holdRatio>1.4)?'#dfae5d':
+    hit.timingMs!=null&&Math.abs(hit.timingMs)>110?'#ae9cf5':'#73c6ae';
+  }
   const audible=audibleNotes.has(n),personal=playedNotes.has(n);
   // Past notes recede subtly while future notes keep the track colour.
   // The sounding block has a cyan fill + halo; player's note has an orange
@@ -1393,7 +1435,7 @@ function renderCanvas(){
   c.save();
   c.globalAlpha=audible||personal||selectedNote===n?1:passed?.40:.92;
   if(audible){c.shadowColor='#70d7ff';c.shadowBlur=19;c.shadowOffsetY=0;}
-  c.fillStyle=audible?'#80d9ff':color;
+  c.fillStyle=color;
   c.beginPath();c.roundRect(x,y,nw,nh,Math.min(4,nw/5));c.fill();
   c.shadowBlur=0;
   if(audible){
@@ -1407,6 +1449,7 @@ function renderCanvas(){
    c.stroke();
    if(nw>=13&&nh>15){c.fillStyle='#ffb18b';c.fillRect(x+2,y+nh-6,Math.max(0,nw-4),3);}
   }
+  if(feedback){c.strokeStyle=feedback;c.lineWidth=2;c.stroke();}
   if(Number.isInteger(n.sourcePitch)&&n.sourcePitch!==n.pitch){c.strokeStyle='#ffffffb8';c.lineWidth=1.1;c.stroke();}
   if(sceneFingerReviewOpen&&sceneFingerReviewSelected.has(n)&&fingerCandidates.has(n)){
    c.strokeStyle='#ffe29c';c.lineWidth=3;c.stroke();
