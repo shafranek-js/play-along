@@ -387,6 +387,26 @@ function sceneFingerDownloadMusicXML(){
  else notify('Сначала примени аппликатуру или сохрани ручные исправления.');
 }
 
+/** Presentation only: reflect the effective finger/hand of exactly one
+ * selected, source-verified note. Mixed selection intentionally lights none.
+ * Reads current user override first, including source-author suppression;
+ * never treats finger number as hand proof.
+ */
+function sceneFingerSelectionHighlights(on,isManual){
+ const ids=[...fingerSelectedIds],selection=on&&isManual&&ids.length===1?
+  fingerSelectionOrdered().find(e=>e.id===ids[0])?.note:null;
+ const override=selection?fingerOverrideForNote(selection):null;
+ const hand=override?.hand??selection?.hand??null;
+ const finger=Number.isInteger(override?.finger)?override.finger:
+  override?.suppressAuthor?null:selection?.finger??null;
+ for(const b of $('sceneFingerManual').querySelectorAll('[data-scene-hand],[data-scene-finger]')){
+  const selected=!!selection&&(b.dataset.sceneHand?
+   b.dataset.sceneHand===hand:
+   Number.isInteger(finger)&&Number(b.dataset.sceneFinger)===finger);
+  b.setAttribute('aria-pressed',String(selected));
+  b.classList.toggle('sceneFingerAssigned',selected);
+ }
+}
 function sceneFingerControlsSync(){
  // A newly imported score must never inherit the detached viewport position
  // or zoom level of a previous song, even if both are MusicXML documents.
@@ -443,6 +463,7 @@ function sceneFingerControlsSync(){
  for(const b of $('sceneFingerTools').querySelectorAll('[data-scene-finger],[data-scene-hand]'))
   b.disabled=!on||!isManual||!count;
  $('sceneFingerClear').disabled=!on||!isManual||!count;
+ sceneFingerSelectionHighlights(on,isManual);
  const pythonHistory=sceneFingerMethod==='pianomotion'&&pianoMotionLastSong===current?
   pianoMotionReviewHistory:null;
  $('sceneFingerUndo').disabled=!fingerResetCanTravel('undo')&&
