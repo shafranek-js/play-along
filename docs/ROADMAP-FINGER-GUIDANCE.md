@@ -1,3 +1,7 @@
+## FG-05 — piano grand-staff MusicXML as provisional hand evidence · v0.10.139
+
+Owner clarification: piano scores with melody on upper staff and bass on lower staff provide a meaningful RH/LH **hint**, not an absolute rule or authored fingering. The score parser now marks only verified two-staff piano parts (piano name/explicit piano program; both 1 and 2 staves present). Beam Search automatically uses RH for staff 1 and LH for staff 2 in **temporary candidate calculations only**, while protecting explicit user corrections and author digits. Ensemble instruments outside those piano parts are not fingered in this mode. User-facing stage warns that crossing and hand swaps require manual checking. Non-piano grand staves and uncertain single-staff assignments remain opt-in / no-go.
+
 ## FG-05 — Beam Search for hand-explicit MIDI · v0.10.138
 
 Delivered the original FG-02I JS Beam solver for canonical MIDI source note IDs from the common stage, with explicit hand labels (source track titled RH/LH, Right Hand, Left Hand) or manually confirmed RH/LH per note as prerequisites. This is **not automatic hand inference**: ambiguous/unlabeled MIDI explains the hand prerequisite and abstains. Source bytes are verified before calculate/Apply; all proposals stay separate until in-place selective confirmation, atomic Undo/Redo and source-guarded approximate MusicXML export. Existing PianoMotion and original MusicXML behavior remain independent. Unit + real Chromium mixed-mode regressions gate publication.

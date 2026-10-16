@@ -640,18 +640,32 @@ function fingerBrowserMidiSourceVerified(){
   fingerMidiWorkKey(current,original)===key;
 }
 function fingerBrowserNotes(){
- return fingerBrowserAvailable()?fingerSelectionOrdered().map(x=>x.note):[];
+ if(!fingerBrowserAvailable())return [];
+ const notes=fingerSelectionOrdered().map(x=>x.note);
+ // MusicXML may be an orchestra score. Once an actual two-staff piano
+ // part is verified, calculate the piano parts, not the other instruments.
+ // No non-piano hand guesses and no rewrites to an orchestral arrangement.
+ const parts=current.format==='MusicXML'?current.pianoGrandStaffParts||[]:[];
+ return parts.length?notes.filter(n=>parts.includes(n.partId)):notes;
 }
 function fingerBrowserInput(){
  if(!fingerBrowserAvailable())return null;
  const key=fingerGuideWorkKey(),edits=key?state.fingerOverrides?.[key]||{}:{};
  const isMidi=current.format==='MIDI';
+ const pianoExcluded=current.format==='MusicXML'&&current.pianoGrandStaffParts?.length?
+  fingerSelectionOrdered().length-fingerBrowserNotes().length:0;
  const explicitTrackHands=new Map(isMidi?current.tracks.flatMap(track=>
   (track.notes||[]).map(n=>[n,fingerMidiExplicitTrackHand(track)])):[]);
+ let pianoStaffHints=0;
  const notes=fingerBrowserNotes().map(n=>{
   const change=fingerOverrideEffective(n,edits[n.noteId]);
   const userDeclaredStaff=$('fingerBrowserAssumeStaves').checked;
-  const writtenHand=change?.hand??n.hand??(isMidi?explicitTrackHands.get(n):null);
+  // A real piano grand staff is a provisional hand clue, not an original
+  // hand or an authored fingering. Explicit user/source hands win.
+  const pianoStaffHint=isMidi?null:fingerMusicXmlPianoStaffHand(current,n);
+  const writtenHand=change?.hand??n.hand??
+   (isMidi?explicitTrackHands.get(n):pianoStaffHint);
+  if(!change?.hand&&!n.hand&&pianoStaffHint)pianoStaffHints++;
   const h=(writtenHand==='RH'||writtenHand==='LH')?writtenHand:
    (userDeclaredStaff&&String(n.staff)==='1'?'RH':
     userDeclaredStaff&&String(n.staff)==='2'?'LH':null);
@@ -662,7 +676,7 @@ function fingerBrowserInput(){
    Number.isInteger(n.finger))candidate.authorFinger=n.finger;
   return candidate;
  });
- return {notes,handSize:state.fingerBrowserHandSize,
+ return {notes,handSize:state.fingerBrowserHandSize,pianoStaffHints,pianoExcluded,
   compareWithoutSaved:$('fingerBrowserCompareSaved').checked};
 }
 function fingerBrowserAbort(message){
@@ -763,7 +777,13 @@ function fingerBrowserShow(report){
    fingerBrowserUpdateActions();
    fingerEditorPaintSoon();
    status.textContent='Вычислено локально · Предложения для '+fingerBrowserPreview.size+
-    ' нот показаны фиолетовым в редакторе. Выдели подходящие ноты и проверь номера до подтверждения.'+
+    ' нот показаны фиолетовым на дорожке. Выдели подходящие ноты и проверь номера до подтверждения.'+
+    (fingerBrowserInput()?.pianoStaffHints?
+     ' · RH/LH предварительно по нотным станам фортепиано ('+
+     fingerBrowserInput().pianoStaffHints+' нот). Проверь переходы рук и перекрещивания.':'')+
+    (fingerBrowserInput()?.pianoExcluded?
+     ' · Другие инструменты исключены из расчёта (нот: '+
+     fingerBrowserInput().pianoExcluded+').':'')+
     skipNotice;
   }
  }

@@ -468,7 +468,7 @@ function readMusicXML(xmlString,filename){
  const title=xmlText(xmlDirect(root,'work'),'work-title',xmlText(root,'movement-title',libraryTitleFile(filename)));
  const creator=[...root.getElementsByTagName('creator')].find(x=>x.getAttribute('type')==='composer');const author=creator?.textContent?.trim()||'MusicXML · импорт';
  const namesById={};for(const p of xmlList(xmlDirect(root,'part-list'),'score-part'))namesById[p.getAttribute('id')]=xmlText(p,'part-name','Партия');
- const segments=[],tempos=[{tick:0,tempo:500000}],ppq=10080;let warnings=new Set();
+ const segments=[],pianoGrandStaffParts=[],tempos=[{tick:0,tempo:500000}],ppq=10080;let warnings=new Set();
  // One MIDI port requires no routing: warn only if multiple distinct ports
  // coexist across score-part definitions or mid-measure sound declarations.
  const portSet=new Set();
@@ -620,6 +620,19 @@ function readMusicXML(xmlString,filename){
   const declaredStaves=Math.max(1,...xmlList(part,'measure').flatMap(m=>[...m.getElementsByTagName('staves')].map(x=>Number(x.textContent)||1)));
   const hasGrandStaff=declaredStaves>1||staffNumbers.size>1;
   const explicitHand=partHand(partName);
+  // A two-staff PIANO part offers an editorial hand hypothesis, not
+  // evidence of the performer's actual hands. Never extrapolate this
+  // rule to arbitrary two-staff non-piano parts or multi-staff organs.
+  const pianoTitle=[partName,...scoreInstruments.map(x=>xmlText(x,'instrument-name',''))].join(' ');
+  const namedPiano=/(?:\b(?:piano|pianoforte|fortepiano|klavier|pno)\b|фортепиано|рояль)/i.test(pianoTitle);
+  const programPiano=midiInstruments.some(x=>{
+   const program=xmlText(x,'midi-program','');
+   return /^(?:[1-8])$/.test(program);
+  });
+  if(!explicitHand&&declaredStaves===2&&staffNumbers.has('1')&&staffNumbers.has('2')&&
+     [...staffNumbers].every(s=>s==='1'||s==='2')&&
+     (namedPiano||programPiano)&&[...configs.values()].every(x=>!x.isDrum))
+   pianoGrandStaffParts.push(partId);
   let sourceOrdinal=0;
   const voices=new Map();const ties=new Map();
   let measureIndex=0;
@@ -722,7 +735,7 @@ function readMusicXML(xmlString,filename){
   addAudioTick({type:'noteOff',tick:n.tick+n.len,channel:n.channel,track,sourceTrack:n.sourceTrack,noteId:n.noteId,pitch:n.pitch});
  }
  const audioEvents=audioEventTicks.map(({tick,...event})=>({...event,time:toSeconds(tick)})).sort((a,b)=>a.time-b.time||a.sequence-b.sequence);
- return{id:'xml-'+Date.now(),title:title.slice(0,100),author:author.slice(0,110),type:'import',format:'MusicXML',tracks,audioEvents,warnings:[...warnings],notationXML:playbackXml,originalNotationXML:repeatExpansion.expanded?safeXml:undefined,scoreTempoMap:tempoMap.map(t=>({beat:t.tick/ppq,sec:t.sec,tempo:t.tempo}))};
+ return{id:'xml-'+Date.now(),title:title.slice(0,100),author:author.slice(0,110),type:'import',format:'MusicXML',tracks,audioEvents,pianoGrandStaffParts,warnings:[...warnings],notationXML:playbackXml,originalNotationXML:repeatExpansion.expanded?safeXml:undefined,scoreTempoMap:tempoMap.map(t=>({beat:t.tick/ppq,sec:t.sec,tempo:t.tempo}))};
 }
 async function zipUnpackMXL(arrayBuffer){
  const a=new Uint8Array(arrayBuffer),d=new DataView(arrayBuffer);
