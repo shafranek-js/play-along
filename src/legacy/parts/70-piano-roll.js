@@ -178,7 +178,7 @@ function fingerGuidanceSteps(){
     // Keep trusted author fingers and only explicitly accepted session edits
     // (including user-applied PianoMotion suggestions). Never convert imported
     // musicxml-user-export-unverified digits into learner-facing guidance.
-    finger=n.finger;hand=n.hand==='RH'||n.hand==='LH'?n.hand:null;
+    finger=n.finger;hand=fingerOverrideEffective(n,edits[n.noteId])?.hand??(n.hand==='RH'||n.hand==='LH'?n.hand:null);
     source=n.fingeringSource==='musicxml'?'musicxml':'user';
    }
    // Preserve ALL source-note onsets, including notes with no trusted finger.
