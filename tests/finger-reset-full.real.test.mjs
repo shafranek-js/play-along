@@ -103,6 +103,8 @@ try{
  assert.deepEqual(await load(),original);
  await page.locator('#viewFingerEditor').click();
  assert.deepEqual(await getSaved(),masked,'source-keyed author masks persist across reload');
+ // The research controls start collapsed after reloading this piece.
+ await page.locator('#fingerCurrentCalculate').click();
  await page.locator('#fingerBrowserAssumeStaves').check();
  await page.locator('#fingerCurrentCalculate').click();
  await page.waitForFunction(()=>/Предложения для 4 нот/.test(
