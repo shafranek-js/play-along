@@ -112,6 +112,17 @@ try{
  assert.ok(Math.abs(afterReload.position-beforeReload)<.05,
   'Restore the selected work AND its playhead position');
  assert.equal(await page.evaluate(()=>window.__libraryV08.collection.length),0);
+ // Public, unified stage must export the APPROVED fingers after F5, without
+ // running the original Python worker again.
+ await page.locator('#sceneFingerMode').click();
+ await page.waitForFunction(()=>!document.querySelector('#sceneFingerExport').disabled);
+ const downloadReady=page.waitForEvent('download',{timeout:20000});
+ await page.locator('#sceneFingerExport').click();
+ const exported=await downloadReady;
+ const exportedXml=fs.readFileSync(await exported.path(),'utf8');
+ assert.match(exportedXml,/<fingering>4<\/fingering>/);
+ assert.match(exportedXml,/play-along-user-fingering/);
+ assert.match(exportedXml,/original MIDI-derived notation is approximate/);
  // A non-default demo must remain selected too.
  await page.locator('#librarySourceSelect').selectOption('demo');
  await page.locator('#librarySearch').fill('');
