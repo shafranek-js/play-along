@@ -73,6 +73,11 @@ try{
  assert.ok(Object.values(masked).every(x=>
   x.finger===null&&x.hand===null&&x.suppressAuthor===true));
  assert.equal((await hist()).past,1,'full reset is a single Undo step');
+ // Confirm one Undo/Redo before reload; history is intentionally ephemeral.
+ await page.locator('#fingerEditorUndo').click();
+ assert.deepEqual(await getSaved(),{},'one Undo restores original author labels');
+ await page.locator('#fingerEditorRedo').click();
+ assert.deepEqual(await getSaved(),masked,'one Redo reapplies both author masks');
  const preview=await page.evaluate(()=>window.__scoreTest.previewFingerOverlay(
   window.__fingerGuideTest.userCorrections));
  assert.equal(preview.status,'applied');
@@ -113,11 +118,8 @@ try{
  await page.locator('#fingerEditorUndo').click();
  assert.deepEqual(await getSaved(),masked,'one Undo restores all hidden-raw-author masks');
 
- // The base reset remains Undo-able in the same session even after a calculation.
- await page.locator('#fingerEditorUndo').click();
- assert.deepEqual(await getSaved(),{},'second Undo restores original author fingers');
- await page.locator('#fingerEditorRedo').click();
- assert.deepEqual(await getSaved(),masked,'Redo reapplies full author suppression');
+ // Session history resets at reload by design; only the new 4-note
+ // application is Undo-able in this session.
  await page.locator('#fingerEditorRedo').click();
  assert.deepEqual(await getSaved(),applied,'Redo restores all accepted proposals');
  await page.locator('#fingerEditorClear').click();
