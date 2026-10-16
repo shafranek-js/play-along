@@ -1387,7 +1387,9 @@ function pianoMotionDownloadMusicXML(){
       n.getAttribute('name')==='play-along-user-fingering')){
    const marker=make('miscellaneous-field');
    marker.setAttribute('name','play-along-user-fingering');
-   marker.textContent='PianoMotion-generated fingers applied by user in Play Along; not composer-authored; original MIDI-derived notation is approximate.';
+   marker.textContent='PianoMotion-generated fingers applied by user in Play Along; not composer-authored; '+
+    (song.format==='MIDI'?'original MIDI-derived notation is approximate.':
+     'original MusicXML score preserved.');
    miscellaneous.append(marker);
   }
   xml=new XMLSerializer().serializeToString(doc);
