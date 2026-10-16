@@ -1,4 +1,14 @@
-# Play Along — Piano Practice App (v0.10.147)
+# Play Along — Piano Practice App (v0.10.148)
+
+## Persist accepted fingering after F5 (v0.10.148)
+
+**User-applied PianoMotion fingering is now persistent**, in addition to already persisted Manual and Beam Search corrections. Previously the original Python review's Apply assigned source-note `finger/hand/fingeringSource` only in memory, so reimport/reload cleared the accepted digits. A separate, validated `acceptedFingering` layer now stores only **user-confirmed** PianoMotion outcomes, never research previews or raw automatic calculations. Each entry is bound to the original MIDI content fingerprint or exact MusicXML source and note ID, pitch, onset and duration. Loading the same source reconstructs the confirmed notes and hand assignments before the canvas/score renders. Author annotations and independently saved manual edits remain protected; source MIDI bytes and source MusicXML are never rewritten.
+
+After each accepted PianoMotion Apply/Undo/Redo the saved snapshot is updated with the rest of the preferences. Selected-note/full-song fingering reset, and reset Undo/Redo, now also persist the resulting applied-note state. Switching pieces and returning does not clear accepted digits; a page reload does not re-run Python and does not restart audio. Unapplied Beam/PianoMotion candidate previews and the transient edit history remain session-only. Portable settings backup automatically includes the durable accepted layer with strict validation. If the browser refuses local storage, the app reports the save failure instead of silently claiming the content was stored.
+
+A dedicated Node regression covers source-bound restore, atomic refusal of stale musical identity/author finger conflicts, validation, clearing and undo; existing Chromium persistence tests now cover actual MIDI and MusicXML imports with accepted source-note digits across F5 and switching songs.
+
+
 
 ## Persistent last-selected melody (v0.10.147)
 
