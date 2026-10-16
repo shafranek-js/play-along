@@ -73,8 +73,9 @@ function fingerEditorRender(){
    !selectedCount);
  const userWork=fingerGuideWorkKey(),userEdits=userWork?state.fingerOverrides?.[userWork]||{}:{};
  $('fingerEditorResetFingering').disabled=!fingerEditorAvailable()||
-  !Object.values(userEdits).some(change=>
-   Number.isInteger(change?.finger)&&change.finger>=1&&change.finger<=5);
+  !(Object.values(userEdits).some(change=>Number.isInteger(change?.finger))||
+   notes.some(n=>n.fingeringSource==='musicxml'&&Number.isInteger(n.finger)&&
+    !userEdits[n.noteId]?.suppressAuthor));
  $('fingerEditorDownloadXML').disabled=!fingerEditorAvailable()||!!current?.originalNotationXML||
   !Object.keys(userEdits).length;
  const doc=notes.length>0;
@@ -136,9 +137,13 @@ function fingerEditorRender(){
  const work=fingerGuideWorkKey(),edits=state.fingerOverrides?.[work]||{};
  for(const b of geo.boxes){
   const n=b.n,manual=fingerOverrideEffective(n,edits[n.noteId]);
-  const suggested=!manual&&n.fingeringSource!=='musicxml'?fingerBrowserPreview?.get(n.noteId):null;
-  const finger=manual?manual.finger:n.fingeringSource==='musicxml'?n.finger:suggested?.finger??null;
-  const hand=manual?manual.hand:n.hand==='RH'||n.hand==='LH'?n.hand:null;
+  const author=n.fingeringSource==='musicxml'&&Number.isInteger(n.finger)&&
+   !manual?.suppressAuthor;
+  const numbered=Number.isInteger(manual?.finger)||author;
+  const suggested=!numbered?fingerBrowserPreview?.get(n.noteId):null;
+  const finger=Number.isInteger(manual?.finger)?manual.finger:
+   author?n.finger:suggested?.finger??null;
+  const hand=manual?.hand??(n.hand==='RH'||n.hand==='LH'?n.hand:null);
   const selected=fingerSelectedIds.has(n.noteId);
   c.fillStyle=hand==='RH'?'#3f6c92':hand==='LH'?'#527a63':'#525e74';
   c.fillRect(b.x,b.y,b.w,b.h);
@@ -163,7 +168,8 @@ function fingerEditorRender(){
  const marked=notes.filter(n=>{
   const changed=fingerOverrideEffective(n,edits[n.noteId]);
   return Number.isInteger(changed?.finger)&&changed.finger>=1&&changed.finger<=5||
-   !changed&&n.fingeringSource==='musicxml'&&Number.isInteger(n.finger)&&n.finger>=1&&n.finger<=5;
+   !changed?.suppressAuthor&&n.fingeringSource==='musicxml'&&
+   Number.isInteger(n.finger)&&n.finger>=1&&n.finger<=5;
  }).length;
  footer.textContent='Номера пальцев: '+marked+' из '+notes.length+
   ' · Жёлтый контур — выбор · Янтарный — пользовательская правка · Шкала '+px.toFixed(0)+' px/с'+
@@ -479,16 +485,15 @@ function fingerBrowserInput(){
  const notes=fingerEditorNotes().map(n=>{
   const change=fingerOverrideEffective(n,edits[n.noteId]);
   const userDeclaredStaff=$('fingerBrowserAssumeStaves').checked;
-  const writtenHand=change?change.hand:n.hand;
+  const writtenHand=change?.hand??n.hand;
   const h=(writtenHand==='RH'||writtenHand==='LH')?writtenHand:
-   (!change&&userDeclaredStaff&&String(n.staff)==='1'?'RH':
-    !change&&userDeclaredStaff&&String(n.staff)==='2'?'LH':null);
+   (userDeclaredStaff&&String(n.staff)==='1'?'RH':
+    userDeclaredStaff&&String(n.staff)==='2'?'LH':null);
   const candidate={noteId:n.noteId,pitch:n.pitch,start:n.start,
    duration:n.duration,hand:h,staff:String(n.staff??''),voice:String(n.voice??'')};
-  if(change){
-   if(Number.isInteger(change.finger))candidate.userFinger=change.finger;
-  }else if(n.fingeringSource==='musicxml'&&Number.isInteger(n.finger))
-   candidate.authorFinger=n.finger;
+  if(Number.isInteger(change?.finger))candidate.userFinger=change.finger;
+  else if(!change?.suppressAuthor&&n.fingeringSource==='musicxml'&&
+   Number.isInteger(n.finger))candidate.authorFinger=n.finger;
   return candidate;
  });
  return {notes,handSize:state.fingerBrowserHandSize,
