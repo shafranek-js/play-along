@@ -106,11 +106,11 @@ try{
   page.waitForEvent('download',{timeout:12000}),
   page.locator('#sceneFingerExport').click()
  ]);
- assert.match(stageDownload.suggestedFilename(),/-user-fingering\\.musicxml$/);
+ assert.ok(stageDownload.suggestedFilename().endsWith('-user-fingering.musicxml'));
  const stageXml=fs.readFileSync(await stageDownload.path(),'utf8');
  assert.match(stageXml,/play-along-user-fingering/);
- assert.match(stageXml,/<fingering>2<\\/fingering>/);
- assert.match(stageXml,/<fingering>4<\\/fingering>/);
+ assert.ok(stageXml.includes('<fingering>2</fingering>'));
+ assert.ok(stageXml.includes('<fingering>4</fingering>'));
  assert.equal(await page.locator('#rollWrap').isVisible(),true);
  assert.equal(await page.locator('#fingerEditorWrap').isVisible(),false);
  assert.equal(await page.evaluate(()=>window.__prototypeTest.song.notationXML),source);
