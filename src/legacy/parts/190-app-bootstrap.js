@@ -250,31 +250,56 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(compactCloseMenu
   if(!cancel.defaultPrevented)el.classList.remove('show');
  });if(document.body.classList.contains('focus'))toggleFocus();return}if(fingerSelectionShortcut(e))return;if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();showCommands();return}if(e.target.closest('input,select,textarea')||document.querySelector('.overlay.show'))return;if(e.shiftKey&&e.key.toLowerCase()==='l'){e.preventDefault();toggleSide('left');return}if(e.shiftKey&&e.key.toLowerCase()==='r'){e.preventDefault();toggleSide('right');return}if(e.key===' '){e.preventDefault();togglePlay();return}if(e.key.toLowerCase()==='f'){e.preventDefault();toggleFocus();return}if(e.key==='ArrowLeft'){seek(pos-5);return}if(e.key==='ArrowRight'){seek(pos+5);return}});
 window.addEventListener('resize',applyPanels);window.addEventListener('resize',resizeCanvas);let ro=new ResizeObserver(resizeCanvas);ro.observe($('rollWrap'));
-if(!['listen','wait','tempo'].includes(state.mode))state.mode='listen';if(!['original','transpose','adaptive'].includes(state.adaptMode))state.adaptMode='original';if(!['device',...Object.keys(PREVIEW_RANGES)].includes(state.targetRange))state.targetRange='device';if(!['center','low','high'].includes(state.adaptProfile))state.adaptProfile='center';document.querySelectorAll('[data-mode]').forEach(b=>b.classList.toggle('active',b.dataset.mode===state.mode));$('bottomMode').value=state.mode;loadSong(demoSongs.find(s=>s.id===startupSelectedSongId)||demoSongs[0]);restoreFolder();applyPage();applyLayout(state.layout,false);switchRightTab(state.rightTab,false);updateDevice();updateUI();scoreSetView(state.scoreView);audioSettingsUISetup();requestAnimationFrame(frame);queueMicrotask(autoConnectMidi);
-// The IndexedDB collection is asynchronous. Restore the last selected saved work only
-// after it has been read, and never let the initial demo overwrite that selection.
+if(!['listen','wait','tempo'].includes(state.mode))state.mode='listen';if(!['original','transpose','adaptive'].includes(state.adaptMode))state.adaptMode='original';if(!['device',...Object.keys(PREVIEW_RANGES)].includes(state.targetRange))state.targetRange='device';if(!['center','low','high'].includes(state.adaptProfile))state.adaptProfile='center';document.querySelectorAll('[data-mode]').forEach(b=>b.classList.toggle('active',b.dataset.mode===state.mode));$('bottomMode').value=state.mode;loadSong(demoSongs.find(s=>s.id===startupSelectedSongId)||demoSongs[0],{startupRestore:true});restoreFolder();applyPage();applyLayout(state.layout,false);switchRightTab(state.rightTab,false);updateDevice();updateUI();scoreSetView(state.scoreView);audioSettingsUISetup();requestAnimationFrame(frame);queueMicrotask(autoConnectMidi);
+// Restore the exact last selected work. Saved and imported works live in IndexedDB;
+// bundled MIDI works do NOT, so they are recovered through their catalog SHA-256.
+// A user choosing another score while a restore is in flight always takes priority.
 startupLibraryPromise.then(async()=>{
  try{
-  if(startupSelectedSongId&&current?.id!==startupSelectedSongId){
+  if(!startupSongRestoreUserChosen&&startupSelectedSongId&&current?.id!==startupSelectedSongId){
+   let restored=false;
    let entry=collectionIndex.find(x=>x.id===startupSelectedSongId);
-   // v0.10.0 and earlier loaded imports under transient import/online IDs.
-   // Migrate them to content-based saved IDs without re-uploading the file.
-   if(!entry&&startupSelectedSongId.startsWith('import-')){
+   // Legacy transient import IDs can be mapped only by an exact filename+size.
+   if(!entry&&startupSelectedSongId.startsWith('import-'))
     entry=collectionIndex.find(x=>startupSelectedSongId==='import-'+x.name+'-'+x.dataSize);
-   }
-   if(!entry&&startupSelectedSongId.startsWith('online-')&&collectionIndex.length){
-    entry=[...collectionIndex].sort((a,b)=>b.added-a.added)[0];
-   }
    if(entry){
-    if(entry.id!==startupSelectedSongId&&state.songSettings[startupSelectedSongId]&&!state.songSettings[entry.id])
-     state.songSettings[entry.id]=state.songSettings[startupSelectedSongId];
-    const binary=await libraryReadBinary(entry.id);await libraryLoadFile(binary.name,binary.data,binary.id,{title:binary.title,author:binary.author,type:'saved'});
+    const binary=await libraryReadBinary(entry.id);
+    if(!startupSongRestoreUserChosen){
+     if(entry.id!==startupSelectedSongId&&state.songSettings[startupSelectedSongId]&&!state.songSettings[entry.id])
+      state.songSettings[entry.id]=state.songSettings[startupSelectedSongId];
+     restored=!!(await libraryLoadFile(binary.name,binary.data,binary.id,
+      {title:binary.title,author:binary.author,type:'saved',startupRestore:true}));
+    }
+   }else if(/^saved-sha256-[a-f0-9]{64}$/.test(startupSelectedSongId)){
+    // These files were opened directly from the bundled pack, not saved to
+    // IndexedDB. Their SHA-256 is already in the compact local catalog.
+    if(await builtinMidiCatalogPromise&&!startupSongRestoreUserChosen){
+     const builtIn=builtinMidiIndex.find(item=>'saved-sha256-'+item.sha256===startupSelectedSongId);
+     if(builtIn)restored=!!(await builtinMidiOpen(builtIn,{startupRestore:true}));
+    }
    }
-   else setLibraryStatus('Предыдущее произведение больше не найдено в локальной коллекции. Выбери его снова или импортируй файл.');
+   if(!restored&&!startupSongRestoreUserChosen){
+    // Keep the original selection in storage for a later successful retry.
+    // Never replace an unavailable online or local score with a random work.
+    state.selected=startupSelectedSongId;
+    setLibraryStatus('Не удалось восстановить последнюю мелодию. Она временно недоступна или удалена из коллекции. Подключи её источник или выбери другое произведение.');
+   }
   }
- }catch(err){setLibraryStatus('Не удалось восстановить мелодию: '+(err?.message||err))}
- finally{startupSongRestorePending=false;persist();renderLibrary()}
-}).catch(err=>{startupSongRestorePending=false;console.warn('Song restore failed',err);persist()});
+ }catch(err){
+  if(!startupSongRestoreUserChosen){
+   state.selected=startupSelectedSongId;
+   setLibraryStatus('Не удалось восстановить последнюю мелодию: '+(err?.message||err));
+  }
+ }finally{
+  startupSongRestorePending=false;
+  persist();
+  renderLibrary();
+ }
+}).catch(err=>{
+ startupSongRestorePending=false;
+ console.warn('Song restore failed',err);
+ persist();
+});
 window.addEventListener('pagehide',()=>{if(isPlaying&&ctx)pos=clockPos();persist()});
 window.__scoreTest={scoreXMLFromSong,scoreSecondToBeat,scoreBeatToSecond,scoreBarBeats,scoreSetView,scoreSyncCursor,
  get overlay(){const x=scoreFingeringOverlayState;return {status:x.status,count:x.count,handOnly:x.handOnly,reason:x.reason}},
