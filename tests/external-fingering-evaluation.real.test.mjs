@@ -37,6 +37,7 @@ try{
   window.__prototypeTest.loadSong(s);
   return {xml:s.notationXML,notes:s.tracks.flatMap(t=>t.notes).map(n=>({id:n.noteId,finger:n.finger??null}))};
  },original);
+ await page.locator('#developerToolsToggle').evaluate(el=>{if(!el.checked)el.click()});
  await page.locator('#viewFingerEditor').click();
  await page.locator('#fingerResearchPanel summary').click();
  const input=page.locator('#fingerResearchFile');
