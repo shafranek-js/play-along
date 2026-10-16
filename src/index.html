@@ -17,7 +17,7 @@
   <div class="topMenuPanel layoutMenuItems hidden" id="layoutMenuItems" role="group" aria-label="Рабочие компоновки"><button data-layout="learn" class="active" title="Панели обучения">Изучение</button><button data-layout="play" title="Максимум места для музыки">Игра</button><button data-layout="analyze" title="Расширенные показатели">Анализ</button></div>
  </div>
  <div class="scoreViewSwitcher" role="group" aria-label="Представление музыки"><button id="viewRoll" class="active" aria-pressed="true" title="Падающие ноты и виртуальная клавиатура">▥ Piano Roll</button><button id="viewSheet" aria-pressed="false" title="Нотная партитура с синхронным курсором">♬ Sheet Music</button><button id="viewFingerEditor" aria-pressed="false" title="Расчёт, анализ и расширенный редактор для всего произведения">⚙ Аппликатура</button></div>
- <button type="button" id="sceneFingerMode" class="sceneFingerMode" aria-pressed="false" aria-controls="sceneFingerTools" title="Переключить редактирование аппликатуры прямо на существующих нотах Piano Roll">✍ Редактировать</button>
+ <button type="button" id="sceneFingerMode" class="sceneFingerMode" aria-pressed="false" aria-controls="sceneFingerTools" title="Открыть три метода аппликатуры на общей сцене нот: Ручной / PianoMotion / Beam Search">✍ Аппликатура</button>
  <select id="compactViewSelect" class="compactViewSelect" aria-label="Представление музыки"><option value="roll">▥ Piano Roll</option><option value="sheet">♬ Ноты</option><option value="editor">✍ Аппликатура</option></select>
  <div class="topMenu handsMenu" id="handsMenu">
   <button type="button" id="handsMenuButton" class="topMenuTrigger handsMenuTrigger" aria-haspopup="true" aria-expanded="false" aria-controls="handsMenuPanel" title="Показать настройки рук и аппликатуры">✋ <span>Руки</span> ▾</button>
@@ -96,8 +96,16 @@
  <div class="splitter" id="leftSplit" data-side="left" aria-hidden="true"></div>
  <section class="center">
   <div class="rollWrap" id="rollWrap"><canvas id="roll" tabindex="0" aria-label="Piano Roll: выбор нот мышью, Ctrl+A все, Shift диапазон, Ctrl произвольный выбор"></canvas>
-   <div class="sceneFingerTools" id="sceneFingerTools" role="toolbar" aria-label="Назначения аппликатуры на общей сцене" hidden>
-    <div class="sceneFingerGroup" role="group" aria-label="Рука">
+   <div class="sceneFingerTools" id="sceneFingerTools" role="toolbar" aria-label="Три метода работы с аппликатурой на общей сцене" hidden>
+    <label class="sceneFingerMethodLabel" for="sceneFingerMethod">Метод
+     <select id="sceneFingerMethod" aria-label="Метод аппликатуры">
+      <option value="manual">Ручной</option>
+      <option value="pianomotion">PianoMotion</option>
+      <option value="beam">Beam Search</option>
+     </select>
+    </label>
+    <div id="sceneFingerManual" class="sceneFingerGroup sceneFingerManual" role="group" aria-label="Ручное назначение руки и пальца">
+     <div class="sceneFingerGroup" role="group" aria-label="Рука">
      <button type="button" data-scene-hand="LH" title="Левая рука · L">LH <kbd>L</kbd></button>
      <button type="button" data-scene-hand="RH" title="Правая рука · R">RH <kbd>R</kbd></button>
     </div>
@@ -110,11 +118,17 @@
      <button type="button" id="sceneFingerClear" title="Вернуть авторские пальцы для выделенных нот · 0">Снять · 0</button>
     </div>
     <label class="sceneFingerStep"><input type="checkbox" id="sceneFingerAutoAdvance"> Автопереход</label>
+    </div>
+    <div id="sceneFingerAutomatic" class="sceneFingerAutomatic" hidden>
+     <button type="button" id="sceneFingerCalculate" title="Запустить выбранный существующий алгоритм без применения его предложений">Рассчитать</button>
+     <button type="button" id="sceneFingerReview" title="Просмотреть и выборочно подтвердить результаты в расширенном редакторе">Проверить / применить…</button>
+     <span id="sceneFingerAutoStatus" class="sceneFingerAutoStatus" role="status" aria-live="polite">Предложения пока не рассчитаны</span>
+    </div>
     <span class="sceneFingerViewport" id="sceneFingerViewport" role="status" aria-live="off" title="Колесо мыши — обзор времени; Ctrl+колесо — временной масштаб. Транспорт воспроизведения не перемещается.">Вид: за игрой · 6.0 с</span>
     <button type="button" id="sceneFingerFollow" title="Вернуть нотную дорожку к позиции воспроизведения и следовать за ней" disabled>К воспроизведению</button>
     <button type="button" id="sceneFingerUndo" title="Отменить · Ctrl+Z">↶</button>
     <button type="button" id="sceneFingerRedo" title="Повторить · Ctrl+Y">↷</button>
-    <button type="button" id="sceneFingerAdvanced" title="Автоматическая аппликатура: отдельные алгоритмы PianoMotion и Beam Search, ручное подтверждение результатов, сравнение и экспорт">PianoMotion / Beam</button>
+    <button type="button" id="sceneFingerAdvanced" title="Открыть все инструменты выбранного метода: редактор, диагностику, подтверждение и экспорт">Все инструменты…</button>
     <span id="sceneFingerSelection" role="status" aria-live="polite">Выбери ноту</span>
    </div>
    <div class="rollHint">Клик — нота · Ctrl+клик — набор · Shift+клик — диапазон · рамка мышью · Ctrl+A — все · Space — Play/Pause</div></div>
