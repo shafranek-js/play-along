@@ -63,7 +63,8 @@ $('developerToolsToggle').onchange=e=>{
 };
 
 function sceneFingerMethodAvailable(method){
- if(method==='manual'||method==='beam')return fingerSelectionAvailable();
+ if(method==='manual')return fingerSelectionAvailable();
+ if(method==='beam')return fingerSelectionAvailable()&&current.format==='MusicXML';
  return method==='pianomotion'&&!!current;
 }
 function sceneFingerAutoSync(){
@@ -362,7 +363,8 @@ function sceneFingerExportKind(){
  if(pianoMotionLastSong===current&&pianoMotionLastApplied&&
     pianoMotionReviewCountApplied()>0&&!$('pianoMotionExportXML').disabled)
   return 'pianomotion';
- if(fingerSelectionAvailable()&&!current.originalNotationXML&&
+ if(fingerSelectionAvailable()&&current.format==='MusicXML'&&
+    !current.originalNotationXML&&
     Object.keys(state.fingerOverrides?.[fingerGuideWorkKey()]||{}).length)
   return 'manual';
  return null;
@@ -386,7 +388,7 @@ function sceneFingerControlsSync(){
  }
  const manualAvailable=fingerSelectionAvailable();
  if(sceneFingerMethod==='manual'&&!manualAvailable||
-    sceneFingerMethod==='beam'&&!manualAvailable)
+    sceneFingerMethod==='beam'&&!sceneFingerMethodAvailable('beam'))
   sceneFingerMethod='pianomotion';
  if(sceneFingerActive&&!current)sceneFingerActive=false;
  const on=sceneFingerActive&&state.scoreView==='roll'&&state.page==='practice';
@@ -568,7 +570,8 @@ for(const [button,direction] of [['sceneFingerUndo','undo'],['sceneFingerRedo','
 }
 document.addEventListener('keydown',sceneFingerKeyDown);
 function fingerSelectionAvailable(){
- return !!current&&current.format==='MusicXML'&&state.adaptMode==='original'&&!!fingerGuideWorkKey();
+ return !!current&&['MusicXML','MIDI'].includes(current.format)&&
+  state.adaptMode==='original'&&!!fingerGuideWorkKey();
 }
 function fingerSelectionOrdered(){return fingerSelectableNotes(current)}
 function fingerSelectionSet(ids,anchor=null){
