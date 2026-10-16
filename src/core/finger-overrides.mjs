@@ -37,7 +37,7 @@ export function fingerOverrideValidate(input,{strict=false}={}){
      !safeRecord(v)||!(v.finger===null||Number.isInteger(v.finger)&&v.finger>=1&&v.finger<=5)||
      (v.finger===null&&v.hand===null&&v.suppressAuthor!==true)||
      !(v.hand===null||v.hand==='RH'||v.hand==='LH')||
-     (Object.hasOwn(v,'suppressAuthor')&&(v.suppressAuthor!==true||v.finger!==null))||
+     (Object.hasOwn(v,'suppressAuthor')&&v.suppressAuthor!==true)||
      Object.keys(v).some(k=>!['finger','hand','suppressAuthor'].includes(k))){
     if(strict)throw Error('Некорректный номер пальца или рука');continue;
    }
@@ -56,7 +56,7 @@ export function fingerOverrideEffective(note,change){
   (change.finger===null&&change.hand===null&&change.suppressAuthor!==true)||
   !(change.hand===null||change.hand==='LH'||change.hand==='RH')||
   (Object.hasOwn(change,'suppressAuthor')&&
-   (change.suppressAuthor!==true||change.finger!==null)))return null;
+   change.suppressAuthor!==true))return null;
  return {finger:change.finger,hand:change.hand,source:'user',
   ...(change.suppressAuthor===true?{suppressAuthor:true}:{})};
 }
