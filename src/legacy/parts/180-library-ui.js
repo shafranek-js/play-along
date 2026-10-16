@@ -66,7 +66,7 @@ async function builtinMidiRawPack(){
  })().catch(error=>{builtinMidiPackPromise=null;throw error});
  return builtinMidiPackPromise;
 }
-async function builtinMidiOpen(e){
+async function builtinMidiOpen(e,{startupRestore=false}={}){
  const original=await builtinMidiRawPack();
  const midi=original.slice(e.offset,e.offset+e.length);
  if(midi.length!==e.length||String.fromCharCode(...midi.slice(0,4))!=='MThd'||
@@ -74,7 +74,7 @@ async function builtinMidiOpen(e){
   throw Error('Исходный MIDI не прошёл проверку контрольной суммы: '+e.title);
  const data=midi.buffer;
  await libraryLoadFile(e.filename,data,await libraryContentId(data),{
-  title:e.title,author:BUILTIN_MIDI_SOURCE,type:'builtin'
+  title:e.title,author:BUILTIN_MIDI_SOURCE,type:'builtin',startupRestore
  });
 }
 
@@ -182,9 +182,10 @@ function libraryRememberFilters(){
 function libraryFolderFiltersChanged(){libraryPageLimit=60;libraryRememberFilters();renderLibrary()}
 renderLibrary=renderLibraryV08;
 libraryRestoreFilters();
-void builtinMidiLoadCatalog().catch(error=>{
+const builtinMidiCatalogPromise=builtinMidiLoadCatalog().then(()=>true).catch(error=>{
  console.error('Built-in MIDI catalog:',error);
  setLibraryStatus('Не удалось открыть встроенные MIDI: '+error.message);
+ return false;
 });
 renderFolderListing=function(){
  const count=folderIndex.filter(e=>e.type==='score').length;
