@@ -45,7 +45,7 @@ export function fingerOverrideWorkKey(song){
 const safeRecord=v=>v!==null&&typeof v==='object'&&!Array.isArray(v)&&
  (Object.getPrototypeOf(v)===Object.prototype||Object.getPrototypeOf(v)===null);
 const workPattern=/^(?:xml|mid):[0-9]{1,8}:[a-f0-9]{16}$/;
-const notePattern=/^xml:[^\s]{1,240}$/;
+const notePattern=/^(?:xml:[^\s]{1,240}|midi:[0-9]{1,5}:[0-9]{1,8})$/;
 export function fingerOverrideValidate(input,{strict=false}={}){
  const result=Object.create(null);
  if(input==null)return result;
