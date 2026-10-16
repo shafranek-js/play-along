@@ -3,7 +3,34 @@
  * The key is a stable non-cryptographic content fingerprint for accidental
  * collision avoidance; stored entries are rechecked against authored notes.
  */
+// Only the original, already parsed MIDI input may mint this key. It is
+// independent of filename/library ID and never inferred from note pitches
+// or timeline positions. Short/oversized input cannot persist corrections.
+export function fingerMidiWorkKey(song,raw){
+ const bytes=raw instanceof Uint8Array?raw:
+  raw instanceof ArrayBuffer?new Uint8Array(raw):null;
+ if(song?.format!=='MIDI'||!Array.isArray(song.tracks)||!bytes||
+    bytes.length<22||bytes.length>4000000||
+    String.fromCharCode(...bytes.slice(0,4))!=='MThd')return null;
+ const notes=song.tracks.flatMap(t=>t.notes||[]);
+ if(!notes.length||notes.length>30000||
+    notes.some(n=>typeof n.noteId!=='string'||!/^midi:[0-9]{1,5}:[0-9]{1,8}$/.test(n.noteId)||
+      !Number.isInteger(n.pitch)||n.pitch<0||n.pitch>127||
+      !Number.isFinite(n.start)||n.start<0))return null;
+ if(new Set(notes.map(n=>n.noteId)).size!==notes.length)return null;
+ let a=2166136261,b=0x811c9dc5;
+ for(let i=0;i<bytes.length;i++){
+  const n=bytes[i];
+  a=Math.imul(a^n,16777619)>>>0;
+  b=Math.imul(b^(n+(i&255)),2246822519)>>>0;
+ }
+ return 'mid:'+bytes.length+':'+a.toString(16).padStart(8,'0')+
+  b.toString(16).padStart(8,'0');
+}
 export function fingerOverrideWorkKey(song){
+ if(song?.format==='MIDI')return Object.hasOwn(song,'midiFingerWorkKey')&&
+  /^mid:[0-9]{1,8}:[a-f0-9]{16}$/.test(song.midiFingerWorkKey)&&
+  Array.isArray(song.tracks)?song.midiFingerWorkKey:null;
  if(!song||typeof song.notationXML!=='string'||!song.notationXML.length||
   !Array.isArray(song.tracks))return null;
  const s=song.notationXML;
@@ -17,8 +44,8 @@ export function fingerOverrideWorkKey(song){
 }
 const safeRecord=v=>v!==null&&typeof v==='object'&&!Array.isArray(v)&&
  (Object.getPrototypeOf(v)===Object.prototype||Object.getPrototypeOf(v)===null);
-const workPattern=/^xml:[0-9]{1,8}:[a-f0-9]{16}$/;
-const notePattern=/^xml:[^\s]{1,240}$/;
+const workPattern=/^(?:xml|mid):[0-9]{1,8}:[a-f0-9]{16}$/;
+const notePattern=/^(?:xml:[^\s]{1,240}|midi:[0-9]{1,5}:[0-9]{1,8})$/;
 export function fingerOverrideValidate(input,{strict=false}={}){
  const result=Object.create(null);
  if(input==null)return result;
@@ -33,7 +60,8 @@ export function fingerOverrideValidate(input,{strict=false}={}){
   const output=Object.create(null);
   for(const [id,v] of Object.entries(changes)){
    if(++total>30000){if(strict)throw Error('Слишком много исправлений аппликатуры');return result}
-   if(!notePattern.test(id)||['__proto__','constructor','prototype'].includes(id)||
+   if(!notePattern.test(id)||!id.startsWith(work.startsWith('mid:')?'midi:':'xml:')||
+     ['__proto__','constructor','prototype'].includes(id)||
      !safeRecord(v)||!(v.finger===null||Number.isInteger(v.finger)&&v.finger>=1&&v.finger<=5)||
      (v.finger===null&&v.hand===null&&v.suppressAuthor!==true)||
      !(v.hand===null||v.hand==='RH'||v.hand==='LH')||

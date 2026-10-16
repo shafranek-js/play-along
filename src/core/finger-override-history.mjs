@@ -15,7 +15,9 @@ export function fingerHistorySame(a,b){
   (a.suppressAuthor===true)===(b.suppressAuthor===true);
 }
 function isRecord(record){
- return !!record&&typeof record.id==='string'&&record.id.startsWith('xml:')&&
+ return !!record&&typeof record.id==='string'&&
+ (/^xml:[^\\s]{1,240}$/.test(record.id)||
+  /^midi:[0-9]{1,5}:[0-9]{1,8}$/.test(record.id))&&
  safeChoice(record.before)&&safeChoice(record.after);
 }
 function changesFor(step,action){

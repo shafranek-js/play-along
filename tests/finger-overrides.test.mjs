@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {fingerOverrideWorkKey,fingerOverrideValidate,fingerOverrideEffective} from '../src/core/finger-overrides.mjs';
+import {fingerOverrideWorkKey,fingerMidiWorkKey,fingerOverrideValidate,fingerOverrideEffective} from '../src/core/finger-overrides.mjs';
 const song={notationXML:'<score-partwise><part id="P1"><note>1</note></part></score-partwise>',tracks:[{notes:[]}]};
 const id='xml:P1:0:0:1';
 test('FG-03C2A same MusicXML reimport yields stable key independent of transient song id',()=>{
@@ -65,4 +65,28 @@ test('source-author mask survives validated backup and does not change original 
  assert.throws(()=>fingerOverrideValidate({[key]:{[id]:{finger:null,hand:null,suppressAuthor:'yes'}}},{strict:true}));
  assert.throws(()=>fingerOverrideValidate({[key]:{[id]:{finger:null,hand:null,suppressAuthor:true,unexpected:1}}},{strict:true}));
  assert.equal(song.notationXML.includes('<score-partwise>'),true);
+});
+
+test('FG-05 original MIDI file bytes mint stable source key; changed data cannot reuse edits',()=>{
+ const raw=Uint8Array.from([
+  77,84,104,100,0,0,0,6,0,0,0,1,1,224,
+  77,84,114,107,0,0,0,13,0,0x90,60,80,0x83,0x60,0x80,60,0,0,0xff,0x2f,0
+ ]);
+ const midiSong={format:'MIDI',tracks:[{notes:[{noteId:'midi:0:1',pitch:60,start:0}]}]};
+ const key=fingerMidiWorkKey(midiSong,raw);
+ assert.match(key,/^mid:[0-9]+:[a-f0-9]{16}$/);
+ assert.equal(fingerMidiWorkKey({...midiSong,id:'renamed',title:'Other title'},raw),key);
+ const changed=raw.slice();changed[changed.length-8]=61;
+ assert.notEqual(fingerMidiWorkKey(midiSong,changed),key);
+ const imported={...midiSong};
+ Object.defineProperty(imported,'midiFingerWorkKey',{value:key,enumerable:false});
+ assert.equal(fingerOverrideWorkKey(imported),key);
+ assert.equal(fingerOverrideWorkKey(midiSong),null,'MIDI without a verified original byte key cannot persist edits');
+ const corrections={[key]:{'midi:0:1':{finger:4,hand:'LH'}}};
+ assert.deepEqual(JSON.parse(JSON.stringify(fingerOverrideValidate(corrections,{strict:true}))),corrections);
+ assert.deepEqual(fingerOverrideEffective(midiSong.tracks[0].notes[0],corrections[key]['midi:0:1']),
+  {finger:4,hand:'LH',source:'user'});
+ assert.throws(()=>fingerOverrideValidate({[key]:{'xml:P1:0:0:1':{finger:2,hand:'RH'}}},{strict:true}));
+ assert.throws(()=>fingerOverrideValidate({[fingerOverrideWorkKey(song)]:{'midi:0:1':{finger:2,hand:'RH'}}},{strict:true}));
+ assert.equal(fingerMidiWorkKey({...midiSong,tracks:[{notes:[midiSong.tracks[0].notes[0],midiSong.tracks[0].notes[0]]}]},raw),null);
 });

@@ -7,7 +7,8 @@ export function fingerSelectableNotes(song){
  if(!song||!Array.isArray(song.tracks))return entries;
  for(let track=0;track<song.tracks.length;track++)
   for(const [index,n] of (song.tracks[track]?.notes||[]).entries()){
-   if(typeof n.noteId==='string'&&n.noteId.startsWith('xml:')&&
+   if(typeof n.noteId==='string'&&
+    (n.noteId.startsWith('xml:')||song.format==='MIDI'&&/^midi:[0-9]{1,5}:[0-9]{1,8}$/.test(n.noteId))&&
     Number.isFinite(n.start)&&Number.isInteger(n.pitch))
     entries.push({id:n.noteId,start:n.start,track,index,pitch:n.pitch,note:n});
   }

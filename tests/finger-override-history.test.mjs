@@ -85,3 +85,22 @@ test('author suppression and replacement fingers remain distinct and atomic thro
  assert.equal(fingerHistoryTransition(fingerHistoryEmpty(),'edit',{
   id:id(1),before:null,after:{finger:null,hand:null}}),null);
 });
+
+test('FG-05 MIDI source note history stays atomic and undoable',()=>{
+ const id='midi:0:1',initial=fingerHistoryEmpty();
+ const first=fingerHistoryTransition(initial,'batch',{entries:[
+  {id,before:null,after:{finger:null,hand:'RH'}},
+  {id:'midi:0:2',before:null,after:{finger:4,hand:'RH'}}
+ ]});
+ assert.ok(first);
+ assert.equal(first.history.past.length,1);
+ const second=fingerHistoryTransition(first.history,'batch',{entries:[
+  {id,before:{finger:null,hand:'RH'},after:{finger:3,hand:'RH'}}
+ ]});
+ assert.ok(second);
+ const undo=fingerHistoryTransition(second.history,'undo');
+ assert.deepEqual(undo.changes[0].value,{finger:null,hand:'RH'});
+ const redo=fingerHistoryTransition(undo.history,'redo');
+ assert.deepEqual(redo.changes[0].value,{finger:3,hand:'RH'});
+ assert.equal(fingerHistoryTransition(initial,'edit',{id:'midi:NaN:1',before:null,after:{finger:2,hand:'LH'}}),null);
+});
