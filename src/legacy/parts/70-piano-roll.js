@@ -136,6 +136,12 @@ function sceneFingerStart(method){
    'Ручная правка пока доступна для исходного MusicXML. Для MIDI можно рассчитать PianoMotion.');
   return false;
  }
+ // Research-only compare-without-saved is never an implicit learner
+ // action; returning to ordinary UI restores the protected normal solver.
+ if(method==='beam'&&!sceneFingerDeveloper&&$('fingerBrowserCompareSaved').checked){
+  $('fingerBrowserCompareSaved').checked=false;
+  $('fingerBrowserCompareSaved').dispatchEvent(new Event('change',{bubbles:true}));
+ }
  // Mode is internal implementation state, not another choice the learner
  // has to make before pressing the desired calculation button.
  if(!sceneFingerActive)sceneFingerSetActive(true);
