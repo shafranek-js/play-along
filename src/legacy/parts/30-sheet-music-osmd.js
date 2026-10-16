@@ -70,6 +70,9 @@ function scoreXMLFromSong(song){
 }
 function scoreSetView(view){
  if(!['roll','sheet','editor'].includes(view))return;
+ // The on-scene Fingering mode is a presentation/interaction overlay on
+ // the persistent roll; switching to score or advanced editor closes it.
+ if(view!=='roll')sceneFingerActive=false;
  state.scoreView=view;
  if($('compactViewSelect'))$('compactViewSelect').value=view;
  $('rollWrap').classList.toggle('hidden',view!=='roll');
@@ -78,6 +81,7 @@ function scoreSetView(view){
  for(const [id,on] of [['viewRoll',view==='roll'],['viewSheet',view==='sheet'],['viewFingerEditor',view==='editor']]){
   $(id).classList.toggle('active',on);$(id).setAttribute('aria-pressed',String(on));
  }
+ sceneFingerControlsSync();
  persist();
  if(view==='sheet')scoreEnsureRendered().catch(scoreError);
  else if(view==='roll'){resizeCanvas();scoreLastFrame=0}
