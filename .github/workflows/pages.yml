@@ -34,6 +34,14 @@ jobs:
         run: npm run build
       - name: Unit tests
         run: npm test
+      # Fingering is user data. Require real F5/IndexedDB/DOM behavior, not only
+      # pure Node snapshots, before announcing a public release.
+      - name: Install Chromium for save/reload acceptance tests
+        run: npx playwright install --with-deps chromium
+      - name: Verify accepted fingering survives page reload
+        run: |
+          node tests/builtin-midi.real.test.mjs
+          node tests/persistence.real.test.mjs
       # Full Chromium and research regressions run in pr-tests.yml before merge.
       # Do not repeat the entire browser suite ahead of production publication:
       # a newly merged release otherwise remains invisible on Pages for minutes.
