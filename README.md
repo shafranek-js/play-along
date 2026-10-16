@@ -1,4 +1,14 @@
-# Play Along — Piano Practice App (v0.10.136)
+# Play Along — Piano Practice App (v0.10.137)
+
+## FG-06 — «Встроенные MIDI»: owner-supplied 162-file collection (v0.10.137)
+
+Built-in source filter in the music library, with all **162 original MIDI files** from the user's supplied `midi.zip`, indexed by filename, searchable and playable without going to a separate site. Source MIDI is NOT altered, quantized, or rewritten: the packed byte payload is decompressed lazily when the user opens the first composition, SHA-256 checked per work and for the whole pack, and passed to the original MIDI parser with stable source note IDs. No automatic fingers are inferred from the file names or MIDI tracks. Undo/Redo, PianoMotion, Manual and the common 88-key scene continue to use the existing source-identity checks.
+
+The source owner confirmed permission for public redistribution of the entire collection in the Play Along web app on October 16, 2026. Embedded composer/creator copyright metadata is left intact. The collection is not labelled public-domain or relicensed; the permission statement does not transfer ownership or rights to third parties. File download and original metadata remain verifiable in the published bundle.
+
+CI verifies exactly 162 source SMFs, no duplicate identities, original-byte SHA-256, corruption rejection, and real Chromium open of multiple scores using just one compressed pack fetch. The overall library retains existing MAESTRO/ASAP/Mutopia sources, which stay independent.
+
+
 
 ## FG-05 — one combined PianoMotion + manual MIDI export (v0.10.136)
 
