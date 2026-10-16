@@ -30,7 +30,7 @@ await new Promise(ok=>server.listen(0,'127.0.0.1',ok));
 let browser;
 try{
  browser=await chromium.launch({headless:true,args:['--no-sandbox']});
- const page=await browser.newPage({viewport:{width:1440,height:900}});
+ const page=await browser.newPage({viewport:{width:1440,height:900},acceptDownloads:true});
  const errors=[];page.on('pageerror',error=>errors.push(error.message));
  await page.goto('http://127.0.0.1:'+server.address().port);
  await page.waitForFunction(()=>window.__libraryV08?.songFromBuffer&&window.__fingerGuideTest);
@@ -95,6 +95,12 @@ try{
   'accepted Python fingers, including other notes, remain intact');
  assert.equal(await page.locator('#sceneFingerExport').isEnabled(),true,
   'revalidated Python export remains available after selected replacement');
+ const [download]=await Promise.all([
+  page.waitForEvent('download',{timeout:12000}),page.locator('#sceneFingerExport').click()
+ ]);
+ const exported=fs.readFileSync(await download.path(),'utf8');
+ assert.equal((exported.match(/<fingering>/g)||[]).length,3,
+  'export must include both untouched Python fingers plus selected user replacement');
  await page.locator('#sceneFingerUndo').click();
  assert.equal((await page.evaluate(()=>window.__fingerGuideTest.userCorrections))[id].finger,5);
  await page.locator('#sceneFingerRedo').click();
