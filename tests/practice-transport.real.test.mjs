@@ -35,6 +35,8 @@ try{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('http://127.0.0.1:'+server.address().port);
  await page.waitForFunction(()=>window.__prototypeTest?.loadSong);
+ // Timing regression cases use immediate transport; countdown has its own dedicated test.
+ await page.locator('#leadInDuration').evaluate(el=>{el.value='0';el.dispatchEvent(new Event('input',{bubbles:true}))});
  const setup=async(mode,notes)=>{
   await page.evaluate(({mode,notes})=>{
    const app=window.__prototypeTest;
