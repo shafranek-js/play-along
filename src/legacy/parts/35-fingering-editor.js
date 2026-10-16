@@ -347,7 +347,7 @@ function fingerResetPreview(){
  const plan=fingerResetEntries(mode,fingerSelectionOrdered().map(x=>x.note),state.fingerOverrides?.[fingerResetPending.key]||{});
  $('fingerResetConfirm').disabled=!plan.ok||!(plan.entries.length||plan.piano.length);
  $('fingerResetCount').textContent=plan.ok?
-  'Ручных номеров к сбросу: '+plan.userCount+
+  'Будет сброшено пользовательских номеров: '+plan.userCount+
   ' · Применённых PianoMotion: '+plan.pianoCount+
   (mode==='all'?' · Скрыто авторских номеров: '+plan.authorCount:'')+
   ' · Итого изменено нот: '+(plan.entries.length+plan.pianoCount)+
