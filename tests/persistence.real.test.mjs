@@ -65,6 +65,14 @@ try{
  await page.locator('#sheetFollow').uncheck();
  await page.locator('#labels').uncheck();
  await page.locator('#volume').evaluate(el=>{el.value='27';el.dispatchEvent(new Event('input',{bubbles:true}))});
+ // Confirmed original-Python Apply state: persistent, not composer fingering.
+ const acceptedXml=await page.evaluate(()=>{
+  const app=window.__prototypeTest,n=app.song.tracks[0].notes[0];
+  n.finger=2;n.hand='RH';n.fingeringSource='pianomotion';
+  app.seek(.2); // triggers normal persistence
+  return {id:n.noteId,work:app.song.id};
+ });
+ assert.ok(acceptedXml.id.startsWith('xml:'));
  await page.waitForTimeout(300);
  const beforeSwitch=await page.evaluate(()=>({song:window.__prototypeTest.song?.id,preferences:window.__prototypeTest.state.songSettings[window.__prototypeTest.song.id]}));
  assert.equal(beforeSwitch.preferences.track,1);
@@ -86,6 +94,8 @@ try{
  assert.equal(afterSwitch.mode,'wait');
  assert.equal(afterSwitch.track,1);
  assert.equal(afterSwitch.speed,65);
+ assert.equal(await page.evaluate(()=>window.__prototypeTest.song.tracks[0].notes[0].finger),2,
+  'Accepted fingering survives switching away and reopening the same work');
  // Both direct source changes and quick catalog buttons must be saved.
  await page.locator('#filterRepertoire').evaluate(el=>el.click());
  assert.equal(await page.evaluate(()=>window.__prototypeTest.state.libraryFilters.source),'repertoire');
@@ -110,6 +120,16 @@ try{
  });
  await page.reload({waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>window.__prototypeTest?.song?.title==='Persistent Piano Piece',null,{timeout:25000});
+ const restoredXml=await page.evaluate(()=>({
+  finger:window.__prototypeTest.song.tracks[0].notes[0].finger,
+  hand:window.__prototypeTest.song.tracks[0].notes[0].hand,
+  source:window.__prototypeTest.song.tracks[0].notes[0].fingeringSource,
+  accepted:window.__prototypeTest.state.acceptedFingering
+ }));
+ assert.deepEqual([restoredXml.finger,restoredXml.hand,restoredXml.source],
+  [2,'RH','pianomotion'],'Approved MusicXML fingering survives F5');
+ assert.ok(Object.values(restoredXml.accepted||{}).some(work=>
+  Object.values(work).some(note=>note.finger===2&&note.hand==='RH')));
  const restored=await page.evaluate(()=>({
    id:window.__prototypeTest.song.id,
    selected:window.__prototypeTest.state.selected,
