@@ -536,3 +536,7 @@ body.developerMode .sceneFingerDeveloperOnly{display:inline-flex!important}
  .sceneFingerTools .sceneFingerQuickActions button{padding:5px 7px}
  .sceneFingerTools{max-height:min(33vh,172px);overflow-y:auto}
 }
+
+/* The existing Beam candidate review is usable in both presentations.
+   Only raw solver comparison and research coverage diagnostics require dev UI. */
+body.developerMode .fingerBrowserMetrics.sceneFingerDeveloperOnly{display:grid!important}
