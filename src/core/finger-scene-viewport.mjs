@@ -6,10 +6,10 @@
 export const EDITOR_WINDOW_DEFAULT=6;
 export const EDITOR_WINDOW_MIN=2;
 export const EDITOR_WINDOW_MAX=24;
-const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+const fingerViewportClamp=(x,a,b)=>Math.min(b,Math.max(a,x));
 export function clampEditorTime(value,duration){
  if(!Number.isFinite(value)||!Number.isFinite(duration)||duration<0)return 0;
- return clamp(value,0,duration);
+ return fingerViewportClamp(value,0,duration);
 }
 export function normalizedWheelPixels(delta,deltaMode,viewportHeight){
  if(!Number.isFinite(delta))return 0;
@@ -20,12 +20,12 @@ export function editorPan({time,deltaPixels,pixelsPerSecond,duration}){
  return clampEditorTime(time+deltaPixels/pixelsPerSecond,duration);
 }
 export function editorZoom({time,windowSeconds=EDITOR_WINDOW_DEFAULT,deltaPixels,anchorY,strikeY,duration}){
- const oldSeconds=clamp(Number.isFinite(windowSeconds)?windowSeconds:EDITOR_WINDOW_DEFAULT,
+ const oldSeconds=fingerViewportClamp(Number.isFinite(windowSeconds)?windowSeconds:EDITOR_WINDOW_DEFAULT,
   EDITOR_WINDOW_MIN,EDITOR_WINDOW_MAX);
  if(!Number.isFinite(deltaPixels)||!Number.isFinite(anchorY)||
   !Number.isFinite(strikeY)||strikeY<=14)
   return {time:clampEditorTime(time,duration),windowSeconds:oldSeconds};
- const seconds=clamp(oldSeconds*Math.exp(deltaPixels*.0013),EDITOR_WINDOW_MIN,EDITOR_WINDOW_MAX);
+ const seconds=fingerViewportClamp(oldSeconds*Math.exp(deltaPixels*.0013),EDITOR_WINDOW_MIN,EDITOR_WINDOW_MAX);
  const height=Math.max(1,strikeY-14);
  const secondsFromView=(strikeY-anchorY)*oldSeconds/height;
  const anchorTime=clampEditorTime(time,duration)+secondsFromView;
@@ -33,7 +33,7 @@ export function editorZoom({time,windowSeconds=EDITOR_WINDOW_DEFAULT,deltaPixels
  return {time:clampEditorTime(newTime,duration),windowSeconds:seconds};
 }
 export function editorRevealTime({viewTime,target,windowSeconds,duration}){
- const seconds=clamp(windowSeconds,EDITOR_WINDOW_MIN,EDITOR_WINDOW_MAX);
+ const seconds=fingerViewportClamp(windowSeconds,EDITOR_WINDOW_MIN,EDITOR_WINDOW_MAX);
  const here=clampEditorTime(viewTime,duration);
  const targetTime=clampEditorTime(target,duration);
  if(targetTime>=here-.10&&targetTime<=here+seconds*.90)return here;
