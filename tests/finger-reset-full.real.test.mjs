@@ -132,7 +132,7 @@ try{
  assert.deepEqual(await getSaved(),applied,'Redo restores all accepted proposals');
  await page.locator('#fingerEditorClear').click();
  await page.locator('#fingerEditorResetFingering').click();
- assert.match(await page.locator('#fingerResetCount').innerText(),/пользовательских номеров: 4/);
+ assert.match(await page.locator('#fingerResetCount').innerText(),/Ручных номеров к сбросу: 4/);
  await page.locator('#fingerResetConfirm').click();
  const userOnly=await getSaved();
  assert.equal(Object.values(userOnly).filter(x=>Number.isInteger(x.finger)).length,0);
