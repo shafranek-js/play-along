@@ -1,3 +1,7 @@
+## FG-06 owner-provided built-in MIDI — v0.10.137
+
+Added a first-class `Встроенные MIDI` library filter backed by 162 original owner-supplied source MIDI files (`midi.zip`, SHA256 `0ba2b0e675c3fa2b4b3b02614114d2443a29cf40040192cdaeb0b830d36512b6`). The owner confirmed public redistribution permission 2026-10-16. Pack is included in the static build, checked by source SHA256 and per-file hashes and loaded lazily; the same MIDI source identity and Piano Roll handling are reused. Existing online MAESTRO/ASAP filters remain unchanged. No public-domain claim or claim that MIDI tracks contain piano fingering.
+
 ## FG-05 accepted Python + manual edits (v0.10.136)
 
 Merge manually confirmed numeric assignments on top of already accepted PianoMotion notes for the same source in MIDI→MusicXML exports. Preserve the remaining applied Python assignments, allow hand-only changes without blanking numbers, and gate export on original MIDI source bytes, validated source note identity and quantized MusicXML parity. Keep undo/redo of the two layers intact, never incorporate pending candidates. Multi-instrument manual edits outside the selected piano score fail closed.
